@@ -25,6 +25,7 @@ Package the dashboard application as a user-friendly Windows executable that can
 - [ ] File size is reasonable (<100MB preferred)
 - [ ] No antivirus false positives
 - [ ] Startup time is acceptable (<5 seconds)
+- [ ] Create a simple workflow to produce executable files for future updates
 
 ## Subtasks
 - [ ] Install and configure PyInstaller
@@ -35,6 +36,7 @@ Package the dashboard application as a user-friendly Windows executable that can
 - [ ] Optimize executable size
 - [ ] Create build script for repeatability
 - [ ] Document build process
+- [ ] Create a simple workflow to produce executable files for future updates
 
 ## Output Log
 *(This section is populated as work progresses on the task)*
