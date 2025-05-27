@@ -1,8 +1,8 @@
 ---
 task_id: G004
-status: open
+status: in_progress
 complexity: Medium
-last_updated: 2025-01-27T15:30:00Z
+last_updated: 2025-05-27T17:44:00Z
 ---
 
 # Task: SQLite Database Initialization
@@ -19,6 +19,7 @@ Create a robust SQLite database layer that supports the application's data persi
 
 ## Acceptance Criteria
 - [ ] SQLite database file is created on first application run
+- [ ] Use the implemented function `convert_xml_to_sqlite` to process data and switch the UI to load from XML rather than CSV
 - [ ] All required tables are created with proper schema
 - [ ] Database connection manager handles connections safely
 - [ ] Basic CRUD operations work for journal entries
@@ -27,6 +28,7 @@ Create a robust SQLite database layer that supports the application's data persi
 
 ## Subtasks
 - [ ] Create database.py module with connection manager
+- [ ] Use the implemented function `convert_xml_to_sqlite` to process data and switch the UI to load from XML rather than CSV
 - [ ] Design schema for journal_entries table
 - [ ] Design schema for cached_metrics table
 - [ ] Implement database initialization function
@@ -35,4 +37,4 @@ Create a robust SQLite database layer that supports the application's data persi
 - [ ] Write unit tests for database operations
 
 ## Output Log
-*(This section is populated as work progresses on the task)*
+[2025-05-27 17:44]: Task started. Moved to Sprint S02 and marked as in_progress.

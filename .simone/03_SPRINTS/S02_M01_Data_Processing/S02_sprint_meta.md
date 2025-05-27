@@ -21,7 +21,7 @@ Implement robust CSV data import functionality with validation, memory-efficient
 - [ ] Basic data statistics calculation
 
 ## Definition of Done
-- [ ] Can import Apple Health CSV files up to 100MB
+- [ ] Can import Apple Health CSV files up to 1GB
 - [ ] Invalid CSV format shows helpful error messages
 - [ ] Progress bar updates during import
 - [ ] Filters apply correctly and quickly (<200ms)

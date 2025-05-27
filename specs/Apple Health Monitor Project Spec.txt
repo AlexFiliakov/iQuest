@@ -21,3 +21,6 @@ A small dataset for 2 months is available in `processed data/apple_data_subset.c
 
 --------------
 
+
+break down `.simone/03_SPRINTS/S03_M01_basic_analytics/S03_sprint_meta.md` into tasks for that sprint
+
