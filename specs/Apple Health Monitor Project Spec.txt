@@ -1,0 +1,20 @@
+how would you approach creating a Windows executable dashboard with Python to analyze Apple Health Data? The data is processed into a Pandas table and stored as a CSV. I'd like to have the EXE take the CSV file and generate a collection of tabs that have different dashboards on them.
+
+I'd like to have a Configuration tab where the user can select the following:
+- Subset data on date range using field "creationDate".
+- Subset data by combination of fields "sourceName and "type" representing the device the metric came from and the type of health metric.
+
+Then I’d like dashboards that have different summaries of the various metrics:
+- Daily metric summaries of average, min, max
+- Weekly metric summaries of average, min, max
+- Monthly metric summaries of average, min, max
+- On daily summaries, compare to corresponding weekly and monthly statistics
+- On weekly summaries, compare to corresponding monthly statistics
+- If the data range is less than a month, display only daily and weekly statistics
+- If the data range is less than a week, display only daily statistics
+
+On each tab, I’d like to include a “Journal” feature to write notes on a specific day, week, month to provide some color commentary on the statistics.
+
+Make the charts friendly and engaging, use warm welcome colors like a tan background with oranges and yellows for the main interface UI, with brown text. Make it inviting to use. Make the charts and the UI easy to follow and understand for nontechnical users who may not read charts often.
+
+Create
