@@ -12,13 +12,17 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import sqlite3
 from pathlib import Path
-import logging
 from typing import Optional, Tuple, List
 from datetime import datetime
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from utils.logging_config import get_logger
+from utils.error_handler import (
+    safe_file_operation, safe_database_operation, 
+    DataImportError, DatabaseError, ErrorContext
+)
+
+# Get logger for this module
+logger = get_logger(__name__)
 
 
 def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
@@ -42,7 +46,7 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
     
     try:
         # Parse XML file
-        logging.info(f"Parsing XML file: {xml_path}")
+        logger.info(f"Parsing XML file: {xml_path}")
         tree = ET.parse(xml_path)
         root = tree.getroot()
     except ET.ParseError as e:
@@ -70,7 +74,7 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
         record_data['type'] = record_data['type'].str.replace('HKCategoryTypeIdentifier', '')
         
         # Create SQLite database with indexes
-        logging.info(f"Creating SQLite database: {db_path}")
+        logger.info(f"Creating SQLite database: {db_path}")
         with sqlite3.connect(db_path) as conn:
             # Store data
             record_data.to_sql('health_records', conn, 
@@ -91,7 +95,7 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
             conn.execute("INSERT INTO metadata VALUES ('import_date', datetime('now'))")
             conn.execute(f"INSERT INTO metadata VALUES ('record_count', '{len(record_data)}')")
             
-        logging.info(f"Successfully imported {len(record_data)} records")
+        logger.info(f"Successfully imported {len(record_data)} records")
         return len(record_data)
     except sqlite3.Error as e:
         logger.error(f"Database error during conversion: {e}")
@@ -324,10 +328,10 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
     
     try:
-        logging.info(f"Reading CSV file: {csv_path}")
+        logger.info(f"Reading CSV file: {csv_path}")
         df = pd.read_csv(csv_path, parse_dates=['creationDate'])
         
-        logging.info(f"Creating SQLite database: {db_path}")
+        logger.info(f"Creating SQLite database: {db_path}")
         with sqlite3.connect(db_path) as conn:
             df.to_sql('health_records', conn, index=False, if_exists='replace')
             
@@ -346,7 +350,7 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
             conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', datetime('now'))")
             conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('record_count', '{len(df)}')")
         
-        logging.info(f"Successfully migrated {len(df)} records")
+        logger.info(f"Successfully migrated {len(df)} records")
         return len(df)
     except pd.errors.ParserError as e:
         logger.error(f"Failed to parse CSV file: {e}")
