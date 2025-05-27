@@ -12,7 +12,7 @@
 - **Current Sprint**: S01_M01_Initial_EXE
 - **Highest Sprint in Milestone**: S04
 - **Last General Task ID**: G007
-- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (Basic UI framework), GX005 (Logging and error handling framework)
+- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (PyQt6 application skeleton), GX005 (Logging and error handling framework)
 
 ## Sprint Summary
 

@@ -61,3 +61,47 @@ Build the foundational UI structure with tab-based navigation, warm visual desig
   - **Mitigation**: Start with simple layouts, iterate
 - **Risk**: Cross-platform styling issues
   - **Mitigation**: Test early on Windows versions
+
+## Incorporated General Tasks
+The following general tasks have been identified as belonging to this sprint:
+
+### From General Tasks Pool:
+1. **G003_setup_pyqt6_application_skeleton.md** (Completed)
+   - Provides PyQt6 foundation for all UI work
+   - Creates main window, menu bar, status bar
+   - Establishes application architecture
+
+2. **G004_implement_configuration_tab.md** (Open)
+   - Implements Configuration Tab (Key Deliverable #2)
+   - Date range picker, source/type filters
+   - Filter presets functionality
+
+3. **GX003_create_basic_ui_framework.md** (Completed)
+   - Already implemented tab navigation system
+   - Applied warm color scheme
+   - Created responsive layout structure
+
+## Sprint Tasks Breakdown
+Based on remaining work and general tasks:
+
+1. **Complete PyQt6 Application Skeleton** (G003)
+   - Status: In Progress
+   - Remaining: Final testing and documentation
+
+2. **Implement Configuration Tab** (G004)
+   - Date range picker with calendar widgets
+   - Multi-select dropdowns for sources and types
+   - Filter application and reset functionality
+   - Save/load filter presets
+
+3. **Enhance Visual Design System**
+   - Refine color implementation across all components
+   - Create custom styled widgets (buttons, inputs, dropdowns)
+   - Implement loading indicators and progress bars
+   - Add tooltips throughout the UI
+
+4. **UI Components Library**
+   - Extract reusable components from existing code
+   - Create consistent error display widgets
+   - Implement keyboard navigation support
+   - Add window state persistence
