@@ -6,6 +6,7 @@ This module provides functionality to:
 - Query health records efficiently with date ranges
 - Generate daily/weekly/monthly summaries
 - Migrate existing CSV data to SQLite format
+- Load CSV data directly for UI usage
 """
 
 import xml.etree.ElementTree as ET
@@ -426,6 +427,61 @@ def validate_database(db_path: str) -> dict:
         conn.close()
     
     return validation_results
+
+
+class DataLoader:
+    """Simple data loader class for CSV files."""
+    
+    def __init__(self):
+        """Initialize the data loader."""
+        self.logger = get_logger(__name__)
+    
+    def load_csv(self, file_path: str) -> pd.DataFrame:
+        """Load CSV file and return as DataFrame.
+        
+        Args:
+            file_path: Path to the CSV file
+            
+        Returns:
+            DataFrame with the CSV data
+            
+        Raises:
+            FileNotFoundError: If CSV file doesn't exist
+            pd.errors.ParserError: If CSV is malformed
+        """
+        if not Path(file_path).exists():
+            raise FileNotFoundError(f"CSV file not found: {file_path}")
+        
+        try:
+            self.logger.info(f"Loading CSV file: {file_path}")
+            
+            # Read CSV with common date columns parsed
+            df = pd.read_csv(
+                file_path,
+                parse_dates=['creationDate', 'startDate', 'endDate'],
+                date_parser=pd.to_datetime,
+                on_bad_lines='skip'
+            )
+            
+            # Convert value column to numeric if it exists
+            if 'value' in df.columns:
+                df['value'] = pd.to_numeric(df['value'], errors='coerce')
+                df['value'] = df['value'].fillna(1.0)
+            
+            # Clean type names if they exist
+            if 'type' in df.columns:
+                df['type'] = df['type'].str.replace('HKQuantityTypeIdentifier', '')
+                df['type'] = df['type'].str.replace('HKCategoryTypeIdentifier', '')
+            
+            self.logger.info(f"Successfully loaded {len(df)} records from CSV")
+            return df
+            
+        except pd.errors.ParserError as e:
+            self.logger.error(f"Failed to parse CSV file: {e}")
+            raise DataImportError(f"Failed to parse CSV file: {str(e)}") from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error loading CSV: {e}")
+            raise DataImportError(f"Unexpected error loading CSV: {str(e)}") from e
 
 
 # Example usage and testing

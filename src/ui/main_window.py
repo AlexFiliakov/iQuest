@@ -9,6 +9,7 @@ from PyQt6.QtGui import QAction, QIcon, QPalette, QColor
 
 from utils.logging_config import get_logger
 from .style_manager import StyleManager
+from .configuration_tab import ConfigurationTab
 from config import (
     WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
     WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
@@ -127,37 +128,14 @@ class MainWindow(QMainWindow):
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
     
     def _create_configuration_tab(self):
-        """Create the configuration tab placeholder."""
-        config_widget = QWidget()
-        layout = QVBoxLayout(config_widget)
+        """Create the configuration tab."""
+        self.config_tab = ConfigurationTab()
         
-        # Placeholder content
-        label = QLabel("Configuration Settings")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                font-weight: 600;
-                color: #5D4E37;
-                padding: 20px;
-            }
-        """)
-        layout.addWidget(label)
+        # Connect signals
+        self.config_tab.data_loaded.connect(self._on_data_loaded)
+        self.config_tab.filters_applied.connect(self._on_filters_applied)
         
-        placeholder = QLabel("Import data and configure filters here")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                color: #8B7355;
-                padding: 10px;
-            }
-        """)
-        layout.addWidget(placeholder)
-        
-        layout.addStretch()
-        
-        self.tab_widget.addTab(config_widget, "Configuration")
+        self.tab_widget.addTab(self.config_tab, "Configuration")
     
     def _create_daily_dashboard_tab(self):
         """Create the daily dashboard tab placeholder."""
@@ -343,3 +321,20 @@ class MainWindow(QMainWindow):
         if size.width() < 1200:
             # Could implement compact mode here
             pass
+    
+    def _on_data_loaded(self, data):
+        """Handle data loaded signal from configuration tab."""
+        logger.info(f"Data loaded: {len(data) if data is not None else 0} records")
+        self.status_bar.showMessage(f"Loaded {len(data):,} health records")
+        
+        # Enable other tabs when data is loaded
+        for i in range(1, self.tab_widget.count()):
+            self.tab_widget.setTabEnabled(i, True)
+    
+    def _on_filters_applied(self, filters):
+        """Handle filters applied signal from configuration tab."""
+        logger.info(f"Filters applied: {filters}")
+        self.status_bar.showMessage("Filters applied successfully")
+        
+        # TODO: Pass filtered data to other tabs
+        # This will be implemented when other tabs are created
