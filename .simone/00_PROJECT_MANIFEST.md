@@ -5,14 +5,14 @@
 - **Description**: Windows executable dashboard with Python to analyze Apple Health Data
 - **Status**: Active
 - **Start Date**: 2025-01-27
-- **Last Updated**: 2025-05-27 (Logging and error handling framework completed)
+- **Last Updated**: 2025-05-27 (Basic CI/CD pipeline setup completed)
 
 ## Current State
 - **Current Milestone**: M01_MVP
-- **Current Sprint**: S01_M01_Initial_EXE
+- **Current Sprint**: S02_M01_core_ui
 - **Highest Sprint in Milestone**: S04
-- **Last General Task ID**: G007
-- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (PyQt6 application skeleton), GX005 (Logging and error handling framework)
+- **Last General Task ID**: G009
+- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (PyQt6 application skeleton), GX004 (Configuration tab implementation), GX005 (Logging and error handling framework), GX006 (Basic CI/CD pipeline setup)
 
 ## Sprint Summary
 
@@ -22,11 +22,12 @@
   - Data model and schema definition
   - Filtering and aggregation engine
   - SQLite storage layer
-- [ ] S02_M01_core_ui - Core dashboard UI framework
+- [ ] S02_M01_core_ui - Core dashboard UI framework [IN PROGRESS]
   - Tab-based navigation structure
   - Configuration tab with filters
   - Warm visual design implementation
   - Reusable UI component library
+  - G004_sqlite_database_initialization.md
 - [ ] S03_M01_basic_analytics - Basic daily/weekly/monthly summaries
   - Daily analytics with min/max/average
   - Weekly rollups and patterns
