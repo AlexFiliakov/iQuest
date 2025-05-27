@@ -5,14 +5,14 @@
 - **Description**: Windows executable dashboard with Python to analyze Apple Health Data
 - **Status**: Active
 - **Start Date**: 2025-01-27
-- **Last Updated**: 2025-05-27 (SQLite data loader implementation completed)
+- **Last Updated**: 2025-05-27 (Logging and error handling framework completed)
 
 ## Current State
 - **Current Milestone**: M01_MVP
 - **Current Sprint**: S01_M01_Initial_EXE
 - **Highest Sprint in Milestone**: S04
 - **Last General Task ID**: G007
-- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader)
+- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (Basic UI framework), GX005 (Logging and error handling framework)
 
 ## Sprint Summary
 
@@ -41,6 +41,8 @@
   - Export and reporting capabilities
 
 ## Recent Updates
+- 2025-05-27: Completed GX003 - Created basic UI framework with PyQt6, tab navigation, and warm color theme
+- 2025-05-27: Completed GX005 - Implemented logging and error handling framework with exception hooks
 - 2025-05-27: Completed GX002 - Implemented SQLite data loader with XML/CSV import and query methods
 - 2025-05-27: Completed GX001 - Setup Python project structure with PyQt6 foundation
 - 2025-01-27: Created comprehensive sprint plan for M01_MVP milestone
