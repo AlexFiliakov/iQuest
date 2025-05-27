@@ -1,5 +1,27 @@
-how would you approach creating a Windows executable dashboard with Python to analyze Apple Health Data? The data is processed into a Pandas table and stored as a CSV. I'd like to have the EXE take the CSV file and generate a collection of tabs that have different dashboards on them.
+---
+milestone_id: M01
+title: Workable EXE Creation
+status: active # pending | active | completed | blocked | on_hold
+last_updated: 2025-05-27
+---
 
+# Milestone: Backend Setup (EXAMPLE)
+
+## Goals
+Create an Apple Health Monitor EXE for use with Apple Health Exported data in Pandas CSV format.
+
+## Key Documents
+- TODO: Create PRD
+
+## Definition of Done (DoD)
+This milestone will be considered complete when:
+
+- The EXE is compiled and operational
+- Notes work and persist
+- Unit tests work for all components with 95%+ code coverage
+- All integration tests pass
+
+## Notes / Context
 I'd like to have a Configuration tab where the user can select the following:
 - Subset data on date range using field "creationDate".
 - Subset data by combination of fields "sourceName and "type" representing the device the metric came from and the type of health metric.
@@ -19,5 +41,7 @@ Make the charts friendly and engaging, use warm welcome colors like a tan backgr
 
 A small dataset for 2 months is available in `processed data/apple_data_subset.csv`
 
---------------
+## Related Sprints
+
+- [S01_M01_Initial_EXE](../../03_SPRINTS/S01_M01_Initial_EXE/S01_sprint_meta.md)
 
