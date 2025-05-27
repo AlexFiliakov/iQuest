@@ -2,45 +2,52 @@
 """Main entry point for Apple Health Monitor Dashboard."""
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget
+import traceback
+from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import Qt
 
 from utils.logging_config import setup_logging, get_logger
 from utils.error_handler import ErrorContext, ConfigurationError
+from ui.main_window import MainWindow
+from ui.style_manager import StyleManager
 
 # Initialize logging for the application
 setup_logging(log_level="INFO")
 logger = get_logger(__name__)
 
 
-class MainWindow(QMainWindow):
-    """Main application window."""
+def exception_hook(exc_type, exc_value, exc_traceback):
+    """Handle uncaught exceptions by logging them and showing user-friendly error dialog."""
+    # Don't handle KeyboardInterrupt
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
     
-    def __init__(self):
-        super().__init__()
-        logger.info("Initializing main window")
-        
-        self.setWindowTitle("Apple Health Monitor Dashboard")
-        self.setGeometry(100, 100, 800, 600)
-        
-        # Create central widget and layout
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        
-        # Add placeholder label
-        label = QLabel("Apple Health Monitor Dashboard\n\nComing Soon!")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                color: #FF8C42;
-                padding: 50px;
-            }
-        """)
-        layout.addWidget(label)
-        
-        logger.debug("Main window initialization complete")
+    # Log the exception
+    logger.critical(
+        "Uncaught exception",
+        exc_info=(exc_type, exc_value, exc_traceback)
+    )
+    
+    # Format error message for user
+    error_msg = f"An unexpected error occurred:\n\n{exc_type.__name__}: {exc_value}"
+    detailed_msg = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    
+    # Show error dialog if QApplication exists
+    if QApplication.instance():
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Critical)
+        msg_box.setWindowTitle("Application Error")
+        msg_box.setText(error_msg)
+        msg_box.setDetailedText(detailed_msg)
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+
+
+# Install the exception hook
+sys.excepthook = exception_hook
+
+
 
 
 def main():
@@ -53,6 +60,10 @@ def main():
         # Set application metadata
         app.setApplicationName("Apple Health Monitor")
         app.setOrganizationName("Apple Health Monitor Team")
+        
+        # Apply global styling
+        style_manager = StyleManager()
+        style_manager.apply_global_style(app)
         
         # Create and show main window
         with ErrorContext("Creating main window"):
