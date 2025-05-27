@@ -190,6 +190,11 @@ desktop.ini
 data/*.csv
 data/*.xml
 data/*.json
+data/*.db
+
+# Log files
+logs/
+*.log
 
 # Database files
 *.db

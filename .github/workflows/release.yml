@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        pyinstaller --name "AppleHealthMonitor" --windowed --onefile --icon=assets/icon.ico src/main.py
+    
+    - name: Create installer
+      run: |
+        # Add NSIS installer creation here in the future
+        echo "Installer creation pending"
+    
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: AppleHealthMonitor-Windows-${{ github.ref_name }}
+        path: dist/AppleHealthMonitor.exe
+
+  create-release:
+    needs: [build-windows]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/AppleHealthMonitor-Windows-*/AppleHealthMonitor.exe
+        draft: false
+        prerelease: false
+        generate_release_notes: true
