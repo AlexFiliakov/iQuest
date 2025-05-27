@@ -13,18 +13,50 @@ Building a Windows desktop application to analyze Apple Health data from CSV exp
 ## Current Sprint: S01_M01_Project_Setup
 Focus on establishing project foundation, PyQt6 skeleton app, and development environment.
 
-## Important Commands
+## Project Structure
+```
+Apple Health Exports/
+├── src/                    # Application source code
+│   ├── __init__.py        # Package initialization
+│   ├── main.py            # Entry point (PyQt6 app)
+│   ├── ui/                # UI components
+│   ├── data/              # Data processing
+│   ├── analytics/         # Analytics engine
+│   └── utils/             # Utilities
+├── tests/                  # Test suites
+│   ├── unit/              # Unit tests
+│   ├── integration/       # Integration tests
+│   └── ui/                # UI tests
+├── assets/                 # Icons, themes, fonts
+├── data/                   # User data (gitignored)
+├── docs/                   # Documentation
+├── venv/                   # Virtual environment
+├── requirements.txt        # Python dependencies
+├── README.md              # Project overview
+└── .gitignore             # Git ignore rules
+```
+
+## Development Setup
 ```bash
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
 # Run the application (during development)
 python src/main.py
 
 # Run tests
 pytest
 
-# Build executable
+# Build executable (future)
 pyinstaller build_config.spec
 
-# Create installer
+# Create installer (future)
 makensis installer.nsi
 ```
 

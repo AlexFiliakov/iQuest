@@ -1,0 +1,19 @@
+# Core dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+PyQt6>=6.5.0
+matplotlib>=3.7.0
+python-dateutil
+pyqtgraph
+
+# Development dependencies
+pytest>=7.0.0
+pytest-qt
+black
+flake8
+mypy
+coverage
+
+# Build tools
+PyInstaller>=5.0
+setuptools>=65.0
