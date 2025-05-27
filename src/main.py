@@ -58,8 +58,9 @@ def main():
         app = QApplication(sys.argv)
         
         # Set application metadata
-        app.setApplicationName("Apple Health Monitor")
-        app.setOrganizationName("Apple Health Monitor Team")
+        from config import APP_NAME, ORGANIZATION_NAME
+        app.setApplicationName(APP_NAME)
+        app.setOrganizationName(ORGANIZATION_NAME)
         
         # Apply global styling
         style_manager = StyleManager()

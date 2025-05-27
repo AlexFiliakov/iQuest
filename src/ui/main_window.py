@@ -9,6 +9,10 @@ from PyQt6.QtGui import QAction, QIcon, QPalette, QColor
 
 from utils.logging_config import get_logger
 from .style_manager import StyleManager
+from config import (
+    WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
+    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
+)
 
 logger = get_logger(__name__)
 
@@ -24,9 +28,9 @@ class MainWindow(QMainWindow):
         self.style_manager = StyleManager()
         
         # Set up the window
-        self.setWindowTitle("Apple Health Monitor Dashboard")
-        self.setMinimumSize(1024, 768)
-        self.resize(1440, 900)  # Optimal size
+        self.setWindowTitle(WINDOW_TITLE)
+        self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
+        self.resize(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)  # Optimal size
         
         # Apply warm color theme
         self._apply_theme()
