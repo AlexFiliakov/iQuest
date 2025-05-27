@@ -1,9 +1,9 @@
 ---
 sprint_id: S01_M01_Project_Setup
 title: Project Infrastructure & Base Configuration
-status: in_progress
+status: complete
 start_date: 2025-01-27
-end_date: 2025-02-02
+end_date: 2025-05-27
 ---
 
 # Sprint S01: Project Infrastructure & Base Configuration
@@ -16,15 +16,15 @@ Establish the foundational project structure, development environment, and core 
 - [x] Development environment setup (virtual env, dependencies)
 - [x] Basic PyQt6 application skeleton with window management
 - [x] SQLite database initialization and schema (via data_loader.py)
-- [ ] Logging and error handling framework (partially done in data_loader.py)
-- [ ] Basic CI/CD pipeline setup
+- [x] Logging and error handling framework ✓
+- [x] Basic CI/CD pipeline setup ✓
 - [x] Project documentation structure
 
 ## Definition of Done
 - [x] Project runs with `python main.py` showing basic window
 - [x] All dependencies documented in requirements.txt
 - [x] Database creates tables on first run (via data_loader functions)
-- [ ] Logging outputs to console and file (console done, file pending)
+- [x] Logging outputs to console and file ✓
 - [x] pytest runs successfully (13 tests passing for data_loader)
 - [x] README with setup instructions created
 - [x] Code follows agreed style guidelines
@@ -42,4 +42,7 @@ Establish the foundational project structure, development environment, and core 
 ## Progress Notes
 - 2025-05-27: Completed GX001 - Python project structure with PyQt6 skeleton app
 - 2025-05-27: Completed GX002 - SQLite data loader with comprehensive functionality
-- Outstanding: Full logging framework with file output, CI/CD pipeline setup
+- 2025-05-27: Implemented centralized logging configuration with file output
+- 2025-05-27: Created error handling utilities with custom exceptions
+- 2025-05-27: Set up CI/CD pipeline with GitHub Actions (test, lint, build)
+- Sprint completed successfully with all deliverables achieved
