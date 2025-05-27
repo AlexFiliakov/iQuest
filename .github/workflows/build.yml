@@ -1,0 +1,95 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      run: |
+        pytest tests/ || exit 1
+    
+    - name: Determine version
+      id: version
+      shell: bash
+      run: |
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          VERSION="${GITHUB_REF#refs/tags/v}"
+        else
+          VERSION="${{ github.event.inputs.version }}"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building version: $VERSION"
+    
+    - name: Update version file
+      run: |
+        echo "__version__ = '${{ steps.version.outputs.VERSION }}'" > src/version.py
+    
+    - name: Build with PyInstaller
+      run: |
+        # Check if icon exists
+        $iconParam = ""
+        if (Test-Path "assets/icon.ico") {
+          $iconParam = "--icon assets/icon.ico"
+        }
+        
+        python -m PyInstaller --name "Apple Health Monitor" `
+          --windowed `
+          --onefile `
+          --add-data "assets;assets" `
+          $iconParam `
+          --version-file version_info.txt `
+          src/main.py
+    
+    - name: Create installer with NSIS
+      if: false  # Disabled until NSIS script is created
+      run: |
+        makensis installer.nsi
+    
+    - name: Upload Windows executable
+      uses: actions/upload-artifact@v3
+      with:
+        name: apple-health-monitor-windows-${{ steps.version.outputs.VERSION }}
+        path: dist/*.exe
+    
+    - name: Create Release
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/*.exe
+        body: |
+          Apple Health Monitor v${{ steps.version.outputs.VERSION }}
+          
+          ## Changes
+          - See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details
+          
+          ## Installation
+          1. Download the executable below
+          2. Run the installer
+          3. Follow the setup wizard
+        draft: true
+        prerelease: false

@@ -1,6 +1,5 @@
 [flake8]
 max-line-length = 100
-extend-ignore = E203, W503
 exclude = 
     .git,
     __pycache__,
@@ -8,6 +7,16 @@ exclude =
     .venv,
     build,
     dist,
-    *.egg-info
+    *.egg-info,
+    .pytest_cache,
+    .mypy_cache
+ignore = 
+    # Line too long - handled by black
+    E501,
+    # Whitespace before ':' - conflicts with black
+    E203,
+    # Line break before binary operator - conflicts with black
+    W503
 per-file-ignores =
     __init__.py:F401
+max-complexity = 10
