@@ -1,16 +1,193 @@
-# Testing Guide for Apple Health Analytics Dashboard
+# Apple Health Monitor Testing Guide
 
-## Overview
-
-This guide covers testing best practices, mock usage patterns, and common testing scenarios for the Apple Health Analytics Dashboard project.
+This comprehensive guide documents the testing infrastructure, patterns, and best practices for the Apple Health Monitor project.
 
 ## Table of Contents
 
-1. [Mock Objects and Fixtures](#mock-objects-and-fixtures)
-2. [Testing Patterns](#testing-patterns)
-3. [Common Scenarios](#common-scenarios)
-4. [Pitfalls to Avoid](#pitfalls-to-avoid)
-5. [Running Tests](#running-tests)
+1. [Test Suite Overview](#test-suite-overview)
+2. [Test Organization](#test-organization)
+3. [Running Tests](#running-tests)
+4. [Test Fixtures](#test-fixtures)
+5. [Mock Objects](#mock-objects)
+6. [Testing Patterns](#testing-patterns)
+7. [Writing New Tests](#writing-new-tests)
+8. [Common Scenarios](#common-scenarios)
+9. [Troubleshooting](#troubleshooting)
+
+## Test Suite Overview
+
+The Apple Health Monitor uses pytest as its testing framework with comprehensive coverage across:
+
+- **Unit Tests**: Testing individual components in isolation
+- **Integration Tests**: Testing component interactions
+- **UI Tests**: Testing PyQt6 widgets and user interfaces
+- **Performance Tests**: Benchmarking critical operations
+- **Visual Tests**: Screenshot comparison tests (when enabled)
+
+### Key Statistics
+
+- **Total Test Files**: 57
+- **Test Coverage Goal**: 80%
+- **Framework**: pytest 8.3.5
+- **UI Testing**: pytest-qt 4.2.0
+- **Parallel Testing**: pytest-xdist
+
+## Test Organization
+
+### Directory Structure
+
+```
+tests/
+├── __init__.py
+├── conftest.py              # Global test configuration and fixtures
+├── base_test_classes.py     # Base classes for test inheritance
+├── fixtures/                # Test fixtures and data generators
+│   ├── __init__.py
+│   ├── database.py         # Database fixtures
+│   ├── factories.py        # Data factories
+│   └── health_fixtures.py  # Health data fixtures
+├── generators/             # Test data generators
+│   ├── base.py
+│   ├── edge_cases.py
+│   ├── health_data.py
+│   └── time_series.py
+├── helpers/                # Test utilities
+│   ├── time_helpers.py
+│   └── transaction_helpers.py
+├── mocks/                 # Mock implementations
+│   └── data_sources.py
+├── integration/           # Integration tests
+├── performance/          # Performance benchmarks
+├── ui/                  # UI component tests
+├── unit/               # Unit tests
+└── visual/            # Visual regression tests
+```
+
+### Test Categories
+
+#### Unit Tests (`tests/unit/`)
+- **Analytics**: `test_analytics_optimized.py` - correlation, anomaly detection, causality
+- **Calculators**: `test_*_metrics_calculator.py` - daily, weekly, monthly calculations
+- **Data Processing**: `test_data_loader.py`, `test_database.py`
+- **UI Components**: `test_preference_tracker.py`, `test_smart_default_selector.py`
+- **Utilities**: `test_error_handler.py`, `test_logging.py`
+
+#### Integration Tests (`tests/integration/`)
+- **Database**: `test_database_integration.py`
+- **Analytics**: `test_comparative_analytics_integration.py`
+- **UI**: `test_smart_selection_integration.py`
+- **XML Processing**: `test_xml_streaming_integration.py`
+
+#### UI Tests (`tests/ui/`)
+- **Components**: `test_component_factory.py`, `test_bar_chart_component.py`
+- **Widgets**: `test_consolidated_widgets.py`, `test_summary_cards.py`
+
+#### Performance Tests (`tests/performance/`)
+- **Benchmarks**: `test_calculator_benchmarks.py`, `test_database_benchmarks.py`
+- **Memory**: `test_memory_benchmarks.py`
+- **Execution**: `test_execution_benchmark.py`
+
+## Running Tests
+
+### Basic Commands
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/unit/test_statistics_calculator.py
+
+# Run specific test class
+pytest tests/unit/test_analytics_optimized.py::TestCorrelationAnalysis
+
+# Run specific test method
+pytest tests/unit/test_analytics_optimized.py::TestCorrelationAnalysis::test_correlation_methods
+
+# Run tests matching pattern
+pytest -k "test_correlation"
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run in parallel (faster)
+pytest -n auto
+
+# Run with specific markers
+pytest -m unit           # Unit tests only
+pytest -m integration    # Integration tests only
+pytest -m ui            # UI tests only
+pytest -m "not slow"    # Skip slow tests
+```
+
+### Coverage Reports
+
+```bash
+# Generate HTML coverage report
+pytest --cov=src --cov-report=html
+
+# View coverage report
+open htmlcov/index.html
+
+# Terminal coverage summary
+pytest --cov=src --cov-report=term-missing
+
+# XML coverage for CI
+pytest --cov=src --cov-report=xml
+```
+
+## Test Fixtures
+
+### Core Fixtures (conftest.py)
+
+```python
+# Qt Application
+@pytest.fixture(scope='session')
+def qapp():
+    """QApplication instance for Qt tests."""
+    
+# Health Data
+@pytest.fixture
+def sample_health_data():
+    """30 days of sample health data."""
+    
+# Database
+@pytest.fixture
+def memory_db():
+    """In-memory SQLite database."""
+    
+# Calculators
+@pytest.fixture
+def daily_calculator(mock_data_source):
+    """DailyMetricsCalculator with mock data."""
+    
+# UI Testing
+@pytest.fixture
+def qtbot():
+    """PyQt6 test bot (from pytest-qt)."""
+```
+
+### Custom Fixtures
+
+```python
+# Visual Testing
+@pytest.fixture
+def visual_tester():
+    """Visual regression testing helper."""
+    
+# Performance Testing
+@pytest.fixture
+def performance_benchmark():
+    """Performance benchmark helper."""
+    
+# Chart Rendering
+@pytest.fixture
+def chart_renderer():
+    """Chart rendering helper for visual tests."""
+```
 
 ## Mock Objects and Fixtures
 

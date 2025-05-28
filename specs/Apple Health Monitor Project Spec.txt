@@ -2,6 +2,13 @@
 source /home/alexf/claude-env/bin/activate
 claude --dangerously-skip-permissions --resume
 
+# Claude Config
+claude config list -g
+claude config --help
+claude config get --global parallelTasksCount
+claude config set --global parallelTasksCount 5
+
+
 
 how would you approach creating a Windows executable dashboard with Python to analyze Apple Health Data? The data is processed into a Pandas table and stored as a CSV. I'd like to have the EXE take the CSV file and generate a collection of tabs that have different dashboards on them.
 
@@ -66,19 +73,13 @@ G081
 
 then:
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
-Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
+Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible. Fill out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
-then:
-Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
 current:
-G052_advanced_trend_analysis_engine.md
-
-then:
-G054_interactive_health_visualizations.md
 G055_health_insights_recommendations.md
-G056_export_reporting_system.md
-G057_analytics_performance_optimization.md
+- complete the task, rename it to GX055 and close
+- then resume G056_export_reporting_system.md
 
 then:
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
