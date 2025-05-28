@@ -127,16 +127,55 @@ class MetricsService:
             WeeklyMetrics: avg, min, max, daily_values, trend
         """
         
-    def calculate_monthly_metrics(self,
-                                 data: pd.DataFrame,
-                                 metric_type: str,
-                                 year: int,
-                                 month: int) -> MonthlyMetrics:
+    def calculate_monthly_stats(self,
+                               metric: str,
+                               year: int,
+                               month: int) -> MonthlyMetrics:
         """
-        Calculate metrics for a month
+        Calculate comprehensive statistics for a specific month
+        
+        Args:
+            metric: The metric type to analyze
+            year: Year of the month
+            month: Month number (1-12)
         
         Returns:
-            MonthlyMetrics: avg, min, max, daily_values, weekly_avgs
+            MonthlyMetrics: Comprehensive monthly metrics with distribution stats
+        """
+        
+    def compare_year_over_year(self,
+                              metric: str,
+                              month: int,
+                              target_year: int,
+                              years_back: int = 1) -> MonthlyComparison:
+        """
+        Compare same month across multiple years
+        
+        Returns:
+            MonthlyComparison: YoY comparison with statistical significance
+        """
+        
+    def calculate_growth_rate(self,
+                             metric: str,
+                             periods: int,
+                             end_year: int,
+                             end_month: int) -> GrowthRateInfo:
+        """
+        Calculate compound monthly growth rate
+        
+        Returns:
+            GrowthRateInfo: Growth analysis with confidence intervals
+        """
+        
+    def analyze_distribution(self,
+                            metric: str,
+                            year: int,
+                            month: int) -> DistributionStats:
+        """
+        Analyze distribution characteristics for monthly data
+        
+        Returns:
+            DistributionStats: Skewness, kurtosis, normality tests
         """
         
     def compare_periods(self,
@@ -148,9 +187,142 @@ class MetricsService:
         Returns:
             Comparison: percentage_change, direction, significance
         """
+        
+    # Week-over-Week Trends API
+    def calculate_week_change(self,
+                             metric: str,
+                             week1: int,
+                             week2: int,
+                             year: int) -> TrendResult:
+        """
+        Calculate change between two weeks with comprehensive analysis
+        
+        Args:
+            metric: The metric type to analyze
+            week1: First week number (usually previous week)
+            week2: Second week number (usually current week)
+            year: Year for the weeks
+            
+        Returns:
+            TrendResult: Comprehensive week change analysis
+        """
+        
+    def detect_momentum(self,
+                       metric: str,
+                       current_week: int,
+                       year: int,
+                       lookback_weeks: int = 4) -> MomentumIndicator:
+        """
+        Detect if trend is accelerating, decelerating, or steady
+        
+        Returns:
+            MomentumIndicator: Momentum analysis with confidence
+        """
+        
+    def get_current_streak(self,
+                          metric: str,
+                          current_week: int,
+                          year: int,
+                          max_lookback: int = 52) -> StreakInfo:
+        """
+        Calculate improvement/decline streaks
+        
+        Returns:
+            StreakInfo: Streak tracking information
+        """
+        
+    def predict_next_week(self,
+                         metric: str,
+                         current_week: int,
+                         year: int,
+                         method: str = "linear") -> Prediction:
+        """
+        Forecast next week's value with confidence interval
+        
+        Returns:
+            Prediction: Forecast with confidence intervals
+        """
+        
+    def generate_trend_narrative(self,
+                                metric: str,
+                                trend_result: TrendResult,
+                                streak_info: StreakInfo,
+                                momentum: MomentumIndicator) -> str:
+        """
+        Generate automatic trend narrative
+        
+        Returns:
+            Generated narrative string
+        """
+        
+    def get_trend_series(self,
+                        metric: str,
+                        weeks_back: int = 12,
+                        end_week: Optional[int] = None,
+                        end_year: Optional[int] = None) -> List[WeekTrendData]:
+        """
+        Get trend data series for visualization
+        
+        Returns:
+            List of WeekTrendData objects for charts
+        """
 ```
 
-#### 3.4 Journal Service
+#### 3.4 Analytics Cache Service
+```python
+class AnalyticsCacheManager:
+    """Multi-tier caching system for analytics calculations"""
+    
+    def get(self, 
+            key: str, 
+            compute_fn: Callable[[], Any],
+            cache_tiers: List[str] = None,
+            ttl: Optional[int] = None,
+            dependencies: List[str] = None) -> Any:
+        """
+        Get from cache or compute with tier fallback
+        
+        Args:
+            key: Cache key
+            compute_fn: Function to compute value if cache miss
+            cache_tiers: Cache tiers to use (['l1', 'l2', 'l3'])
+            ttl: Time-to-live in seconds
+            dependencies: Cache dependencies for invalidation
+            
+        Returns:
+            Cached or computed result
+        """
+        
+    def set(self,
+            key: str,
+            value: Any,
+            cache_tiers: List[str] = None,
+            ttl: Optional[int] = None,
+            dependencies: List[str] = None) -> None:
+        """Store value in specified cache tiers"""
+        
+    def invalidate_pattern(self, pattern: str) -> Dict[str, int]:
+        """Invalidate cache entries matching pattern"""
+        
+    def invalidate_dependencies(self, dependency: str) -> Dict[str, int]:
+        """Invalidate cache entries with specific dependency"""
+        
+    def get_metrics(self) -> CacheMetrics:
+        """Get cache performance metrics"""
+        
+    def cleanup_expired(self) -> Dict[str, int]:
+        """Clean up expired entries across all tiers"""
+
+class CachedCalculatorWrapper:
+    """Cached wrapper for analytics calculators"""
+    
+    def __init__(self, calculator: Any):
+        """Initialize with underlying calculator"""
+        
+    # Wrapped methods maintain same signatures but add caching
+```
+
+#### 3.5 Journal Service
 ```python
 class JournalService:
     """Manages journal entries"""
@@ -271,11 +443,111 @@ class WeeklyMetrics(MetricsBase):
     trend_direction: str  # 'up', 'down', 'stable'
     
 @dataclass
-class MonthlyMetrics(MetricsBase):
-    year: int
-    month: int
-    daily_values: Dict[int, float]  # day -> value
-    weekly_averages: List[float]
+class MonthlyMetrics:
+    """Container for comprehensive monthly metrics."""
+    month_start: datetime
+    mode: str  # 'calendar' or 'rolling'
+    avg: float
+    median: float
+    std: float
+    min: float
+    max: float
+    count: int
+    growth_rate: Optional[float] = None
+    distribution_stats: Optional[DistributionStats] = None
+    comparison_data: Optional[MonthlyComparison] = None
+
+# Week-over-Week Trends Data Models
+@dataclass
+class TrendResult:
+    """Container for trend analysis results."""
+    percent_change: float
+    absolute_change: float
+    momentum: MomentumType
+    streak: int
+    confidence: float
+    current_week_avg: float
+    previous_week_avg: float
+    trend_direction: str  # 'up', 'down', 'stable'
+
+@dataclass 
+class StreakInfo:
+    """Container for streak tracking information."""
+    current_streak: int
+    best_streak: int
+    streak_direction: str  # 'improving', 'declining', 'none'
+    streak_start_date: Optional[date]
+    is_current_streak_best: bool
+
+@dataclass
+class MomentumIndicator:
+    """Container for momentum analysis."""
+    momentum_type: MomentumType
+    acceleration_rate: float
+    change_velocity: float
+    trend_strength: float
+    confidence_level: float
+
+@dataclass
+class Prediction:
+    """Container for predictive analysis results."""
+    predicted_value: float
+    confidence_interval_lower: float
+    confidence_interval_upper: float
+    prediction_confidence: float
+    methodology: str
+    factors_considered: List[str]
+
+@dataclass
+class WeekTrendData:
+    """Container for week trend visualization data."""
+    week_start: date
+    week_end: date
+    value: float
+    percent_change_from_previous: Optional[float]
+    trend_direction: str
+    momentum: MomentumType
+    is_incomplete_week: bool
+    missing_days: int
+
+class MomentumType(Enum):
+    """Types of momentum indicators."""
+    ACCELERATING = "accelerating"
+    DECELERATING = "decelerating"
+    STEADY = "steady"
+    INSUFFICIENT_DATA = "insufficient_data"
+
+@dataclass
+class DistributionStats:
+    """Container for distribution analysis results."""
+    skewness: float
+    kurtosis: float
+    normality_p_value: float
+    is_normal: bool
+    jarque_bera_stat: float
+    jarque_bera_p_value: float
+
+@dataclass 
+class MonthlyComparison:
+    """Container for year-over-year monthly comparison results."""
+    current_month_avg: float
+    previous_year_avg: float
+    percent_change: float
+    absolute_change: float
+    current_month_days: int
+    previous_year_days: int
+    years_compared: int
+    is_significant: bool
+
+@dataclass
+class GrowthRateInfo:
+    """Container for compound growth rate analysis."""
+    monthly_growth_rate: float
+    annualized_growth_rate: float
+    periods_analyzed: int
+    confidence_interval: Tuple[float, float]
+    r_squared: float
+    is_significant: bool
 
 @dataclass
 class JournalEntry:
@@ -381,8 +653,9 @@ class ErrorResponse:
 #### 7.2 Resource Limits
 - Maximum concurrent operations: 5
 - Memory usage per operation: < 100MB
-- Cache size limit: 50MB
+- Multi-tier cache memory: L1 configurable (default 500MB), L2/L3 disk-based
 - Thread pool size: 4 workers
+- Background refresh workers: 2
 
 ### 8. Testing Interfaces
 

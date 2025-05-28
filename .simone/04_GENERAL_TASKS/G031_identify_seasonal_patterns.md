@@ -114,7 +114,7 @@ Analyze monthly variations using Fourier analysis for cyclical patterns, STL dec
 
 ## Dependencies
 - G021 (Monthly Metrics Calculator)
-- G031 (Seasonal Pattern Analysis)
+- G030 (Month Over Month Trends)
 - statsmodels for time series analysis
 - Prophet or similar for forecasting
 - Weather API for correlation data

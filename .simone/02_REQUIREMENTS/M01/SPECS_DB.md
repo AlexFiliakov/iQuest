@@ -72,31 +72,37 @@ CREATE TABLE recent_files (
 CREATE INDEX idx_recent_files_accessed ON recent_files(last_accessed DESC);
 ```
 
-#### 2.4 Cached Metrics Table
+#### 2.4 Multi-Tier Analytics Cache System
+
+**Overview:** Three-tier caching architecture with L1 in-memory LRU cache, L2 SQLite cache, and L3 disk cache.
+
+**L1 Cache (In-Memory LRU):**
+- Memory-based OrderedDict with TTL support
+- Fast access (<1ms) for recent queries
+- Configurable size and memory limits
+
+**L2 Cache (SQLite):**
 ```sql
-CREATE TABLE cached_metrics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    cache_key VARCHAR(255) UNIQUE NOT NULL,
-    metric_type VARCHAR(50) NOT NULL,
-    date_range_start DATE NOT NULL,
-    date_range_end DATE NOT NULL,
-    source_name VARCHAR(100),
-    health_type VARCHAR(100),
-    aggregation_type VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'monthly'
-    metric_data TEXT NOT NULL, -- JSON blob
-    unit VARCHAR(20), -- Metric unit (e.g., 'count/min', 'lb', 'Cal')
-    record_count INTEGER, -- Number of records in cache
-    min_value REAL,
-    max_value REAL,
-    avg_value REAL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL
+CREATE TABLE cache_entries (
+    key TEXT PRIMARY KEY,
+    value BLOB,
+    created_at TIMESTAMP,
+    last_accessed TIMESTAMP,
+    access_count INTEGER DEFAULT 0,
+    size_bytes INTEGER,
+    dependencies TEXT,
+    ttl_seconds INTEGER,
+    expires_at TIMESTAMP
 );
 
-CREATE INDEX idx_cache_key ON cached_metrics(cache_key);
-CREATE INDEX idx_cache_expires ON cached_metrics(expires_at);
-CREATE INDEX idx_cache_metric_date ON cached_metrics(metric_type, date_range_start, date_range_end);
+CREATE INDEX IF NOT EXISTS idx_expires_at ON cache_entries(expires_at);
+CREATE INDEX IF NOT EXISTS idx_created_at ON cache_entries(created_at);
 ```
+
+**L3 Cache (Disk):**
+- Compressed file-based storage using gzip
+- Metadata tracked in JSON format
+- Long-term storage for expensive calculations
 
 #### 2.5 Health Metrics Metadata Table
 ```sql
@@ -198,19 +204,36 @@ def get_all_preferences():
     # Return as dictionary
 ```
 
-#### 3.3 Cache Operations
+#### 3.3 Multi-Tier Cache Operations
 ```python
-# Store computed metrics with statistics
-def cache_metrics(key, data, unit, stats, ttl_hours=24):
-    # Store with expiration and statistics
-    
-# Retrieve cached metrics
-def get_cached_metrics(key):
-    # Return if not expired, else None
-    
-# Clean expired cache
-def clean_expired_cache():
-    # Delete expired entries
+from src.analytics.cache_manager import get_cache_manager
+from src.analytics.cached_calculators import (
+    create_cached_daily_calculator,
+    create_cached_weekly_calculator,
+    create_cached_monthly_calculator
+)
+
+# Initialize cache system
+cache_manager = get_cache_manager()
+
+# Cached analytics with tier fallback
+def get_analytics_with_cache(key: str, compute_fn: Callable, 
+                           cache_tiers: List[str] = None,
+                           ttl: Optional[int] = None,
+                           dependencies: List[str] = None):
+    return cache_manager.get(key, compute_fn, cache_tiers, ttl, dependencies)
+
+# Cache invalidation by pattern or dependency
+def invalidate_cache_pattern(pattern: str):
+    return cache_manager.invalidate_pattern(pattern)
+
+# Cache metrics and monitoring
+def get_cache_metrics():
+    return cache_manager.get_metrics()
+
+# Clean expired entries across all tiers
+def cleanup_expired_cache():
+    return cache_manager.cleanup_expired()
 ```
 
 #### 3.4 Health Metrics Operations
@@ -332,16 +355,23 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 #### 5.3 Storage Limits
 - Journal entry content: Max 10,000 characters
-- Cache retention: 7 days default
 - Recent files list: Max 10 entries
 - Database size monitoring and alerts
 - CSV processing: Batch mode for files >100K records
 
-#### 5.4 Data Processing Optimization
+#### 5.4 Multi-Tier Cache Configuration
+- **L1 Cache:** Default 1000 entries, configurable memory limit
+- **L2 Cache:** SQLite-based with TTL expiration
+- **L3 Cache:** Disk-based compressed storage
+- **TTL Defaults:** L1: 15min, L2: 24hr, L3: 1 week
+- **Cache Promotion:** L3→L2→L1 on cache hits
+- **Background Refresh:** Popular queries refreshed proactively
+
+#### 5.5 Data Processing Optimization
 - Exclude empty device column from processing
 - Use timezone-aware datetime handling
 - Implement streaming for large CSV files
-- Cache frequently accessed metric metadata
+- Cache analytics calculations with dependency tracking
 
 ### 6. Data Integrity
 
