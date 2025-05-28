@@ -129,6 +129,8 @@ def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_source ON health_records(sourceName)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_source_type ON health_records(sourceName, type)')
             
             # Create metadata table
             conn.execute('''
@@ -229,6 +231,8 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
             conn.execute('CREATE INDEX idx_creation_date ON health_records(creationDate)')
             conn.execute('CREATE INDEX idx_type ON health_records(type)')
             conn.execute('CREATE INDEX idx_type_date ON health_records(type, creationDate)')
+            conn.execute('CREATE INDEX idx_source ON health_records(sourceName)')
+            conn.execute('CREATE INDEX idx_source_type ON health_records(sourceName, type)')
             
             # Create metadata table
             conn.execute('''

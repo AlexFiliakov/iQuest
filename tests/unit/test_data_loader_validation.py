@@ -83,23 +83,29 @@ class TestXMLTransactionHandling:
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
             db_path = db_file.name
         
+        # Test that validation fails with expected error
+        error_occurred = False
+        error_message = ""
+        
         try:
-            with pytest.raises(DataValidationError) as exc_info:
-                convert_xml_to_sqlite_with_validation(xml_file, db_path)
-            
-            # The error message should contain details about validation failure
-            error_msg = str(exc_info.value)
-            assert "XML validation failed" in error_msg
-            assert "Invalid datetime format" in error_msg
-            assert "Invalid numeric value" in error_msg
-            
-            # Verify database was not created or is empty
-            assert not os.path.exists(db_path) or os.path.getsize(db_path) == 0
-            
-        finally:
-            os.unlink(xml_file)
-            if os.path.exists(db_path):
-                os.unlink(db_path)
+            convert_xml_to_sqlite_with_validation(xml_file, db_path)
+        except DataValidationError as e:
+            error_occurred = True
+            error_message = str(e)
+        
+        # Verify the error occurred and contains expected content
+        assert error_occurred, "Expected DataValidationError was not raised"
+        assert "XML validation failed" in error_message
+        assert "Invalid datetime format" in error_message
+        assert "Invalid numeric value" in error_message
+        
+        # Verify database was not created or is empty
+        assert not os.path.exists(db_path) or os.path.getsize(db_path) == 0
+        
+        # Cleanup
+        os.unlink(xml_file)
+        if os.path.exists(db_path):
+            os.unlink(db_path)
     
     def test_skip_validation_option(self):
         """Test skipping validation when validate_first=False."""
@@ -138,52 +144,56 @@ class TestXMLTransactionHandling:
             sqlite3.Error("Database error")  # SELECT COUNT(*) query
         ]
         
+        # Test that error is raised and rollback is called
+        error_occurred = False
+        error_message = ""
+        
         try:
-            with pytest.raises(DatabaseError) as exc_info:
-                _convert_xml_with_transaction(xml_file, "test.db")
-            
-            # Verify the error was wrapped properly
-            assert "Database import failed and was rolled back" in str(exc_info.value)
-            
-            # Verify rollback was called
-            mock_conn.rollback.assert_called_once()
-            
-        finally:
-            os.unlink(xml_file)
+            _convert_xml_with_transaction(xml_file, "test.db")
+        except DatabaseError as e:
+            error_occurred = True
+            error_message = str(e)
+        
+        # Verify error occurred with expected message
+        assert error_occurred, "Expected DatabaseError was not raised"
+        assert "Database import failed and was rolled back" in error_message
+        
+        # Verify rollback was called
+        mock_conn.rollback.assert_called_once()
+        
+        # Cleanup
+        os.unlink(xml_file)
     
-    def test_transaction_rollback_on_import_verification_failure(self):
+    @patch('src.data_loader.pd.DataFrame.to_sql')
+    def test_transaction_rollback_on_import_verification_failure(self, mock_to_sql):
         """Test rollback when import verification fails."""
         xml_file = self.create_valid_xml()
         
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
             db_path = db_file.name
         
-        # Remove the empty file so we can control the database creation
-        os.unlink(db_path)
+        # Mock to_sql to not actually insert data, causing verification to fail
+        mock_to_sql.return_value = None
+        
+        # Test that error is raised when verification fails
+        error_occurred = False
+        error_message = ""
         
         try:
-            # Pre-create database with wrong table structure to trigger verification failure
-            conn = sqlite3.connect(db_path)
-            conn.execute('''CREATE TABLE health_records (
-                creationDate TEXT,
-                sourceName TEXT,
-                type TEXT,
-                value REAL
-            )''')
-            # Start with empty table so verification will fail
-            conn.close()
-            
-            with pytest.raises(DatabaseError) as exc_info:
-                _convert_xml_with_transaction(xml_file, db_path)
-            
-            # Should fail on verification since table will be replaced but count mismatch will occur
-            assert "Database import failed and was rolled back" in str(exc_info.value)
-            assert "Import verification failed" in str(exc_info.value)
-            
-        finally:
-            os.unlink(xml_file)
-            if os.path.exists(db_path):
-                os.unlink(db_path)
+            _convert_xml_with_transaction(xml_file, db_path)
+        except DatabaseError as e:
+            error_occurred = True
+            error_message = str(e)
+        
+        # Verify error occurred with expected message
+        assert error_occurred, "Expected DatabaseError was not raised"
+        assert "Database import failed and was rolled back" in error_message
+        assert "Import verification failed" in error_message
+        
+        # Cleanup
+        os.unlink(xml_file)
+        if os.path.exists(db_path):
+            os.unlink(db_path)
     
     def test_metadata_creation_during_import(self):
         """Test that metadata is correctly created during import."""
@@ -250,15 +260,22 @@ class TestXMLTransactionHandling:
         
         xml_file = self.create_test_xml_file(empty_xml)
         
+        # Test that error is raised for empty XML
+        error_occurred = False
+        error_message = ""
+        
         try:
-            with pytest.raises(DataValidationError) as exc_info:
-                _convert_xml_with_transaction(xml_file, "test.db")
-            
-            # The error should be caught and properly wrapped
-            assert "No health records found" in str(exc_info.value)
-            
-        finally:
-            os.unlink(xml_file)
+            _convert_xml_with_transaction(xml_file, "test.db")
+        except DataValidationError as e:
+            error_occurred = True
+            error_message = str(e)
+        
+        # Verify error occurred with expected message
+        assert error_occurred, "Expected DataValidationError was not raised"
+        assert "No health records found" in error_message
+        
+        # Cleanup
+        os.unlink(xml_file)
     
     def test_malformed_xml_file(self):
         """Test handling of malformed XML."""
@@ -269,16 +286,23 @@ class TestXMLTransactionHandling:
         
         xml_file = self.create_test_xml_file(malformed_xml)
         
+        # Test that error is raised for malformed XML
+        error_occurred = False
+        error_message = ""
+        
         try:
-            with pytest.raises(DataImportError) as exc_info:
-                _convert_xml_with_transaction(xml_file, "test.db")
-            
-            # Should catch XML parsing error and wrap it properly
-            assert "XML parsing failed" in str(exc_info.value)
-            assert "not well-formed" in str(exc_info.value)
-            
-        finally:
-            os.unlink(xml_file)
+            _convert_xml_with_transaction(xml_file, "test.db")
+        except DataImportError as e:
+            error_occurred = True
+            error_message = str(e)
+        
+        # Verify error occurred with expected message
+        assert error_occurred, "Expected DataImportError was not raised"
+        assert "XML parsing failed" in error_message
+        assert "not well-formed" in error_message
+        
+        # Cleanup
+        os.unlink(xml_file)
 
 
 class TestDataTypeConversion:
