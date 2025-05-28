@@ -14,6 +14,7 @@ last_updated: 2025-05-28T12:00:00Z
 Implement an engaging RPG-style gamification system that transforms health metrics into character stats, classes, skills, and progression mechanics to encourage healthier behavior through fun, humorous gameplay elements.
 
 ## Scope & Key Deliverables
+- **Tab Name**: The game is isolated in a separate tab called "iQuest", which is the name of the game
 - **Character System**: Create character with stats derived from health metrics (HP, Stamina, Strength, etc.)
 - **Class System**: Implement class determination based on dominant health activities (Warrior, Wizard, Ranger, etc.)
 - **Progression Mechanics**: Level up system, experience points from healthy activities
@@ -23,6 +24,7 @@ Implement an engaging RPG-style gamification system that transforms health metri
 - **Humor Elements**: Funny descriptions, puns, and easter eggs throughout
 
 ## Definition of Done (for the Sprint)
+- [ ] The game is isolated in a separate tab called "iQuest", which is the name of the game
 - [ ] Character creation and stat calculation from health data functional
 - [ ] Class assignment algorithm working with at least 5 base classes
 - [ ] Level/XP system tracking progress over time
