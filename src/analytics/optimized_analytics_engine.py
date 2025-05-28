@@ -1,0 +1,456 @@
+"""Optimized analytics engine integrating all performance improvements."""
+
+from typing import Any, Dict, Optional, List, Union
+from datetime import datetime
+import logging
+import pandas as pd
+import numpy as np
+from dataclasses import dataclass
+
+from ..data_access import DataAccess
+from .streaming_data_loader import StreamingDataLoader, DataChunk
+from .computation_queue import ComputationQueue, TaskPriority
+from .progressive_loader import ProgressiveAnalyticsManager
+from .connection_pool import ConnectionPool, PooledDataAccess
+from .performance_monitor import PerformanceMonitor
+from .cache_manager import CacheManager
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AnalyticsRequest:
+    """Request for analytics computation."""
+    metric_type: str
+    start_date: datetime
+    end_date: datetime
+    aggregation_level: str = 'daily'  # daily, weekly, monthly
+    metrics: Optional[List[str]] = None
+    options: Dict[str, Any] = None
+    priority: TaskPriority = TaskPriority.NORMAL
+    
+    def cache_key(self) -> str:
+        """Generate cache key for this request."""
+        metrics_str = ','.join(sorted(self.metrics)) if self.metrics else 'all'
+        return f"{self.metric_type}_{self.aggregation_level}_{self.start_date.date()}_{self.end_date.date()}_{metrics_str}"
+
+
+class OptimizedAnalyticsEngine:
+    """
+    High-performance analytics engine with all optimizations integrated.
+    
+    Features:
+    - Streaming data loading for large datasets
+    - Progressive UI updates
+    - Multi-level caching
+    - Connection pooling
+    - Priority-based task scheduling
+    - Performance monitoring
+    - Memory-efficient processing
+    """
+    
+    def __init__(self,
+                 database_path: str,
+                 cache_manager: Optional[CacheManager] = None,
+                 enable_monitoring: bool = True):
+        """
+        Initialize optimized analytics engine.
+        
+        Args:
+            database_path: Path to SQLite database
+            cache_manager: Optional cache manager instance
+            enable_monitoring: Enable performance monitoring
+        """
+        # Connection pooling
+        self.connection_pool = ConnectionPool(
+            database_path=database_path,
+            min_connections=3,
+            max_connections=10,
+            enable_wal=True,
+            enable_query_cache=True
+        )
+        
+        # Data access with pooling
+        self.data_access = PooledDataAccess(self.connection_pool)
+        
+        # Streaming data loader
+        self.data_loader = StreamingDataLoader(
+            data_access=self.data_access,
+            chunk_days=30,
+            max_memory_mb=100,
+            prefetch_chunks=2
+        )
+        
+        # Computation queue
+        self.computation_queue = ComputationQueue(
+            max_io_workers=4,
+            max_cpu_workers=4,
+            enable_monitoring=enable_monitoring
+        )
+        
+        # Progressive loading
+        self.progressive_manager = ProgressiveAnalyticsManager(
+            data_loader=self.data_loader,
+            computation_queue=self.computation_queue
+        )
+        
+        # Caching
+        self.cache_manager = cache_manager or CacheManager()
+        
+        # Performance monitoring
+        self.performance_monitor = PerformanceMonitor(
+            enable_memory_profiling=enable_monitoring
+        ) if enable_monitoring else None
+        
+        # Calculators cache
+        self._calculators = {}
+        
+    def calculate_metrics(self, request: AnalyticsRequest) -> Any:
+        """
+        Calculate metrics with full optimization stack.
+        
+        Args:
+            request: Analytics request
+            
+        Returns:
+            Calculation results
+        """
+        # Check cache first
+        cache_key = request.cache_key()
+        cached_result = self.cache_manager.get(cache_key)
+        
+        if cached_result is not None:
+            logger.debug(f"Cache hit for {cache_key}")
+            if self.performance_monitor:
+                self.performance_monitor.record_metric("cache_hit", 1, "count")
+            return cached_result
+        
+        # Profile the operation
+        with self._profile_context(f"calculate_{request.metric_type}") as profile:
+            # Submit to computation queue
+            task_id = self.computation_queue.submit(
+                self._perform_calculation,
+                request,
+                priority=request.priority,
+                cpu_bound=True
+            )
+            
+            # Get result
+            result = self.computation_queue.get_result(task_id)
+            
+            # Cache result
+            self.cache_manager.set(cache_key, result, ttl=3600)
+            
+            return result
+    
+    def calculate_progressive(self, request: AnalyticsRequest) -> str:
+        """
+        Calculate metrics with progressive loading.
+        
+        Args:
+            request: Analytics request
+            
+        Returns:
+            Session ID for tracking progress
+        """
+        # Create computation function
+        def compute_chunk(data: pd.DataFrame) -> Any:
+            calculator = self._get_calculator(request.metric_type)
+            return calculator.calculate_chunk(data, request)
+        
+        # Start progressive loading
+        session_id = self.progressive_manager.loader.load_progressive(
+            computation_func=compute_chunk,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            metrics=request.metrics,
+            skeleton_config={
+                'metric_type': request.metric_type,
+                'aggregation': request.aggregation_level
+            }
+        )
+        
+        return session_id
+    
+    def _perform_calculation(self, request: AnalyticsRequest) -> Any:
+        """Perform the actual calculation."""
+        with self._profile_context(f"calculation_{request.metric_type}"):
+            # Get calculator
+            calculator = self._get_calculator(request.metric_type)
+            
+            # Determine optimal loading strategy
+            date_range_days = (request.end_date - request.start_date).days + 1
+            
+            if date_range_days <= 365:
+                # Small dataset - load all at once
+                return self._calculate_direct(calculator, request)
+            else:
+                # Large dataset - use streaming
+                return self._calculate_streaming(calculator, request)
+    
+    def _calculate_direct(self, calculator: Any, request: AnalyticsRequest) -> Any:
+        """Calculate using direct data loading."""
+        with self._profile_context("direct_loading"):
+            # Load optimized data
+            data = self.data_loader.load_optimized(
+                start_date=request.start_date,
+                end_date=request.end_date,
+                metrics=request.metrics,
+                aggregation=request.aggregation_level
+            )
+            
+            # Calculate
+            with self._profile_context("computation"):
+                result = calculator.calculate(data, request)
+            
+            return result
+    
+    def _calculate_streaming(self, calculator: Any, request: AnalyticsRequest) -> Any:
+        """Calculate using streaming data loading."""
+        results = []
+        
+        # Stream data in chunks
+        for chunk in self.data_loader.stream_data(
+            start_date=request.start_date,
+            end_date=request.end_date,
+            metrics=request.metrics
+        ):
+            with self._profile_context(f"chunk_{chunk.chunk_index}"):
+                # Process chunk
+                chunk_result = calculator.calculate_chunk(chunk.data, request)
+                results.append(chunk_result)
+            
+            # Free memory if needed
+            if chunk.size_mb > 50:
+                self._optimize_memory()
+        
+        # Combine results
+        with self._profile_context("combine_results"):
+            final_result = calculator.combine_results(results, request)
+        
+        return final_result
+    
+    def _get_calculator(self, metric_type: str) -> Any:
+        """Get or create calculator instance."""
+        if metric_type not in self._calculators:
+            # Import and create calculator
+            if metric_type == 'daily':
+                from .daily_metrics_calculator import DailyMetricsCalculator
+                calculator = OptimizedDailyMetricsCalculator()
+            elif metric_type == 'weekly':
+                from .weekly_metrics_calculator import WeeklyMetricsCalculator
+                calculator = OptimizedWeeklyMetricsCalculator()
+            elif metric_type == 'monthly':
+                from .monthly_metrics_calculator import MonthlyMetricsCalculator
+                calculator = OptimizedMonthlyMetricsCalculator()
+            else:
+                raise ValueError(f"Unknown metric type: {metric_type}")
+            
+            self._calculators[metric_type] = calculator
+        
+        return self._calculators[metric_type]
+    
+    def _profile_context(self, operation_name: str):
+        """Get profiling context if monitoring is enabled."""
+        if self.performance_monitor:
+            return self.performance_monitor.profile_operation(operation_name)
+        else:
+            # Null context manager
+            from contextlib import nullcontext
+            return nullcontext()
+    
+    def _optimize_memory(self):
+        """Optimize memory usage."""
+        import gc
+        gc.collect()
+        
+        if self.performance_monitor:
+            self.performance_monitor.record_metric(
+                "memory_optimization",
+                1,
+                "count"
+            )
+    
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """Get performance statistics."""
+        stats = {
+            'connection_pool': self.connection_pool.get_stats(),
+            'computation_queue': self.computation_queue.get_queue_stats(),
+            'cache': self.cache_manager.get_stats() if hasattr(self.cache_manager, 'get_stats') else {}
+        }
+        
+        if self.performance_monitor:
+            stats['performance'] = self.performance_monitor.get_performance_summary()
+        
+        return stats
+    
+    def shutdown(self):
+        """Shutdown the analytics engine."""
+        logger.info("Shutting down analytics engine")
+        
+        # Shutdown components
+        self.computation_queue.shutdown()
+        self.connection_pool.close()
+        
+        if self.performance_monitor:
+            self.performance_monitor.shutdown()
+
+
+class OptimizedCalculatorBase:
+    """Base class for optimized calculators."""
+    
+    def calculate(self, data: pd.DataFrame, request: AnalyticsRequest) -> Any:
+        """Calculate metrics for full dataset."""
+        raise NotImplementedError
+    
+    def calculate_chunk(self, data: pd.DataFrame, request: AnalyticsRequest) -> Any:
+        """Calculate metrics for a data chunk."""
+        # Default implementation - can be overridden
+        return self.calculate(data, request)
+    
+    def combine_results(self, results: List[Any], request: AnalyticsRequest) -> Any:
+        """Combine chunk results into final result."""
+        raise NotImplementedError
+    
+    def _optimize_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Optimize DataFrame memory usage."""
+        # Convert object columns to category if appropriate
+        for col in df.select_dtypes(['object']).columns:
+            num_unique = df[col].nunique()
+            num_total = len(df[col])
+            if num_unique / num_total < 0.5:
+                df[col] = df[col].astype('category')
+        
+        # Downcast numeric types
+        for col in df.select_dtypes(['float']).columns:
+            df[col] = pd.to_numeric(df[col], downcast='float')
+        
+        for col in df.select_dtypes(['int']).columns:
+            df[col] = pd.to_numeric(df[col], downcast='integer')
+        
+        return df
+
+
+class OptimizedDailyMetricsCalculator(OptimizedCalculatorBase):
+    """Optimized daily metrics calculator."""
+    
+    def calculate(self, data: pd.DataFrame, request: AnalyticsRequest) -> Dict[str, Any]:
+        """Calculate daily metrics."""
+        # Optimize DataFrame
+        data = self._optimize_dataframe(data)
+        
+        # Group by date efficiently
+        daily_groups = data.groupby(pd.Grouper(key='date', freq='D'))
+        
+        # Calculate metrics using numpy where possible
+        results = {}
+        
+        for date, group in daily_groups:
+            if not group.empty:
+                values = group['value'].values  # numpy array
+                
+                results[date] = {
+                    'count': len(values),
+                    'sum': np.sum(values),
+                    'mean': np.mean(values),
+                    'median': np.median(values),
+                    'std': np.std(values),
+                    'min': np.min(values),
+                    'max': np.max(values),
+                    'percentiles': {
+                        '25': np.percentile(values, 25),
+                        '75': np.percentile(values, 75),
+                        '90': np.percentile(values, 90)
+                    }
+                }
+        
+        return results
+    
+    def combine_results(self, results: List[Dict[str, Any]], request: AnalyticsRequest) -> Dict[str, Any]:
+        """Combine daily results from chunks."""
+        combined = {}
+        
+        for chunk_result in results:
+            combined.update(chunk_result)
+        
+        return combined
+
+
+class OptimizedWeeklyMetricsCalculator(OptimizedCalculatorBase):
+    """Optimized weekly metrics calculator."""
+    
+    def calculate(self, data: pd.DataFrame, request: AnalyticsRequest) -> Dict[str, Any]:
+        """Calculate weekly metrics."""
+        # Optimize DataFrame
+        data = self._optimize_dataframe(data)
+        
+        # Add week column
+        data['week'] = pd.to_datetime(data['date']).dt.to_period('W-MON')
+        
+        # Group by week
+        weekly_groups = data.groupby('week')
+        
+        results = {}
+        for week, group in weekly_groups:
+            values = group['value'].values
+            
+            results[str(week)] = {
+                'count': len(values),
+                'sum': np.sum(values),
+                'mean': np.mean(values),
+                'daily_averages': self._calculate_daily_pattern(group)
+            }
+        
+        return results
+    
+    def _calculate_daily_pattern(self, week_data: pd.DataFrame) -> Dict[str, float]:
+        """Calculate average by day of week."""
+        week_data['day_of_week'] = pd.to_datetime(week_data['date']).dt.day_name()
+        return week_data.groupby('day_of_week')['value'].mean().to_dict()
+
+
+class OptimizedMonthlyMetricsCalculator(OptimizedCalculatorBase):
+    """Optimized monthly metrics calculator."""
+    
+    def calculate(self, data: pd.DataFrame, request: AnalyticsRequest) -> Dict[str, Any]:
+        """Calculate monthly metrics."""
+        # Optimize DataFrame
+        data = self._optimize_dataframe(data)
+        
+        # Add month column
+        data['month'] = pd.to_datetime(data['date']).dt.to_period('M')
+        
+        # Group by month
+        monthly_groups = data.groupby('month')
+        
+        results = {}
+        for month, group in monthly_groups:
+            values = group['value'].values
+            
+            results[str(month)] = {
+                'count': len(values),
+                'sum': np.sum(values),
+                'mean': np.mean(values),
+                'trend': self._calculate_trend(group)
+            }
+        
+        return results
+    
+    def _calculate_trend(self, month_data: pd.DataFrame) -> str:
+        """Calculate month trend."""
+        # Simple linear regression on day number vs value
+        days = np.arange(len(month_data))
+        values = month_data['value'].values
+        
+        if len(values) < 2:
+            return 'insufficient_data'
+        
+        # Calculate slope
+        slope = np.polyfit(days, values, 1)[0]
+        
+        if slope > 0.1:
+            return 'increasing'
+        elif slope < -0.1:
+            return 'decreasing'
+        else:
+            return 'stable'
