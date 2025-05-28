@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Tuple, Dict, Any
 
-from tests.test_data_generator import TestDataGenerator
+from tests.test_data_generator import HealthDataGenerator
 
 
 class VisualRegressionTester:
@@ -82,7 +82,7 @@ class TestVisualRegression:
     @pytest.fixture
     def sample_data(self):
         """Create sample data for chart testing."""
-        generator = TestDataGenerator(seed=42)
+        generator = HealthDataGenerator(seed=42)
         return generator.generate_synthetic_data(30)  # 30 days of data
     
     @pytest.fixture
@@ -328,9 +328,9 @@ class TestVisualRegression:
     def test_data_quality_indicators(self, visual_tester):
         """Test data quality visualization components."""
         from src.ui.data_quality_widget import DataQualityWidget
-        from tests.test_data_generator import TestDataGenerator
+        from tests.test_data_generator import HealthDataGenerator
         
-        generator = TestDataGenerator(seed=42)
+        generator = HealthDataGenerator(seed=42)
         edge_cases = generator.generate_edge_cases()
         
         widget = DataQualityWidget()
@@ -369,9 +369,9 @@ class TestVisualRegression:
     def test_large_dataset_visual_consistency(self, visual_tester):
         """Test visual consistency with large datasets."""
         from src.ui.charts.line_chart import LineChart
-        from tests.test_data_generator import TestDataGenerator
+        from tests.test_data_generator import HealthDataGenerator
         
-        generator = TestDataGenerator(seed=42)
+        generator = HealthDataGenerator(seed=42)
         large_data = generator.generate_performance_data('large')
         
         # Sample down to reasonable size for visualization

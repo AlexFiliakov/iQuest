@@ -13,11 +13,11 @@ import random
 from unittest.mock import Mock, patch
 from typing import List, Dict, Any, Optional
 
-from tests.test_data_generator import TestDataGenerator
+from tests.test_data_generator import HealthDataGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
-from src.database import HealthDatabase
-from src.data_loader import HealthDataLoader
+from src.database import DatabaseManager as HealthDatabase
+from src.data_loader import DataLoader as HealthDataLoader
 
 
 class ChaosTestEngine:
@@ -88,7 +88,7 @@ class TestChaosScenarios:
     @pytest.fixture
     def data_generator(self):
         """Create test data generator."""
-        return TestDataGenerator(seed=42)
+        return HealthDataGenerator(seed=42)
     
     @pytest.fixture
     def clean_data(self, data_generator):

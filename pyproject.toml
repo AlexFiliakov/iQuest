@@ -45,7 +45,8 @@ markers = [
     "benchmark: marks tests as performance benchmarks",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "ui: marks tests as UI tests"
+    "ui: marks tests as UI tests",
+    "timeout: marks tests with custom timeout settings"
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

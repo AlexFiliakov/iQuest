@@ -6,12 +6,21 @@ Tests processing speed, memory usage, and scalability.
 import pytest
 import pandas as pd
 import numpy as np
-from memory_profiler import profile
 import gc
 import time
 from typing import List, Dict, Any
 
-from tests.test_data_generator import TestDataGenerator
+# Import memory_profiler with fallback
+try:
+    from memory_profiler import profile
+    MEMORY_PROFILER_AVAILABLE = True
+except ImportError:
+    MEMORY_PROFILER_AVAILABLE = False
+    def profile(func):
+        """Fallback decorator when memory_profiler is not available."""
+        return func
+
+from tests.test_data_generator import HealthDataGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -24,7 +33,7 @@ class TestPerformanceBenchmarks:
     @pytest.fixture
     def data_generator(self):
         """Create test data generator."""
-        return TestDataGenerator(seed=42)
+        return HealthDataGenerator(seed=42)
     
     @pytest.fixture
     def small_dataset(self, data_generator):
@@ -379,4 +388,4 @@ class TestPerformanceBenchmarks:
 
 
 # Performance test configuration
-pytest_plugins = ["pytest_benchmark"]
+# pytest_plugins = ["pytest_benchmark"]  # Not needed - plugin auto-registers

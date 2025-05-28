@@ -9,8 +9,9 @@ from PyQt6.QtWidgets import QApplication
 
 from src.ui.component_factory import ComponentFactory
 from src.ui.summary_cards import SummaryCard
-from src.ui.charts.enhanced_line_chart import EnhancedLineChart, ChartConfig
-from src.ui.bar_chart_component import BarChartComponent, BarChartConfig
+from src.ui.charts.enhanced_line_chart import EnhancedLineChart
+from src.ui.charts.chart_config import ChartConfig
+from src.ui.bar_chart_component import BarChart as BarChartComponent, BarChartConfig
 from src.ui.table_components import MetricTable, TableConfig
 
 

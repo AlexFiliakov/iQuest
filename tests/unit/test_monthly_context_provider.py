@@ -12,7 +12,7 @@ import numpy as np
 from src.analytics.monthly_context_provider import (
     MonthlyContextProvider, WeekContext, GoalProgress, SeasonalAdjustment
 )
-from src.analytics.cache_manager import CacheManager
+from src.analytics.cache_manager import AnalyticsCacheManager as CacheManager
 
 
 class TestWeekContext:

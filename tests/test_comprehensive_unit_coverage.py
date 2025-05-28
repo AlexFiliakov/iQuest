@@ -12,7 +12,7 @@ from hypothesis import given, strategies as st, assume
 import tempfile
 import os
 
-from tests.test_data_generator import TestDataGenerator
+from tests.test_data_generator import HealthDataGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -25,7 +25,7 @@ class TestComprehensiveUnitCoverage:
     @pytest.fixture
     def data_generator(self):
         """Create test data generator."""
-        return TestDataGenerator(seed=42)
+        return HealthDataGenerator(seed=42)
     
     @pytest.fixture
     def sample_data(self, data_generator):

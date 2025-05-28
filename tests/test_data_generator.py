@@ -7,8 +7,14 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from faker import Faker
 import random
+
+# Import faker with fallback
+try:
+    from faker import Faker
+    FAKER_AVAILABLE = True
+except ImportError:
+    FAKER_AVAILABLE = False
 
 
 class HealthDataPatterns:
@@ -19,9 +25,12 @@ class HealthDataPatterns:
             random.seed(seed)
             np.random.seed(seed)
         
-        self.fake = Faker()
-        if seed:
-            Faker.seed(seed)
+        if FAKER_AVAILABLE:
+            self.fake = Faker()
+            if seed:
+                Faker.seed(seed)
+        else:
+            self.fake = None
 
     def generate_steps_pattern(self, days: int, base_avg: int = 8000) -> np.ndarray:
         """Generate realistic step count patterns with weekly cycles."""
@@ -102,14 +111,17 @@ class HealthDataPatterns:
         return np.clip(exercise, 0, 180).astype(int)
 
 
-class TestDataGenerator:
+class HealthDataGenerator:
     """Main test data generator for analytics test suite."""
     
     def __init__(self, seed: Optional[int] = None):
         self.patterns = HealthDataPatterns(seed)
-        self.fake = Faker()
-        if seed:
-            Faker.seed(seed)
+        if FAKER_AVAILABLE:
+            self.fake = Faker()
+            if seed:
+                Faker.seed(seed)
+        else:
+            self.fake = None
 
     def generate_synthetic_data(self, days: int = 365) -> pd.DataFrame:
         """Generate realistic synthetic health data."""
