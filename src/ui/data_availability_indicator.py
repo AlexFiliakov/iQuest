@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from .style_manager import StyleManager
 from .summary_cards import SummaryCard
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

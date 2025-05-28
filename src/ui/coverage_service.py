@@ -9,7 +9,7 @@ import pandas as pd
 from collections import defaultdict
 
 from .data_availability_indicator import CoverageData, DateGap
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

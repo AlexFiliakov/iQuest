@@ -19,8 +19,8 @@ from typing import Callable, Optional, Dict, Any, List
 from datetime import datetime
 import pandas as pd
 
-from utils.logging_config import get_logger
-from utils.error_handler import DataImportError
+from src.utils.logging_config import get_logger
+from src.utils.error_handler import DataImportError
 
 # Get logger for this module
 logger = get_logger(__name__)

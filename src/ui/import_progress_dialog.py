@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap
 
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 from .style_manager import StyleManager
 from .import_worker import ImportWorker
 

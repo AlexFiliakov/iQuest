@@ -11,7 +11,7 @@ from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

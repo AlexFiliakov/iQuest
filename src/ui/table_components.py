@@ -17,7 +17,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 from .style_manager import StyleManager
 
 logger = get_logger(__name__)

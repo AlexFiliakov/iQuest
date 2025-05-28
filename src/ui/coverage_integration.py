@@ -12,7 +12,7 @@ from datetime import date
 from .data_availability_indicator import DataAvailabilityIndicator
 from .coverage_service import CoverageService, create_sample_coverage_data
 from .style_manager import StyleManager
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

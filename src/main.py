@@ -6,10 +6,10 @@ import traceback
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import Qt
 
-from utils.logging_config import setup_logging, get_logger
-from utils.error_handler import ErrorContext, ConfigurationError
-from ui.main_window import MainWindow
-from ui.style_manager import StyleManager
+from src.utils.logging_config import setup_logging, get_logger
+from src.utils.error_handler import ErrorContext, ConfigurationError
+from src.ui.main_window import MainWindow
+from src.ui.style_manager import StyleManager
 
 # Initialize logging for the application
 setup_logging(log_level="INFO")
@@ -86,7 +86,7 @@ def main():
         app = QApplication(sys.argv)
         
         # Set application metadata
-        from config import APP_NAME, ORGANIZATION_NAME
+        from src.config import APP_NAME, ORGANIZATION_NAME
         app.setApplicationName(APP_NAME)
         app.setOrganizationName(ORGANIZATION_NAME)
         

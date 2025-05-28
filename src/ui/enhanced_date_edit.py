@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QDateEdit
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QKeyEvent
 
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

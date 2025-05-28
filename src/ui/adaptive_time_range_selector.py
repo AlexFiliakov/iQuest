@@ -12,7 +12,7 @@ from ..data_availability_service import (DataAvailabilityService, TimeRange,
                                         RangeAvailability, AvailabilityLevel)
 from .smart_default_selector import SmartDefaultSelector, SelectionContext
 from .preference_tracker import PreferenceTracker
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

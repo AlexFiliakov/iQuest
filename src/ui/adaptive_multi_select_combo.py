@@ -9,7 +9,7 @@ from PyQt6.QtGui import QStandardItem, QPainter, QColor, QFont, QFontMetrics
 
 from .multi_select_combo import CheckableComboBox
 from ..data_availability_service import DataAvailabilityService, AvailabilityLevel
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

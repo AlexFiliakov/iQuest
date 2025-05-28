@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, pyqtProperty, pyqtSignal, QPropertyAnimation, QEasi
 from PyQt6.QtGui import QFont, QPainter, QPen, QColor
 from typing import Dict, Optional, Union
 from .style_manager import StyleManager
-from utils.logging_config import get_logger
+from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
