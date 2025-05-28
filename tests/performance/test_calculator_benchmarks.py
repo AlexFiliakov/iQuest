@@ -22,7 +22,10 @@ class TestCalculatorPerformance(PerformanceBenchmark):
     
     def setup_method(self):
         """Set up test environment."""
-        super().__init__()
+        self.process = __import__('psutil').Process()
+        self.baseline_memory = None
+        self.results = {}
+        self._start_metrics = {}
         self.thresholds = AdaptiveThresholds()
         self.generator = HealthMetricGenerator(seed=42)
         

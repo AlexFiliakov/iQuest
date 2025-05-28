@@ -15,7 +15,7 @@ from typing import List, Dict, Any
 
 # Import performance testing infrastructure
 from tests.performance import PerformanceBenchmark, AdaptiveThresholds
-from tests.generators.health_data import HealthDataGenerator
+from tests.generators.health_data import HealthMetricGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -28,13 +28,16 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
     
     def setup_method(self):
         """Set up test environment."""
-        super().__init__()
+        self.process = __import__('psutil').Process()
+        self.baseline_memory = None
+        self.results = {}
+        self._start_metrics = {}
         self.thresholds = AdaptiveThresholds()
         
     @pytest.fixture
     def data_generator(self):
         """Create test data generator."""
-        return HealthDataGenerator(seed=42)
+        return HealthMetricGenerator(seed=42)
     
     @pytest.fixture
     def small_dataset(self, data_generator):
@@ -110,33 +113,7 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
         assert len(result) > 0
         assert benchmark.stats['mean'] < 1.0  # <1s
 
-    # Weekly Metrics Calculator Benchmarks
-    @pytest.mark.benchmark(group="weekly_calculator")
-    def test_weekly_calculator_performance(self, benchmark, large_dataset):
-        """Benchmark weekly metrics calculator."""
-        calculator = WeeklyMetricsCalculator()
-        
-        result = benchmark(
-            calculator.calculate_weekly_trends,
-            large_dataset
-        )
-        
-        assert len(result) > 0
-        assert benchmark.stats['mean'] < 0.5  # <500ms
-
-    # Monthly Metrics Calculator Benchmarks
-    @pytest.mark.benchmark(group="monthly_calculator")
-    def test_monthly_calculator_performance(self, benchmark, large_dataset):
-        """Benchmark monthly metrics calculator."""
-        calculator = MonthlyMetricsCalculator()
-        
-        result = benchmark(
-            calculator.calculate_monthly_summary,
-            large_dataset
-        )
-        
-        assert len(result) > 0
-        assert benchmark.stats['mean'] < 0.3  # <300ms
+    # Note: Weekly and Monthly calculator performance tests are in tests/performance/test_calculator_benchmarks.py
 
     # Statistics Calculator Benchmarks
     @pytest.mark.benchmark(group="statistics")

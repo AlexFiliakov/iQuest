@@ -13,10 +13,10 @@ from memory_profiler import profile
 import psutil
 from pathlib import Path
 from tests.performance.benchmark_base import PerformanceBenchmark
-from tests.generators.health_data import HealthDataGenerator
+from tests.generators.health_data import HealthMetricGenerator
 from src.xml_streaming_processor import XMLStreamingProcessor
 from src.data_loader import DataLoader
-from src.analytics.cache_manager import CacheManager
+from src.analytics.cache_manager import AnalyticsCacheManager
 
 
 @pytest.mark.performance
@@ -25,9 +25,11 @@ class TestMemoryUsage(PerformanceBenchmark):
     
     def setup_method(self):
         """Set up test environment."""
-        super().__init__()
         self.process = psutil.Process()
-        self.generator = HealthDataGenerator(seed=42)
+        self.baseline_memory = None
+        self.results = {}
+        self._start_metrics = {}
+        self.generator = HealthMetricGenerator(seed=42)
         
     def get_memory_usage_mb(self):
         """Get current memory usage in MB."""
@@ -92,7 +94,7 @@ class TestMemoryUsage(PerformanceBenchmark):
     def test_cache_manager_memory_limits(self):
         """Test that cache manager respects memory limits."""
         # Create cache with 50MB limit
-        cache = CacheManager(max_memory_mb=50)
+        cache = AnalyticsCacheManager(max_memory_mb=50)
         
         initial_memory = self.get_memory_usage_mb()
         

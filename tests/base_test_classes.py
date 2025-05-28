@@ -221,6 +221,61 @@ class BaseAnalyticsTest(BaseCalculatorTest):
         })
         return data
     
+    @pytest.fixture
+    def correlation_test_data(self):
+        """Generate data with known correlations for testing."""
+        np.random.seed(42)
+        dates = pd.date_range('2024-01-01', periods=100, freq='D')
+        
+        # Create correlated data
+        base_trend = np.linspace(0, 10, 100)
+        noise = np.random.normal(0, 1, 100)
+        
+        data = pd.DataFrame({
+            'steps': 8000 + base_trend * 500 + noise * 1000,
+            'heart_rate': 70 + base_trend * 2 + noise * 5,
+            'sleep_hours': 7.5 - base_trend * 0.1 + noise * 0.5,
+            'calories': 2000 + base_trend * 100 + noise * 200
+        }, index=dates)
+        
+        return data
+    
+    @pytest.fixture
+    def anomaly_test_data(self):
+        """Generate data with known anomalies for testing."""
+        np.random.seed(42)
+        dates = pd.date_range('2024-01-01', periods=100, freq='D')
+        
+        # Normal data with clear outliers
+        normal_values = np.random.normal(70, 5, 100)
+        normal_values[20] = 150  # Clear outlier
+        normal_values[50] = 40   # Another outlier
+        
+        return pd.DataFrame({
+            'metric': normal_values,
+            'steps': np.random.normal(8000, 1000, 100)
+        }, index=dates)
+    
+    @pytest.fixture
+    def causality_test_data(self):
+        """Generate data with known causal relationships for testing."""
+        np.random.seed(42)
+        dates = pd.date_range('2024-01-01', periods=200, freq='D')
+        
+        # Create time series with lagged relationships
+        exercise = np.random.normal(50, 15, 200)
+        weight = 70 + np.cumsum(np.random.normal(0, 0.05, 200))
+        
+        # Add causal effect: exercise -> weight decrease (3-day lag)
+        for i in range(3, 200):
+            weight[i] -= exercise[i-3] * 0.001
+        
+        return pd.DataFrame({
+            'exercise': exercise,
+            'weight': weight,
+            'steps': np.random.normal(8000, 1000, 200)
+        }, index=dates)
+    
     def assert_analytics_structure(self, result: Dict):
         """Assert common analytics result structure."""
         assert isinstance(result, dict)
@@ -229,6 +284,25 @@ class BaseAnalyticsTest(BaseCalculatorTest):
         for field in expected_fields:
             if field in result:
                 assert result[field] is not None
+    
+    def assert_correlation_result(self, result, expected_metrics=None):
+        """Assert correlation analysis result structure."""
+        assert isinstance(result, (pd.DataFrame, dict))
+        if isinstance(result, pd.DataFrame):
+            assert result.shape[0] == result.shape[1]  # Square matrix
+        if expected_metrics:
+            if isinstance(result, pd.DataFrame):
+                assert all(metric in result.columns for metric in expected_metrics)
+    
+    def assert_anomaly_result(self, anomalies, metric_name=None):
+        """Assert anomaly detection result structure."""
+        assert isinstance(anomalies, list)
+        for anomaly in anomalies:
+            assert hasattr(anomaly, 'timestamp')
+            assert hasattr(anomaly, 'value')
+            assert hasattr(anomaly, 'score')
+            if metric_name:
+                assert anomaly.metric == metric_name
 
 
 class BaseIntegrationTest:

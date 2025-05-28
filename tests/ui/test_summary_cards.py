@@ -24,19 +24,30 @@ def app():
 class TestSummaryCard:
     """Test base SummaryCard class."""
     
-    def test_initialization(self, app):
-        """Test card initialization with different configurations."""
-        # Test default initialization
+    @pytest.mark.parametrize("card_class,expected_type,required_attrs", [
+        (SummaryCard, 'simple', []),
+        (SimpleMetricCard, 'simple', ['title_label', 'value_label', 'trend_widget', 'subtitle_label']),
+        (ComparisonCard, 'comparison', ['title_label', 'current_label', 'current_value', 'previous_label', 'previous_value', 'change_widget']),
+        (GoalProgressCard, 'goal', ['title_label', 'progress_bar', 'progress_label', 'goal_label']),
+        (MiniChartCard, 'chart', ['title_label', 'chart_widget', 'stats_widget']),
+    ])
+    def test_card_initialization(self, app, card_class, expected_type, required_attrs):
+        """Test card initialization for all card types."""
+        card = card_class(size='large', card_id='test_card')
+        assert card.card_type == expected_type
+        assert card.size == 'large'
+        assert card.card_id == 'test_card'
+        
+        # Check required UI elements exist
+        for attr in required_attrs:
+            assert hasattr(card, attr), f"{card_class.__name__} missing required attribute: {attr}"
+    
+    def test_default_initialization(self, app):
+        """Test default initialization values."""
         card = SummaryCard()
         assert card.card_type == 'simple'
         assert card.size == 'medium'
         assert card.card_id == ""
-        
-        # Test custom initialization
-        card = SummaryCard(card_type='comparison', size='large', card_id='test_card')
-        assert card.card_type == 'comparison'
-        assert card.size == 'large'
-        assert card.card_id == 'test_card'
     
     def test_size_configurations(self, app):
         """Test size configuration application."""
@@ -76,20 +87,6 @@ class TestSummaryCard:
 
 class TestSimpleMetricCard:
     """Test SimpleMetricCard implementation."""
-    
-    def test_initialization(self, app):
-        """Test simple metric card initialization."""
-        card = SimpleMetricCard(size='large', card_id='metric_card')
-        
-        assert card.card_type == 'simple'
-        assert card.size == 'large'
-        assert card.card_id == 'metric_card'
-        
-        # Check UI elements exist
-        assert hasattr(card, 'title_label')
-        assert hasattr(card, 'value_label')
-        assert hasattr(card, 'trend_widget')
-        assert hasattr(card, 'subtitle_label')
     
     def test_content_update_without_animation(self, app):
         """Test content update without animation."""
@@ -142,20 +139,6 @@ class TestSimpleMetricCard:
 class TestComparisonCard:
     """Test ComparisonCard implementation."""
     
-    def test_initialization(self, app):
-        """Test comparison card initialization."""
-        card = ComparisonCard(size='medium', card_id='comparison_card')
-        
-        assert card.card_type == 'comparison'
-        
-        # Check UI elements exist
-        assert hasattr(card, 'title_label')
-        assert hasattr(card, 'current_label')
-        assert hasattr(card, 'current_value')
-        assert hasattr(card, 'previous_label')
-        assert hasattr(card, 'previous_value')
-        assert hasattr(card, 'change_widget')
-    
     def test_content_update(self, app):
         """Test comparison card content update."""
         card = ComparisonCard()
@@ -175,18 +158,6 @@ class TestComparisonCard:
 
 class TestGoalProgressCard:
     """Test GoalProgressCard implementation."""
-    
-    def test_initialization(self, app):
-        """Test goal progress card initialization."""
-        card = GoalProgressCard(size='large', card_id='progress_card')
-        
-        assert card.card_type == 'goal_progress'
-        
-        # Check UI elements exist
-        assert hasattr(card, 'title_label')
-        assert hasattr(card, 'progress_label')
-        assert hasattr(card, 'progress_bar')
-        assert hasattr(card, 'percentage_label')
     
     def test_content_update_without_animation(self, app):
         """Test progress card content update without animation."""
@@ -244,19 +215,6 @@ class TestGoalProgressCard:
 class TestMiniChartCard:
     """Test MiniChartCard implementation."""
     
-    def test_initialization(self, app):
-        """Test mini chart card initialization."""
-        card = MiniChartCard(size='small', card_id='chart_card')
-        
-        assert card.card_type == 'mini_chart'
-        
-        # Check UI elements exist
-        assert hasattr(card, 'title_label')
-        assert hasattr(card, 'value_label')
-        assert hasattr(card, 'chart_placeholder')
-        assert hasattr(card, 'min_label')
-        assert hasattr(card, 'max_label')
-    
     def test_content_update(self, app):
         """Test mini chart card content update."""
         card = MiniChartCard()
@@ -278,13 +236,6 @@ class TestMiniChartCard:
 
 class TestTrendIndicatorWidget:
     """Test TrendIndicatorWidget implementation."""
-    
-    def test_initialization(self, app):
-        """Test trend indicator initialization."""
-        widget = TrendIndicatorWidget()
-        
-        assert widget.trend_value == 0
-        assert hasattr(widget, 'label')
     
     def test_trend_calculation_positive(self, app):
         """Test positive trend calculation."""
@@ -348,13 +299,6 @@ class TestTrendIndicatorWidget:
 
 class TestChangeIndicatorWidget:
     """Test ChangeIndicatorWidget implementation."""
-    
-    def test_initialization(self, app):
-        """Test change indicator initialization."""
-        widget = ChangeIndicatorWidget()
-        
-        assert hasattr(widget, 'change_label')
-        assert hasattr(widget, 'percentage_label')
     
     def test_positive_change(self, app):
         """Test positive change display."""

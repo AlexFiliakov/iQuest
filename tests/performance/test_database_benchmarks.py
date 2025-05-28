@@ -10,7 +10,7 @@ import sqlite3
 from pathlib import Path
 from tests.performance.benchmark_base import PerformanceBenchmark
 from tests.performance.adaptive_thresholds import AdaptiveThresholds
-from tests.generators.health_data import HealthDataGenerator
+from tests.generators.health_data import HealthMetricGenerator
 
 
 @pytest.mark.performance
@@ -19,13 +19,16 @@ class TestDatabasePerformance(PerformanceBenchmark):
     
     def setup_method(self):
         """Set up test environment."""
-        super().__init__()
+        self.process = __import__('psutil').Process()
+        self.baseline_memory = None
+        self.results = {}
+        self._start_metrics = {}
         self.thresholds = AdaptiveThresholds()
         
     @pytest.fixture
     def data_generator(self):
         """Create data generator."""
-        return HealthDataGenerator(seed=42)
+        return HealthMetricGenerator(seed=42)
     
     @pytest.fixture
     def small_dataset(self, data_generator):
@@ -80,7 +83,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         
         # Setup: Create and populate database
         db = HealthDatabase(temp_db)
-        generator = HealthDataGenerator(seed=42)
+        generator = HealthMetricGenerator(seed=42)
         data = generator.generate_dataframe(days=365, records_per_day=100)
         db.bulk_insert_records(data)
         
@@ -111,7 +114,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         
         # Setup database with data
         db = HealthDatabase(temp_db)
-        generator = HealthDataGenerator(seed=42)
+        generator = HealthMetricGenerator(seed=42)
         data = generator.generate_dataframe(days=730, records_per_day=100)  # 2 years
         db.bulk_insert_records(data)
         
@@ -145,7 +148,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         
         # Setup
         db = HealthDatabase(temp_db)
-        generator = HealthDataGenerator(seed=42)
+        generator = HealthMetricGenerator(seed=42)
         data = generator.generate_dataframe(days=180, records_per_day=100)
         db.bulk_insert_records(data)
         db.close()
@@ -226,7 +229,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         
         # Setup: Create database with data but no indexes
         db = HealthDatabase(temp_db, create_indexes=False)
-        generator = HealthDataGenerator(seed=42)
+        generator = HealthMetricGenerator(seed=42)
         data = generator.generate_dataframe(days=365, records_per_day=100)
         db.bulk_insert_records(data)
         

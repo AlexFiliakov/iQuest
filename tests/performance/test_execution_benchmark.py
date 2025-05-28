@@ -22,7 +22,7 @@ import sys
 
 
 @dataclass
-class TestExecutionMetrics:
+class ExecutionMetrics:
     """Comprehensive metrics for test execution."""
     category: str
     test_count: int
@@ -39,7 +39,7 @@ class TestExecutionMetrics:
     timestamp: str
 
 
-class TestSuitePerformanceBenchmark:
+class SuitePerformanceBenchmark:
     """Comprehensive test suite performance measurement tool."""
     
     def __init__(self, baseline_file: str = "tests/performance/baseline_metrics.json"):
@@ -59,7 +59,7 @@ class TestSuitePerformanceBenchmark:
         category: str, 
         test_path: str,
         pytest_args: List[str] = None
-    ) -> TestExecutionMetrics:
+    ) -> ExecutionMetrics:
         """
         Benchmark execution of a specific test category.
         
@@ -69,7 +69,7 @@ class TestSuitePerformanceBenchmark:
             pytest_args: Additional pytest arguments
             
         Returns:
-            TestExecutionMetrics: Comprehensive metrics for the test execution
+            ExecutionMetrics: Comprehensive metrics for the test execution
         """
         if pytest_args is None:
             pytest_args = []
@@ -158,7 +158,7 @@ class TestSuitePerformanceBenchmark:
         end_cpu = self.process.cpu_percent(interval=0.1)
         
         # Create metrics object
-        metrics = TestExecutionMetrics(
+        metrics = ExecutionMetrics(
             category=category,
             test_count=test_count,
             collection_time=collection_time,
@@ -177,7 +177,7 @@ class TestSuitePerformanceBenchmark:
         self.results[category] = metrics
         return metrics
     
-    def benchmark_full_suite(self) -> Dict[str, TestExecutionMetrics]:
+    def benchmark_full_suite(self) -> Dict[str, ExecutionMetrics]:
         """
         Benchmark the entire test suite across all categories.
         
@@ -217,7 +217,7 @@ class TestSuitePerformanceBenchmark:
             
         print(f"💾 Baseline saved to {self.baseline_file}")
     
-    def load_baseline(self) -> Dict[str, TestExecutionMetrics]:
+    def load_baseline(self) -> Dict[str, ExecutionMetrics]:
         """Load baseline metrics from file."""
         if not self.baseline_file.exists():
             return {}
@@ -226,7 +226,7 @@ class TestSuitePerformanceBenchmark:
             baseline_data = json.load(f)
             
         return {
-            category: TestExecutionMetrics(**data)
+            category: ExecutionMetrics(**data)
             for category, data in baseline_data.items()
         }
     
