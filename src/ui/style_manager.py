@@ -24,6 +24,10 @@ class StyleManager:
     TEXT_MUTED = "#A69583"       # Light brown
     TEXT_INVERSE = "#FFFFFF"     # White on dark
     
+    # Focus indicator color
+    FOCUS_COLOR = "#FF8C42"      # Orange for focus indicators
+    FOCUS_SHADOW = "rgba(255, 140, 66, 0.3)"  # Orange shadow for focus
+    
     # Chart colors
     CHART_COLORS = ["#FF8C42", "#FFD166", "#95C17B", "#6C9BD1", "#B79FCB"]
     
@@ -163,6 +167,11 @@ class StyleManager:
                     background-color: {self.TEXT_MUTED};
                     color: {self.SECONDARY_BG};
                 }}
+                
+                QPushButton:focus {{
+                    outline: 3px solid {self.FOCUS_COLOR};
+                    outline-offset: 2px;
+                }}
             """
         elif button_type == "secondary":
             return f"""
@@ -189,6 +198,11 @@ class StyleManager:
                 QPushButton:disabled {{
                     border-color: {self.TEXT_MUTED};
                     color: {self.TEXT_MUTED};
+                }}
+                
+                QPushButton:focus {{
+                    outline: 3px solid {self.FOCUS_COLOR};
+                    outline-offset: 2px;
                 }}
             """
     
@@ -219,9 +233,10 @@ class StyleManager:
                 color: {self.TEXT_PRIMARY};
             }}
             
-            QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus {{
+            QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {{
                 border-color: {self.ACCENT_PRIMARY};
                 outline: none;
+                box-shadow: 0 0 0 3px {self.FOCUS_SHADOW};
             }}
             
             QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled, QComboBox:disabled {{
@@ -319,6 +334,29 @@ class StyleManager:
             
             QMessageBox QPushButton {{
                 min-width: 80px;
+            }}
+            
+            /* Global focus indicators */
+            *:focus {{
+                outline: none;
+            }}
+            
+            QPushButton:focus, QToolButton:focus {{
+                border: 2px solid {self.FOCUS_COLOR};
+                outline: 3px solid {self.FOCUS_SHADOW};
+                outline-offset: 1px;
+            }}
+            
+            QTabBar::tab:focus {{
+                border: 2px solid {self.FOCUS_COLOR};
+                outline: 3px solid {self.FOCUS_SHADOW};
+                outline-offset: 1px;
+            }}
+            
+            QCheckBox:focus, QRadioButton:focus {{
+                outline: 3px solid {self.FOCUS_COLOR};
+                outline-offset: 2px;
+                border-radius: 4px;
             }}
         """
         

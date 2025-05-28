@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import QComboBox, QStyledItemDelegate, QStyleOptionViewItem
 from PyQt6.QtCore import Qt, pyqtSignal, QEvent
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
+from PyQt6.QtGui import QStandardItemModel, QStandardItem, QKeyEvent
 
 from utils.logging_config import get_logger
 
@@ -35,6 +35,16 @@ class CheckableComboBox(QComboBox):
         # Store placeholder text
         self._placeholder = "Select items..."
         self._update_text()
+        
+        # Enable keyboard navigation
+        self.view().installEventFilter(self)
+        
+        # Set accessible name for screen readers
+        self.setAccessibleName("Multi-select dropdown")
+        self.setAccessibleDescription("Use arrow keys to navigate, Space to toggle selection, Ctrl+A to select all")
+        
+        # Set default tooltip
+        self.setToolTip("Select multiple items (Space: toggle, Ctrl+A: all, Ctrl+D: none)")
     
     def addItem(self, text, data=None, checked=False):
         """Add an item to the combo box.
@@ -127,11 +137,57 @@ class CheckableComboBox(QComboBox):
         self._update_text()
     
     def eventFilter(self, obj, event):
-        """Handle events to prevent dropdown from closing on item click."""
-        if event.type() == QEvent.Type.MouseButtonRelease:
-            # Keep dropdown open when clicking items
-            return True
+        """Handle events to prevent dropdown from closing on item click and add keyboard support."""
+        if obj == self.view().viewport():
+            if event.type() == QEvent.Type.MouseButtonRelease:
+                # Keep dropdown open when clicking items
+                return True
+        
+        if obj == self.view() and event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            modifiers = event.modifiers()
+            
+            # Space key toggles current item
+            if key == Qt.Key.Key_Space:
+                index = self.view().currentIndex()
+                if index.isValid():
+                    item = self.model.itemFromIndex(index)
+                    if item:
+                        current_state = item.checkState()
+                        new_state = Qt.CheckState.Unchecked if current_state == Qt.CheckState.Checked else Qt.CheckState.Checked
+                        item.setCheckState(new_state)
+                        return True
+            
+            # Ctrl+A selects all
+            elif key == Qt.Key.Key_A and modifiers == Qt.KeyboardModifier.ControlModifier:
+                self.checkAll()
+                return True
+            
+            # Ctrl+D deselects all
+            elif key == Qt.Key.Key_D and modifiers == Qt.KeyboardModifier.ControlModifier:
+                self.uncheckAll()
+                return True
+            
+            # Escape closes dropdown
+            elif key == Qt.Key.Key_Escape:
+                self.hidePopup()
+                return True
+            
+            # Enter confirms selection and closes
+            elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.hidePopup()
+                return True
+        
         return super().eventFilter(obj, event)
+    
+    def showPopup(self):
+        """Override to set focus and provide keyboard hints."""
+        super().showPopup()
+        # Set focus to the view for keyboard navigation
+        self.view().setFocus()
+        
+        # Log keyboard shortcuts for debugging
+        logger.debug("Multi-select dropdown opened - Keyboard shortcuts: Space=toggle, Ctrl+A=select all, Ctrl+D=deselect all, Escape=close")
     
     def hidePopup(self):
         """Override to emit signal when popup is hidden."""
