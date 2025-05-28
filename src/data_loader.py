@@ -430,11 +430,12 @@ def validate_database(db_path: str) -> dict:
 
 
 class DataLoader:
-    """Simple data loader class for CSV files."""
+    """Simple data loader class for CSV files and SQLite databases."""
     
     def __init__(self):
         """Initialize the data loader."""
         self.logger = get_logger(__name__)
+        self.db_path = None
     
     def load_csv(self, file_path: str) -> pd.DataFrame:
         """Load CSV file and return as DataFrame.
@@ -482,6 +483,65 @@ class DataLoader:
         except Exception as e:
             self.logger.error(f"Unexpected error loading CSV: {e}")
             raise DataImportError(f"Unexpected error loading CSV: {str(e)}") from e
+    
+    def get_all_records(self) -> pd.DataFrame:
+        """Get all records from the SQLite database.
+        
+        Returns:
+            DataFrame with all health records
+            
+        Raises:
+            FileNotFoundError: If database doesn't exist
+            sqlite3.Error: If database query fails
+        """
+        if not self.db_path:
+            raise ValueError("Database path not set")
+        
+        if not Path(self.db_path).exists():
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
+        
+        try:
+            self.logger.info(f"Loading all records from database: {self.db_path}")
+            
+            conn = sqlite3.connect(self.db_path)
+            df = pd.read_sql(
+                "SELECT * FROM health_records",
+                conn,
+                parse_dates=['creationDate', 'startDate', 'endDate']
+            )
+            conn.close()
+            
+            # Convert value column to numeric if it exists
+            if 'value' in df.columns:
+                df['value'] = pd.to_numeric(df['value'], errors='coerce')
+                df['value'] = df['value'].fillna(1.0)
+            
+            # Add sourceName column if it doesn't exist (for compatibility)
+            if 'sourceName' not in df.columns and 'type' in df.columns:
+                # Try to infer source from type
+                df['sourceName'] = df['type'].apply(self._infer_source_name)
+            
+            self.logger.info(f"Successfully loaded {len(df)} records from database")
+            return df
+            
+        except sqlite3.Error as e:
+            self.logger.error(f"Database error: {e}")
+            raise DataImportError(f"Failed to load from database: {str(e)}") from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error loading from database: {e}")
+            raise DataImportError(f"Unexpected error: {str(e)}") from e
+    
+    def _infer_source_name(self, record_type: str) -> str:
+        """Infer source device name from record type."""
+        # Common mappings
+        if any(x in record_type.lower() for x in ['step', 'distance', 'flight']):
+            return "iPhone"
+        elif any(x in record_type.lower() for x in ['heart', 'workout', 'exercise']):
+            return "Apple Watch"
+        elif 'sleep' in record_type.lower():
+            return "Sleep Apps"
+        else:
+            return "Other Apps"
 
 
 # Example usage and testing

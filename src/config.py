@@ -17,7 +17,8 @@ MAX_CSV_SIZE_MB = 500
 SUPPORTED_FILE_TYPES = ["csv", "xml"]
 
 # Database settings
-DB_FILE_NAME = "health_data.db"
+DB_FILE_NAME = "health_monitor.db"  # As per SPECS_DB.md
+DATA_DIR = "data"  # Directory for storing database and user data
 BATCH_SIZE = 1000
 
 # UI timing
