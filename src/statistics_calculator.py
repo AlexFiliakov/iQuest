@@ -113,6 +113,9 @@ class StatisticsCalculator:
         """
         Calculate statistics from database with optional filters.
         
+        Note: This method requires a DataLoader with database query capabilities.
+        Currently, the DataLoader loads all records and filtering is done in memory.
+        
         Args:
             start_date: Filter records after this date
             end_date: Filter records before this date
@@ -125,32 +128,28 @@ class StatisticsCalculator:
         if not self.data_loader:
             raise ValueError("DataLoader not provided")
         
-        # Build query with filters
-        query = "SELECT creationDate, type, sourceName FROM health_records WHERE 1=1"
-        params = []
-        
-        if start_date:
-            query += " AND creationDate >= ?"
-            params.append(start_date.isoformat())
-        
-        if end_date:
-            query += " AND creationDate <= ?"
-            params.append(end_date.isoformat())
-        
-        if types:
-            placeholders = ','.join(['?' for _ in types])
-            query += f" AND type IN ({placeholders})"
-            params.extend(types)
-        
-        if sources:
-            placeholders = ','.join(['?' for _ in sources])
-            query += f" AND sourceName IN ({placeholders})"
-            params.extend(sources)
-        
-        # Execute query and load into DataFrame
-        df = pd.read_sql_query(query, self.data_loader.conn, params=params)
-        
-        return self.calculate_from_dataframe(df)
+        # Load all records and filter in memory
+        # This is less efficient than database filtering but works with current DataLoader
+        try:
+            df = self.data_loader.get_all_records()
+            
+            # Apply filters if provided
+            if start_date:
+                df = df[df['creationDate'] >= start_date]
+            
+            if end_date:
+                df = df[df['creationDate'] <= end_date]
+            
+            if types:
+                df = df[df['type'].isin(types)]
+            
+            if sources:
+                df = df[df['sourceName'].isin(sources)]
+            
+            return self.calculate_from_dataframe(df)
+            
+        except Exception as e:
+            raise ValueError(f"Failed to calculate statistics from database: {e}")
     
     def get_quick_summary(self, stats: BasicStatistics) -> str:
         """

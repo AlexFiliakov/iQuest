@@ -91,10 +91,14 @@ class StatisticsWidget(QWidget):
         # Update summary
         self.total_records_label.setText(f"Total Records: {stats.total_records:,}")
         
-        if stats.date_range[0] and stats.date_range[1]:
-            date_str = (f"Date Range: {stats.date_range[0].strftime('%Y-%m-%d')} "
-                       f"to {stats.date_range[1].strftime('%Y-%m-%d')}")
-            self.date_range_label.setText(date_str)
+        if (stats.date_range[0] is not None and stats.date_range[1] is not None and 
+            hasattr(stats.date_range[0], 'strftime') and hasattr(stats.date_range[1], 'strftime')):
+            try:
+                date_str = (f"Date Range: {stats.date_range[0].strftime('%Y-%m-%d')} "
+                           f"to {stats.date_range[1].strftime('%Y-%m-%d')}")
+                self.date_range_label.setText(date_str)
+            except Exception:
+                self.date_range_label.setText("Date Range: Invalid dates")
         else:
             self.date_range_label.setText("Date Range: -")
         

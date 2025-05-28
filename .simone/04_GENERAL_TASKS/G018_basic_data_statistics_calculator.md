@@ -32,9 +32,9 @@ Implement basic statistics calculation for imported health data. This provides u
 - [x] Create statistics display widget
 - [x] Optimize queries with appropriate indexes
 - [x] Add unit tests for calculations
-- [ ] Fix error handling for date parsing in statistics_calculator
-- [ ] Fix direct database connection access issue
-- [ ] Add null checks for date formatting in statistics_widget
+- [x] Fix error handling for date parsing in statistics_calculator
+- [x] Fix direct database connection access issue
+- [x] Add null checks for date formatting in statistics_widget
 
 ## Output Log
 [2025-05-27 22:19] Task started - implementing basic data statistics calculator
@@ -45,3 +45,4 @@ Implement basic statistics calculation for imported health data. This provides u
 [2025-05-27 22:24] Added indexes for sourceName and (sourceName, type) to optimize grouping queries
 [2025-05-27 22:25] Created comprehensive unit tests in test_statistics_calculator.py - all 11 tests passing
 [2025-05-27 22:26] Code review identified issues with error handling, direct database connection access, and missing null checks
+[2025-05-27 22:27] Fixed all critical issues: added error handling for date parsing, removed direct DB connection access, added null checks
