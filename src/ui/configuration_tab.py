@@ -6,15 +6,19 @@ from PyQt6.QtWidgets import (
     QProgressBar, QFileDialog, QMessageBox, QFrame
 )
 from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QAction, QKeyEvent
 import pandas as pd
 import json
 import os
 
 from utils.logging_config import get_logger
-from data_loader import DataLoader
+from data_loader import DataLoader, convert_xml_to_sqlite
+from database import db_manager
 from .style_manager import StyleManager
+from .settings_manager import SettingsManager
 from .multi_select_combo import CheckableComboBox
+from .enhanced_date_edit import EnhancedDateEdit
+from config import DATA_DIR
 
 logger = get_logger(__name__)
 
@@ -55,6 +59,9 @@ class ConfigurationTab(QWidget):
         
         # Create the UI
         self._create_ui()
+        
+        # Set up keyboard navigation
+        self._setup_keyboard_navigation()
         
         logger.info("Configuration tab initialized")
     
@@ -113,12 +120,12 @@ class ConfigurationTab(QWidget):
         file_row = QHBoxLayout()
         file_row.setSpacing(12)
         
-        file_label = QLabel("CSV File:")
+        file_label = QLabel("Data File:")
         file_label.setStyleSheet("font-weight: 500;")
         file_row.addWidget(file_label)
         
         self.file_path_input = QLineEdit()
-        self.file_path_input.setPlaceholderText("Select Apple Health export CSV file...")
+        self.file_path_input.setPlaceholderText("Select Apple Health export file (CSV or XML)...")
         self.file_path_input.setReadOnly(True)
         self.file_path_input.setStyleSheet(self.style_manager.get_input_style())
         file_row.addWidget(self.file_path_input, 1)
@@ -126,12 +133,21 @@ class ConfigurationTab(QWidget):
         browse_button = QPushButton("Browse...")
         browse_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
         browse_button.clicked.connect(self._on_browse_clicked)
+        browse_button.setToolTip("Browse for Apple Health export file on your computer (Alt+B)")
         file_row.addWidget(browse_button)
         
         import_button = QPushButton("Import")
         import_button.setStyleSheet(self.style_manager.get_button_style("primary"))
         import_button.clicked.connect(self._on_import_clicked)
+        import_button.setToolTip("Import the selected CSV file into the application (Alt+I)")
         file_row.addWidget(import_button)
+        
+        # Add XML import button
+        import_xml_button = QPushButton("Import XML")
+        import_xml_button.setStyleSheet(self.style_manager.get_button_style("primary"))
+        import_xml_button.clicked.connect(self._on_import_xml_clicked)
+        import_xml_button.setToolTip("Import XML export file and convert to database format")
+        file_row.addWidget(import_xml_button)
         
         layout.addLayout(file_row)
         
@@ -158,6 +174,7 @@ class ConfigurationTab(QWidget):
                 border-radius: 6px;
             }}
         """)
+        self.progress_bar.setToolTip("Shows import progress - XML imports may take several minutes")
         progress_row.addWidget(self.progress_bar)
         
         layout.addLayout(progress_row)
@@ -203,21 +220,23 @@ class ConfigurationTab(QWidget):
         start_label = QLabel("From:")
         date_row.addWidget(start_label)
         
-        self.start_date_edit = QDateEdit()
-        self.start_date_edit.setCalendarPopup(True)
+        self.start_date_edit = EnhancedDateEdit()
         self.start_date_edit.setDate(QDate.currentDate().addYears(-1))
         self.start_date_edit.setDisplayFormat("yyyy-MM-dd")
         self.start_date_edit.setStyleSheet(self.style_manager.get_input_style())
+        self.start_date_edit.setAccessibleName("Start date filter")
+        self.start_date_edit.setAccessibleDescription("Filter data from this date onwards")
         date_row.addWidget(self.start_date_edit)
         
         end_label = QLabel("To:")
         date_row.addWidget(end_label)
         
-        self.end_date_edit = QDateEdit()
-        self.end_date_edit.setCalendarPopup(True)
+        self.end_date_edit = EnhancedDateEdit()
         self.end_date_edit.setDate(QDate.currentDate())
         self.end_date_edit.setDisplayFormat("yyyy-MM-dd")
         self.end_date_edit.setStyleSheet(self.style_manager.get_input_style())
+        self.end_date_edit.setAccessibleName("End date filter")
+        self.end_date_edit.setAccessibleDescription("Filter data up to this date")
         date_row.addWidget(self.end_date_edit)
         
         date_row.addStretch()
@@ -274,6 +293,13 @@ class ConfigurationTab(QWidget):
         presets_row.addWidget(self.load_preset_button)
         
         presets_row.addStretch()
+        
+        # Add reset app settings button
+        self.reset_settings_button = QPushButton("Reset App Settings")
+        self.reset_settings_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
+        self.reset_settings_button.clicked.connect(self._on_reset_settings_clicked)
+        self.reset_settings_button.setToolTip("Reset all application settings including window position")
+        presets_row.addWidget(self.reset_settings_button)
         presets_section.addLayout(presets_row)
         layout.addLayout(presets_section)
         
@@ -387,6 +413,7 @@ class ConfigurationTab(QWidget):
                 color: {self.style_manager.TEXT_SECONDARY};
             }}
         """)
+        self.status_label.setToolTip("Shows the current status of loaded data and applied filters")
         layout.addWidget(self.status_label)
         
         return section
@@ -397,9 +424,9 @@ class ConfigurationTab(QWidget):
         
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Apple Health Export CSV",
+            "Select Apple Health Export File",
             "",
-            "CSV Files (*.csv);;All Files (*)"
+            "Supported Files (*.csv *.xml);;CSV Files (*.csv);;XML Files (*.xml);;All Files (*)"
         )
         
         if file_path:
@@ -605,6 +632,46 @@ class ConfigurationTab(QWidget):
         # Apply reset
         self._on_apply_filters_clicked()
     
+    def _on_reset_settings_clicked(self):
+        """Handle reset app settings button click."""
+        logger.info("Reset app settings requested")
+        
+        # Confirm with user
+        reply = QMessageBox.question(
+            self,
+            "Reset Application Settings",
+            "This will reset all application settings including:\n"
+            "• Window size and position\n"
+            "• Last active tab\n"
+            "• Other saved preferences\n\n"
+            "The application will need to be restarted for changes to take effect.\n\n"
+            "Are you sure you want to reset all settings?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # Create settings manager instance and clear settings
+                settings_manager = SettingsManager()
+                settings_manager.clear_settings()
+                
+                QMessageBox.information(
+                    self,
+                    "Settings Reset",
+                    "All application settings have been reset.\n"
+                    "Please restart the application for changes to take effect."
+                )
+                logger.info("Application settings reset successfully")
+                
+            except Exception as e:
+                logger.error(f"Failed to reset settings: {e}")
+                QMessageBox.critical(
+                    self,
+                    "Reset Error",
+                    f"Failed to reset application settings: {str(e)}"
+                )
+    
     def _update_status(self, message):
         """Update the status label."""
         self.status_label.setText(message)
@@ -744,3 +811,154 @@ class ConfigurationTab(QWidget):
                 "Load Error",
                 f"Failed to load preset: {str(e)}"
             )
+    
+    def _on_import_xml_clicked(self):
+        """Handle XML import button click."""
+        file_path = self.file_path_input.text()
+        if not file_path:
+            # Open file dialog for XML
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select Apple Health Export XML",
+                "",
+                "XML Files (*.xml);;All Files (*)"
+            )
+            if not file_path:
+                return
+            self.file_path_input.setText(file_path)
+        
+        if not file_path.lower().endswith('.xml'):
+            QMessageBox.warning(
+                self,
+                "Invalid File",
+                "Please select an XML file for XML import."
+            )
+            return
+        
+        logger.info(f"Starting XML import of: {file_path}")
+        self._start_xml_import(file_path)
+    
+    def _start_xml_import(self, xml_path):
+        """Start the XML to SQLite conversion process."""
+        # Update UI for import
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        self.progress_label.setText("Converting XML to SQLite database...")
+        
+        try:
+            # Convert XML to SQLite
+            from database import DB_FILE_NAME
+            db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
+            os.makedirs(DATA_DIR, exist_ok=True)
+            
+            # Use the convert_xml_to_sqlite function
+            convert_xml_to_sqlite(xml_path, db_path)
+            
+            # Load data from SQLite
+            self.progress_bar.setValue(50)
+            self.progress_label.setText("Loading data from database...")
+            
+            self._load_from_sqlite()
+            
+        except Exception as e:
+            logger.error(f"XML import failed: {e}")
+            self.progress_bar.setVisible(False)
+            self.progress_label.setText("XML import failed!")
+            self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_ERROR};")
+            QMessageBox.critical(
+                self,
+                "Import Error",
+                f"Failed to import XML data: {str(e)}"
+            )
+    
+    def _load_from_sqlite(self):
+        """Load data from SQLite database."""
+        try:
+            # Initialize database if needed
+            db_manager.initialize_database()
+            
+            # Load data using DataLoader's SQLite functions
+            from database import DB_FILE_NAME
+            self.data_loader.db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
+            
+            # Get all records from SQLite
+            self.data = self.data_loader.get_all_records()
+            
+            # Update UI
+            self.progress_bar.setValue(100)
+            self.progress_bar.setVisible(False)
+            self.progress_label.setText("Data loaded from database successfully!")
+            self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_SUCCESS};")
+            
+            # Update status
+            row_count = len(self.data) if self.data is not None else 0
+            self._update_status(f"Loaded {row_count:,} records from database")
+            
+            # Populate filters
+            self._populate_filters()
+            
+            # Enable filter controls
+            self._enable_filter_controls(True)
+            
+            # Emit signal
+            self.data_loaded.emit(self.data)
+            
+            logger.info(f"Database load completed: {row_count} records")
+            
+        except Exception as e:
+            logger.error(f"Database load failed: {e}")
+            raise
+    
+    def _setup_keyboard_navigation(self):
+        """Set up tab order and keyboard shortcuts."""
+        logger.debug("Setting up keyboard navigation for Configuration tab")
+        
+        # Set up logical tab order for import section
+        self.setTabOrder(self.file_path_input, self.findChild(QPushButton, "Browse..."))
+        
+        # Set up tab order for filter section
+        self.setTabOrder(self.start_date_edit, self.end_date_edit)
+        self.setTabOrder(self.end_date_edit, self.device_dropdown)
+        self.setTabOrder(self.device_dropdown, self.metric_dropdown)
+        self.setTabOrder(self.metric_dropdown, self.save_preset_button)
+        self.setTabOrder(self.save_preset_button, self.load_preset_button)
+        self.setTabOrder(self.load_preset_button, self.reset_settings_button)
+        self.setTabOrder(self.reset_settings_button, self.reset_button)
+        self.setTabOrder(self.reset_button, self.apply_button)
+        
+        # Add keyboard shortcuts for buttons
+        # Alt+B for Browse
+        browse_action = QAction(self)
+        browse_action.setShortcut("Alt+B")
+        browse_action.triggered.connect(self._on_browse_clicked)
+        self.addAction(browse_action)
+        
+        # Alt+I for Import
+        import_action = QAction(self)
+        import_action.setShortcut("Alt+I")
+        import_action.triggered.connect(self._on_import_clicked)
+        self.addAction(import_action)
+        
+        # Alt+A for Apply Filters
+        apply_action = QAction(self)
+        apply_action.setShortcut("Alt+A")
+        apply_action.triggered.connect(self._on_apply_filters_clicked)
+        self.addAction(apply_action)
+        
+        # Alt+R for Reset Filters
+        reset_action = QAction(self)
+        reset_action.setShortcut("Alt+R")
+        reset_action.triggered.connect(self._on_reset_clicked)
+        self.addAction(reset_action)
+        
+        # Add tooltips for accessibility
+        self.file_path_input.setToolTip("Path to Apple Health export file")
+        self.start_date_edit.setToolTip("Filter data from this date (inclusive)")
+        self.end_date_edit.setToolTip("Filter data up to this date (inclusive)")
+        self.device_dropdown.setToolTip("Select which devices to include in the data")
+        self.metric_dropdown.setToolTip("Select which health metrics to include")
+        self.apply_button.setToolTip("Apply the selected filters to the data (Alt+A)")
+        self.reset_button.setToolTip("Reset all filters to default values (Alt+R)")
+        self.save_preset_button.setToolTip("Save the current filter configuration")
+        self.load_preset_button.setToolTip("Load a previously saved filter configuration")
+        self.reset_settings_button.setToolTip("Reset all application settings including window position")

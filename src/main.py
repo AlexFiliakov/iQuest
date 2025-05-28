@@ -62,6 +62,11 @@ def main():
         app.setApplicationName(APP_NAME)
         app.setOrganizationName(ORGANIZATION_NAME)
         
+        # Set tooltip delay timing (in milliseconds)
+        # 700ms delay before showing tooltips for better user experience
+        app.style().setStyleHint(app.style().SH_ToolTip_WakeUpDelay, 700)
+        app.style().setStyleHint(app.style().SH_ToolTip_FallAsleepDelay, 10000)
+        
         # Apply global styling
         style_manager = StyleManager()
         style_manager.apply_global_style(app)
