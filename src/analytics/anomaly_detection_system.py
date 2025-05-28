@@ -80,8 +80,20 @@ class AnomalyDetectionSystem:
                 sequence_length=self.config.lstm_sequence_length,
                 threshold_percentile=self.config.lstm_threshold_percentile
             )
-        except NotImplementedError:
+        except (NotImplementedError, ImportError):
             # LSTM not available, skip
+            pass
+        
+        # Hybrid temporal detector (always available with graceful degradation)
+        try:
+            from .temporal_anomaly_detector import HybridTemporalAnomalyDetector
+            detectors['hybrid_temporal'] = HybridTemporalAnomalyDetector(
+                enable_ml=True,
+                seasonal=7,  # Weekly seasonality by default
+                sequence_length=self.config.lstm_sequence_length
+            )
+        except ImportError:
+            # Should not happen as hybrid detector has statistical fallback
             pass
         
         return detectors

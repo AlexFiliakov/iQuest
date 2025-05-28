@@ -395,22 +395,24 @@ class LocalOutlierFactorDetector(BaseDetector):
             return Severity.LOW
 
 
-# TODO: LSTM Detector requires TensorFlow/PyTorch
-# This would be implemented when ML dependencies are added
-class LSTMDetector(BaseDetector):
-    """LSTM-based temporal anomaly detection (requires TensorFlow/PyTorch)."""
-    
-    def __init__(self, sequence_length: int = 24, threshold_percentile: float = 95):
-        super().__init__("LSTM Detector", DetectionMethod.LSTM)
-        self.sequence_length = sequence_length
-        self.threshold_percentile = threshold_percentile
-        self.model = None
-        self.scaler = StandardScaler()
-    
-    def detect(self, data: pd.Series) -> List[Anomaly]:
-        """Detect temporal anomalies using LSTM."""
-        # TODO: Implement when TensorFlow/PyTorch is available
-        raise NotImplementedError(
-            "LSTM detector requires TensorFlow or PyTorch. "
-            "Please install with: pip install tensorflow>=2.0"
-        )
+# Import LSTM detector from temporal module
+try:
+    from .temporal_anomaly_detector import LSTMTemporalDetector as LSTMDetector
+except ImportError:
+    # Fallback if TensorFlow not available
+    class LSTMDetector(BaseDetector):
+        """LSTM-based temporal anomaly detection (requires TensorFlow/PyTorch)."""
+        
+        def __init__(self, sequence_length: int = 24, threshold_percentile: float = 95):
+            super().__init__("LSTM Detector", DetectionMethod.LSTM)
+            self.sequence_length = sequence_length
+            self.threshold_percentile = threshold_percentile
+            self.model = None
+            self.scaler = StandardScaler()
+        
+        def detect(self, data: pd.Series) -> List[Anomaly]:
+            """Detect temporal anomalies using LSTM."""
+            raise NotImplementedError(
+                "LSTM detector requires TensorFlow or PyTorch. "
+                "Please install with: pip install tensorflow>=2.0"
+            )

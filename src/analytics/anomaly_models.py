@@ -25,6 +25,7 @@ class DetectionMethod(Enum):
     LOF = "lof"
     LSTM = "lstm"
     ENSEMBLE = "ensemble"
+    HYBRID = "hybrid"  # Statistical + ML hybrid approach
 
 
 @dataclass
