@@ -23,6 +23,9 @@ from .multi_select_combo import CheckableComboBox
 from .enhanced_date_edit import EnhancedDateEdit
 from .import_progress_dialog import ImportProgressDialog
 from .statistics_widget import StatisticsWidget
+from .summary_cards import SummaryCard
+from .table_components import MetricTable, TableConfig
+from .component_factory import ComponentFactory
 from config import DATA_DIR
 from ..statistics_calculator import StatisticsCalculator
 
@@ -42,6 +45,7 @@ class ConfigurationTab(QWidget):
         
         # Initialize components
         self.style_manager = StyleManager()
+        self.component_factory = ComponentFactory()
         self.data_loader = DataLoader()
         self.filter_config_manager = FilterConfigManager()
         self.statistics_calculator = StatisticsCalculator()
@@ -95,6 +99,7 @@ class ConfigurationTab(QWidget):
         # Create sections
         main_layout.addWidget(self._create_import_section())
         main_layout.addWidget(self._create_filter_section())
+        main_layout.addWidget(self._create_summary_cards_section())
         main_layout.addWidget(self._create_statistics_section())
         main_layout.addWidget(self._create_status_section())
         
@@ -431,12 +436,77 @@ class ConfigurationTab(QWidget):
         layout = QVBoxLayout(group)
         layout.setContentsMargins(12, 12, 12, 12)
         
+        # Create data preview table
+        preview_group = QGroupBox("Data Preview")
+        preview_layout = QVBoxLayout()
+        
+        self.data_preview_table = self.component_factory.create_data_table(
+            config=TableConfig(
+                page_size=5,
+                show_pagination=False,
+                show_export=False,
+                sortable=False,
+                show_search=False
+            ),
+            wsj_style=True
+        )
+        preview_layout.addWidget(self.data_preview_table)
+        preview_group.setLayout(preview_layout)
+        layout.addWidget(preview_group)
+        
         # Create statistics widget
         self.statistics_widget = StatisticsWidget()
         self.statistics_widget.filter_requested.connect(self._on_statistics_filter_requested)
         layout.addWidget(self.statistics_widget)
         
         return group
+    
+    def _create_summary_cards_section(self):
+        """Create summary cards for data overview."""
+        section = QWidget()
+        layout = QHBoxLayout(section)
+        layout.setContentsMargins(0, 0, 0, 12)
+        
+        # Create summary cards with WSJ styling
+        self.total_records_card = self.component_factory.create_metric_card(
+            title="Total Records",
+            value="-",
+            card_type="simple",
+            size="small",
+            wsj_style=True
+        )
+        
+        self.filtered_records_card = self.component_factory.create_metric_card(
+            title="Filtered Records",
+            value="-",
+            card_type="simple",
+            size="small",
+            wsj_style=True
+        )
+        
+        self.data_source_card = self.component_factory.create_metric_card(
+            title="Data Source",
+            value="None",
+            card_type="simple",
+            size="small",
+            wsj_style=True
+        )
+        
+        self.filter_status_card = self.component_factory.create_metric_card(
+            title="Filter Status",
+            value="No filters",
+            card_type="simple",
+            size="small",
+            wsj_style=True
+        )
+        
+        layout.addWidget(self.total_records_card)
+        layout.addWidget(self.filtered_records_card)
+        layout.addWidget(self.data_source_card)
+        layout.addWidget(self.filter_status_card)
+        layout.addStretch()
+        
+        return section
     
     def _create_status_section(self):
         """Create the status display section."""
@@ -534,11 +604,20 @@ class ConfigurationTab(QWidget):
             # Update status
             self._update_status(f"Loaded {row_count:,} records")
             
+            # Update summary cards
+            self.total_records_card.update_value(f"{row_count:,}")
+            self.filtered_records_card.update_value(f"{row_count:,}")
+            self.data_source_card.update_value("CSV File")
+            self.filter_status_card.update_value("Default")
+            
             # Populate filters
             self._populate_filters()
             
             # Enable filter controls
             self._enable_filter_controls(True)
+            
+            # Update data preview
+            self._update_data_preview()
             
             # Calculate and display statistics
             if self.data is not None and not self.data.empty:
@@ -631,6 +710,11 @@ class ConfigurationTab(QWidget):
             f"Showing {filtered_count:,} of {original_count:,} records "
             f"({filtered_count/original_count*100:.1f}%) - Filtered in {filter_time:.0f}ms"
         )
+        
+        # Update summary cards
+        self.filtered_records_card.update_value(f"{filtered_count:,}")
+        percentage = f"{filtered_count/original_count*100:.1f}%"
+        self.filter_status_card.update_value(f"Active ({percentage})")
         
         # Update statistics for filtered data
         if self.filtered_data is not None and not self.filtered_data.empty:
@@ -760,6 +844,28 @@ class ConfigurationTab(QWidget):
                 font-weight: 500;
             }}
         """)
+        
+    def _update_data_preview(self):
+        """Update the data preview table with sample records."""
+        if self.data is None or self.data.empty:
+            self.data_preview_table.clear_data()
+            return
+            
+        # Get a sample of the data (first 5 rows)
+        sample_data = self.data.head(5)
+        
+        # Convert to list of dictionaries for the table
+        preview_data = []
+        for _, row in sample_data.iterrows():
+            preview_data.append({
+                'Type': str(row.get('type', row.get('metric_type', 'Unknown'))),
+                'Value': str(row.get('value', row.get('numeric_value', '-'))),
+                'Unit': str(row.get('unit', row.get('unit_name', '-'))),
+                'Date': str(row.get('date', row.get('start_date', row.get('startDate', '-'))))[:10],  # First 10 chars for date
+                'Source': str(row.get('source', row.get('sourceName', '-')))
+            })
+        
+        self.data_preview_table.update_data(preview_data)
     
     def get_filtered_data(self):
         """Get the current filtered data."""
@@ -963,11 +1069,20 @@ class ConfigurationTab(QWidget):
             row_count = len(self.data) if self.data is not None else 0
             self._update_status(f"Loaded {row_count:,} records from database")
             
+            # Update summary cards
+            self.total_records_card.update_value(f"{row_count:,}")
+            self.filtered_records_card.update_value(f"{row_count:,}")
+            self.data_source_card.update_value("Database")
+            self.filter_status_card.update_value("Default")
+            
             # Populate filters
             self._populate_filters()
             
             # Enable filter controls
             self._enable_filter_controls(True)
+            
+            # Update data preview
+            self._update_data_preview()
             
             # Calculate and display statistics
             if self.data is not None and not self.data.empty:

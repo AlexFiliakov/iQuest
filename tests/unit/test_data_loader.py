@@ -10,11 +10,14 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import os
 import sys
+import gc
+import shutil
+import time
 
 # Add the src directory to the path so we can import the data_loader module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from data_loader import (
+from src.data_loader import (
     convert_xml_to_sqlite,
     query_date_range,
     get_daily_summary,
@@ -90,11 +93,7 @@ class TestDataLoader(unittest.TestCase):
         
     def tearDown(self):
         """Clean up temporary files"""
-        import shutil
-        import time
-        
         # Force garbage collection to close any lingering database connections
-        import gc
         gc.collect()
         
         # Give Windows time to release file handles

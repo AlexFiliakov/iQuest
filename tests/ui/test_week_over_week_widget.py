@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt
 
 from src.ui.week_over_week_widget import (
     WeekOverWeekWidget, MomentumIndicatorWidget, StreakTrackerWidget, 
-    MiniBarChart, SlopeGraphWidget
+    SlopeGraphWidget
 )
 from src.analytics.week_over_week_trends import (
     WeekOverWeekTrends, TrendResult, StreakInfo, MomentumIndicator, 
@@ -241,65 +241,6 @@ class TestStreakTrackerWidget:
         assert not widget.streak_progress.isVisible()
 
 
-class TestMiniBarChart:
-    """Test mini bar chart widget."""
-    
-    def test_initialization(self, qapp):
-        """Test widget initialization."""
-        widget = MiniBarChart()
-        
-        assert widget.weeks_to_show == 8
-        assert widget.trend_data == []
-        assert widget.height() == 40
-    
-    def test_initialization_custom_weeks(self, qapp):
-        """Test widget initialization with custom weeks."""
-        widget = MiniBarChart(weeks_to_show=6)
-        
-        assert widget.weeks_to_show == 6
-    
-    def test_set_data(self, qapp, sample_trend_series):
-        """Test setting data."""
-        widget = MiniBarChart(weeks_to_show=6)
-        
-        widget.set_data(sample_trend_series)
-        
-        # Should take last 6 weeks
-        assert len(widget.trend_data) == 6
-        assert widget.trend_data == sample_trend_series[-6:]
-    
-    def test_set_data_fewer_weeks(self, qapp):
-        """Test setting data with fewer weeks than display limit."""
-        widget = MiniBarChart(weeks_to_show=8)
-        
-        # Create trend data with only 4 weeks
-        trend_data = []
-        for i in range(4):
-            week_start = date.today() - timedelta(weeks=3-i)
-            trend_data.append(WeekTrendData(
-                week_start=week_start,
-                week_end=week_start + timedelta(days=6),
-                value=6000 + i * 100,
-                percent_change_from_previous=None,
-                trend_direction='up',
-                momentum=MomentumType.STEADY,
-                is_incomplete_week=False,
-                missing_days=0
-            ))
-        
-        widget.set_data(trend_data)
-        
-        assert len(widget.trend_data) == 4
-    
-    def test_paint_event_no_crash(self, qapp, sample_trend_series):
-        """Test paint event doesn't crash with data."""
-        widget = MiniBarChart()
-        widget.set_data(sample_trend_series)
-        widget.show()
-        
-        # Trigger paint event
-        widget.update()
-        QTest.qWait(100)
 
 
 class TestSlopeGraphWidget:
@@ -310,8 +251,7 @@ class TestSlopeGraphWidget:
         widget = SlopeGraphWidget()
         
         assert widget.trend_data == []
-        assert hasattr(widget, 'figure')
-        assert hasattr(widget, 'canvas')
+        assert hasattr(widget, 'chart')  # Now uses EnhancedLineChart
     
     def test_set_data(self, qapp, sample_trend_series):
         """Test setting data and updating graph."""
@@ -331,7 +271,7 @@ class TestSlopeGraphWidget:
         widget.set_data(sample_trend_series, "Steps")
         
         # This should create the graph without crashing
-        QTest.qWait(200)  # Wait for matplotlib rendering
+        QTest.qWait(200)  # Wait for chart rendering
 
 
 class TestWeekOverWeekWidget:

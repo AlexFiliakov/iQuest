@@ -16,12 +16,12 @@ from pathlib import Path
 from typing import Optional, Tuple, List
 from datetime import datetime
 
-from utils.logging_config import get_logger
-from utils.error_handler import (
+from .utils.logging_config import get_logger
+from .utils.error_handler import (
     safe_file_operation, safe_database_operation, 
     DataImportError, DatabaseError, ErrorContext, DataValidationError
 )
-from utils.xml_validator import validate_apple_health_xml, AppleHealthXMLValidator
+from .utils.xml_validator import validate_apple_health_xml, AppleHealthXMLValidator
 
 # Get logger for this module
 logger = get_logger(__name__)

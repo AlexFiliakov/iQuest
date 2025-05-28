@@ -11,9 +11,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QLinearGradient
 from typing import List, Optional, Dict
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import numpy as np
 from datetime import date, timedelta
 
@@ -21,6 +18,9 @@ from ..analytics.week_over_week_trends import (
     WeekOverWeekTrends, TrendResult, StreakInfo, MomentumIndicator, 
     WeekTrendData, MomentumType
 )
+from .summary_cards import SummaryCard
+from .bar_chart_component import BarChartComponent, BarChartConfig
+from .charts.enhanced_line_chart import EnhancedLineChart, ChartConfig
 
 
 class MomentumIndicatorWidget(QWidget):
@@ -185,72 +185,10 @@ class StreakTrackerWidget(QWidget):
         self.best_streak_label.setText(f"Best: {streak_info.best_streak} weeks")
 
 
-class MiniBarChart(QWidget):
-    """Mini bar chart widget for summary cards."""
-    
-    def __init__(self, parent=None, weeks_to_show: int = 8):
-        super().__init__(parent)
-        self.weeks_to_show = weeks_to_show
-        self.trend_data = []
-        self.setFixedHeight(40)
-        self.setMinimumWidth(100)
-        
-    def set_data(self, trend_data: List[WeekTrendData]):
-        """Set trend data for the mini chart."""
-        # Take the last N weeks
-        self.trend_data = trend_data[-self.weeks_to_show:] if len(trend_data) > self.weeks_to_show else trend_data
-        self.update()
-        
-    def paintEvent(self, event):
-        """Custom paint for mini bar chart."""
-        if not self.trend_data:
-            return
-            
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        rect = self.rect()
-        margin = 5
-        chart_rect = QRect(margin, margin, rect.width() - 2*margin, rect.height() - 2*margin)
-        
-        # Find min/max values for scaling
-        values = [data.value for data in self.trend_data if data.value > 0]
-        if not values:
-            return
-            
-        min_val = min(values)
-        max_val = max(values)
-        value_range = max_val - min_val if max_val != min_val else 1
-        
-        # Calculate bar dimensions
-        bar_width = chart_rect.width() / len(self.trend_data)
-        
-        # Draw bars
-        for i, data in enumerate(self.trend_data):
-            if data.value <= 0:
-                continue
-                
-            # Normalize value to chart height
-            normalized_value = (data.value - min_val) / value_range
-            bar_height = normalized_value * chart_rect.height()
-            
-            # Choose color based on trend
-            if data.trend_direction == 'up':
-                color = QColor(76, 175, 80)  # Green
-            elif data.trend_direction == 'down':
-                color = QColor(244, 67, 54)  # Red
-            else:
-                color = QColor(158, 158, 158)  # Gray
-            
-            # Draw bar
-            bar_x = chart_rect.x() + i * bar_width + 1
-            bar_y = chart_rect.y() + chart_rect.height() - bar_height
-            
-            painter.fillRect(int(bar_x), int(bar_y), int(bar_width - 2), int(bar_height), color)
 
 
 class SlopeGraphWidget(QWidget):
-    """Slope graph showing week progression with matplotlib."""
+    """Slope graph showing week progression using EnhancedLineChart."""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -262,10 +200,14 @@ class SlopeGraphWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Create matplotlib figure
-        self.figure = Figure(figsize=(10, 6), facecolor='white')
-        self.canvas = FigureCanvas(self.figure)
-        layout.addWidget(self.canvas)
+        # Create enhanced line chart
+        config = ChartConfig.get_wsj_style()
+        config.title = "Weekly Progression"
+        config.show_grid = True
+        config.show_legend = True
+        
+        self.chart = EnhancedLineChart(config)
+        layout.addWidget(self.chart)
         
     def set_data(self, trend_data: List[WeekTrendData], metric_name: str):
         """Set trend data and update the slope graph."""
@@ -275,56 +217,24 @@ class SlopeGraphWidget(QWidget):
         
     def update_graph(self):
         """Update the slope graph with current data."""
-        self.figure.clear()
-        
         if not self.trend_data:
             return
             
-        ax = self.figure.add_subplot(111)
-        
-        # Prepare data
+        # Prepare data for line chart
         weeks = [f"W{i+1}" for i in range(len(self.trend_data))]
         values = [data.value for data in self.trend_data]
-        colors = []
         
-        for i, data in enumerate(self.trend_data):
-            if i == 0:
-                colors.append('#888888')  # First point is gray
-            elif data.percent_change_from_previous is None:
-                colors.append('#888888')
-            elif data.percent_change_from_previous > 2:
-                colors.append('#4CAF50')  # Green for improvement
-            elif data.percent_change_from_previous < -2:
-                colors.append('#F44336')  # Red for decline
-            else:
-                colors.append('#FFC107')  # Yellow for stable
+        # Create data series
+        series_data = {
+            'x': weeks,
+            'y': values,
+            'name': self.metric_name,
+            'color': '#FF8C42'  # Orange from our warm color palette
+        }
         
-        # Draw line
-        ax.plot(weeks, values, linewidth=2, color='#666666', alpha=0.7)
-        
-        # Draw points with colors
-        for i, (week, value, color) in enumerate(zip(weeks, values, colors)):
-            ax.scatter(week, value, color=color, s=100, zorder=5)
-            
-            # Add percentage change labels
-            if i > 0 and self.trend_data[i].percent_change_from_previous is not None:
-                change = self.trend_data[i].percent_change_from_previous
-                label = f"{change:+.1f}%"
-                ax.annotate(label, (week, value), textcoords="offset points", 
-                           xytext=(0,15), ha='center', fontsize=8, color=color)
-        
-        # Styling inspired by Wall Street Journal
-        ax.set_title(f"{self.metric_name} - Weekly Progression", fontsize=14, fontweight='bold', pad=20)
-        ax.set_ylabel('Average Value', fontsize=12)
-        ax.grid(True, alpha=0.3)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        
-        # Rotate x-axis labels
-        plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
-        
-        self.figure.tight_layout()
-        self.canvas.draw()
+        # Update chart
+        self.chart.set_data([series_data])
+        self.chart.config.title = f"{self.metric_name} - Weekly Progression"
 
 
 class WeekOverWeekWidget(QWidget):
@@ -408,31 +318,15 @@ class WeekOverWeekWidget(QWidget):
         scroll_area.setWidget(content_widget)
         layout.addWidget(scroll_area)
         
-    def create_summary_card(self, title: str, value: str, subtitle: str) -> QGroupBox:
+    def create_summary_card(self, title: str, value: str, subtitle: str) -> SummaryCard:
         """Create a summary card with mini bar chart."""
-        card = QGroupBox(title)
-        layout = QVBoxLayout(card)
-        
-        # Value label
-        value_label = QLabel(value)
-        value_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(value_label)
-        
-        # Subtitle
-        subtitle_label = QLabel(subtitle)
-        subtitle_label.setFont(QFont("Arial", 9))
-        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(subtitle_label)
-        
-        # Mini bar chart
-        mini_chart = MiniBarChart()
-        layout.addWidget(mini_chart)
-        
-        # Store references
-        card.value_label = value_label
-        card.subtitle_label = subtitle_label
-        card.mini_chart = mini_chart
+        card = SummaryCard(
+            title=title,
+            value=value,
+            subtitle=subtitle,
+            card_type="mini_chart",
+            size="medium"
+        )
         
         return card
     

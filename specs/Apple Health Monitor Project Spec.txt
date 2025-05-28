@@ -38,29 +38,19 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 
 
 current:
-create a plan and tasks to refactor the current UI to use reusable components created in tasks `G036`, `GX037`, `GX038`, and `GX039`.
-G030_build_month_over_month_trends.md
--> G031_identify_seasonal_patterns.md
-
-
-then:
-G032_implement_adaptive_display_logic.md
-
-then:
-G033_create_smart_default_selection.md
-G034_build_smooth_view_transitions.md
 G035_design_data_availability_indicators.md
+- review sprint `S03_M01_UI_Framework` and note remaining work
+  - begin sprint `S04_M01_Core_Analytics`
+review sprint `S03_M01_basic_analytics` and note remaining work
 
 
-parallel:
-G040_implement_correlation_analysis_engine.md
-G041_build_anomaly_detection_system.md
-G042_create_personal_records_tracker.md
--> G043_implement_goal_setting_tracking.md
+### S04 future parallel: ###
+G043_implement_goal_setting_tracking.md
 G044_build_comparative_analytics.md
 G045_create_health_score_calculator.md
 G046_implement_predictive_analytics.md
 G047_design_data_story_generator.md
+
 
 
 next:

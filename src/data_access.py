@@ -6,8 +6,8 @@ from datetime import date, datetime, timedelta
 import json
 import hashlib
 
-from database import DatabaseManager
-from models import (
+from .database import DatabaseManager
+from .models import (
     JournalEntry, UserPreference, RecentFile, CachedMetric,
     HealthMetricsMetadata, DataSource, ImportHistory
 )

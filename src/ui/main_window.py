@@ -11,6 +11,10 @@ from utils.logging_config import get_logger
 from .style_manager import StyleManager
 from .settings_manager import SettingsManager
 from .configuration_tab import ConfigurationTab
+from .trophy_case_widget import TrophyCaseWidget
+from .view_transitions import ViewTransitionManager, ViewType
+from ..analytics.personal_records_tracker import PersonalRecordsTracker
+from ..database import db_manager
 from config import (
     WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
     WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
@@ -29,6 +33,13 @@ class MainWindow(QMainWindow):
         # Initialize managers
         self.style_manager = StyleManager()
         self.settings_manager = SettingsManager()
+        
+        # Initialize transition manager (check accessibility settings)
+        accessibility_mode = self.settings_manager.get_setting("accessibility/disable_animations", False)
+        self.transition_manager = ViewTransitionManager(accessibility_mode=accessibility_mode)
+        
+        # Initialize personal records tracker
+        self.personal_records_tracker = PersonalRecordsTracker(db_manager)
         
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
@@ -149,11 +160,31 @@ class MainWindow(QMainWindow):
         self._create_daily_dashboard_tab()
         self._create_weekly_dashboard_tab()
         self._create_monthly_dashboard_tab()
+        self._create_trophy_case_tab()
         self._create_journal_tab()
         self._create_help_tab()
         
+        # Map tab indices to view types
+        self.tab_to_view_map = {
+            0: ViewType.CONFIG,      # Configuration
+            1: ViewType.DAILY,       # Daily
+            2: ViewType.WEEKLY,      # Weekly
+            3: ViewType.MONTHLY,     # Monthly
+            4: ViewType.JOURNAL,     # Trophy Case (using JOURNAL enum temporarily)
+            5: ViewType.JOURNAL,     # Journal
+            6: ViewType.CONFIG       # Help (using CONFIG enum temporarily)
+        }
+        
+        # Store reference to previous tab for transitions
+        self.previous_tab_index = 0
+        
         # Connect tab change signal
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
+        
+        # Connect transition manager signals
+        self.transition_manager.transition_started.connect(self._on_transition_started)
+        self.transition_manager.transition_completed.connect(self._on_transition_completed)
+        self.transition_manager.transition_interrupted.connect(self._on_transition_interrupted)
         
         # Set up keyboard navigation
         self._setup_keyboard_navigation()
@@ -290,6 +321,17 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.addTab(monthly_widget, "Monthly")
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and progress")
+    
+    def _create_trophy_case_tab(self):
+        """Create the trophy case tab."""
+        self.trophy_case_widget = TrophyCaseWidget(self.personal_records_tracker)
+        
+        # Connect signals (if needed)
+        # self.trophy_case_widget.record_selected.connect(self._on_record_selected)
+        # self.trophy_case_widget.share_requested.connect(self._on_share_requested)
+        
+        self.tab_widget.addTab(self.trophy_case_widget, "🏆 Records")
+        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personal records, achievements, and streaks")
     
     def _create_journal_tab(self):
         """Create the journal tab placeholder."""
@@ -640,13 +682,69 @@ class MainWindow(QMainWindow):
         self.status_bar.setToolTip("Shows the current application status")
     
     def _on_tab_changed(self, index):
-        """Handle tab change event."""
+        """Handle tab change event with smooth transitions."""
         tab_name = self.tab_widget.tabText(index)
+        logger.debug(f"Tab change requested: {tab_name}")
+        
+        # Get view types for transition
+        from_view = self.tab_to_view_map.get(self.previous_tab_index, ViewType.CONFIG)
+        to_view = self.tab_to_view_map.get(index, ViewType.CONFIG)
+        
+        # Get widgets for transition
+        from_widget = self.tab_widget.widget(self.previous_tab_index)
+        to_widget = self.tab_widget.widget(index)
+        
+        # Only perform transition for dashboard tabs (Daily, Weekly, Monthly)
+        dashboard_tabs = [1, 2, 3]  # Daily, Weekly, Monthly indices
+        should_animate = (self.previous_tab_index in dashboard_tabs and 
+                         index in dashboard_tabs and
+                         from_widget is not None and 
+                         to_widget is not None)
+        
+        if should_animate:
+            # Perform animated transition
+            self.transition_manager.transition_to(
+                from_widget, to_widget, from_view, to_view
+            )
+        else:
+            # Immediate transition for non-dashboard tabs
+            self._complete_tab_change(index, tab_name)
+        
+        # Update previous tab index
+        self.previous_tab_index = index
+    
+    def _complete_tab_change(self, index: int, tab_name: str):
+        """Complete tab change without animation."""
         logger.debug(f"Switched to tab: {tab_name}")
         self.status_bar.showMessage(f"Viewing {tab_name}")
         
         # Save the current tab index immediately
         self.settings_manager.set_setting("MainWindow/lastActiveTab", index)
+    
+    def _on_transition_started(self, from_view: ViewType, to_view: ViewType):
+        """Handle transition start."""
+        logger.debug(f"Transition started: {from_view.value} → {to_view.value}")
+        self.status_bar.showMessage(f"Transitioning to {to_view.value.title()}...")
+    
+    def _on_transition_completed(self, target_view: ViewType):
+        """Handle transition completion."""
+        logger.debug(f"Transition completed: {target_view.value}")
+        
+        # Update status bar
+        current_index = self.tab_widget.currentIndex()
+        tab_name = self.tab_widget.tabText(current_index)
+        self._complete_tab_change(current_index, tab_name)
+    
+    def _on_transition_interrupted(self):
+        """Handle transition interruption."""
+        logger.debug("Transition was interrupted")
+        self.status_bar.showMessage("Transition interrupted")
+    
+    def toggle_accessibility_mode(self, enabled: bool):
+        """Toggle accessibility mode for animations."""
+        self.transition_manager.set_accessibility_mode(enabled)
+        self.settings_manager.set_setting("accessibility/disable_animations", enabled)
+        logger.info(f"Accessibility mode {'enabled' if enabled else 'disabled'}")
     
     def _on_import_csv(self):
         """Handle CSV import action."""

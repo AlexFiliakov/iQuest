@@ -44,6 +44,13 @@
 --color-chart-3: #95C17B;          /* Green */
 --color-chart-4: #6C9BD1;          /* Blue */
 --color-chart-5: #B79FCB;          /* Purple */
+
+/* Data Coverage Colors */
+--color-coverage-excellent: #95C17B; /* 90%+ coverage - soft green */
+--color-coverage-good: #8BC34A;      /* 75-89% coverage - light green */
+--color-coverage-fair: #F4A261;      /* 50-74% coverage - amber */
+--color-coverage-poor: #E76F51;      /* 1-49% coverage - coral */
+--color-coverage-none: #9E9E9E;      /* 0% coverage - gray */
 ```
 
 #### 2.2 Typography

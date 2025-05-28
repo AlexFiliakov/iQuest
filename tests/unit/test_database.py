@@ -3,9 +3,13 @@
 import unittest
 import tempfile
 import os
+import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import json
+
+# Add the project root to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.database import DatabaseManager, DB_FILE_NAME
 from src.models import JournalEntry, UserPreference, RecentFile, CachedMetric
@@ -378,15 +382,23 @@ class TestCacheDAO(unittest.TestCase):
     
     def test_cache_expiration(self):
         """Test that expired cache entries are not returned."""
-        # Cache with negative TTL (immediately expired)
+        # Cache with normal TTL first
         cache_key = CacheDAO.cache_metrics(
             metric_type="HeartRate",
             data={"avg": 70},
             date_start=date.today(),
             date_end=date.today(),
-            ttl_hours=-1
+            ttl_hours=1
         )
         self.assertIsNotNone(cache_key)
+        
+        # Manually update the expires_at to be in the past to simulate expiration
+        with self.db_manager.get_connection() as conn:
+            conn.execute(
+                "UPDATE cached_metrics SET expires_at = datetime('now', '-1 hour') WHERE cache_key = ?",
+                (cache_key,)
+            )
+            conn.commit()
         
         # Should not retrieve expired data
         cached = CacheDAO.get_cached_metrics(
@@ -397,13 +409,21 @@ class TestCacheDAO(unittest.TestCase):
         self.assertIsNone(cached)
         
         # Create another expired entry to ensure we have something to clean
-        CacheDAO.cache_metrics(
+        cache_key2 = CacheDAO.cache_metrics(
             metric_type="StepCount",
             data={"total": 5000},
             date_start=date.today() - timedelta(days=1),
             date_end=date.today() - timedelta(days=1),
-            ttl_hours=-1
+            ttl_hours=1
         )
+        
+        # Manually expire this one too
+        with self.db_manager.get_connection() as conn:
+            conn.execute(
+                "UPDATE cached_metrics SET expires_at = datetime('now', '-2 hours') WHERE cache_key = ?",
+                (cache_key2,)
+            )
+            conn.commit()
         
         # Clean expired entries
         deleted = CacheDAO.clean_expired_cache()

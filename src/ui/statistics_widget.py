@@ -12,6 +12,9 @@ from PyQt6.QtGui import QFont
 from typing import Optional
 from ..statistics_calculator import BasicStatistics
 from ..analytics.day_of_week_analyzer import DayOfWeekAnalyzer
+from .summary_cards import SummaryCard
+from .table_components import MetricTable, TableConfig
+from .component_factory import ComponentFactory
 
 
 class StatisticsWidget(QWidget):
@@ -22,6 +25,7 @@ class StatisticsWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.component_factory = ComponentFactory()
         self.setup_ui()
         self._statistics = None
     
@@ -38,15 +42,30 @@ class StatisticsWidget(QWidget):
         title.setFont(title_font)
         layout.addWidget(title)
         
-        # Summary section
+        # Summary section with cards
         self.summary_group = QGroupBox("Summary")
-        summary_layout = QVBoxLayout()
+        summary_layout = QHBoxLayout()
         
-        self.total_records_label = QLabel("Total Records: -")
-        self.date_range_label = QLabel("Date Range: -")
+        # Create summary cards with WSJ styling
+        self.total_records_card = self.component_factory.create_metric_card(
+            title="Total Records",
+            value="-",
+            card_type="simple",
+            size="medium",
+            wsj_style=True
+        )
         
-        summary_layout.addWidget(self.total_records_label)
-        summary_layout.addWidget(self.date_range_label)
+        self.date_range_card = self.component_factory.create_metric_card(
+            title="Date Range",
+            value="-",
+            card_type="simple",
+            size="medium",
+            wsj_style=True
+        )
+        
+        summary_layout.addWidget(self.total_records_card)
+        summary_layout.addWidget(self.date_range_card)
+        summary_layout.addStretch()
         self.summary_group.setLayout(summary_layout)
         layout.addWidget(self.summary_group)
         
@@ -89,50 +108,41 @@ class StatisticsWidget(QWidget):
             self.clear_display()
             return
         
-        # Update summary
-        self.total_records_label.setText(f"Total Records: {stats.total_records:,}")
+        # Update summary cards
+        self.total_records_card.update_value(f"{stats.total_records:,}")
         
         if (stats.date_range[0] is not None and stats.date_range[1] is not None and 
             hasattr(stats.date_range[0], 'strftime') and hasattr(stats.date_range[1], 'strftime')):
             try:
-                date_str = (f"Date Range: {stats.date_range[0].strftime('%Y-%m-%d')} "
+                date_str = (f"{stats.date_range[0].strftime('%Y-%m-%d')} "
                            f"to {stats.date_range[1].strftime('%Y-%m-%d')}")
-                self.date_range_label.setText(date_str)
+                self.date_range_card.update_value(date_str)
             except Exception:
-                self.date_range_label.setText("Date Range: Invalid dates")
+                self.date_range_card.update_value("Invalid dates")
         else:
-            self.date_range_label.setText("Date Range: -")
+            self.date_range_card.update_value("-")
         
-        # Clear existing items
-        self._clear_layout(self.types_layout)
-        self._clear_layout(self.sources_layout)
+        # Update types table
+        types_data = []
+        for type_name, count in sorted(stats.records_by_type.items(), 
+                                     key=lambda x: x[1], reverse=True):
+            types_data.append({
+                'Type': type_name,
+                'Count': f"{count:,}",
+                'Percentage': f"{(count/stats.total_records)*100:.1f}%"
+            })
+        self.types_table.update_data(types_data)
         
-        # Add types (sorted by count)
-        sorted_types = sorted(stats.records_by_type.items(), 
-                            key=lambda x: x[1], reverse=True)
-        
-        for type_name, count in sorted_types[:10]:  # Show top 10
-            type_label = ClickableLabel(f"{type_name}: {count:,}")
-            type_label.clicked.connect(
-                lambda checked, t=type_name: self.filter_requested.emit("type", t)
-            )
-            self.types_layout.addWidget(type_label)
-        
-        if len(sorted_types) > 10:
-            more_label = QLabel(f"... and {len(sorted_types) - 10} more types")
-            more_label.setStyleSheet("color: #666;")
-            self.types_layout.addWidget(more_label)
-        
-        # Add sources (sorted by count)
-        sorted_sources = sorted(stats.records_by_source.items(), 
-                              key=lambda x: x[1], reverse=True)
-        
-        for source_name, count in sorted_sources:
-            source_label = ClickableLabel(f"{source_name}: {count:,}")
-            source_label.clicked.connect(
-                lambda checked, s=source_name: self.filter_requested.emit("source", s)
-            )
-            self.sources_layout.addWidget(source_label)
+        # Update sources table
+        sources_data = []
+        for source_name, count in sorted(stats.records_by_source.items(), 
+                                       key=lambda x: x[1], reverse=True):
+            sources_data.append({
+                'Source': source_name,
+                'Count': f"{count:,}",
+                'Percentage': f"{(count/stats.total_records)*100:.1f}%"
+            })
+        self.sources_table.update_data(sources_data)
     
     def show_day_of_week_patterns(self, data):
         """Display day-of-week pattern analysis."""
@@ -179,19 +189,11 @@ class StatisticsWidget(QWidget):
     
     def clear_display(self):
         """Clear all statistics from the display."""
-        self.total_records_label.setText("Total Records: -")
-        self.date_range_label.setText("Date Range: -")
-        self._clear_layout(self.types_layout)
-        self._clear_layout(self.sources_layout)
+        self.total_records_card.update_value("-")
+        self.date_range_card.update_value("-")
         
-        # Add "No data" labels
-        no_data_types = QLabel("No data available")
-        no_data_types.setStyleSheet("color: #999;")
-        self.types_layout.addWidget(no_data_types)
-        
-        no_data_sources = QLabel("No data available")
-        no_data_sources.setStyleSheet("color: #999;")
-        self.sources_layout.addWidget(no_data_sources)
+        self.types_table.clear_data()
+        self.sources_table.clear_data()
     
     def _clear_layout(self, layout):
         """Remove all widgets from a layout."""
