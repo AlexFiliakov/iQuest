@@ -16,13 +16,52 @@ logger = logging.getLogger(__name__)
 
 
 class JournalDAO:
-    """Data Access Object for journal entries."""
+    """Data Access Object for journal entries.
+    
+    Provides database operations for managing journal entries in the Apple Health
+    Monitor application. Supports daily, weekly, and monthly journal entries with
+    full CRUD operations, search functionality, and proper error handling.
+    
+    This DAO handles:
+    - Creating and updating journal entries with upsert logic
+    - Retrieving journal entries by date range and type
+    - Full-text searching within journal content
+    - Proper date handling and validation
+    
+    All methods are static to allow usage without instantiation and follow
+    the database specification requirements from SPECS_DB.md.
+    """
     
     @staticmethod
     def save_journal_entry(entry_date: date, entry_type: str, content: str,
                           week_start_date: Optional[date] = None,
                           month_year: Optional[str] = None) -> int:
-        """Create or update a journal entry (upsert logic based on date and type)."""
+        """Create or update a journal entry (upsert logic based on date and type).
+        
+        Uses INSERT ... ON CONFLICT logic to either create a new journal entry
+        or update an existing one for the same date and type combination.
+        This ensures no duplicate entries while allowing content updates.
+        
+        Args:
+            entry_date: The date this journal entry is for.
+            entry_type: Type of entry ('daily', 'weekly', or 'monthly').
+            content: The journal entry content/text.
+            week_start_date: Start date of the week (required for weekly entries).
+            month_year: Month-year string in YYYY-MM format (required for monthly entries).
+            
+        Returns:
+            int: The ID of the created or updated journal entry.
+            
+        Raises:
+            Exception: If database operation fails or validation errors occur.
+            
+        Example:
+            >>> entry_id = JournalDAO.save_journal_entry(
+            ...     date(2024, 1, 15),
+            ...     'daily',
+            ...     'Today I walked 10,000 steps and felt great!'
+            ... )
+        """
         query = """
             INSERT INTO journal_entries 
             (entry_date, entry_type, week_start_date, month_year, content)
@@ -54,7 +93,35 @@ class JournalDAO:
     @staticmethod
     def get_journal_entries(start_date: date, end_date: date, 
                            entry_type: Optional[str] = None) -> List[JournalEntry]:
-        """Retrieve journal entries for date range with optional type filter."""
+        """Retrieve journal entries for date range with optional type filter.
+        
+        Fetches journal entries within the specified date range, optionally
+        filtered by entry type. Results are ordered by date in descending order
+        (most recent first).
+        
+        Args:
+            start_date: Start of the date range (inclusive).
+            end_date: End of the date range (inclusive).
+            entry_type: Optional filter for entry type ('daily', 'weekly', 'monthly').
+            
+        Returns:
+            List[JournalEntry]: List of journal entries matching the criteria,
+                ordered by date descending.
+                
+        Example:
+            >>> # Get all entries for January 2024
+            >>> entries = JournalDAO.get_journal_entries(
+            ...     date(2024, 1, 1),
+            ...     date(2024, 1, 31)
+            ... )
+            >>> 
+            >>> # Get only daily entries for the week
+            >>> daily_entries = JournalDAO.get_journal_entries(
+            ...     date(2024, 1, 15),
+            ...     date(2024, 1, 21),
+            ...     entry_type='daily'
+            ... )
+        """
         if entry_type:
             query = """
                 SELECT * FROM journal_entries 
@@ -79,7 +146,26 @@ class JournalDAO:
     
     @staticmethod
     def search_journal_entries(search_term: str) -> List[JournalEntry]:
-        """Full-text search in journal content."""
+        """Full-text search in journal content.
+        
+        Performs a case-insensitive search across all journal entry content
+        using SQL LIKE pattern matching. Results are ordered by date in
+        descending order.
+        
+        Args:
+            search_term: The text to search for within journal entries.
+            
+        Returns:
+            List[JournalEntry]: List of journal entries containing the search term,
+                ordered by date descending.
+                
+        Example:
+            >>> # Find all entries mentioning exercise
+            >>> exercise_entries = JournalDAO.search_journal_entries('exercise')
+            >>> 
+            >>> # Search for entries about mood
+            >>> mood_entries = JournalDAO.search_journal_entries('feeling great')
+        """
         query = """
             SELECT * FROM journal_entries 
             WHERE content LIKE ?
@@ -97,7 +183,21 @@ class JournalDAO:
 
 
 class PreferenceDAO:
-    """Data Access Object for user preferences."""
+    """Data Access Object for user preferences.
+    
+    Manages user preference storage and retrieval with automatic type conversion
+    based on the data_type field. Supports string, integer, boolean, date, and
+    JSON preference types with proper validation and error handling.
+    
+    This DAO provides:
+    - Type-safe preference retrieval with automatic conversion
+    - Preference updates with validation
+    - Bulk preference retrieval
+    - Default value handling for missing preferences
+    
+    All preferences are stored as strings in the database but converted to
+    appropriate Python types based on the data_type field.
+    """
     
     @staticmethod
     def get_preference(key: str, default: Any = None) -> Any:
@@ -183,7 +283,20 @@ class PreferenceDAO:
 
 
 class RecentFilesDAO:
-    """Data Access Object for recent files tracking."""
+    """Data Access Object for recent files tracking.
+    
+    Manages the list of recently accessed files with automatic cleanup
+    to maintain a maximum of 10 recent files. Provides functionality
+    to add files, retrieve the recent list, and mark files as invalid
+    when they become inaccessible.
+    
+    Features:
+    - Automatic upsert logic for file tracking
+    - Maintains maximum of 10 recent files
+    - Tracks file size and last access time
+    - File validity marking for broken file paths
+    - Ordered retrieval by last access time
+    """
     
     @staticmethod
     def add_recent_file(file_path: str, file_size: Optional[int] = None) -> int:
@@ -254,7 +367,22 @@ class RecentFilesDAO:
 
 
 class CacheDAO:
-    """Data Access Object for cached metrics."""
+    """Data Access Object for cached metrics.
+    
+    Manages caching of computed health metrics to improve application performance.
+    Provides automatic cache key generation, expiration handling, and statistics
+    storage for cached metric data.
+    
+    The cache system:
+    - Generates unique cache keys based on metric parameters
+    - Stores metric data with expiration timestamps
+    - Includes statistical metadata (min, max, avg, count)
+    - Automatically cleans expired cache entries
+    - Supports different aggregation types (daily, weekly, monthly)
+    
+    Cache keys are generated from metric type, date range, source, health type,
+    and aggregation parameters to ensure uniqueness and proper cache hits.
+    """
     
     @staticmethod
     def _generate_cache_key(metric_type: str, date_start: date, date_end: date,
@@ -388,7 +516,21 @@ class CacheDAO:
 
 
 class MetricsMetadataDAO:
-    """Data Access Object for health metrics metadata."""
+    """Data Access Object for health metrics metadata.
+    
+    Manages metadata for health metric types including display names, units,
+    categories, colors, and icons. This metadata is used throughout the
+    application for consistent metric presentation and organization.
+    
+    Provides functionality for:
+    - Retrieving metric metadata by type
+    - Updating display properties (name, unit, category, color, icon)
+    - Organizing metrics by category
+    - Supporting UI customization and theming
+    
+    Metadata helps transform raw health record types into user-friendly
+    displays with appropriate formatting and visual styling.
+    """
     
     @staticmethod
     def get_metric_metadata(metric_type: str) -> Optional[Dict[str, Any]]:
@@ -447,7 +589,22 @@ class MetricsMetadataDAO:
 
 
 class DataSourceDAO:
-    """Data Access Object for data sources."""
+    """Data Access Object for data sources.
+    
+    Tracks and manages data sources (devices, apps) that provide health data.
+    Maintains activity status and categorization of sources for filtering
+    and analysis purposes.
+    
+    Features:
+    - Automatic source registration with upsert logic
+    - Activity tracking with last seen timestamps
+    - Source categorization for organization
+    - Active/inactive status management
+    - Source-based data filtering support
+    
+    Data sources are automatically registered when health data is imported,
+    allowing users to filter and analyze data by specific devices or apps.
+    """
     
     @staticmethod
     def register_data_source(source_name: str, category: Optional[str] = None) -> int:
@@ -504,7 +661,21 @@ class DataSourceDAO:
 
 
 class ImportHistoryDAO:
-    """Data Access Object for import history."""
+    """Data Access Object for import history.
+    
+    Tracks detailed information about data import operations including
+    file metadata, import statistics, and performance metrics. Helps
+    prevent duplicate imports and provides audit trail functionality.
+    
+    Recorded information includes:
+    - File path and hash for duplicate detection
+    - Import timestamp and duration
+    - Data statistics (row count, date range, unique types/sources)
+    - Performance metrics for optimization
+    
+    This data helps users track their import history and assists in
+    troubleshooting import issues or performance problems.
+    """
     
     @staticmethod
     def record_import(file_path: str, file_hash: Optional[str] = None,
