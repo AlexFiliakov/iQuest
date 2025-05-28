@@ -1,9 +1,9 @@
 ---
 sprint_id: S02_M01_core_ui
-status: in_progress
+status: completed
 milestone: M01_MVP
 start_date: 2025-05-27
-end_date: 
+end_date: 2025-05-27
 ---
 
 # Sprint S02: Core UI Framework
@@ -44,8 +44,8 @@ Build the foundational UI structure with tab-based navigation, warm visual desig
 - [x] Warm color scheme is applied throughout
 - [x] UI is responsive and doesn't freeze
 - [x] All text is readable and well-contrasted
-- [ ] Keyboard navigation is supported
-- [ ] Window state is saved and restored
+- [x] Keyboard navigation is supported
+- [x] Window state is saved and restored
 
 ## Technical Approach
 - **Framework**: PyQt6 (decided and implemented)

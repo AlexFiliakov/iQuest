@@ -38,6 +38,7 @@ Create beautiful, intuitive data visualizations that follow the warm color schem
 - Use pyqtgraph for real-time updates if needed
 - Optimize rendering for large datasets
 - Cache rendered charts when possible
+- **Inspired by the Wall Street Journal**: Create analytics in the style of Wall Street Journal (see for example `examples/wall street journal chart example 1.jpg` and `examples/wall street journal chart example 2.jpg`)
 
 ## Risks
 - Risk 1: Chart performance with many data points - Mitigation: Data sampling, virtualization

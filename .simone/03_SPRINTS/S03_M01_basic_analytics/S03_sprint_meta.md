@@ -1,8 +1,8 @@
 ---
 sprint_id: S03_M01_basic_analytics
-status: planned
+status: in_progress
 milestone: M01_MVP
-start_date: 
+start_date: 2025-05-27
 end_date: 
 ---
 
