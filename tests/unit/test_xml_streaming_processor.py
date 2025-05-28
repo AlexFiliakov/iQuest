@@ -135,8 +135,8 @@ class TestXMLStreamingProcessor:
         xml_path = self.create_sample_xml(record_count=50)
         db_path = Path(self.temp_dir) / "test.db"
         
-        # Mock the convert_xml_to_sqlite function to avoid import issues
-        with patch('src.xml_streaming_processor.convert_xml_to_sqlite') as mock_convert:
+        # Mock the convert_xml_to_sqlite function by patching where it's imported
+        with patch('data_loader.convert_xml_to_sqlite') as mock_convert:
             mock_convert.return_value = 50
             
             record_count = self.processor.process_xml_file(

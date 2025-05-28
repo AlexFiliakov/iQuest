@@ -15,7 +15,7 @@ Create an intuitive, visually appealing Windows desktop application that transfo
 ### 2. User Stories
 
 #### 2.1 Data Import & Configuration
-- **As a user**, I want to import my Apple Health CSV file so that I can analyze my health data
+- **As a user**, I want to import my Apple Health CSV or XML file so that I can analyze my health data
 - **As a user**, I want to filter data by date range so that I can focus on specific time periods
 - **As a user**, I want to filter by device and metric type so that I can analyze specific data sources
 
@@ -40,7 +40,7 @@ Create an intuitive, visually appealing Windows desktop application that transfo
 **Purpose:** Allow users to customize their data view
 
 **Components:**
-- File selector for CSV import
+- File selector for CSV/XML import
 - Date range picker with calendar widgets
 - Multi-select dropdown for sourceName (devices/apps)
 - Multi-select dropdown for type (health metrics)
@@ -137,7 +137,7 @@ Create an intuitive, visually appealing Windows desktop application that transfo
 
 #### 5.1 Data Structure
 ```python
-# Expected CSV columns
+# Expected CSV/XML columns
 {
     'creationDate': 'datetime',
     'sourceName': 'string',
@@ -149,7 +149,7 @@ Create an intuitive, visually appealing Windows desktop application that transfo
 
 #### 5.2 Performance Requirements
 - Initial load time: <5 seconds for UI
-- CSV processing: <30 seconds for 100MB file
+- CSV/XML processing: <30 seconds for 100MB file
 - Chart rendering: <500ms
 - Filter application: <200ms
 - Memory usage: <500MB for typical datasets
@@ -168,7 +168,7 @@ Create an intuitive, visually appealing Windows desktop application that transfo
 - Color-blind friendly visualizations
 
 ### 7. Error Handling
-- Clear error messages for invalid CSV format
+- Clear error messages for invalid CSV/XML format
 - Graceful handling of missing data
 - Recovery options for corrupted journal entries
 - Helpful suggestions for common issues
