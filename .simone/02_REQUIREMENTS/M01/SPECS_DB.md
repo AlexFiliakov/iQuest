@@ -4,6 +4,10 @@
 ### 1. Overview
 The application uses a lightweight SQLite database for persistent storage of user-generated content and application state. The health metrics data remains in CSV format for simplicity and is processed in-memory.
 
+**Note**: The database uses two separate approaches for filter persistence:
+- `user_preferences` table: Stores simple last-used filter values for quick restore
+- `filter_configs` table: Stores named filter presets with full configuration support
+
 ### 2. Database Schema
 
 #### 2.1 Journal Entries Table
@@ -142,6 +146,26 @@ CREATE TABLE import_history (
 CREATE INDEX idx_import_date ON import_history(import_date DESC);
 ```
 
+#### 2.8 Filter Configurations Table
+```sql
+CREATE TABLE filter_configs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    preset_name VARCHAR(100) UNIQUE NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    source_names TEXT,  -- JSON array of source names
+    health_types TEXT,  -- JSON array of health types
+    is_default BOOLEAN DEFAULT FALSE,
+    is_last_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_filter_configs_default ON filter_configs(is_default);
+CREATE INDEX idx_filter_configs_last_used ON filter_configs(is_last_used);
+CREATE INDEX idx_filter_configs_name ON filter_configs(preset_name);
+```
+
 ### 3. Data Access Patterns
 
 #### 3.1 Journal Operations
@@ -234,6 +258,34 @@ def is_file_imported(file_hash):
     # Check by hash to avoid duplicates
 ```
 
+#### 3.7 Filter Configuration Operations
+```python
+# Save filter configuration
+def save_filter_config(config):
+    # Upsert filter configuration
+    # Clear is_default/is_last_used flags as needed
+    
+# Load filter configuration
+def load_filter_config(preset_name):
+    # Retrieve configuration by name
+    
+# Get default configuration
+def get_default_config():
+    # Return config where is_default=True
+    
+# Get last used configuration
+def get_last_used_config():
+    # Return config where is_last_used=True
+    
+# List all configurations
+def list_filter_configs():
+    # Return all user-defined presets
+    
+# Delete configuration
+def delete_filter_config(preset_name):
+    # Remove configuration by name
+```
+
 ### 4. Database Management
 
 #### 4.1 Initialization
@@ -256,6 +308,8 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 
 -- Migration files: migrations/001_initial_schema.sql, etc.
+-- Migration 1: Initial schema (all tables except filter_configs)
+-- Migration 2: Add filter_configs table for filter preset persistence
 ```
 
 #### 4.3 Backup Strategy

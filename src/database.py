@@ -241,11 +241,58 @@ class DatabaseManager:
                 END
             """)
             
+            # Apply migrations
+            self._apply_migrations(cursor)
+            
             # Record initial schema version
             cursor.execute("INSERT OR IGNORE INTO schema_migrations (version) VALUES (1)")
             
             conn.commit()
             logger.info("Database initialized successfully with all required tables")
+    
+    def _apply_migrations(self, cursor):
+        """Apply database migrations."""
+        # Check current schema version
+        cursor.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations")
+        current_version = cursor.fetchone()[0]
+        
+        # Migration 2: Add filter_configs table
+        if current_version < 2:
+            logger.info("Applying migration 2: Adding filter_configs table")
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS filter_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    preset_name VARCHAR(100) UNIQUE NOT NULL,
+                    start_date DATE,
+                    end_date DATE,
+                    source_names TEXT,  -- JSON array of source names
+                    health_types TEXT,  -- JSON array of health types
+                    is_default BOOLEAN DEFAULT FALSE,
+                    is_last_used BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes for filter_configs
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_filter_configs_default ON filter_configs(is_default)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_filter_configs_last_used ON filter_configs(is_last_used)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_filter_configs_name ON filter_configs(preset_name)")
+            
+            # Add trigger to update timestamp on filter_configs
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS update_filter_configs_timestamp 
+                AFTER UPDATE ON filter_configs
+                BEGIN
+                    UPDATE filter_configs 
+                    SET updated_at = CURRENT_TIMESTAMP 
+                    WHERE id = NEW.id;
+                END
+            """)
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (2)")
+            logger.info("Migration 2 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute a SELECT query and return results."""
