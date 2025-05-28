@@ -124,16 +124,16 @@ class BaseChart(QWidget):
         """)
         
     # Properties
-    @Property(float)
-    def animationProgress(self):
+    def getAnimationProgress(self):
         """Get animation progress (0.0 to 1.0)."""
         return self._animation_progress
         
-    @animationProgress.setter
-    def animationProgress(self, value: float):
+    def setAnimationProgress(self, value: float):
         """Set animation progress."""
         self._animation_progress = value
         self.update()
+        
+    animationProgress = Property(float, getAnimationProgress, setAnimationProgress)
         
     @property
     def data(self) -> List[Dict[str, Any]]:
