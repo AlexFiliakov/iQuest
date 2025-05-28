@@ -68,18 +68,11 @@ Review tasks .... Flesh out the subtasks to implement test fixes, provide analys
 ###### RUNTIME ######
 TODO: claude doctor or npm i -g @anthropic-ai/claude-code
 
-current:
-G081
 
 then:
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
 Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible. Fill out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
-
-current:
-G055_health_insights_recommendations.md
-- complete the task, rename it to GX055 and close
-- then resume G056_export_reporting_system.md
 
 then:
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
@@ -88,15 +81,26 @@ Create tasks to repair the remaining test errors in file `tests/pytest_failure_s
 then:
 Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
+current:
+review sprint `S04_M01_health_analytics`
+
 then:
-sprint review
+begin print `S05_M01_Visualization`
 
+## S05 ##
+G058_visualization_component_architecture.md
+- G061_multi_metric_dashboard_layouts.md
+  - G063_export_visualization_system.md
+- G065_accessibility_compliance_system.md
+- G066_visualization_testing_framework.md
+G059_real_time_data_binding.md
 
+then:
+G060_interactive_chart_controls.md
+G062_health_insight_annotations.md
+G064_visualization_performance_optimization.md
 
-
-
-
-
+G081
 
 
 ### ongoing ###############
