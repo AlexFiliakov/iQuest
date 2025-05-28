@@ -19,11 +19,155 @@ from datetime import datetime
 from utils.logging_config import get_logger
 from utils.error_handler import (
     safe_file_operation, safe_database_operation, 
-    DataImportError, DatabaseError, ErrorContext
+    DataImportError, DatabaseError, ErrorContext, DataValidationError
 )
+from utils.xml_validator import validate_apple_health_xml, AppleHealthXMLValidator
 
 # Get logger for this module
 logger = get_logger(__name__)
+
+
+def convert_xml_to_sqlite_with_validation(xml_path: str, db_path: str, validate_first: bool = True) -> Tuple[int, str]:
+    """Convert Apple Health XML export to SQLite database with validation and transaction handling.
+    
+    Args:
+        xml_path: Path to the Apple Health export.xml file
+        db_path: Path where the SQLite database will be created
+        validate_first: Whether to validate XML before processing
+        
+    Returns:
+        Tuple of (number of records imported, validation summary message)
+        
+    Raises:
+        DataValidationError: If XML validation fails
+        FileNotFoundError: If XML file doesn't exist
+        ET.ParseError: If XML is malformed
+        sqlite3.Error: If database operation fails
+    """
+    validation_summary = ""
+    
+    # Step 1: Validate XML file if requested
+    if validate_first:
+        logger.info("Validating XML file before import...")
+        validation_result = validate_apple_health_xml(xml_path)
+        
+        validator = AppleHealthXMLValidator()
+        validation_summary = validator.get_user_friendly_summary(validation_result)
+        
+        if not validation_result.is_valid:
+            logger.error(f"XML validation failed: {len(validation_result.errors)} errors")
+            raise DataValidationError(f"XML validation failed with {len(validation_result.errors)} errors. " + 
+                                    validation_summary)
+        
+        logger.info(f"XML validation successful: {validation_result.record_count:,} records")
+    
+    # Step 2: Import with transaction handling
+    with ErrorContext("XML to SQLite conversion with transaction handling"):
+        return _convert_xml_with_transaction(xml_path, db_path), validation_summary
+
+
+def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
+    """Internal function to handle XML conversion with proper transaction management."""
+    # Validate input paths
+    if not Path(xml_path).exists():
+        raise FileNotFoundError(f"XML file not found: {xml_path}")
+    
+    conn = None
+    try:
+        # Parse XML file
+        logger.info(f"Parsing XML file: {xml_path}")
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+        
+        # Extract all health records
+        record_list = [x.attrib for x in root.iter('Record')]
+        record_data = pd.DataFrame(record_list)
+        
+        if record_data.empty:
+            raise DataValidationError("No health records found in XML file")
+        
+        logger.info(f"Extracted {len(record_data)} records from XML")
+        
+        # Convert date columns to datetime
+        date_cols = ['creationDate', 'startDate', 'endDate']
+        for col in date_cols:
+            if col in record_data.columns:
+                try:
+                    record_data[col] = pd.to_datetime(record_data[col])
+                except Exception as e:
+                    logger.warning(f"Could not convert {col} to datetime: {e}")
+        
+        # Convert value to numeric
+        if 'value' in record_data.columns:
+            record_data['value'] = pd.to_numeric(record_data['value'], errors='coerce')
+            # Fill NaN values with 1.0 for categorical data (e.g., sleep analysis)
+            record_data['value'] = record_data['value'].fillna(1.0)
+        
+        # Clean type names
+        if 'type' in record_data.columns:
+            record_data['type'] = record_data['type'].str.replace('HKQuantityTypeIdentifier', '')
+            record_data['type'] = record_data['type'].str.replace('HKCategoryTypeIdentifier', '')
+        
+        # Start database transaction
+        logger.info(f"Creating SQLite database with transaction: {db_path}")
+        conn = sqlite3.connect(db_path)
+        
+        # Begin explicit transaction
+        conn.execute('BEGIN IMMEDIATE')
+        
+        try:
+            # Store data
+            record_data.to_sql('health_records', conn, 
+                             index=False, if_exists='replace')
+            
+            # Validate the import by checking record count
+            imported_count = conn.execute('SELECT COUNT(*) FROM health_records').fetchone()[0]
+            if imported_count != len(record_data):
+                raise DatabaseError(f"Import verification failed: expected {len(record_data)} records, found {imported_count}")
+            
+            # Create indexes for fast queries
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            
+            # Create metadata table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                )
+            ''')
+            conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', datetime('now'))")
+            conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('record_count', '{len(record_data)}')")
+            conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('source_file', '{xml_path}')")
+            
+            # Commit transaction
+            conn.commit()
+            logger.info(f"Successfully imported {len(record_data)} records with transaction")
+            
+            return len(record_data)
+            
+        except Exception as e:
+            # Rollback transaction on any error
+            conn.rollback()
+            logger.error(f"Transaction rolled back due to error: {e}")
+            raise DatabaseError(f"Database import failed and was rolled back: {e}")
+    
+    except ET.ParseError as e:
+        logger.error(f"Failed to parse XML file: {e}")
+        raise DataImportError(f"XML parsing failed: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error during conversion: {e}")
+        if conn:
+            try:
+                conn.rollback()
+                logger.info("Transaction rolled back due to unexpected error")
+            except:
+                pass
+        raise
+    finally:
+        if conn:
+            conn.close()
 
 
 def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
