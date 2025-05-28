@@ -6,6 +6,7 @@ with various chart types and configurations inspired by Wall Street Journal styl
 """
 
 import sys
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -13,7 +14,8 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtCore import Qt
 
 # Add the src directory to Python path
-sys.path.append('../src')
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(project_root, 'src'))
 
 from ui.bar_chart_component import BarChart, BarChartConfig, InteractiveBarChart
 from ui.style_manager import StyleManager

@@ -1,13 +1,15 @@
 """Example usage of the MetricTable component."""
 
 import sys
+import os
 import pandas as pd
 import numpy as np
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt
 
 # Add src directory to path for imports
-sys.path.append('../src')
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(project_root, 'src'))
 
 from ui.table_components import MetricTable, TableConfig
 

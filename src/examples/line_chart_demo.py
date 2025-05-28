@@ -9,14 +9,16 @@ This example shows how to use the EnhancedLineChart with:
 """
 
 import sys
+import os
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
-from PySide6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+from PyQt6.QtCore import Qt
 
 # Add parent directory to path
-sys.path.append('..')
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(project_root, 'src'))
 from ui.charts import EnhancedLineChart, LineChartBuilder
 
 
