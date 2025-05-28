@@ -53,22 +53,21 @@ Create tasks to repair the remaining test errors in file `tests/pytest_failure_s
 Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
 
+###### RUNTIME ######
 current:
-G075_test_repair_coordination.md
-G077_performance_benchmark_tests.md
-G078_validate_test_coverage_maintenance.md
+G076_eliminate_duplicate_tests.md
+
 
 then:
-G079
-G080
+pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
+Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
 
 then:
-G076
+
+Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
 then:
-...test...
-
-then:
+commit
 Complete sprint `S04_M01_Core_Analytics`, close it, and begin sprint `S04_M01_health_analytics`
 
 then:
