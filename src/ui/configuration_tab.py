@@ -10,14 +10,17 @@ from PyQt6.QtGui import QIcon, QAction, QKeyEvent
 import pandas as pd
 import json
 import os
+import time
 
 from utils.logging_config import get_logger
 from data_loader import DataLoader, convert_xml_to_sqlite
 from database import db_manager
+from data_filter_engine import DataFilterEngine, FilterCriteria
 from .style_manager import StyleManager
 from .settings_manager import SettingsManager
 from .multi_select_combo import CheckableComboBox
 from .enhanced_date_edit import EnhancedDateEdit
+from .import_progress_dialog import ImportProgressDialog
 from config import DATA_DIR
 
 logger = get_logger(__name__)
@@ -440,52 +443,56 @@ class ConfigurationTab(QWidget):
             QMessageBox.warning(
                 self,
                 "No File Selected",
-                "Please select a CSV file to import."
+                "Please select a file to import."
+            )
+            return
+        
+        # Check file extension
+        if not file_path.lower().endswith(('.csv', '.xml')):
+            QMessageBox.warning(
+                self,
+                "Unsupported File Type",
+                "Please select a CSV or XML file to import."
             )
             return
         
         logger.info(f"Starting import of: {file_path}")
-        self._start_import(file_path)
+        self._start_import_with_progress(file_path)
     
-    def _start_import(self, file_path):
-        """Start the data import process."""
-        # Update UI for import
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
-        self.progress_label.setText("Loading data...")
+    def _start_import_with_progress(self, file_path):
+        """Start import with progress dialog."""
+        # Create and show import progress dialog
+        progress_dialog = ImportProgressDialog(file_path, "auto", self)
+        progress_dialog.import_completed.connect(self._on_import_completed)
+        progress_dialog.import_cancelled.connect(self._on_import_cancelled)
         
-        # Simulate import progress (in real implementation, this would be async)
-        self._simulate_import_progress(file_path)
+        # Start the import process
+        progress_dialog.start_import()
+        
+        # Show dialog
+        progress_dialog.exec()
     
-    def _simulate_import_progress(self, file_path):
-        """Simulate import progress with timer."""
-        self.import_timer = QTimer()
-        self.import_progress = 0
-        
-        def update_progress():
-            self.import_progress += 10
-            self.progress_bar.setValue(self.import_progress)
-            
-            if self.import_progress >= 100:
-                self.import_timer.stop()
-                self._finish_import(file_path)
-        
-        self.import_timer.timeout.connect(update_progress)
-        self.import_timer.start(100)  # Update every 100ms
-    
-    def _finish_import(self, file_path):
-        """Finish the import process."""
+    def _on_import_completed(self, result):
+        """Handle successful import completion."""
         try:
-            # Load data
-            self.data = self.data_loader.load_csv(file_path)
+            logger.info(f"Import completed successfully: {result}")
+            
+            # Load data based on import type
+            if result['import_type'] == 'csv' and 'data' in result:
+                # CSV data is already loaded
+                self.data = result['data']
+            else:
+                # For XML imports, load from database
+                self._load_from_sqlite()
+                return  # _load_from_sqlite handles the rest
             
             # Update UI
+            row_count = result.get('record_count', 0)
             self.progress_bar.setVisible(False)
             self.progress_label.setText("Data imported successfully!")
             self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_SUCCESS};")
             
             # Update status
-            row_count = len(self.data) if self.data is not None else 0
             self._update_status(f"Loaded {row_count:,} records")
             
             # Populate filters
@@ -497,36 +504,44 @@ class ConfigurationTab(QWidget):
             # Emit signal
             self.data_loaded.emit(self.data)
             
-            logger.info(f"Import completed: {row_count} records")
+            logger.info(f"Import UI updated: {row_count} records")
             
         except Exception as e:
-            logger.error(f"Import failed: {e}")
-            self.progress_bar.setVisible(False)
+            logger.error(f"Failed to finalize import: {e}")
             self.progress_label.setText("Import failed!")
             self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_ERROR};")
             QMessageBox.critical(
                 self,
                 "Import Error",
-                f"Failed to import data: {str(e)}"
+                f"Failed to finalize import: {str(e)}"
             )
+    
+    def _on_import_cancelled(self):
+        """Handle import cancellation."""
+        logger.info("Import was cancelled by user")
+        self.progress_label.setText("Import cancelled")
+        self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
     
     def _populate_filters(self):
         """Populate filter options from loaded data."""
         if self.data is None:
             return
         
-        # Get unique devices and metrics
-        unique_devices = self.data['sourceName'].unique() if 'sourceName' in self.data.columns else []
-        unique_metrics = self.data['type'].unique() if 'type' in self.data.columns else []
+        # Use DataFilterEngine to get distinct values for better performance
+        filter_engine = DataFilterEngine(self.data_loader.db_path if hasattr(self.data_loader, 'db_path') else None)
+        
+        # Get unique devices and metrics from the filter engine
+        unique_devices = filter_engine.get_distinct_sources()
+        unique_metrics = filter_engine.get_distinct_types()
         
         # Clear and repopulate device dropdown
         self.device_dropdown.clear()
-        for device in sorted(unique_devices):
+        for device in unique_devices:
             self.device_dropdown.addItem(str(device), checked=True)  # Default to all selected
         
         # Clear and repopulate metric dropdown
         self.metric_dropdown.clear()
-        for metric in sorted(unique_metrics):
+        for metric in unique_metrics:
             self.metric_dropdown.addItem(str(metric), checked=True)  # Default to all selected
         
         logger.info(f"Populated filters: {len(unique_devices)} devices, {len(unique_metrics)} metrics")
@@ -558,14 +573,16 @@ class ConfigurationTab(QWidget):
         }
         
         # Apply filters
+        start_time = time.time()
         self.filtered_data = self._apply_filters(filters)
+        filter_time = (time.time() - start_time) * 1000  # Convert to ms
         
-        # Update status
+        # Update status with performance info
         original_count = len(self.data)
         filtered_count = len(self.filtered_data) if self.filtered_data is not None else 0
         self._update_status(
             f"Showing {filtered_count:,} of {original_count:,} records "
-            f"({filtered_count/original_count*100:.1f}%)"
+            f"({filtered_count/original_count*100:.1f}%) - Filtered in {filter_time:.0f}ms"
         )
         
         # Show feedback
@@ -588,32 +605,34 @@ class ConfigurationTab(QWidget):
         logger.info(f"Filters applied: {filtered_count}/{original_count} records")
     
     def _apply_filters(self, filters):
-        """Apply filters to the data."""
+        """Apply filters to the data using the DataFilterEngine."""
         if self.data is None:
             return None
         
-        filtered = self.data.copy()
+        # Create filter criteria
+        criteria = FilterCriteria(
+            start_date=filters['start_date'],
+            end_date=filters['end_date'],
+            source_names=filters['devices'] if filters['devices'] else None,
+            health_types=filters['metrics'] if filters['metrics'] else None
+        )
         
-        # Apply date filter if creationDate column exists
-        if 'creationDate' in filtered.columns:
-            # Convert to datetime if needed
-            if not pd.api.types.is_datetime64_any_dtype(filtered['creationDate']):
-                filtered['creationDate'] = pd.to_datetime(filtered['creationDate'])
+        # Use the filter engine
+        filter_engine = DataFilterEngine(self.data_loader.db_path if hasattr(self.data_loader, 'db_path') else None)
+        
+        try:
+            # Apply filters using the engine
+            filtered = filter_engine.filter_data(criteria)
             
-            filtered = filtered[
-                (filtered['creationDate'].dt.date >= filters['start_date']) &
-                (filtered['creationDate'].dt.date <= filters['end_date'])
-            ]
-        
-        # Apply device filter
-        if filters['devices'] and 'sourceName' in filtered.columns:
-            filtered = filtered[filtered['sourceName'].isin(filters['devices'])]
-        
-        # Apply metric filter
-        if filters['metrics'] and 'type' in filtered.columns:
-            filtered = filtered[filtered['type'].isin(filters['metrics'])]
-        
-        return filtered
+            # Log performance metrics
+            metrics = filter_engine.get_performance_metrics()
+            logger.info(f"Filter query completed in {metrics['last_query_time']:.2f}ms")
+            
+            return filtered
+        except Exception as e:
+            logger.error(f"Error applying filters: {e}")
+            QMessageBox.warning(self, "Filter Error", f"Failed to apply filters: {str(e)}")
+            return self.data
     
     def _on_reset_clicked(self):
         """Handle reset filters button click."""
@@ -836,40 +855,8 @@ class ConfigurationTab(QWidget):
             return
         
         logger.info(f"Starting XML import of: {file_path}")
-        self._start_xml_import(file_path)
+        self._start_import_with_progress(file_path)
     
-    def _start_xml_import(self, xml_path):
-        """Start the XML to SQLite conversion process."""
-        # Update UI for import
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
-        self.progress_label.setText("Converting XML to SQLite database...")
-        
-        try:
-            # Convert XML to SQLite
-            from database import DB_FILE_NAME
-            db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
-            os.makedirs(DATA_DIR, exist_ok=True)
-            
-            # Use the convert_xml_to_sqlite function
-            convert_xml_to_sqlite(xml_path, db_path)
-            
-            # Load data from SQLite
-            self.progress_bar.setValue(50)
-            self.progress_label.setText("Loading data from database...")
-            
-            self._load_from_sqlite()
-            
-        except Exception as e:
-            logger.error(f"XML import failed: {e}")
-            self.progress_bar.setVisible(False)
-            self.progress_label.setText("XML import failed!")
-            self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_ERROR};")
-            QMessageBox.critical(
-                self,
-                "Import Error",
-                f"Failed to import XML data: {str(e)}"
-            )
     
     def _load_from_sqlite(self):
         """Load data from SQLite database."""
