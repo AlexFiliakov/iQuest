@@ -5,14 +5,14 @@ This module provides the foundation for chart widgets in the Apple Health Monito
 """
 
 from typing import Dict, List, Any, Optional, Tuple
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Signal, Property, QPropertyAnimation, QEasingCurve, Qt
-from PySide6.QtGui import QColor, QPainter, QFont
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import pyqtSignal as Signal, pyqtProperty as Property, QPropertyAnimation, QEasingCurve, Qt
+from PyQt6.QtGui import QColor, QPainter, QFont
 
 
-class BaseChart(QWidget, ABC):
+class BaseChart(QWidget):
     """
     Abstract base class for all chart widgets.
     
@@ -101,12 +101,12 @@ class BaseChart(QWidget, ABC):
     def _get_default_fonts(self) -> Dict[str, QFont]:
         """Get default fonts from design system."""
         return {
-            'title': QFont('Poppins', 18, QFont.Bold),
-            'subtitle': QFont('Inter', 14, QFont.Normal),
-            'label': QFont('Inter', 11, QFont.Normal),
-            'label_small': QFont('Inter', 10, QFont.Normal),
-            'value': QFont('Inter', 13, QFont.Medium),
-            'value_large': QFont('Poppins', 16, QFont.Bold)
+            'title': QFont('Poppins', 18, QFont.Weight.Bold),
+            'subtitle': QFont('Inter', 14, QFont.Weight.Normal),
+            'label': QFont('Inter', 11, QFont.Weight.Normal),
+            'label_small': QFont('Inter', 10, QFont.Weight.Normal),
+            'value': QFont('Inter', 13, QFont.Weight.Medium),
+            'value_large': QFont('Poppins', 16, QFont.Weight.Bold)
         }
         
     def _setup_chart(self):
@@ -239,13 +239,13 @@ class BaseChart(QWidget, ABC):
         
     def export_image(self, filename: str, width: int = 800, height: int = 600):
         """Export chart as an image."""
-        from PySide6.QtGui import QPixmap
+        from PyQt6.QtGui import QPixmap
         
         pixmap = QPixmap(width, height)
         pixmap.fill(self._colors['background'])
         
         painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         # Scale to fit
         scale = min(width / self.width(), height / self.height())
@@ -284,7 +284,7 @@ class BaseChart(QWidget, ABC):
             -self._margins['right'], 
             -self.height() + self._margins['top']
         )
-        painter.drawText(title_rect, Qt.AlignCenter, self._title)
+        painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, self._title)
         
         # Subtitle
         if self._subtitle:
@@ -292,7 +292,7 @@ class BaseChart(QWidget, ABC):
             painter.setPen(self._colors['text_secondary'])
             
             subtitle_rect = title_rect.adjusted(0, 25, 0, 25)
-            painter.drawText(subtitle_rect, Qt.AlignCenter, self._subtitle)
+            painter.drawText(subtitle_rect, Qt.AlignmentFlag.AlignCenter, self._subtitle)
             
     def _get_chart_rect(self):
         """Get the drawable chart area excluding margins."""

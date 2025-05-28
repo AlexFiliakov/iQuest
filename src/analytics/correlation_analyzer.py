@@ -9,7 +9,7 @@ import numpy as np
 from scipy.stats import pearsonr, spearmanr
 from scipy.stats.contingency import chi2_contingency
 from statsmodels.tsa.stattools import grangercausalitytests
-from statsmodels.stats.correlation_tools import corr_pearson
+# from statsmodels.stats.correlation_tools import corr_pearson  # Not available in newer versions
 import networkx as nx
 from typing import Dict, List, Tuple, Optional, Any
 import warnings

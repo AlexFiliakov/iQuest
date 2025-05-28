@@ -7,7 +7,7 @@ Apple Health Monitor design system and Wall Street Journal style.
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Literal
-from PySide6.QtGui import QColor
+from PyQt6.QtGui import QColor
 
 
 @dataclass

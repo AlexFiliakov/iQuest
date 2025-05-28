@@ -5,7 +5,9 @@ from .health_score_models import (
     HealthScore,
     ComponentScore,
     ScoreInsight,
+    ScoringMethod,
     TrendAnalysis,
+    TrendDirection,
     UserProfile,
     HealthCondition
 )
@@ -23,7 +25,9 @@ __all__ = [
     'HealthScore',
     'ComponentScore',
     'ScoreInsight',
+    'ScoringMethod',
     'TrendAnalysis',
+    'TrendDirection',
     'UserProfile',
     'HealthCondition',
     'ActivityConsistencyCalculator',

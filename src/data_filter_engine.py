@@ -13,9 +13,9 @@ from dataclasses import dataclass
 import pandas as pd
 import sqlite3
 
-from database import DatabaseManager
-from utils.logging_config import get_logger
-from utils.error_handler import DataImportError
+from .database import DatabaseManager
+from .utils.logging_config import get_logger
+from .utils.error_handler import DataImportError
 
 
 logger = get_logger(__name__)

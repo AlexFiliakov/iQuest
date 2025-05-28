@@ -17,7 +17,7 @@ from scipy import stats
 
 from .weekly_metrics_calculator import WeeklyMetricsCalculator
 from .monthly_metrics_calculator import MonthlyMetricsCalculator
-from .cache_manager import CacheManager
+from .cache_manager import AnalyticsCacheManager
 
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class MonthlyContextProvider:
     - WSJ-style analytics insights
     """
     
-    def __init__(self, cache_manager: CacheManager):
+    def __init__(self, cache_manager: AnalyticsCacheManager):
         """Initialize the monthly context provider."""
         self.cache = cache_manager
         self.weekly_calc = WeeklyMetricsCalculator()

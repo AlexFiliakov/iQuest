@@ -19,8 +19,9 @@ from ..analytics.week_over_week_trends import (
     WeekTrendData, MomentumType
 )
 from .summary_cards import SummaryCard
-from .bar_chart_component import BarChartComponent, BarChartConfig
-from .charts.enhanced_line_chart import EnhancedLineChart, ChartConfig
+from .bar_chart_component import BarChart, BarChartConfig
+from .charts.enhanced_line_chart import EnhancedLineChart
+from .charts.chart_config import ChartConfig
 
 
 class MomentumIndicatorWidget(QWidget):

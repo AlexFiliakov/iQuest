@@ -15,18 +15,18 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from PySide6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QToolBar, 
-    QAction, QFileDialog, QRubberBand
+    QFileDialog, QRubberBand
 )
-from PySide6.QtCore import (
-    Qt, QPointF, QRectF, Signal, QPropertyAnimation, 
-    QEasingCurve, QPoint, QRect, QSize
+from PyQt6.QtCore import (
+    Qt, QPointF, QRectF, pyqtSignal as Signal, QPropertyAnimation, 
+    QEasingCurve, QPoint, QRect, QSize, pyqtProperty
 )
-from PySide6.QtGui import (
+from PyQt6.QtGui import (
     QPainter, QPen, QColor, QBrush, QFont, QPainterPath, 
     QFontMetrics, QMouseEvent, QWheelEvent, QKeyEvent,
-    QPixmap, QImage, QPdfWriter, QIcon
+    QPixmap, QImage, QPdfWriter, QIcon, QAction
 )
 
 from .chart_config import LineChartConfig
@@ -106,7 +106,7 @@ class EnhancedLineChart(QWidget):
         """Set up the widget UI."""
         self.setMinimumSize(600, 400)
         self.setMouseTracking(True)
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
         # Layout
         layout = QVBoxLayout(self)
@@ -196,7 +196,7 @@ class EnhancedLineChart(QWidget):
         
         self._animation.valueChanged.connect(self.update)
         
-    @property
+    @pyqtProperty(float)
     def animation_progress(self):
         return self._animation_progress
         
@@ -319,8 +319,8 @@ class EnhancedLineChart(QWidget):
     def paintEvent(self, event):
         """Paint the chart."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setRenderHint(QPainter.TextAntialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         
         # Get drawing area
         chart_rect = self._get_chart_rect()
@@ -375,9 +375,9 @@ class EnhancedLineChart(QWidget):
         # Set grid style
         pen = QPen(QColor(self.config.grid_color), 1)
         if self.config.grid_style == 'dashed':
-            pen.setStyle(Qt.DashLine)
+            pen.setStyle(Qt.PenStyle.DashLine)
         elif self.config.grid_style == 'dotted':
-            pen.setStyle(Qt.DotLine)
+            pen.setStyle(Qt.PenStyle.DotLine)
             
         painter.setPen(pen)
         painter.setOpacity(self.config.grid_alpha)
@@ -510,9 +510,9 @@ class EnhancedLineChart(QWidget):
         pen.setJoinStyle(Qt.RoundJoin)
         
         if series.style == 'dashed':
-            pen.setStyle(Qt.DashLine)
+            pen.setStyle(Qt.PenStyle.DashLine)
         elif series.style == 'dotted':
-            pen.setStyle(Qt.DotLine)
+            pen.setStyle(Qt.PenStyle.DotLine)
             
         painter.setPen(pen)
         
@@ -652,7 +652,7 @@ class EnhancedLineChart(QWidget):
                 max_width,
                 item_height
             )
-            painter.drawText(text_rect, Qt.AlignLeft | Qt.AlignVCenter, series_name)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, series_name)
             
             y += item_height
             
@@ -676,7 +676,7 @@ class EnhancedLineChart(QWidget):
         
         # Draw crosshairs if enabled
         if self.config.enable_crosshair:
-            painter.setPen(QPen(QColor(100, 100, 100, 100), 1, Qt.DashLine))
+            painter.setPen(QPen(QColor(100, 100, 100, 100), 1, Qt.PenStyle.DashLine))
             painter.drawLine(QPointF(x, chart_rect.top()), QPointF(x, chart_rect.bottom()))
             painter.drawLine(QPointF(chart_rect.left(), y), QPointF(chart_rect.right(), y))
             
@@ -723,7 +723,7 @@ class EnhancedLineChart(QWidget):
                 painter.drawRect(tooltip_rect)
             else:
                 painter.setBrush(QBrush(QColor(50, 50, 50, 220)))
-                painter.setPen(Qt.NoPen)
+                painter.setPen(Qt.PenStyle.NoPen)
                 painter.drawRoundedRect(tooltip_rect, 6, 6)
                 
             # Draw tooltip text
@@ -733,7 +733,7 @@ class EnhancedLineChart(QWidget):
                 painter.drawText(
                     QRectF(tooltip_x + 10, tooltip_y + y_offset, 
                           tooltip_width - 20, line_height),
-                    Qt.AlignLeft | Qt.AlignVCenter,
+                    Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                     line
                 )
                 y_offset += line_height
@@ -785,14 +785,14 @@ class EnhancedLineChart(QWidget):
         pos = event.pos()
         
         # Handle panning
-        if self.is_panning and event.buttons() & Qt.MiddleButton:
+        if self.is_panning and event.buttons() & Qt.MouseButton.MiddleButton:
             delta = pos - self.pan_start
             self._pan_view(delta.x(), delta.y())
             self.pan_start = pos
             return
             
         # Handle selection
-        if self.rubber_band and event.buttons() & Qt.LeftButton:
+        if self.rubber_band and event.buttons() & Qt.MouseButton.LeftButton:
             self.rubber_band.setGeometry(QRect(self.selection_rect.topLeft(), pos).normalized())
             return
             
@@ -848,7 +848,7 @@ class EnhancedLineChart(QWidget):
         chart_rect = self._get_chart_rect()
         pos = event.pos()
         
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             if self.hover_series is not None and self.hover_index >= 0:
                 # Click on data point
                 series = self.series[self.hover_series]
@@ -857,11 +857,11 @@ class EnhancedLineChart(QWidget):
             elif chart_rect.contains(pos) and self.config.enable_selection:
                 # Start selection
                 self.selection_rect = QRect(pos, pos)
-                self.rubber_band = QRubberBand(QRubberBand.Rectangle, self)
+                self.rubber_band = QRubberBand(QRubberBand.Shape.Rectangle, self)
                 self.rubber_band.setGeometry(self.selection_rect)
                 self.rubber_band.show()
                 
-        elif event.button() == Qt.MiddleButton and self.config.enable_pan:
+        elif event.button() == Qt.MouseButton.MiddleButton and self.config.enable_pan:
             # Start panning
             self.is_panning = True
             self.pan_start = pos
@@ -869,11 +869,11 @@ class EnhancedLineChart(QWidget):
                 self.view_x_range or self.x_range,
                 self.view_y_range or self.y_range
             )
-            self.setCursor(Qt.ClosedHandCursor)
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
             
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Handle mouse release."""
-        if event.button() == Qt.LeftButton and self.rubber_band:
+        if event.button() == Qt.MouseButton.LeftButton and self.rubber_band:
             # Complete selection
             self.rubber_band.hide()
             selection = self.rubber_band.geometry()
@@ -882,10 +882,10 @@ class EnhancedLineChart(QWidget):
             if selection.width() > 10 and selection.height() > 10:
                 self._zoom_to_rect(selection)
                 
-        elif event.button() == Qt.MiddleButton:
+        elif event.button() == Qt.MouseButton.MiddleButton:
             # Stop panning
             self.is_panning = False
-            self.setCursor(Qt.ArrowCursor)
+            self.setCursor(Qt.CursorShape.ArrowCursor)
             
     def wheelEvent(self, event: QWheelEvent):
         """Handle mouse wheel for zooming."""
@@ -924,13 +924,13 @@ class EnhancedLineChart(QWidget):
         
     def keyPressEvent(self, event: QKeyEvent):
         """Handle keyboard shortcuts."""
-        if event.key() == Qt.Key_R:
+        if event.key() == Qt.Key.Key_R:
             self.reset_view()
-        elif event.key() == Qt.Key_Plus or event.key() == Qt.Key_Equal:
+        elif event.key() == Qt.Key.Key_Plus or event.key() == Qt.Key.Key_Equal:
             self.zoom_in()
-        elif event.key() == Qt.Key_Minus:
+        elif event.key() == Qt.Key.Key_Minus:
             self.zoom_out()
-        elif event.key() == Qt.Key_S and event.modifiers() & Qt.ControlModifier:
+        elif event.key() == Qt.Key.Key_S and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             self.export_chart()
             
     def _pan_view(self, dx: float, dy: float):
@@ -1035,17 +1035,17 @@ class EnhancedLineChart(QWidget):
             if format == 'png':
                 # Render to pixmap
                 pixmap = QPixmap(width or self.width(), height or self.height())
-                pixmap.fill(Qt.transparent if self.config.export_transparent else QColor(self.config.background_color))
+                pixmap.fill(Qt.GlobalColor.transparent if self.config.export_transparent else QColor(self.config.background_color))
                 
                 painter = QPainter(pixmap)
-                painter.setRenderHint(QPainter.Antialiasing)
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
                 self.render(painter)
                 painter.end()
                 
                 pixmap.save(file_path, 'PNG', quality=100)
                 
             elif format == 'svg':
-                from PySide6.QtSvg import QSvgGenerator
+                from PyQt6.QtSvg import QSvgGenerator
                 
                 generator = QSvgGenerator()
                 generator.setFileName(file_path)
@@ -1053,17 +1053,17 @@ class EnhancedLineChart(QWidget):
                 generator.setViewBox(self.rect())
                 
                 painter = QPainter(generator)
-                painter.setRenderHint(QPainter.Antialiasing)
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
                 self.render(painter)
                 painter.end()
                 
             elif format == 'pdf':
                 pdf = QPdfWriter(file_path)
-                pdf.setPageSize(QPdfWriter.A4)
+                pdf.setPageSize(QPdfWriter.PageSize.A4)
                 pdf.setResolution(self.config.export_dpi)
                 
                 painter = QPainter(pdf)
-                painter.setRenderHint(QPainter.Antialiasing)
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
                 
                 # Scale to fit page
                 page_rect = painter.viewport()

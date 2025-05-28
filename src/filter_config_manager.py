@@ -10,9 +10,9 @@ from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 from dataclasses import dataclass, asdict
 
-from database import DatabaseManager
-from data_filter_engine import FilterCriteria
-from utils.error_handler import DataImportError
+from .database import DatabaseManager
+from .data_filter_engine import FilterCriteria
+from .utils.error_handler import DataImportError
 
 logger = logging.getLogger(__name__)
 

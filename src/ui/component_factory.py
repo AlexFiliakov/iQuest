@@ -5,8 +5,9 @@ Provides a centralized way to create reusable components with consistent styling
 
 from typing import Optional, Dict, Any
 from .summary_cards import SummaryCard
-from .charts.enhanced_line_chart import EnhancedLineChart, ChartConfig
-from .bar_chart_component import BarChartComponent, BarChartConfig
+from .charts.enhanced_line_chart import EnhancedLineChart
+from .charts.chart_config import ChartConfig
+from .bar_chart_component import BarChart as BarChartComponent, BarChartConfig
 from .table_components import MetricTable, TableConfig
 from .style_manager import StyleManager
 

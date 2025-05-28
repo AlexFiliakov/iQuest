@@ -9,9 +9,9 @@ from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import math
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
-from PySide6.QtCore import Qt, QPointF, QRectF, Signal, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import (
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt6.QtCore import Qt, QPointF, QRectF, pyqtSignal as Signal, QPropertyAnimation, QEasingCurve, pyqtProperty
+from PyQt6.QtGui import (
     QPainter, QPen, QColor, QBrush, QFont, QPainterPath, 
     QFontMetrics, QMouseEvent, QResizeEvent
 )
@@ -94,21 +94,22 @@ class LineChart(QWidget):
         
     def _setup_animations(self):
         """Set up animation properties."""
+        self._animation_progress = 0.0
         self.animation = QPropertyAnimation(self, b"animation_progress")
         self.animation.setDuration(500)
-        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.animation.valueChanged.connect(self.update)
         
-    @property
-    def animation_progress(self):
+    def get_animation_progress(self):
         """Get animation progress value."""
         return self._animation_progress
         
-    @animation_progress.setter
-    def animation_progress(self, value):
+    def set_animation_progress(self, value):
         """Set animation progress value."""
         self._animation_progress = value
         self.update()
+        
+    animation_progress = pyqtProperty(float, get_animation_progress, set_animation_progress)
         
     def set_data(self, data_points: List[Dict[str, Any]], animate: bool = True):
         """
@@ -174,7 +175,7 @@ class LineChart(QWidget):
         if not self.show_grid:
             return
             
-        painter.setPen(QPen(self.colors['grid'], 1, Qt.DashLine))
+        painter.setPen(QPen(self.colors['grid'], 1, Qt.PenStyle.DashLine))
         
         # Horizontal grid lines
         y_steps = 5
@@ -220,7 +221,7 @@ class LineChart(QWidget):
             painter.setPen(self.colors['text'])
             
             title_rect = QRectF(0, 0, self.width(), self.margins['top'])
-            painter.drawText(title_rect, Qt.AlignCenter, self.title)
+            painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, self.title)
             
         # Y-axis labels
         label_font = QFont("Inter", 10)
@@ -235,7 +236,7 @@ class LineChart(QWidget):
             
             label = f"{value:.0f}"
             label_rect = QRectF(0, y - 10, self.margins['left'] - 10, 20)
-            painter.drawText(label_rect, Qt.AlignRight | Qt.AlignVCenter, label)
+            painter.drawText(label_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, label)
             
         # X-axis labels
         if self.data_points:
@@ -249,13 +250,13 @@ class LineChart(QWidget):
                     label = str(self.data_points[i]['x'])
                     
                 label_rect = QRectF(x - 50, chart_rect.bottom() + 5, 100, 20)
-                painter.drawText(label_rect, Qt.AlignCenter, label)
+                painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, label)
                 
         # Axis labels
         if self.x_axis_label:
             painter.drawText(
                 QRectF(0, self.height() - 30, self.width(), 20),
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
                 self.x_axis_label
             )
             
@@ -265,7 +266,7 @@ class LineChart(QWidget):
             painter.rotate(-90)
             painter.drawText(
                 QRectF(-50, -10, 100, 20),
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
                 self.y_axis_label
             )
             painter.restore()
@@ -279,7 +280,7 @@ class LineChart(QWidget):
         path = QPainterPath()
         
         # Draw line
-        painter.setPen(QPen(self.colors['line'], 3, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        painter.setPen(QPen(self.colors['line'], 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         
         for i, point in enumerate(self.data_points):
             x = self._map_x(i, chart_rect)
@@ -353,12 +354,12 @@ class LineChart(QWidget):
             
         # Draw tooltip
         painter.setBrush(QBrush(QColor(93, 78, 55, 220)))
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(tooltip_rect, 6, 6)
         
         # Draw text
         painter.setPen(QColor('#FFFFFF'))
-        painter.drawText(tooltip_rect, Qt.AlignCenter, tooltip_text)
+        painter.drawText(tooltip_rect, Qt.AlignmentFlag.AlignCenter, tooltip_text)
         
     def _map_x(self, index: int, chart_rect: QRectF) -> float:
         """Map data index to X coordinate."""
@@ -402,7 +403,7 @@ class LineChart(QWidget):
             
     def mousePressEvent(self, event: QMouseEvent):
         """Handle mouse click on data points."""
-        if event.button() == Qt.LeftButton and self.hover_index >= 0:
+        if event.button() == Qt.MouseButton.LeftButton and self.hover_index >= 0:
             self.dataPointClicked.emit(self.data_points[self.hover_index])
             
     def leaveEvent(self, event):
