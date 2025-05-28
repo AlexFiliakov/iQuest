@@ -1,8 +1,8 @@
 ---
 sprint_id: S04_M01_health_analytics
-status: planned
+status: in_progress
 milestone: M01_MVP
-start_date: 
+start_date: 2025-05-28
 end_date: 
 ---
 
