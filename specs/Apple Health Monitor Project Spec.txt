@@ -37,17 +37,36 @@ review the updated spec `.simone/02_REQUIREMENTS/M01/SPECS_DB.md` and make the i
 review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processing/S02_sprint_meta.md` and create tasks for any remaining work. Partition the tasks for parallel work and create subtasks when the work needs to be completed together.
 
 
+current:
+G019_implement_daily_metrics_calculator.md
+
+then:
+G020_implement_weekly_metrics_calculator.md
+G023_create_daily_trend_indicators.md
+G024_build_activity_timeline_component.md
+
+then:
+G021_implement_monthly_metrics_calculator.md
+G025_add_daily_comparison_overlays.md
+G026_create_day_of_week_pattern_analysis.md
+
+then:
+G022_implement_analytics_caching_layer.md
+G027_build_week_over_week_trends.md
+G029_create_calendar_heatmap_component.md
+
+then:
+G028_add_monthly_context_to_weekly_view.md
+
+
+
+
+
 next:
-G013_xml_import_streaming_processor.md
+/do G008_Sprint_S02_Task_Breakdown.md see which steps remain in this task because it has been superseded by subsequent tasks, implement any remaining features, and report task status.
 
 
-then:
-G014_xml_data_validation_error_handling.md
-G015_import_progress_ui_integration.md
-G016_data_filtering_engine.md
 
+fix the following test errors, the tests still fail:
 
-then:
-G017_filter_configuration_persistence.md
-G018_basic_data_statistics_calculator.md
 
