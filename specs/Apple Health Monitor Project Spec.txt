@@ -38,10 +38,10 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 
 
 current:
-G035_design_data_availability_indicators.md
-- review sprint `S03_M01_UI_Framework` and note remaining work
-  - begin sprint `S04_M01_Core_Analytics`
+review sprint `S03_M01_UI_Framework` and note remaining work
+- complete sprint `S03_M01_UI_Framework` and begin sprint `S04_M01_Core_Analytics`
 review sprint `S03_M01_basic_analytics` and note remaining work
+- complete sprint `S03_M01_basic_analytics`
 
 
 ### S04 future parallel: ###
