@@ -238,7 +238,27 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Analyze weekly health summaries and patterns")
     
     def _create_monthly_dashboard_tab(self):
-        """Create the monthly dashboard tab placeholder."""
+        """Create the monthly dashboard tab with calendar heatmap."""
+        try:
+            from .monthly_dashboard_widget import MonthlyDashboardWidget
+            
+            # Create the monthly dashboard widget
+            self.monthly_dashboard = MonthlyDashboardWidget()
+            
+            # Connect signals if needed
+            self.monthly_dashboard.month_changed.connect(self._on_month_changed)
+            self.monthly_dashboard.metric_changed.connect(self._on_metric_changed)
+            
+            self.tab_widget.addTab(self.monthly_dashboard, "Monthly")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and calendar heatmap")
+            
+        except ImportError as e:
+            # Fallback to placeholder if import fails
+            logger.warning(f"Could not import MonthlyDashboardWidget: {e}")
+            self._create_monthly_dashboard_placeholder()
+            
+    def _create_monthly_dashboard_placeholder(self):
+        """Create a placeholder monthly dashboard tab."""
         monthly_widget = QWidget()
         layout = QVBoxLayout(monthly_widget)
         
@@ -255,7 +275,7 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(label)
         
-        placeholder = QLabel("Monthly health trends will appear here")
+        placeholder = QLabel("Monthly health trends with calendar heatmap will appear here")
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         placeholder.setStyleSheet("""
             QLabel {
@@ -757,6 +777,16 @@ class MainWindow(QMainWindow):
         
         # TODO: Pass filtered data to other tabs
         # This will be implemented when other tabs are created
+        
+    def _on_month_changed(self, year: int, month: int):
+        """Handle month change signal from monthly dashboard."""
+        logger.info(f"Month changed to: {year}-{month:02d}")
+        self.status_bar.showMessage(f"Viewing {year}-{month:02d}")
+        
+    def _on_metric_changed(self, metric: str):
+        """Handle metric change signal from monthly dashboard."""
+        logger.info(f"Metric changed to: {metric}")
+        self.status_bar.showMessage(f"Displaying {metric} data")
     
     def keyPressEvent(self, event):
         """Handle key press events."""

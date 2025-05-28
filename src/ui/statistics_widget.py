@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from typing import Optional
 from ..statistics_calculator import BasicStatistics
+from ..analytics.day_of_week_analyzer import DayOfWeekAnalyzer
 
 
 class StatisticsWidget(QWidget):
@@ -132,6 +133,49 @@ class StatisticsWidget(QWidget):
                 lambda checked, s=source_name: self.filter_requested.emit("source", s)
             )
             self.sources_layout.addWidget(source_label)
+    
+    def show_day_of_week_patterns(self, data):
+        """Display day-of-week pattern analysis."""
+        if data is None or data.empty:
+            return
+            
+        try:
+            # Create analyzer
+            analyzer = DayOfWeekAnalyzer(data)
+            
+            # Get unique metric types
+            metric_types = data['metric_type'].unique()
+            
+            # For now, analyze the first metric type
+            if len(metric_types) > 0:
+                results = analyzer.analyze_metric(metric_types[0])
+                
+                if results and 'patterns' in results:
+                    patterns = results['patterns']
+                    
+                    # Create pattern display (simplified for now)
+                    pattern_group = QGroupBox("Day-of-Week Patterns")
+                    pattern_layout = QVBoxLayout()
+                    
+                    if patterns:
+                        for pattern in patterns:
+                            pattern_text = f"{pattern.pattern_type.replace('_', ' ').title()}: {pattern.description}"
+                            pattern_label = QLabel(pattern_text)
+                            pattern_layout.addWidget(pattern_label)
+                    else:
+                        no_patterns = QLabel("No significant patterns detected")
+                        no_patterns.setStyleSheet("color: #666;")
+                        pattern_layout.addWidget(no_patterns)
+                    
+                    pattern_group.setLayout(pattern_layout)
+                    
+                    # Add to main layout after sources group
+                    main_layout = self.layout()
+                    main_layout.addWidget(pattern_group)
+        
+        except Exception as e:
+            # Silently handle errors - pattern analysis is optional
+            pass
     
     def clear_display(self):
         """Clear all statistics from the display."""
