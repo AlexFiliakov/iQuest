@@ -83,7 +83,7 @@ class TestVisualRegression:
     def sample_data(self):
         """Create sample data for chart testing."""
         generator = HealthDataGenerator(seed=42)
-        return generator.generate_synthetic_data(30)  # 30 days of data
+        return generator.generate(30)  # 30 days of data
     
     @pytest.fixture
     def chart_config(self):

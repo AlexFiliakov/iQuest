@@ -93,7 +93,7 @@ class TestChaosScenarios:
     @pytest.fixture
     def clean_data(self, data_generator):
         """Generate clean test data."""
-        return data_generator.generate_synthetic_data(100)
+        return data_generator.generate(100)
 
     # Data Corruption Tests
     def test_handle_corrupted_step_data(self, chaos_engine, clean_data):
@@ -183,7 +183,7 @@ class TestChaosScenarios:
         
         def write_data(thread_id: int):
             try:
-                data = data_generator.generate_synthetic_data(100)
+                data = data_generator.generate(100)
                 data['thread_id'] = thread_id
                 db.bulk_insert_health_data(data)
             except Exception as e:
@@ -210,7 +210,7 @@ class TestChaosScenarios:
     def test_concurrent_analytics_calculations(self, data_generator):
         """Test concurrent analytics calculations."""
         calculator = DailyMetricsCalculator()
-        data = data_generator.generate_synthetic_data(500)
+        data = data_generator.generate(500)
         
         results_queue = queue.Queue()
         errors = []
@@ -277,7 +277,7 @@ class TestChaosScenarios:
         calculator = DailyMetricsCalculator()
         
         # Create circular reference scenario
-        circular_data = data_generator.generate_synthetic_data(50)
+        circular_data = data_generator.generate(50)
         # Simulate a condition that might cause infinite loops
         circular_data.loc[0, 'steps'] = float('inf')
         circular_data.loc[1, 'steps'] = float('-inf')
@@ -324,7 +324,7 @@ class TestChaosScenarios:
         try:
             # Create database and add data
             db = HealthDatabase(db_path)
-            data = data_generator.generate_synthetic_data(100)
+            data = data_generator.generate(100)
             db.bulk_insert_health_data(data)
             db.close()
             
@@ -406,7 +406,7 @@ class TestChaosScenarios:
         calculator = DailyMetricsCalculator()
         
         # Create data with wrong types
-        wrong_type_data = data_generator.generate_synthetic_data(50)
+        wrong_type_data = data_generator.generate(50)
         wrong_type_data['steps'] = wrong_type_data['steps'].astype(str)  # Convert to string
         
         try:
@@ -421,7 +421,7 @@ class TestChaosScenarios:
         """Test handling of missing required columns."""
         calculator = DailyMetricsCalculator()
         
-        incomplete_data = data_generator.generate_synthetic_data(50)
+        incomplete_data = data_generator.generate(50)
         del incomplete_data['steps']  # Remove required column
         
         with pytest.raises((KeyError, ValueError)):
@@ -431,7 +431,7 @@ class TestChaosScenarios:
     def test_race_condition_detection(self, data_generator):
         """Test detection and handling of race conditions."""
         calculator = DailyMetricsCalculator()
-        shared_data = data_generator.generate_synthetic_data(100)
+        shared_data = data_generator.generate(100)
         
         results = []
         

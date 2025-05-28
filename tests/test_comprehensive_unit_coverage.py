@@ -30,7 +30,7 @@ class TestComprehensiveUnitCoverage:
     @pytest.fixture
     def sample_data(self, data_generator):
         """Generate sample data for testing."""
-        return data_generator.generate_synthetic_data(30)
+        return data_generator.generate(30)
 
     # Daily Metrics Calculator - Complete Coverage
     class TestDailyMetricsCalculatorComplete:
@@ -268,7 +268,7 @@ class TestComprehensiveUnitCoverage:
         def test_seasonal_pattern_detection(self, calculator, data_generator):
             """Test seasonal pattern detection."""
             # Generate full year of data
-            yearly_data = data_generator.generate_synthetic_data(365)
+            yearly_data = data_generator.generate(365)
             
             patterns = calculator.detect_seasonal_patterns(yearly_data, 'steps')
             
@@ -277,7 +277,7 @@ class TestComprehensiveUnitCoverage:
         
         def test_month_over_month_trends(self, calculator, data_generator):
             """Test month-over-month trend calculations."""
-            multi_month_data = data_generator.generate_synthetic_data(90)  # 3 months
+            multi_month_data = data_generator.generate(90)  # 3 months
             
             trends = calculator.calculate_monthly_trends(multi_month_data, 'steps')
             
@@ -402,7 +402,7 @@ class TestComprehensiveUnitCoverage:
         def test_thread_safety(self, data_generator):
             """Test thread safety of calculators."""
             calc = DailyMetricsCalculator()
-            data = data_generator.generate_synthetic_data(100)
+            data = data_generator.generate(100)
             
             import threading
             results = []

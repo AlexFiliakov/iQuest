@@ -226,7 +226,7 @@ class HealthDataGenerator:
         }
         
         days = sizes.get(size, 100000)
-        return self.generate_synthetic_data(days)
+        return self.generate(days)
 
     def generate_anonymized_sample(self, original_patterns: Dict) -> pd.DataFrame:
         """Generate anonymized data that preserves statistical patterns."""
@@ -241,7 +241,7 @@ class HealthDataGenerator:
         days = original_patterns.get('days', 365)
         
         # Generate data with similar statistical properties
-        data = self.generate_synthetic_data(days)
+        data = self.generate(days)
         
         # Adjust to match original patterns
         if 'steps_mean' in original_patterns:
@@ -254,9 +254,9 @@ class HealthDataGenerator:
     def create_test_database_data(self) -> Dict[str, pd.DataFrame]:
         """Create comprehensive test data for database operations."""
         return {
-            'normal_year': self.generate_synthetic_data(365),
-            'leap_year': self.generate_synthetic_data(366),
-            'partial_year': self.generate_synthetic_data(90),
-            'multi_year': self.generate_synthetic_data(365 * 3),
+            'normal_year': self.generate(365),
+            'leap_year': self.generate(366),
+            'partial_year': self.generate(90),
+            'multi_year': self.generate(365 * 3),
             'stress_test': self.generate_performance_data('large')
         }
