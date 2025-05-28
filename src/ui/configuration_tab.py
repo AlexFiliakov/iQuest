@@ -16,12 +16,15 @@ from utils.logging_config import get_logger
 from data_loader import DataLoader, convert_xml_to_sqlite
 from database import db_manager
 from data_filter_engine import DataFilterEngine, FilterCriteria
+from filter_config_manager import FilterConfigManager, FilterConfig
 from .style_manager import StyleManager
 from .settings_manager import SettingsManager
 from .multi_select_combo import CheckableComboBox
 from .enhanced_date_edit import EnhancedDateEdit
 from .import_progress_dialog import ImportProgressDialog
+from .statistics_widget import StatisticsWidget
 from config import DATA_DIR
+from ..statistics_calculator import StatisticsCalculator
 
 logger = get_logger(__name__)
 
@@ -40,8 +43,11 @@ class ConfigurationTab(QWidget):
         # Initialize components
         self.style_manager = StyleManager()
         self.data_loader = DataLoader()
+        self.filter_config_manager = FilterConfigManager()
+        self.statistics_calculator = StatisticsCalculator()
         self.data = None
         self.filtered_data = None
+        self.statistics_widget = None
         
         # UI elements that need to be accessed
         self.file_path_input = None
@@ -57,8 +63,8 @@ class ConfigurationTab(QWidget):
         self.save_preset_button = None
         self.load_preset_button = None
         
-        # Presets file path
-        self.presets_file = os.path.join(os.path.dirname(__file__), '..', '..', 'filter_presets.json')
+        # Legacy presets file path for migration
+        self.legacy_presets_file = os.path.join(os.path.dirname(__file__), '..', '..', 'filter_presets.json')
         
         # Create the UI
         self._create_ui()
@@ -89,6 +95,7 @@ class ConfigurationTab(QWidget):
         # Create sections
         main_layout.addWidget(self._create_import_section())
         main_layout.addWidget(self._create_filter_section())
+        main_layout.addWidget(self._create_statistics_section())
         main_layout.addWidget(self._create_status_section())
         
         # Add stretch to push everything to the top
@@ -399,6 +406,38 @@ class ConfigurationTab(QWidget):
         
         return section
     
+    def _create_statistics_section(self):
+        """Create the statistics display section."""
+        group = QGroupBox("Data Statistics")
+        group.setStyleSheet(f"""
+            QGroupBox {{
+                font-size: 18px;
+                font-weight: 600;
+                color: {self.style_manager.TEXT_PRIMARY};
+                background-color: {self.style_manager.SECONDARY_BG};
+                border: 1px solid rgba(139, 115, 85, 0.1);
+                border-radius: 12px;
+                padding: 20px;
+                padding-top: 32px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 20px;
+                padding: 0 10px 0 10px;
+                color: {self.style_manager.ACCENT_PRIMARY};
+            }}
+        """)
+        
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(12, 12, 12, 12)
+        
+        # Create statistics widget
+        self.statistics_widget = StatisticsWidget()
+        self.statistics_widget.filter_requested.connect(self._on_statistics_filter_requested)
+        layout.addWidget(self.statistics_widget)
+        
+        return group
+    
     def _create_status_section(self):
         """Create the status display section."""
         section = QWidget()
@@ -501,6 +540,14 @@ class ConfigurationTab(QWidget):
             # Enable filter controls
             self._enable_filter_controls(True)
             
+            # Calculate and display statistics
+            if self.data is not None and not self.data.empty:
+                stats = self.statistics_calculator.calculate_from_dataframe(self.data)
+                self.statistics_widget.update_statistics(stats)
+            
+            # Load last used filters if available
+            self._load_last_used_filters()
+            
             # Emit signal
             self.data_loaded.emit(self.data)
             
@@ -585,6 +632,11 @@ class ConfigurationTab(QWidget):
             f"({filtered_count/original_count*100:.1f}%) - Filtered in {filter_time:.0f}ms"
         )
         
+        # Update statistics for filtered data
+        if self.filtered_data is not None and not self.filtered_data.empty:
+            stats = self.statistics_calculator.calculate_from_dataframe(self.filtered_data)
+            self.statistics_widget.update_statistics(stats)
+        
         # Show feedback
         self.apply_button.setText("Filters Applied ✓")
         self.apply_button.setStyleSheet(self.style_manager.get_button_style("primary") + f"""
@@ -598,6 +650,9 @@ class ConfigurationTab(QWidget):
         QTimer.singleShot(2000, lambda: self.apply_button.setStyleSheet(
             self.style_manager.get_button_style("primary")
         ))
+        
+        # Save as last used filters
+        self._save_as_last_used(filters)
         
         # Emit signal
         self.filters_applied.emit(filters)
@@ -732,32 +787,34 @@ class ConfigurationTab(QWidget):
         )
         
         if ok and preset_name:
+            if preset_name.startswith("__"):
+                QMessageBox.warning(
+                    self,
+                    "Invalid Name",
+                    "Preset names cannot start with '__' as these are reserved for system use."
+                )
+                return
+            
             try:
-                # Load existing presets
-                presets = {}
-                if os.path.exists(self.presets_file):
-                    with open(self.presets_file, 'r') as f:
-                        presets = json.load(f)
-                
-                # Add current filters
+                # Create filter config from current settings
                 filters = self.get_current_filters()
-                # Convert dates to strings for JSON serialization
-                filters['start_date'] = filters['start_date'].isoformat()
-                filters['end_date'] = filters['end_date'].isoformat()
+                config = FilterConfig(
+                    preset_name=preset_name,
+                    start_date=filters['start_date'],
+                    end_date=filters['end_date'],
+                    source_names=filters['devices'] if filters['devices'] else None,
+                    health_types=filters['metrics'] if filters['metrics'] else None
+                )
                 
-                presets[preset_name] = filters
-                
-                # Save to file
-                os.makedirs(os.path.dirname(self.presets_file), exist_ok=True)
-                with open(self.presets_file, 'w') as f:
-                    json.dump(presets, f, indent=2)
+                # Save to database
+                config_id = self.filter_config_manager.save_config(config)
                 
                 QMessageBox.information(
                     self,
                     "Preset Saved",
-                    f"Filter preset '{preset_name}' has been saved."
+                    f"Filter preset '{preset_name}' has been saved to the database."
                 )
-                logger.info(f"Saved preset: {preset_name}")
+                logger.info(f"Saved preset: {preset_name} (ID: {config_id})")
                 
             except Exception as e:
                 logger.error(f"Failed to save preset: {e}")
@@ -772,20 +829,16 @@ class ConfigurationTab(QWidget):
         logger.info("Loading filter preset")
         
         try:
-            # Check if presets file exists
-            if not os.path.exists(self.presets_file):
-                QMessageBox.information(
-                    self,
-                    "No Presets",
-                    "No filter presets have been saved yet."
-                )
-                return
+            # Migrate legacy JSON presets if they exist
+            self._migrate_legacy_presets()
             
-            # Load presets
-            with open(self.presets_file, 'r') as f:
-                presets = json.load(f)
+            # Get available presets from database
+            configs = self.filter_config_manager.list_configs()
             
-            if not presets:
+            # Filter out system presets (last used, default)
+            user_configs = [c for c in configs if not c.preset_name.startswith("__")]
+            
+            if not user_configs:
                 QMessageBox.information(
                     self,
                     "No Presets",
@@ -795,33 +848,32 @@ class ConfigurationTab(QWidget):
             
             # Let user choose preset
             from PyQt6.QtWidgets import QInputDialog
+            preset_names = [config.preset_name for config in user_configs]
             preset_name, ok = QInputDialog.getItem(
                 self,
                 "Load Filter Preset",
                 "Select a preset to load:",
-                list(presets.keys()),
+                preset_names,
                 0,
                 False
             )
             
             if ok and preset_name:
-                preset = presets[preset_name]
-                
-                # Apply preset values
-                from datetime import datetime
-                self.start_date_edit.setDate(QDate.fromString(preset['start_date'], Qt.DateFormat.ISODate))
-                self.end_date_edit.setDate(QDate.fromString(preset['end_date'], Qt.DateFormat.ISODate))
-                
-                # Set device selection
-                self.device_dropdown.setCheckedItems(preset['devices'])
-                
-                # Set metric selection
-                self.metric_dropdown.setCheckedItems(preset['metrics'])
-                
-                # Apply the loaded filters
-                self._on_apply_filters_clicked()
-                
-                logger.info(f"Loaded preset: {preset_name}")
+                # Load the selected config
+                config = self.filter_config_manager.load_config(preset_name)
+                if config:
+                    self._apply_config_to_ui(config)
+                    
+                    # Apply the loaded filters
+                    self._on_apply_filters_clicked()
+                    
+                    logger.info(f"Loaded preset: {preset_name}")
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Load Error",
+                        f"Could not find preset '{preset_name}'"
+                    )
                 
         except Exception as e:
             logger.error(f"Failed to load preset: {e}")
@@ -858,6 +910,36 @@ class ConfigurationTab(QWidget):
         self._start_import_with_progress(file_path)
     
     
+    def _on_statistics_filter_requested(self, filter_type: str, filter_value: str):
+        """Handle filter request from statistics widget."""
+        logger.debug(f"Statistics filter requested: {filter_type}={filter_value}")
+        
+        if filter_type == "type":
+            # Add the type to the metric filter
+            current_metrics = self.metric_dropdown.checkedTexts()
+            if filter_value not in current_metrics:
+                # Check the item in the dropdown
+                for i in range(self.metric_dropdown.count()):
+                    if self.metric_dropdown.itemText(i) == filter_value:
+                        self.metric_dropdown.setItemChecked(i, True)
+                        break
+                
+                # Apply filters
+                self._on_apply_clicked()
+        
+        elif filter_type == "source":
+            # Add the source to the device filter
+            current_devices = self.device_dropdown.checkedTexts()
+            if filter_value not in current_devices:
+                # Check the item in the dropdown
+                for i in range(self.device_dropdown.count()):
+                    if self.device_dropdown.itemText(i) == filter_value:
+                        self.device_dropdown.setItemChecked(i, True)
+                        break
+                
+                # Apply filters
+                self._on_apply_clicked()
+    
     def _load_from_sqlite(self):
         """Load data from SQLite database."""
         try:
@@ -887,6 +969,11 @@ class ConfigurationTab(QWidget):
             # Enable filter controls
             self._enable_filter_controls(True)
             
+            # Calculate and display statistics
+            if self.data is not None and not self.data.empty:
+                stats = self.statistics_calculator.calculate_from_dataframe(self.data)
+                self.statistics_widget.update_statistics(stats)
+            
             # Emit signal
             self.data_loaded.emit(self.data)
             
@@ -895,6 +982,74 @@ class ConfigurationTab(QWidget):
         except Exception as e:
             logger.error(f"Database load failed: {e}")
             raise
+    
+    def _migrate_legacy_presets(self):
+        """Migrate legacy JSON presets to database if they exist."""
+        try:
+            if os.path.exists(self.legacy_presets_file):
+                migrated_count = self.filter_config_manager.migrate_from_json(self.legacy_presets_file)
+                if migrated_count > 0:
+                    logger.info(f"Migrated {migrated_count} legacy presets to database")
+                    
+                    # Rename the old file to prevent future migrations
+                    backup_file = self.legacy_presets_file + ".migrated"
+                    os.rename(self.legacy_presets_file, backup_file)
+                    logger.info(f"Legacy presets file renamed to {backup_file}")
+        except Exception as e:
+            logger.warning(f"Failed to migrate legacy presets: {e}")
+    
+    def _apply_config_to_ui(self, config: FilterConfig):
+        """Apply a filter configuration to the UI controls."""
+        # Set date range
+        if config.start_date:
+            self.start_date_edit.setDate(QDate.fromString(config.start_date.isoformat(), Qt.DateFormat.ISODate))
+        if config.end_date:
+            self.end_date_edit.setDate(QDate.fromString(config.end_date.isoformat(), Qt.DateFormat.ISODate))
+        
+        # Set device selection
+        if config.source_names:
+            self.device_dropdown.setCheckedItems(config.source_names)
+        else:
+            self.device_dropdown.checkAll()  # Default to all if none specified
+        
+        # Set metric selection
+        if config.health_types:
+            self.metric_dropdown.setCheckedItems(config.health_types)
+        else:
+            self.metric_dropdown.checkAll()  # Default to all if none specified
+    
+    def _load_last_used_filters(self):
+        """Load the last used filters if available."""
+        try:
+            last_used = self.filter_config_manager.get_last_used_config()
+            if last_used:
+                self._apply_config_to_ui(last_used)
+                logger.info("Loaded last used filter configuration")
+            else:
+                # Try to load default configuration
+                default_config = self.filter_config_manager.get_default_config()
+                if default_config:
+                    self._apply_config_to_ui(default_config)
+                    logger.info("Loaded default filter configuration")
+        except Exception as e:
+            logger.warning(f"Failed to load last used filters: {e}")
+    
+    def _save_as_last_used(self, filters):
+        """Save current filters as last used configuration."""
+        try:
+            config = FilterConfig(
+                preset_name="__last_used__",
+                start_date=filters['start_date'],
+                end_date=filters['end_date'],
+                source_names=filters['devices'] if filters['devices'] else None,
+                health_types=filters['metrics'] if filters['metrics'] else None,
+                is_last_used=True
+            )
+            
+            self.filter_config_manager.save_as_last_used(config)
+            logger.debug("Saved current filters as last used")
+        except Exception as e:
+            logger.warning(f"Failed to save last used filters: {e}")
     
     def _setup_keyboard_navigation(self):
         """Set up tab order and keyboard shortcuts."""
