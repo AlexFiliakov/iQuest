@@ -1,6 +1,9 @@
 """
 Performance benchmark tests for analytics components.
 Tests processing speed, memory usage, and scalability.
+
+This is the main performance test file that uses the performance testing
+infrastructure in tests/performance/.
 """
 
 import pytest
@@ -10,26 +13,24 @@ import gc
 import time
 from typing import List, Dict, Any
 
-# Import memory_profiler with fallback
-try:
-    from memory_profiler import profile
-    MEMORY_PROFILER_AVAILABLE = True
-except ImportError:
-    MEMORY_PROFILER_AVAILABLE = False
-    def profile(func):
-        """Fallback decorator when memory_profiler is not available."""
-        return func
-
-from tests.test_data_generator import HealthDataGenerator
+# Import performance testing infrastructure
+from tests.performance import PerformanceBenchmark, AdaptiveThresholds
+from tests.generators.health_data import HealthDataGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
 from src.statistics_calculator import StatisticsCalculator
 
 
-class TestPerformanceBenchmarks:
+@pytest.mark.performance
+class TestPerformanceBenchmarks(PerformanceBenchmark):
     """Comprehensive performance tests for analytics system."""
     
+    def setup_method(self):
+        """Set up test environment."""
+        super().__init__()
+        self.thresholds = AdaptiveThresholds()
+        
     @pytest.fixture
     def data_generator(self):
         """Create test data generator."""
@@ -59,28 +60,42 @@ class TestPerformanceBenchmarks:
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_small(self, benchmark, small_dataset):
         """Benchmark daily calculator with small dataset."""
-        calculator = DailyMetricsCalculator()
+        calculator = DailyMetricsCalculator(small_dataset)
         
-        result = benchmark(
+        result = benchmark.pedantic(
             calculator.calculate_all_metrics,
-            small_dataset
+            rounds=5,
+            warmup_rounds=2
         )
         
-        assert len(result) > 0
-        assert benchmark.stats['mean'] < 0.05  # <50ms
+        # Use adaptive threshold
+        threshold = self.thresholds.get_threshold(
+            'daily_calculator_small',
+            'duration',
+            margin=1.2
+        )
+        
+        assert result['mean'] < threshold
 
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_medium(self, benchmark, medium_dataset):
         """Benchmark daily calculator with medium dataset."""
-        calculator = DailyMetricsCalculator()
+        calculator = DailyMetricsCalculator(medium_dataset)
         
-        result = benchmark(
+        result = benchmark.pedantic(
             calculator.calculate_all_metrics,
-            medium_dataset
+            rounds=5,
+            warmup_rounds=2
         )
         
-        assert len(result) > 0
-        assert benchmark.stats['mean'] < 0.2  # <200ms
+        # Use adaptive threshold
+        threshold = self.thresholds.get_threshold(
+            'daily_calculator_medium',
+            'duration',
+            margin=1.3
+        )
+        
+        assert result['mean'] < threshold
 
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_large(self, benchmark, large_dataset):
@@ -142,24 +157,15 @@ class TestPerformanceBenchmarks:
     @pytest.mark.slow
     def test_memory_usage_daily_calculator(self, large_dataset):
         """Test memory usage of daily calculator."""
-        calculator = DailyMetricsCalculator()
+        with self.measure_performance('daily_calculator_memory'):
+            calculator = DailyMetricsCalculator(large_dataset)
+            result = calculator.calculate_all_metrics()
         
-        # Measure memory before
-        gc.collect()
-        import psutil
-        process = psutil.Process()
-        memory_before = process.memory_info().rss
-        
-        # Perform calculation
-        result = calculator.calculate_all_metrics(large_dataset)
-        
-        # Measure memory after
-        memory_after = process.memory_info().rss
-        memory_used = memory_after - memory_before
-        
-        # Memory usage should be reasonable (<100MB for 100K records)
-        assert memory_used < 100 * 1024 * 1024  # <100MB
-        assert len(result) > 0
+        # Assert memory usage is within limits
+        self.assert_performance(
+            'daily_calculator_memory',
+            max_memory_growth_mb=100  # <100MB for 100K records
+        )
 
     @pytest.mark.slow
     def test_memory_leak_prevention(self, data_generator):

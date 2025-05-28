@@ -62,17 +62,16 @@ def sample_health_data():
 
 
 @pytest.fixture
-def mock_data_loader(sample_health_data):
-    """Create mock data loader with sample data."""
-    loader = Mock()
-    loader.get_all_records.return_value = sample_health_data
-    return loader
+def mock_data_source(sample_health_data):
+    """Create mock data source with sample data."""
+    from tests.mocks import MockDataSource
+    return MockDataSource(sample_health_data)
 
 
 @pytest.fixture
-def daily_calculator(mock_data_loader):
+def daily_calculator(mock_data_source):
     """Create daily metrics calculator."""
-    return DailyMetricsCalculator(mock_data_loader)
+    return DailyMetricsCalculator(mock_data_source)
 
 
 @pytest.fixture

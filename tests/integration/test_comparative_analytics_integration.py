@@ -58,16 +58,37 @@ class TestComparativeAnalyticsIntegration:
     @pytest.fixture
     def calculators(self, sample_data):
         """Create calculator instances with sample data."""
-        # Mock data source
-        class MockDataSource:
-            def __init__(self, data):
-                self.data = data
-                
-            def get_data_for_period(self, metric, start_date, end_date):
-                mask = (self.data['date'] >= start_date) & (self.data['date'] <= end_date)
-                return self.data.loc[mask, ['date', metric]].set_index('date')[metric]
-                
-        data_source = MockDataSource(sample_data)
+        # Use our proper MockDataSource from tests.mocks
+        from tests.mocks import MockDataSource
+        
+        # Ensure sample_data has the required columns
+        if 'creationDate' not in sample_data.columns:
+            sample_data['creationDate'] = sample_data['date']
+        if 'type' not in sample_data.columns:
+            # Add type column for each metric
+            sample_data['type'] = 'HKQuantityTypeIdentifierStepCount'
+            # For other metrics, we'd need to map them properly
+            
+        # Rename columns to match expected format
+        metrics_data = []
+        for metric in ['steps', 'distance', 'calories']:
+            metric_type = {
+                'steps': 'HKQuantityTypeIdentifierStepCount',
+                'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+                'calories': 'HKQuantityTypeIdentifierActiveEnergyBurned'
+            }.get(metric, metric)
+            
+            if metric in sample_data.columns:
+                for idx, row in sample_data.iterrows():
+                    metrics_data.append({
+                        'creationDate': row['date'],
+                        'type': metric_type,
+                        'value': row[metric]
+                    })
+        
+        # Create DataFrame in expected format
+        data_df = pd.DataFrame(metrics_data)
+        data_source = MockDataSource(data_df)
         
         daily = DailyMetricsCalculator(data_source)
         weekly = WeeklyMetricsCalculator(daily)

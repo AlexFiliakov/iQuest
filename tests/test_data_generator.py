@@ -109,6 +109,69 @@ class HealthDataPatterns:
         
         exercise = np.where(exercise_days, intentional_exercise, base_exercise)
         return np.clip(exercise, 0, 180).astype(int)
+    
+    def generate_distance_pattern(self, days: int, steps_data: np.ndarray = None) -> np.ndarray:
+        """Generate distance data correlated with steps."""
+        if steps_data is None:
+            steps_data = self.generate_steps_pattern(days)
+        
+        # Rough conversion: 2000 steps ≈ 1 mile ≈ 1.6 km
+        base_distance = steps_data / 2000 * 1.6
+        
+        # Add some variation for different stride lengths
+        stride_variation = np.random.normal(1.0, 0.15, days)
+        distance = base_distance * stride_variation
+        
+        return np.maximum(0, distance)
+    
+    def generate_calories_pattern(self, days: int, steps_data: np.ndarray = None, hr_data: np.ndarray = None) -> np.ndarray:
+        """Generate calorie data based on steps and heart rate."""
+        if steps_data is None:
+            steps_data = self.generate_steps_pattern(days)
+        if hr_data is None:
+            hr_data = self.generate_heart_rate_pattern(days)
+        
+        # Base metabolic rate (BMR) - roughly 1800-2000 calories
+        bmr = np.random.normal(1900, 150, days)
+        
+        # Activity calories: roughly 0.04 calories per step
+        activity_calories = steps_data * 0.04
+        
+        # Heart rate adjustment (higher HR = more calories)
+        hr_multiplier = (hr_data - 60) / 60 * 0.3 + 1.0
+        activity_calories *= hr_multiplier
+        
+        total_calories = bmr + activity_calories
+        
+        return np.maximum(1200, total_calories)  # Minimum reasonable calorie intake
+
+
+class HealthDataGenerator:
+    """Adapter class for HealthDataPatterns with expected interface."""
+    
+    def __init__(self, seed: Optional[int] = None):
+        self.patterns = HealthDataPatterns(seed)
+    
+    def generate(self, days: int = 30) -> pd.DataFrame:
+        """Generate health data for specified number of days."""
+        dates = pd.date_range(
+            start=datetime.now() - timedelta(days=days-1),
+            periods=days,
+            freq='D'
+        )
+        
+        steps = self.patterns.generate_steps_pattern(days)
+        heart_rate = self.patterns.generate_heart_rate_pattern(days)
+        distance = self.patterns.generate_distance_pattern(days, steps)
+        calories = self.patterns.generate_calories_pattern(days, steps, heart_rate)
+        
+        return pd.DataFrame({
+            'date': dates,
+            'steps': np.maximum(0, steps).astype(int),
+            'heart_rate': np.maximum(50, heart_rate).astype(int),
+            'distance': np.maximum(0, distance),
+            'calories': np.maximum(0, calories).astype(int)
+        })
 
 
 class HealthDataGenerator:
@@ -122,6 +185,27 @@ class HealthDataGenerator:
                 Faker.seed(seed)
         else:
             self.fake = None
+    
+    def generate(self, days: int = 30) -> pd.DataFrame:
+        """Generate health data for specified number of days."""
+        dates = pd.date_range(
+            start=datetime.now() - timedelta(days=days-1),
+            periods=days,
+            freq='D'
+        )
+        
+        steps = self.patterns.generate_steps_pattern(days)
+        heart_rate = self.patterns.generate_heart_rate_pattern(days)
+        distance = self.patterns.generate_distance_pattern(days, steps)
+        calories = self.patterns.generate_calories_pattern(days, steps, heart_rate)
+        
+        return pd.DataFrame({
+            'date': dates,
+            'steps': np.maximum(0, steps).astype(int),
+            'heart_rate': np.maximum(50, heart_rate).astype(int),
+            'distance': np.maximum(0, distance),
+            'calories': np.maximum(0, calories).astype(int)
+        })
 
     def generate_synthetic_data(self, days: int = 365) -> pd.DataFrame:
         """Generate realistic synthetic health data."""

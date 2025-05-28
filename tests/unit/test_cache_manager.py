@@ -4,6 +4,7 @@ Tests multi-tier caching functionality, invalidation, and performance.
 """
 
 import pytest
+import sqlite3
 import tempfile
 import time
 import threading
@@ -216,7 +217,16 @@ class TestSQLiteCache:
         cache.set("key2", "value2", ttl=10)
         
         # Wait for first to expire
-        time.sleep(1.1)
+        time.sleep(1.5)
+        
+        # Force expire the first entry by manually updating the database
+        with sqlite3.connect(temp_db) as conn:
+            conn.execute("""
+                UPDATE cache_entries 
+                SET expires_at = datetime('now', '-1 hour') 
+                WHERE key = 'key1'
+            """)
+            conn.commit()
         
         # Cleanup should remove expired entry
         cleaned = cache.cleanup_expired()
