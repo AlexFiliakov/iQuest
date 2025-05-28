@@ -43,6 +43,7 @@ markers = [
     "visual: marks tests as visual regression tests",
     "chaos: marks tests as chaos/edge case tests",
     "benchmark: marks tests as performance benchmarks",
+    "performance: marks tests as performance tests",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "ui: marks tests as UI tests",
@@ -52,6 +53,22 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning"
 ]
+
+# Benchmark settings
+benchmark_only = false
+benchmark_disable = false
+benchmark_skip = false
+benchmark_verbose = false
+benchmark_sort = "min"
+benchmark_min_rounds = 5
+benchmark_max_time = 1.0
+benchmark_calibration_precision = 3
+benchmark_warmup = true
+benchmark_disable_gc = true
+
+# Timeout settings
+timeout = 300  # 5 minutes default
+timeout_method = "thread"
 
 [tool.coverage.run]
 source = ["src"]

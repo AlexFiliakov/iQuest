@@ -286,19 +286,24 @@ class SQLiteCache:
             value_blob = pickle.dumps(value)
             size_bytes = len(value_blob)
             
-            # Calculate expiration
-            expires_at = None
-            if ttl:
-                expires_at = datetime.now() + timedelta(seconds=ttl)
-            
+            # Calculate expiration using SQLite datetime functions for consistency
             dependencies_json = json.dumps(dependencies or [])
             
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute("""
-                    INSERT OR REPLACE INTO cache_entries 
-                    (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
-                    VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, ?)
-                """, (key, value_blob, size_bytes, dependencies_json, ttl, expires_at))
+                if ttl:
+                    # Use SQLite datetime arithmetic for consistent timing
+                    conn.execute("""
+                        INSERT OR REPLACE INTO cache_entries 
+                        (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
+                        VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, datetime('now', '+' || ? || ' seconds'))
+                    """, (key, value_blob, size_bytes, dependencies_json, ttl, ttl))
+                else:
+                    # No expiration
+                    conn.execute("""
+                        INSERT OR REPLACE INTO cache_entries 
+                        (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
+                        VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL)
+                    """, (key, value_blob, size_bytes, dependencies_json, ttl))
                 
         except Exception as e:
             logger.error(f"Error setting SQLite cache: {e}")
