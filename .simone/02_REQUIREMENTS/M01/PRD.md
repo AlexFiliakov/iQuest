@@ -236,8 +236,24 @@ The application requires comprehensive testing to ensure reliability, performanc
 - **Visual**: pytest-mpl for chart regression testing
 - **Data**: Faker for synthetic data generation
 
-### 9. Future Enhancements (Post-M01)
-- Export functionality (PDF, PNG, Excel)
+### 9. Export & Reporting (M01)
+
+#### 9.1 Export Formats
+- **PDF Reports**: Professional health reports with charts and insights
+- **Excel Export**: Formatted workbooks with multiple sheets
+- **CSV Export**: Raw data export for analysis in other tools
+- **PNG/SVG Charts**: High-resolution chart exports
+- **HTML Summaries**: Email-friendly reports
+
+#### 9.2 Report Features
+- Template-based report generation
+- Custom date range selection
+- Metric selection and filtering
+- Professional styling and layout
+- Progress indicators for long operations
+- Data integrity verification
+
+### 10. Future Enhancements (Post-M01)
 - Additional metric types support
 - Custom metric calculations
 - Data sharing capabilities

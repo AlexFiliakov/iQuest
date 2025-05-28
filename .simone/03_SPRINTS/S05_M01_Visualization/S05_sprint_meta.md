@@ -1,9 +1,9 @@
 ---
 sprint_id: S05_M01_Visualization
-title: Chart Implementation with Warm UI Theme
-status: planned
-start_date: 2025-02-24
-end_date: 2025-03-02
+title: Data Visualization & Charts
+status: in_progress
+start_date: 2025-05-28
+end_date: 
 ---
 
 # Sprint S05: Chart Implementation with Warm UI Theme
