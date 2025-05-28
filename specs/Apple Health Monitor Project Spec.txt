@@ -38,18 +38,12 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 
 
 current:
-review sprint `S03_M01_UI_Framework` and note remaining work
-- complete sprint `S03_M01_UI_Framework` and begin sprint `S04_M01_Core_Analytics`
-review sprint `S03_M01_basic_analytics` and note remaining work
-- complete sprint `S03_M01_basic_analytics`
-
-
-### S04 future parallel: ###
 G043_implement_goal_setting_tracking.md
 G044_build_comparative_analytics.md
 G045_create_health_score_calculator.md
 G046_implement_predictive_analytics.md
 G047_design_data_story_generator.md
+G007_project_documentation_structure.md
 
 
 
@@ -60,4 +54,69 @@ next:
 
 fix the following test errors, the tests still fail:
 
+
+
+
+### future ###############
+Please analyze my codebase and create two types of mermaid diagrams:
+
+1. **High-Level Context Diagram**: Show the overall system architecture, including:
+   - Main modules/packages and their relationships
+   - External dependencies and integrations
+   - Data flow between major components
+   - Use a C4-style context diagram or flowchart format
+
+2. **Detailed Class Interaction Diagrams**: For each major module, create:
+   - Class relationships (inheritance, composition, dependencies)
+   - Key method interactions and data flow
+   - Interface implementations
+   - Use class diagrams or sequence diagrams as appropriate
+   - Create bird's-eye view and detailed views of complex classes
+
+For each diagram:
+- Include clear titles and descriptions
+- Use meaningful node labels
+- Add comments explaining complex relationships
+- Ensure diagrams are readable when rendered
+
+Please save the diagrams as separate .md files with embedded mermaid code blocks.
+
+## Recommended File Organization ##
+Here's where I'd suggest saving the mermaid diagrams:
+
+```
+docs/
+├── architecture/
+│   ├── README.md                 # Overview and index
+│   ├── context_diagram.md        # High-level system context
+│   ├── module_overview.md        # Module relationships
+│   └── class_diagrams/
+│       ├── core_classes.md
+│       ├── data_models.md
+│       └── service_layer.md
+└── diagrams/                     # Alternative location
+README.md                         # Link to architecture docs
+```
+
+I already created the folders `quactuary/docs/architecture/`, `quactuary/docs/architecture/class_diagrams`, and `quactuary/docs/diagrams/`, so save there and fill out the file structure above.
+
+## Specific Mermaid Diagram Types ##
+### For Context Diagrams:
+`flowchart TD` - Top-down system flow
+`graph LR` - Left-right component relationships
+`C4Context` - If using C4 model notation
+
+### For Class Interactions:
+`classDiagram` - Static class relationships
+`sequenceDiagram` - Method call sequences
+`flowchart` - Process flows within modules
+
+## Additional Instructions ##
+- Document configuration flows and dependency injection patterns
+
+
+
+
+###### M02 ##########
+- Gamify as an RPG based on health statistics with character progress, class determination (warrior, wizard, etc) and new item/equipment findings along the way
 

@@ -160,6 +160,7 @@ class MainWindow(QMainWindow):
         self._create_daily_dashboard_tab()
         self._create_weekly_dashboard_tab()
         self._create_monthly_dashboard_tab()
+        self._create_comparative_analytics_tab()
         self._create_trophy_case_tab()
         self._create_journal_tab()
         self._create_help_tab()
@@ -170,9 +171,10 @@ class MainWindow(QMainWindow):
             1: ViewType.DAILY,       # Daily
             2: ViewType.WEEKLY,      # Weekly
             3: ViewType.MONTHLY,     # Monthly
-            4: ViewType.JOURNAL,     # Trophy Case (using JOURNAL enum temporarily)
-            5: ViewType.JOURNAL,     # Journal
-            6: ViewType.CONFIG       # Help (using CONFIG enum temporarily)
+            4: ViewType.DAILY,       # Comparative (using DAILY enum temporarily)
+            5: ViewType.JOURNAL,     # Trophy Case (using JOURNAL enum temporarily)
+            6: ViewType.JOURNAL,     # Journal
+            7: ViewType.CONFIG       # Help (using CONFIG enum temporarily)
         }
         
         # Store reference to previous tab for transitions
@@ -321,6 +323,86 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.addTab(monthly_widget, "Monthly")
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and progress")
+    
+    def _create_comparative_analytics_tab(self):
+        """Create the comparative analytics tab."""
+        try:
+            # Try to import the comparative analytics widget
+            from .comparative_visualization import ComparativeAnalyticsWidget
+            from ..analytics.comparative_analytics import ComparativeAnalyticsEngine
+            from ..analytics.peer_group_comparison import PeerGroupManager
+            
+            # Create the comparative analytics engine
+            self.comparative_engine = ComparativeAnalyticsEngine(
+                daily_calculator=self.config_tab.daily_calculator if hasattr(self, 'config_tab') else None,
+                weekly_calculator=self.config_tab.weekly_calculator if hasattr(self, 'config_tab') else None,
+                monthly_calculator=self.config_tab.monthly_calculator if hasattr(self, 'config_tab') else None
+            )
+            
+            # Create peer group manager
+            self.peer_group_manager = PeerGroupManager()
+            
+            # Create the widget
+            self.comparative_widget = ComparativeAnalyticsWidget()
+            
+            self.tab_widget.addTab(self.comparative_widget, "Compare")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and peer groups")
+            
+        except ImportError as e:
+            # Fallback to placeholder if import fails
+            logger.warning(f"Could not import ComparativeAnalyticsWidget: {e}")
+            self._create_comparative_analytics_placeholder()
+            
+    def _create_comparative_analytics_placeholder(self):
+        """Create a placeholder comparative analytics tab."""
+        comparative_widget = QWidget()
+        layout = QVBoxLayout(comparative_widget)
+        
+        # Placeholder content
+        label = QLabel("Comparative Analytics")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("""
+            QLabel {
+                font-size: 24px;
+                font-weight: 600;
+                color: #5D4E37;
+                padding: 20px;
+            }
+        """)
+        layout.addWidget(label)
+        
+        placeholder = QLabel("Compare your health metrics with personal history, demographics, and peer groups")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        placeholder.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                color: #8B7355;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(placeholder)
+        
+        features = QLabel(
+            "• Personal progress tracking\n"
+            "• Anonymous demographic comparisons\n"
+            "• Seasonal trend analysis\n"
+            "• Private peer group challenges"
+        )
+        features.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        features.setStyleSheet("""
+            QLabel {
+                font-size: 14px;
+                color: #8B7355;
+                padding: 20px;
+                line-height: 1.6;
+            }
+        """)
+        layout.addWidget(features)
+        
+        layout.addStretch()
+        
+        self.tab_widget.addTab(comparative_widget, "Compare")
+        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and peer groups")
     
     def _create_trophy_case_tab(self):
         """Create the trophy case tab."""

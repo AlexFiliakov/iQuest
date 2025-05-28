@@ -1,6 +1,23 @@
 # Apple Health Monitor Dashboard
 
-A Windows desktop application for analyzing and visualizing Apple Health data from various formats. Features a warm, inviting UI with comprehensive health metrics dashboards, journaling functionality, and robust error handling.
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![PyQt6](https://img.shields.io/badge/PyQt6-6.0+-green.svg)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Status](https://img.shields.io/badge/status-Active-success.svg)
+
+A powerful Windows desktop application for analyzing and visualizing Apple Health data. Transform your health exports into beautiful, actionable insights with our warm, intuitive interface.
+
+![Dashboard Preview](docs/assets/dashboard-preview.png)
+
+## 🌟 Why Apple Health Monitor?
+
+- **📊 Comprehensive Analytics** - Daily, weekly, and monthly health insights at your fingertips
+- **🎨 Beautiful Visualizations** - Warm, inviting UI with interactive charts and heatmaps
+- **📝 Personal Journal** - Add context to your health data with integrated journaling
+- **🔒 Privacy First** - All data stays local on your machine
+- **⚡ Lightning Fast** - Optimized SQLite backend handles millions of data points
+- **🪟 Windows Native** - Packaged as a standalone executable, no dependencies needed
 
 ## Features
 
@@ -144,6 +161,119 @@ The application emphasizes:
 
 This project follows conventional commit standards. Please ensure all tests pass before submitting pull requests.
 
-## License
+## 📈 Screenshots
 
-[License information to be added]
+<details>
+<summary>View Screenshots</summary>
+
+### Daily View
+![Daily Dashboard](docs/assets/daily-view.png)
+*Track your daily health metrics with detailed breakdowns*
+
+### Weekly Patterns
+![Weekly Analysis](docs/assets/weekly-view.png)
+*Discover patterns and trends in your weekly activity*
+
+### Monthly Overview
+![Monthly Heatmap](docs/assets/monthly-view.png)
+*See the big picture with monthly aggregations and heatmaps*
+
+</details>
+
+## 🚀 Quick Start
+
+### For Users
+
+1. **Download** the latest release from the [Releases](https://github.com/project/releases) page
+2. **Export** your Apple Health data from your iPhone
+3. **Import** the data into the dashboard
+4. **Explore** your health insights!
+
+See the [User Guide](docs/user/getting-started.md) for detailed instructions.
+
+### For Developers
+
+```bash
+# Clone the repository
+git clone https://github.com/project/apple-health-monitor.git
+cd apple-health-monitor
+
+# Set up virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+python src/main.py
+```
+
+See the [Development Guide](docs/development/setup.md) for complete setup instructions.
+
+## 📚 Documentation
+
+- [User Guide](docs/user/getting-started.md) - Getting started for end users
+- [Development Setup](docs/development/setup.md) - Set up your development environment
+- [Architecture Overview](docs/architecture/overview.md) - System design and components
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute to the project
+- [API Documentation](docs/api/) - Technical API reference
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Code style and standards
+- Development workflow
+- Testing requirements
+- Pull request process
+
+## 🛠️ Built With
+
+- **[Python 3.10+](https://www.python.org/)** - Core programming language
+- **[PyQt6](https://www.riverbankcomputing.com/software/pyqt/)** - Modern UI framework
+- **[Pandas](https://pandas.pydata.org/)** - Data analysis powerhouse
+- **[Matplotlib](https://matplotlib.org/)** - Beautiful visualizations
+- **[SQLite](https://www.sqlite.org/)** - Fast, reliable local storage
+
+## 📋 Roadmap
+
+- [x] Core data import and processing
+- [x] Daily, weekly, monthly analytics
+- [x] Interactive visualizations
+- [x] Personal journal integration
+- [ ] Export reports (PDF, Excel)
+- [ ] Custom analytics plugins
+- [ ] Cloud backup support
+- [ ] Mobile companion app
+
+See our [Project Board](https://github.com/project/projects/1) for detailed progress.
+
+## 🐛 Known Issues
+
+- Large XML files (>500MB) may take extended time to import
+- Some third-party app data may not be fully supported
+- See [Issues](https://github.com/project/issues) for complete list
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Apple Health team for the comprehensive export format
+- PyQt community for excellent documentation
+- Our contributors and beta testers
+
+## 📞 Support
+
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/project/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/project/discussions)
+- **Email**: support@example.com
+
+---
+
+<p align="center">
+  Made with ❤️ for the health-conscious community
+</p>

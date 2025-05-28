@@ -1,9 +1,9 @@
 ---
 sprint_id: S04_M01_Core_Analytics
 title: Daily/Weekly/Monthly Metric Calculations
-status: planned
-start_date: 2025-02-17
-end_date: 2025-02-23
+status: in_progress
+start_date: 2025-05-28
+end_date:
 ---
 
 # Sprint S04: Daily/Weekly/Monthly Metric Calculations
