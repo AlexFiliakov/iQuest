@@ -1,0 +1,140 @@
+---
+task_id: G026
+status: open
+created: 2025-01-27
+complexity: medium
+sprint_ref: S03
+---
+
+# Task G026: Create Day-of-Week Pattern Analysis
+
+## Description
+Aggregate metrics by day of week to identify patterns like "Weekend Warrior" or "Monday Blues". Implement spider/radar charts for visualization, heatmaps with time-of-day breakdown, and statistical analysis including chi-square tests for day dependence.
+
+## Goals
+- [ ] Aggregate metrics by day of week
+- [ ] Implement pattern recognition algorithms
+- [ ] Detect "Weekend Warrior" pattern
+- [ ] Identify "Monday Blues" pattern
+- [ ] Calculate consistency scoring by day
+- [ ] Create habit strength indicators
+- [ ] Build spider/radar chart visualization
+- [ ] Design heatmap with time-of-day breakdown
+- [ ] Add animated transitions between metrics
+- [ ] Implement chi-square test for day dependence
+
+## Acceptance Criteria
+- [ ] Metrics correctly aggregated by day of week
+- [ ] Pattern detection identifies common behaviors
+- [ ] Consistency scores calculated accurately
+- [ ] Spider chart displays weekly patterns clearly
+- [ ] Heatmap shows time-of-day variations
+- [ ] Smooth animations between metric views
+- [ ] Statistical tests validate patterns
+- [ ] Confidence intervals displayed for each day
+- [ ] Anomaly detection works per weekday
+- [ ] Unit tests cover pattern detection logic
+
+## Technical Details
+
+### Pattern Recognition
+1. **Weekend Warrior**:
+   - Significantly higher activity on weekends
+   - Low weekday activity levels
+   - Spike threshold: >150% of weekday average
+
+2. **Monday Blues**:
+   - Lower metrics on Mondays
+   - Gradual improvement through week
+   - Statistical significance required
+
+3. **Consistency Scoring**:
+   - Standard deviation by day
+   - Coefficient of variation
+   - Streak analysis
+
+4. **Habit Strength**:
+   - Regularity score (0-100)
+   - Time consistency
+   - Activity completion rate
+
+### Visualizations
+- **Inspired by the Wall Street Journal**: Create analytics in the style of Wall Street Journal (see for example `examples/wall street journal chart example 1.jpg` and `examples/wall street journal chart example 2.jpg`)
+  
+- **Spider/Radar Chart**:
+  - 7 axes for days of week
+  - Multiple metrics overlay
+  - Interactive tooltips
+  - Smooth shape morphing
+
+- **Heatmap Design**:
+  - X-axis: Days of week
+  - Y-axis: Hours of day
+  - Color intensity: Activity level
+  - Click to drill down
+
+- **Animated Transitions**:
+  - Smooth morphing between metrics
+  - Easing functions for natural motion
+  - Configurable animation speed
+
+### Statistical Analysis
+- **Chi-Square Test**: Test independence of activity from day
+- **Confidence Intervals**: 95% CI for each day's average
+- **Anomaly Detection**: Z-score based per weekday
+- **Trend Analysis**: Week-over-week patterns
+
+## Dependencies
+- G020 (Weekly Metrics Calculator)
+- SciPy for statistical tests
+- Matplotlib/Plotly for visualizations
+- PyQt6 for integration
+
+## Implementation Notes
+```python
+# Example structure
+class DayOfWeekAnalyzer:
+    def __init__(self, data: pd.DataFrame):
+        self.data = data
+        self.patterns = {}
+        
+    def detect_weekend_warrior(self) -> PatternResult:
+        """Detect weekend warrior pattern"""
+        weekday_avg = self.data[self.data['day_of_week'].isin([0,1,2,3,4])].mean()
+        weekend_avg = self.data[self.data['day_of_week'].isin([5,6])].mean()
+        
+        if weekend_avg > weekday_avg * 1.5:
+            return PatternResult('weekend_warrior', confidence=0.95)
+        return None
+        
+    def calculate_consistency_score(self) -> Dict[str, float]:
+        """Calculate consistency score for each day"""
+        scores = {}
+        for day in range(7):
+            day_data = self.data[self.data['day_of_week'] == day]
+            scores[day] = 1 - (day_data.std() / day_data.mean())
+        return scores
+        
+    def perform_chi_square_test(self) -> ChiSquareResult:
+        """Test if activity depends on day of week"""
+        pass
+        
+    def create_radar_chart(self, metric: str) -> Figure:
+        """Create spider/radar chart for weekly pattern"""
+        pass
+```
+
+## Testing Requirements
+- Unit tests for pattern detection algorithms
+- Statistical test validation
+- Visual regression tests for charts
+- Performance tests with large datasets
+- Edge case handling (missing days)
+- Animation smoothness tests
+
+## Notes
+- Consider cultural differences in week start (Sunday vs Monday)
+- Provide explanations for detected patterns
+- Allow users to define custom patterns
+- Cache pattern detection results
+- Consider seasonal variations in patterns

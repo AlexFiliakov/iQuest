@@ -1,6 +1,6 @@
 ---
 task_id: G009
-status: open
+status: done
 created: 2025-01-27
 complexity: medium
 ---
