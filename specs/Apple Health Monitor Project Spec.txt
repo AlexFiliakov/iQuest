@@ -54,7 +54,16 @@ Review tasks .... Flesh out the subtasks to implement test fixes, provide analys
 
 
 current:
-G070_consolidate_prune_tests.md
+G075_test_repair_coordination.md
+G077_performance_benchmark_tests.md
+G078_validate_test_coverage_maintenance.md
+
+then:
+G079
+G080
+
+then:
+G076
 
 then:
 ...test...
