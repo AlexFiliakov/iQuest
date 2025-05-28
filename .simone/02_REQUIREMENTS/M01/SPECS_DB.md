@@ -48,7 +48,11 @@ INSERT INTO user_preferences (preference_key, preference_value, data_type) VALUE
     ('window_x', NULL, 'integer'),
     ('window_y', NULL, 'integer'),
     ('theme_mode', 'light', 'string'),
-    ('chart_animation', 'true', 'boolean');
+    ('chart_animation', 'true', 'boolean'),
+    ('favorite_metrics', '[]', 'json'),
+    ('metric_units', '{}', 'json'),
+    ('data_source_colors', '{}', 'json'),
+    ('hide_empty_metrics', 'true', 'boolean');
 ```
 
 #### 2.3 Recent Files Table
@@ -76,12 +80,66 @@ CREATE TABLE cached_metrics (
     health_type VARCHAR(100),
     aggregation_type VARCHAR(20) NOT NULL, -- 'daily', 'weekly', 'monthly'
     metric_data TEXT NOT NULL, -- JSON blob
+    unit VARCHAR(20), -- Metric unit (e.g., 'count/min', 'lb', 'Cal')
+    record_count INTEGER, -- Number of records in cache
+    min_value REAL,
+    max_value REAL,
+    avg_value REAL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
 );
 
 CREATE INDEX idx_cache_key ON cached_metrics(cache_key);
 CREATE INDEX idx_cache_expires ON cached_metrics(expires_at);
+CREATE INDEX idx_cache_metric_date ON cached_metrics(metric_type, date_range_start, date_range_end);
+```
+
+#### 2.5 Health Metrics Metadata Table
+```sql
+CREATE TABLE health_metrics_metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    metric_type VARCHAR(100) UNIQUE NOT NULL, -- e.g., 'HeartRate', 'StepCount'
+    display_name VARCHAR(100) NOT NULL,
+    unit VARCHAR(20), -- e.g., 'count/min', 'lb', 'Cal'
+    category VARCHAR(50), -- e.g., 'Vitals', 'Activity', 'Body', 'Nutrition'
+    color_hex VARCHAR(7), -- For chart consistency
+    icon_name VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_metrics_category ON health_metrics_metadata(category);
+```
+
+#### 2.6 Data Sources Table
+```sql
+CREATE TABLE data_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_name VARCHAR(100) UNIQUE NOT NULL, -- e.g., 'CASIO WATCHES', 'Renpho'
+    source_category VARCHAR(50), -- e.g., 'Wearable', 'App', 'Scale'
+    last_seen TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sources_active ON data_sources(is_active);
+```
+
+#### 2.7 Import History Table
+```sql
+CREATE TABLE import_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_path TEXT NOT NULL,
+    file_hash VARCHAR(64), -- SHA256 of file
+    import_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    row_count INTEGER,
+    date_range_start DATE,
+    date_range_end DATE,
+    unique_types INTEGER,
+    unique_sources INTEGER,
+    import_duration_ms INTEGER
+);
+
+CREATE INDEX idx_import_date ON import_history(import_date DESC);
 ```
 
 ### 3. Data Access Patterns
@@ -118,9 +176,9 @@ def get_all_preferences():
 
 #### 3.3 Cache Operations
 ```python
-# Store computed metrics
-def cache_metrics(key, data, ttl_hours=24):
-    # Store with expiration
+# Store computed metrics with statistics
+def cache_metrics(key, data, unit, stats, ttl_hours=24):
+    # Store with expiration and statistics
     
 # Retrieve cached metrics
 def get_cached_metrics(key):
@@ -129,6 +187,51 @@ def get_cached_metrics(key):
 # Clean expired cache
 def clean_expired_cache():
     # Delete expired entries
+```
+
+#### 3.4 Health Metrics Operations
+```python
+# Get or create metric metadata
+def get_metric_metadata(metric_type):
+    # Return metadata or create default
+    
+# Update metric metadata
+def update_metric_metadata(metric_type, display_name, category, color):
+    # Update display properties
+    
+# Get metrics by category
+def get_metrics_by_category(category):
+    # Return all metrics in category
+```
+
+#### 3.5 Data Source Operations
+```python
+# Register data source
+def register_data_source(source_name, category):
+    # Create or update source record
+    
+# Get active data sources
+def get_active_sources():
+    # Return sources with is_active=True
+    
+# Update source last seen
+def update_source_activity(source_name):
+    # Update last_seen timestamp
+```
+
+#### 3.6 Import History Operations
+```python
+# Record import
+def record_import(file_path, stats):
+    # Store import metadata
+    
+# Get import history
+def get_import_history(limit=10):
+    # Return recent imports
+    
+# Check if file imported
+def is_file_imported(file_hash):
+    # Check by hash to avoid duplicates
 ```
 
 ### 4. Database Management
@@ -171,12 +274,20 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 - Prepared statements for frequent queries
 - Batch inserts for cache updates
 - Indexed columns for common filters
+- Pagination for large result sets (>1000 records)
 
 #### 5.3 Storage Limits
 - Journal entry content: Max 10,000 characters
 - Cache retention: 7 days default
 - Recent files list: Max 10 entries
 - Database size monitoring and alerts
+- CSV processing: Batch mode for files >100K records
+
+#### 5.4 Data Processing Optimization
+- Exclude empty device column from processing
+- Use timezone-aware datetime handling
+- Implement streaming for large CSV files
+- Cache frequently accessed metric metadata
 
 ### 6. Data Integrity
 
@@ -184,16 +295,23 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 - Unique constraints on date/type for journal entries
 - Foreign key constraints disabled for flexibility
 - Check constraints for valid entry types
+- Unique constraint on metric_type in metadata
+- Unique constraint on source_name in data sources
 
 #### 6.2 Validation
 - Date format validation before insert
 - JSON validation for preference values
 - File path existence check for recent files
+- Timezone validation for health data timestamps
+- Numeric value validation for health metrics
+- Unit consistency checks
 
 #### 6.3 Error Recovery
 - Transaction rollback on errors
 - Corrupted entry quarantine
 - Database repair utilities
+- Import rollback on failure
+- Duplicate data detection via file hash
 
 ### 7. Security Considerations
 
