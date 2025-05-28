@@ -17,10 +17,28 @@ from src.data_access import JournalDAO, PreferenceDAO, RecentFilesDAO, CacheDAO
 
 
 class TestDatabaseManager(unittest.TestCase):
-    """Test cases for DatabaseManager."""
+    """Test cases for DatabaseManager.
+    
+    This test class validates the DatabaseManager singleton class functionality
+    including database initialization, table creation, connection management,
+    and query execution methods.
+    
+    Tests cover:
+    - Database initialization with proper table structure
+    - Singleton pattern implementation
+    - Connection context manager functionality
+    - Query execution methods (SELECT, INSERT, UPDATE, DELETE)
+    - Table existence checking
+    - Migration system functionality
+    """
     
     def setUp(self):
-        """Set up test database."""
+        """Set up test database.
+        
+        Creates a temporary directory and database for isolated testing.
+        Resets the DatabaseManager singleton instance to ensure clean
+        test state and temporarily overrides the DATA_DIR configuration.
+        """
         self.temp_dir = tempfile.mkdtemp()
         self.db_path = os.path.join(self.temp_dir, DB_FILE_NAME)
         

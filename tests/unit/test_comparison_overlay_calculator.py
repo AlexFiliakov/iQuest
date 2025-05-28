@@ -422,3 +422,46 @@ class TestComparisonOverlayCalculatorIntegration:
             
         # Allow some flexibility in expected overlays due to data patterns
         assert successful_overlays >= min(expected_overlays, 2)
+
+# Distributed from comprehensive tests
+
+"""
+Tests for Comparison Overlay Calculator
+
+This file contains tests distributed from test_comprehensive_unit_coverage.py
+for better organization and maintainability.
+"""
+
+import pytest
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+
+from tests.base_test_classes import BaseCalculatorTest, BaseAnalyticsTest
+
+
+class TestComparisonOverlayCalculatorDistributed(BaseCalculatorTest):
+    """Additional tests distributed from comprehensive test suite."""
+    
+    def test_week_over_week_comparison(self, calculator, sample_data):
+        """Test week-over-week comparison calculations."""
+        result = calculator.calculate_week_over_week_change(sample_data, 'steps')
+        
+        assert result is not None
+        assert 'current_week' in result
+        assert 'previous_week' in result
+        assert 'change_percent' in result
+    
+    def test_insufficient_data_for_comparison(self, calculator):
+        """Test handling of insufficient data for week comparison."""
+        insufficient_data = pd.DataFrame({
+            'date': [datetime.now()],
+            'steps': [5000]
+        })
+        
+        result = calculator.calculate_week_over_week_change(insufficient_data, 'steps')
+        
+        assert result is None or 'insufficient_data' in result
+
+

@@ -497,3 +497,62 @@ class TestDataClasses:
         assert trend_data.value == 7500.0
         assert trend_data.trend_direction == 'up'
         assert not trend_data.is_incomplete_week
+
+# Distributed from comprehensive tests
+
+"""
+Tests for Week Over Week Trends
+
+This file contains tests distributed from test_comprehensive_unit_coverage.py
+for better organization and maintainability.
+"""
+
+import pytest
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+
+from tests.base_test_classes import BaseCalculatorTest, BaseAnalyticsTest
+
+
+class TestWeekOverWeekTrendsDistributed(BaseCalculatorTest):
+    """Additional tests distributed from comprehensive test suite."""
+    
+    def test_calculate_trends_increasing(self, calculator):
+        """Test trend calculation for increasing data."""
+        increasing_data = pd.Series(range(10), name='test')
+        
+        trend = calculator.calculate_trend('test', increasing_data)
+        
+        assert trend['direction'] == 'increasing'
+        assert trend['slope'] > 0
+    
+    def test_calculate_trends_decreasing(self, calculator):
+        """Test trend calculation for decreasing data."""
+        decreasing_data = pd.Series(range(10, 0, -1), name='test')
+        
+        trend = calculator.calculate_trend('test', decreasing_data)
+        
+        assert trend['direction'] == 'decreasing'
+        assert trend['slope'] < 0
+    
+    def test_calculate_trends_stable(self, calculator):
+        """Test trend calculation for stable data."""
+        stable_data = pd.Series([5] * 10, name='test')
+        
+        trend = calculator.calculate_trend('test', stable_data)
+        
+        assert trend['direction'] == 'stable'
+        assert abs(trend['slope']) < 0.1
+    
+    def test_month_over_month_trends(self, calculator, data_generator):
+        """Test month-over-month trend calculations."""
+        multi_month_data = data_generator.generate(90)  # 3 months
+        
+        trends = calculator.calculate_monthly_trends(multi_month_data, 'steps')
+        
+        assert trends is not None
+        assert len(trends) >= 2  # At least 2 months for comparison
+
+

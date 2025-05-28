@@ -1,4 +1,21 @@
-"""Tests for error handling utilities."""
+"""Tests for error handling utilities.
+
+This module contains comprehensive tests for the error handling framework
+including custom exceptions, decorators, context managers, and error
+formatting utilities.
+
+Test Coverage:
+- Custom exception hierarchy functionality
+- Error handler decorator with various configurations
+- Safe file operation decorator
+- Safe database operation decorator
+- ErrorContext context manager
+- Error message formatting utilities
+- Exception re-raising and suppression logic
+
+All tests validate proper error handling, logging, and exception
+conversion as specified in the error handling framework.
+"""
 
 import unittest
 import tempfile
@@ -16,10 +33,21 @@ from src.utils.error_handler import (
 
 
 class TestErrorHandler(unittest.TestCase):
-    """Test error handling functionality."""
+    """Test error handling functionality.
+    
+    This test class validates all components of the error handling framework
+    including decorators, context managers, custom exceptions, and utility
+    functions. Tests ensure proper error conversion, logging, and handling
+    behavior across different scenarios.
+    """
     
     def test_error_handler_decorator(self):
-        """Test error_handler decorator."""
+        """Test error_handler decorator.
+        
+        Validates that the error_handler decorator properly catches specified
+        exceptions and returns the configured default value while logging
+        the error details appropriately.
+        """
         @error_handler(exceptions=ValueError, default_return=-1)
         def divide(a, b):
             if b == 0:

@@ -1,5 +1,20 @@
-"""
-Unit tests for the data_loader module
+"""Unit tests for the data_loader module.
+
+This module contains comprehensive tests for the data_loader functionality
+including XML to SQLite conversion, data querying, aggregation functions,
+and database validation.
+
+Test Coverage:
+- XML parsing and SQLite conversion
+- Date range querying with proper filtering
+- Daily, weekly, and monthly data aggregation
+- Available health metric types retrieval
+- Database validation and integrity checks
+- CSV to SQLite migration functionality
+- Error handling for malformed data
+
+All tests use temporary files and databases to ensure isolation
+and prevent interference with actual application data.
 """
 
 import unittest
@@ -31,9 +46,20 @@ from src.data_loader import (
 
 
 class TestDataLoader(unittest.TestCase):
+    """Test cases for data_loader module functionality.
+    
+    This test class validates all data loading and processing functionality
+    including XML parsing, SQLite conversion, data querying, and aggregation
+    operations. Tests use sample health data to simulate real-world scenarios.
+    """
     
     def setUp(self):
-        """Create temporary files for testing"""
+        """Create temporary files for testing.
+        
+        Sets up a temporary directory with sample XML data file for testing
+        XML parsing and conversion functionality. The sample data includes
+        representative health records with proper Apple Health XML structure.
+        """
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
         
