@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer
 from PyQt6.QtGui import QIcon, QAction, QKeyEvent
 
-from utils.logging_config import get_logger
+from ..utils.logging_config import get_logger
 from ..data_availability_service import DataAvailabilityService, TimeRange, AvailabilityLevel
 from ..health_database import HealthDatabase
 from .adaptive_date_edit import AdaptiveDateRangeWidget
@@ -26,7 +26,7 @@ from .style_manager import StyleManager
 from .component_factory import ComponentFactory
 from ..statistics_calculator import StatisticsCalculator
 from ..filter_config_manager import FilterConfigManager
-from config import DATA_DIR
+from ..config import DATA_DIR
 
 logger = get_logger(__name__)
 

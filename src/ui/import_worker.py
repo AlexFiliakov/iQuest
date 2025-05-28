@@ -13,10 +13,10 @@ from typing import Optional, Dict, Any
 from PyQt6.QtCore import QThread, pyqtSignal, QMutex
 from PyQt6.QtWidgets import QApplication
 
-from utils.logging_config import get_logger
-from data_loader import convert_xml_to_sqlite_with_validation, DataLoader
-from database import db_manager
-from config import DATA_DIR
+from ..utils.logging_config import get_logger
+from ..data_loader import convert_xml_to_sqlite_with_validation, DataLoader
+from ..database import db_manager
+from ..config import DATA_DIR
 
 logger = get_logger(__name__)
 

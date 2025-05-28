@@ -21,7 +21,7 @@ from matplotlib.axes import Axes
 from matplotlib.animation import FuncAnimation
 import matplotlib.dates as mdates
 
-from ui.style_manager import StyleManager
+from .style_manager import StyleManager
 
 
 @dataclass

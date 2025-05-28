@@ -2,8 +2,8 @@
 
 from PyQt6.QtCore import QSettings, QPoint, QSize, Qt
 from PyQt6.QtWidgets import QMainWindow
-from utils.logging_config import get_logger
-from config import ORGANIZATION_NAME, APP_NAME
+from ..utils.logging_config import get_logger
+from ..config import ORGANIZATION_NAME, APP_NAME
 
 logger = get_logger(__name__)
 

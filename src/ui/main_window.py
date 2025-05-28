@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QIcon, QPalette, QColor, QKeyEvent
 
-from utils.logging_config import get_logger
+from ..utils.logging_config import get_logger
 from .style_manager import StyleManager
 from .settings_manager import SettingsManager
 from .configuration_tab import ConfigurationTab
@@ -15,7 +15,7 @@ from .trophy_case_widget import TrophyCaseWidget
 from .view_transitions import ViewTransitionManager, ViewType
 from ..analytics.personal_records_tracker import PersonalRecordsTracker
 from ..database import db_manager
-from config import (
+from ..config import (
     WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
     WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
 )

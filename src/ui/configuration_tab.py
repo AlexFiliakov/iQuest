@@ -26,7 +26,7 @@ from .statistics_widget import StatisticsWidget
 from .summary_cards import SummaryCard
 from .table_components import MetricTable, TableConfig
 from .component_factory import ComponentFactory
-from config import DATA_DIR
+from ..config import DATA_DIR
 from ..statistics_calculator import StatisticsCalculator
 
 logger = get_logger(__name__)
