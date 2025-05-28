@@ -1,9 +1,9 @@
 ---
 sprint_id: S03_M01_UI_Framework
 title: Dashboard UI Framework with Tab Navigation
-status: planned
-start_date: 2025-02-10
-end_date: 2025-02-16
+status: in_progress
+start_date: 2025-05-28
+end_date:
 ---
 
 # Sprint S03: Dashboard UI Framework with Tab Navigation

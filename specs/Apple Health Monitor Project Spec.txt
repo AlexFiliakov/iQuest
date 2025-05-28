@@ -38,22 +38,12 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 
 
 current:
-G021_implement_monthly_metrics_calculator.md
-G026_create_day_of_week_pattern_analysis.md
-G025_add_daily_comparison_overlays.md
-
-then:
-G022_implement_analytics_caching_layer.md
-G027_build_week_over_week_trends.md
-G029_create_calendar_heatmap_component.md
-
-then:
-G028_add_monthly_context_to_weekly_view.md
+create a plan and tasks to refactor the current UI to use reusable components created in tasks `G036`, `GX037`, `GX038`, and `GX039`.
 G030_build_month_over_month_trends.md
+-> G031_identify_seasonal_patterns.md
 
 
 then:
-G031_identify_seasonal_patterns.md
 G032_implement_adaptive_display_logic.md
 
 then:
@@ -62,14 +52,15 @@ G034_build_smooth_view_transitions.md
 G035_design_data_availability_indicators.md
 
 
-### Reusable Graphics Components ###
-current:
-G036_create_reusable_line_chart_component.md
-G037_create_reusable_bar_chart_component.md
-
-next:
-G038_design_summary_card_components.md
-G039_build_simple_table_components.md
+parallel:
+G040_implement_correlation_analysis_engine.md
+G041_build_anomaly_detection_system.md
+G042_create_personal_records_tracker.md
+-> G043_implement_goal_setting_tracking.md
+G044_build_comparative_analytics.md
+G045_create_health_score_calculator.md
+G046_implement_predictive_analytics.md
+G047_design_data_story_generator.md
 
 
 next:
