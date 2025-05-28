@@ -32,6 +32,18 @@ dev = [
     "coverage",            # Code coverage
 ]
 
+test = [
+    "pytest-benchmark>=4.0.0",    # Performance benchmarking
+    "pytest-timeout>=2.1.0",      # Timeout protection
+    "pytest-mock>=3.10.0",        # Advanced mocking
+    "pytest-xdist>=3.0.0",        # Parallel test execution
+    "pytest-html>=3.1.0",         # HTML test reports
+    "pytest-mpl>=0.16.0",         # Visual regression testing
+    "pillow>=9.0.0",              # Image processing for visual tests
+    "memory-profiler>=0.60.0",    # Memory usage profiling
+    "faker>=18.0.0",              # Synthetic data generation
+]
+
 build = [
     "pyinstaller>=5.0",    # Executable creation
     "setuptools>=65.0",    # Package management
