@@ -1,5 +1,6 @@
 """Main window implementation with tab navigation for Apple Health Monitor Dashboard."""
 
+from typing import List
 from PyQt6.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QMenuBar, QMenu, QStatusBar, QMessageBox, QComboBox, QScrollArea, QFrame
@@ -158,6 +159,49 @@ class MainWindow(QMainWindow):
         save_action.setToolTip("Save current filter and configuration settings (Ctrl+S)")
         save_action.triggered.connect(self._on_save_configuration)
         file_menu.addAction(save_action)
+        
+        file_menu.addSeparator()
+        
+        # Export menu
+        export_menu = file_menu.addMenu("&Export")
+        
+        # Export Report action
+        export_report_action = QAction("&Generate Report...", self)
+        export_report_action.setShortcut("Ctrl+E")
+        export_report_action.setStatusTip("Generate health report or export data")
+        export_report_action.setToolTip("Export health data in various formats (Ctrl+E)")
+        export_report_action.triggered.connect(self._on_export_report)
+        export_menu.addAction(export_report_action)
+        
+        # Quick Export submenu
+        quick_export_menu = export_menu.addMenu("Quick Export")
+        
+        # PDF Report
+        pdf_action = QAction("PDF Report", self)
+        pdf_action.setStatusTip("Export as PDF report")
+        pdf_action.triggered.connect(lambda: self._on_quick_export("pdf"))
+        quick_export_menu.addAction(pdf_action)
+        
+        # Excel Export
+        excel_action = QAction("Excel Workbook", self)
+        excel_action.setStatusTip("Export as Excel file")
+        excel_action.triggered.connect(lambda: self._on_quick_export("excel"))
+        quick_export_menu.addAction(excel_action)
+        
+        # CSV Export
+        csv_action = QAction("CSV Data", self)
+        csv_action.setStatusTip("Export as CSV file")
+        csv_action.triggered.connect(lambda: self._on_quick_export("csv"))
+        quick_export_menu.addAction(csv_action)
+        
+        export_menu.addSeparator()
+        
+        # Backup action
+        backup_action = QAction("Create &Backup...", self)
+        backup_action.setStatusTip("Create complete data backup")
+        backup_action.setToolTip("Create a complete backup of all health data")
+        backup_action.triggered.connect(self._on_create_backup)
+        export_menu.addAction(backup_action)
         
         file_menu.addSeparator()
         
@@ -1188,3 +1232,269 @@ class MainWindow(QMainWindow):
         
         # Accept the close event
         event.accept()
+    
+    def _on_export_report(self):
+        """Handle export report action."""
+        logger.info("Export report action triggered")
+        
+        # Check if data is loaded
+        if not hasattr(self, 'config_tab') or not hasattr(self.config_tab, 'get_filtered_data'):
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "Please load data first before exporting."
+            )
+            return
+            
+        data = self.config_tab.get_filtered_data()
+        if data is None or data.empty:
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "No data available to export. Please load and filter data first."
+            )
+            return
+            
+        # Create export system if not already created
+        if not hasattr(self, 'export_system'):
+            self._initialize_export_system()
+            
+        # Get available metrics
+        available_metrics = self._get_available_metrics(data)
+        
+        # Import and show export dialog
+        from .export_dialog import ExportDialog
+        
+        dialog = ExportDialog(
+            self.export_system,
+            available_metrics,
+            self
+        )
+        
+        if dialog.exec():
+            self.status_bar.showMessage("Export completed successfully")
+            
+    def _on_quick_export(self, export_type: str):
+        """Handle quick export actions."""
+        logger.info(f"Quick export triggered: {export_type}")
+        
+        # Check if data is loaded
+        if not hasattr(self, 'config_tab') or not hasattr(self.config_tab, 'get_filtered_data'):
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "Please load data first before exporting."
+            )
+            return
+            
+        data = self.config_tab.get_filtered_data()
+        if data is None or data.empty:
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "No data available to export. Please load and filter data first."
+            )
+            return
+            
+        # Create export system if not already created
+        if not hasattr(self, 'export_system'):
+            self._initialize_export_system()
+            
+        # Import necessary classes
+        from ..analytics.export_reporting_system import ExportConfiguration, ExportFormat, ReportTemplate
+        from datetime import datetime, timedelta
+        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
+        from pathlib import Path
+        
+        # Create configuration for quick export
+        format_map = {
+            'pdf': ExportFormat.PDF,
+            'excel': ExportFormat.EXCEL,
+            'csv': ExportFormat.CSV
+        }
+        
+        export_format = format_map.get(export_type, ExportFormat.PDF)
+        
+        # Get date range from data
+        if 'creationDate' in data.columns:
+            dates = pd.to_datetime(data['creationDate'])
+            date_range = (dates.min().to_pydatetime(), dates.max().to_pydatetime())
+        else:
+            date_range = (datetime.now() - timedelta(days=30), datetime.now())
+            
+        # Get available metrics
+        available_metrics = self._get_available_metrics(data)
+        
+        # Create export configuration
+        config = ExportConfiguration(
+            format=export_format,
+            date_range=date_range,
+            metrics=available_metrics,
+            include_charts=(export_format == ExportFormat.PDF),
+            include_insights=(export_format == ExportFormat.PDF),
+            template=ReportTemplate.COMPREHENSIVE
+        )
+        
+        # Get save location
+        filter_map = {
+            'pdf': "PDF Files (*.pdf)",
+            'excel': "Excel Files (*.xlsx)",
+            'csv': "CSV Files (*.csv)"
+        }
+        
+        filename = f"health_export_{datetime.now().strftime('%Y%m%d')}"
+        extension_map = {'pdf': '.pdf', 'excel': '.xlsx', 'csv': '.csv'}
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            f"Save {export_type.upper()} Export",
+            filename + extension_map[export_type],
+            filter_map[export_type]
+        )
+        
+        if not file_path:
+            return
+            
+        # Create progress dialog
+        progress = QProgressDialog("Generating export...", "Cancel", 0, 100, self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.show()
+        
+        try:
+            # Generate export
+            result = self.export_system.generate_report(config)
+            
+            # Save to file
+            with open(file_path, 'wb') as f:
+                f.write(result)
+                
+            progress.setValue(100)
+            
+            QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Export saved successfully to:\n{file_path}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Export failed: {e}")
+            QMessageBox.critical(
+                self,
+                "Export Failed",
+                f"Failed to generate export:\n{str(e)}"
+            )
+        finally:
+            progress.close()
+            
+    def _on_create_backup(self):
+        """Handle create backup action."""
+        logger.info("Create backup action triggered")
+        
+        # Create export system if not already created
+        if not hasattr(self, 'export_system'):
+            self._initialize_export_system()
+            
+        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
+        from datetime import datetime
+        
+        # Get save location
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Backup",
+            f"health_backup_{datetime.now().strftime('%Y%m%d')}.zip",
+            "ZIP Files (*.zip)"
+        )
+        
+        if not file_path:
+            return
+            
+        # Create progress dialog
+        progress = QProgressDialog("Creating backup...", "Cancel", 0, 100, self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.show()
+        
+        try:
+            # Create backup
+            backup_data = self.export_system.create_backup(include_settings=True)
+            
+            # Save to file
+            with open(file_path, 'wb') as f:
+                f.write(backup_data)
+                
+            progress.setValue(100)
+            
+            QMessageBox.information(
+                self,
+                "Backup Complete",
+                f"Backup created successfully:\n{file_path}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Backup failed: {e}")
+            QMessageBox.critical(
+                self,
+                "Backup Failed",
+                f"Failed to create backup:\n{str(e)}"
+            )
+        finally:
+            progress.close()
+            
+    def _initialize_export_system(self):
+        """Initialize the export and reporting system."""
+        logger.info("Initializing export system")
+        
+        # Import necessary modules
+        from ..analytics.export_reporting_system import WSJExportReportingSystem
+        from ..ui.charts.wsj_style_manager import WSJStyleManager
+        from ..analytics.health_insights_engine import HealthInsightsEngine
+        from ..ui.charts.wsj_health_visualization_suite import WSJHealthVisualizationSuite
+        
+        # Create WSJ style manager
+        wsj_style_manager = WSJStyleManager()
+        
+        # Create visualization suite
+        viz_suite = WSJHealthVisualizationSuite(
+            data_manager=self.config_tab,  # Assuming config_tab has data access methods
+            style_manager=wsj_style_manager
+        )
+        
+        # Create insights engine
+        insights_engine = HealthInsightsEngine(db_manager)
+        
+        # Create export system
+        self.export_system = WSJExportReportingSystem(
+            data_manager=self.config_tab,
+            viz_suite=viz_suite,
+            insights_engine=insights_engine,
+            style_manager=wsj_style_manager
+        )
+        
+        logger.info("Export system initialized successfully")
+        
+    def _get_available_metrics(self, data: pd.DataFrame) -> List[str]:
+        """Extract available metrics from the loaded data."""
+        metrics = []
+        
+        if 'type' in data.columns:
+            # Map Apple Health types to readable names
+            metric_mapping = {
+                'HKQuantityTypeIdentifierStepCount': 'step_count',
+                'HKQuantityTypeIdentifierSleepAnalysis': 'sleep_analysis',
+                'HKQuantityTypeIdentifierRestingHeartRate': 'resting_heart_rate',
+                'HKQuantityTypeIdentifierActiveEnergyBurned': 'active_energy',
+                'HKQuantityTypeIdentifierBodyMass': 'body_mass',
+                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': 'heart_rate_variability',
+                'HKQuantityTypeIdentifierWalkingHeartRateAverage': 'walking_heart_rate',
+                'HKQuantityTypeIdentifierVO2Max': 'vo2_max',
+                'HKQuantityTypeIdentifierBodyFatPercentage': 'body_fat_percentage',
+                'HKQuantityTypeIdentifierLeanBodyMass': 'lean_body_mass'
+            }
+            
+            # Get unique types from data
+            unique_types = data['type'].unique()
+            
+            for health_type in unique_types:
+                if health_type in metric_mapping:
+                    metrics.append(metric_mapping[health_type])
+                    
+        return metrics
