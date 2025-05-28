@@ -10,6 +10,10 @@ import pandas as pd
 from dataclasses import dataclass
 import logging
 from enum import Enum
+import warnings
+
+from .dataframe_adapter import DataFrameAdapter
+from .data_source_protocol import DataSourceProtocol
 
 
 logger = logging.getLogger(__name__)
@@ -74,16 +78,28 @@ class DailyMetricsCalculator:
     percentiles, and outlier detection for health data metrics.
     """
     
-    def __init__(self, data: pd.DataFrame, timezone: str = 'UTC'):
+    def __init__(self, data: Union[pd.DataFrame, DataSourceProtocol], timezone: str = 'UTC'):
         """
         Initialize the calculator with health data.
         
         Args:
-            data: DataFrame with columns including 'creationDate', 'type', 'value'
+            data: Either a DataFrame or DataSourceProtocol implementation
+                  Must have columns: 'creationDate', 'type', 'value'
             timezone: Timezone for date handling (default: 'UTC')
         """
-        self.data = data.copy()
+        # Use adapter for flexibility
+        adapter = DataFrameAdapter(data)
+        self.data = adapter.get_dataframe()
         self.timezone = timezone
+        
+        # Show deprecation warning for direct DataFrame usage
+        if isinstance(data, pd.DataFrame):
+            warnings.warn(
+                "Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+        
         self._prepare_data()
         
     def _prepare_data(self):
@@ -102,9 +118,9 @@ class DailyMetricsCalculator:
             # Add date column for daily aggregation
             self.data['date'] = self.data['creationDate'].dt.date
         
-        # Ensure value is numeric
+        # Ensure value is numeric and convert to float64 for consistency
         if 'value' in self.data.columns:
-            self.data['value'] = pd.to_numeric(self.data['value'], errors='coerce')
+            self.data['value'] = pd.to_numeric(self.data['value'], errors='coerce').astype('float64')
         
         # Sort by date for time-based operations
         if 'creationDate' in self.data.columns:
@@ -177,14 +193,28 @@ class DailyMetricsCalculator:
             )
         
         # Calculate statistics using numpy for performance
+        # Round to avoid floating point precision issues
+        mean_val = float(np.mean(valid_values))
+        median_val = float(np.median(valid_values))
+        std_val = float(np.std(valid_values, ddof=1))  # Sample standard deviation
+        min_val = float(np.min(valid_values))
+        max_val = float(np.max(valid_values))
+        
+        # Handle floating point precision issues
+        # If all values are very close (within machine epsilon), treat them as equal
+        if np.allclose(valid_values, mean_val, rtol=1e-15, atol=1e-15):
+            min_val = mean_val
+            max_val = mean_val
+            median_val = mean_val
+        
         stats = MetricStatistics(
             metric_name=metric,
             count=len(valid_values),
-            mean=float(np.mean(valid_values)),
-            median=float(np.median(valid_values)),
-            std=float(np.std(valid_values, ddof=1)),  # Sample standard deviation
-            min=float(np.min(valid_values)),
-            max=float(np.max(valid_values)),
+            mean=mean_val,
+            median=median_val,
+            std=std_val,
+            min=min_val,
+            max=max_val,
             percentile_25=float(np.percentile(valid_values, 25)),
             percentile_75=float(np.percentile(valid_values, 75)),
             percentile_95=float(np.percentile(valid_values, 95)),

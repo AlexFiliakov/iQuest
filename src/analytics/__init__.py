@@ -1,5 +1,7 @@
 """Analytics module for Apple Health Monitor."""
 
+from .data_source_protocol import DataSourceProtocol
+from .dataframe_adapter import DataFrameAdapter
 from .daily_metrics_calculator import DailyMetricsCalculator
 from .weekly_metrics_calculator import WeeklyMetricsCalculator
 from .monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -25,6 +27,10 @@ from .cached_calculators import (
 from .cache_performance_test import run_cache_performance_tests
 
 __all__ = [
+    # Data source abstractions
+    'DataSourceProtocol',
+    'DataFrameAdapter',
+    
     # Original calculators
     'DailyMetricsCalculator', 
     'WeeklyMetricsCalculator', 
