@@ -1,27 +1,37 @@
 """
-Interactive Correlation Matrix Widget for Apple Health Monitor
-Provides rich visualization of correlation analysis with significance testing.
+Interactive Correlation Matrix Widget
+Provides WSJ-style correlation matrix visualization with progressive disclosure.
 """
 
-import sys
-from typing import Dict, List, Optional, Any
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QComboBox, QSlider, QGroupBox, QTableWidget, QTableWidgetItem,
+    QHeaderView, QToolTip, QMenu, QWidgetAction, QCheckBox,
+    QSpinBox, QProgressBar, QTextEdit, QSplitter, QTabWidget, QFrame, QGridLayout
+)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QRectF, QThread, pyqtSlot
+from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QPixmap, QCursor
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.patches import Rectangle
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QComboBox, 
-                           QLabel, QPushButton, QCheckBox, QSlider, QSpinBox,
-                           QGroupBox, QSplitter, QTextEdit, QTabWidget,
-                           QScrollArea, QFrame, QGridLayout)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QPalette, QColor
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import seaborn as sns
+import numpy as np
+import pandas as pd
+from typing import Dict, List, Optional, Any, Tuple
+import logging
+from datetime import datetime
 
+from ..analytics.correlation_discovery import LayeredCorrelationEngine, WSJStyleManager
+from ..analytics.correlation_models import (
+    CorrelationInsight, CorrelationNetwork, CorrelationMatrixStyle,
+    CorrelationType, EffectSize, CorrelationStrength
+)
 from ..analytics.correlation_analyzer import CorrelationAnalyzer
 from ..analytics.causality_detector import CausalityDetector
 from .style_manager import StyleManager
+
+logger = logging.getLogger(__name__)
 
 
 class CorrelationMatrixWidget(QWidget):
