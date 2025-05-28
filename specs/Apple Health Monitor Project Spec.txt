@@ -1,3 +1,8 @@
+# In WSL:
+source /home/alexf/claude-env/bin/activate
+claude --dangerously-skip-permissions --resume
+
+
 how would you approach creating a Windows executable dashboard with Python to analyze Apple Health Data? The data is processed into a Pandas table and stored as a CSV. I'd like to have the EXE take the CSV file and generate a collection of tabs that have different dashboards on them.
 
 I'd like to have a Configuration tab where the user can select the following:
@@ -57,28 +62,38 @@ Review tasks .... Flesh out the subtasks to implement test fixes, provide analys
 TODO: claude doctor or npm i -g @anthropic-ai/claude-code
 
 current:
-G076_eliminate_duplicate_tests.md
-
+G081
 
 then:
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
 Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
 
 then:
-
 Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
-then:
-G050_implement_lstm_temporal_anomaly_detection.md
-G051_core_health_metrics_dashboard.md
+current:
 G052_advanced_trend_analysis_engine.md
-G053_health_correlations_discovery.md
 
 then:
 G054_interactive_health_visualizations.md
 G055_health_insights_recommendations.md
 G056_export_reporting_system.md
 G057_analytics_performance_optimization.md
+
+then:
+pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
+Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
+
+then:
+Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
+
+then:
+sprint review
+
+
+
+
+
 
 
 
@@ -155,3 +170,44 @@ create a spec for gamification elements from sprint `S08_M01_Gamification` fully
 
 Think deeply and update sprint `S08_M01_Gamification` and its tasks to conform to the gamification specs in `02_REQUIREMENTS/SPEC_GAMIFICATION.md` and `02_REQUIREMENTS/SPEC_GAMIFICATION_ADDENDUM.md`. Update tasks and create new ones as needed. Provide implementation details and summarize implementation pros and cons of various approaches when multiple possibilities are viable.
 
+
+### S08_M01 order ###
+T01_S08_character_system.md
+T06_S08_gamification_ui.md
+T08_S08_game_persistence.md
+
+then:
+T02_S08_class_system.md
+
+then:
+T04_S08_skill_tree.md
+
+then:
+T11_S08_skill_tree_ui.md
+T05_S08_item_system.md
+T03_S08_level_progression.md
+
+then:
+T14_S08_status_effects.md
+
+then:
+T12_S08_quest_system.md
+
+then:
+T13_S08_boss_battles.md
+T17_S08_npc_interactions.md
+
+then:
+T15_S08_streak_system.md
+
+then:
+T07_S08_achievements.md
+T16_S08_easter_eggs.md
+
+then:
+T09_S08_humor_content.md
+
+
+
+then:
+T10_S08_integration_testing.md
