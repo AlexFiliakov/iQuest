@@ -54,6 +54,8 @@ Review tasks .... Flesh out the subtasks to implement test fixes, provide analys
 
 
 ###### RUNTIME ######
+TODO: claude doctor or npm i -g @anthropic-ai/claude-code
+
 current:
 G076_eliminate_duplicate_tests.md
 
@@ -65,10 +67,6 @@ Create tasks to repair the remaining test errors in file `tests/pytest_failure_s
 then:
 
 Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
-
-then:
-commit
-Complete sprint `S04_M01_Core_Analytics`, close it, and begin sprint `S04_M01_health_analytics`
 
 then:
 G050_implement_lstm_temporal_anomaly_detection.md
