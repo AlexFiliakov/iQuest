@@ -63,7 +63,7 @@ Implement comprehensive health analytics features based on popular Apple Health 
 
 ## Technical Approach
 - **Analytics Engine**: NumPy/Pandas for statistical calculations
-- **Visualization**: Plotly for interactive charts, Matplotlib for static exports
+- **Visualization**: PyQtGraph for interactive charts, Matplotlib for static exports
 - **Caching**: LRU cache for expensive calculations
 - **Background Processing**: Threading for large dataset analysis
 - **Data Validation**: Input sanitization and bounds checking

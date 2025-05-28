@@ -1,6 +1,7 @@
 ---
 task_id: G056
-status: open
+status: in_progress
+started: 2025-05-28 17:21
 created: 2025-05-28
 complexity: medium
 sprint_ref: S04_M01_health_analytics

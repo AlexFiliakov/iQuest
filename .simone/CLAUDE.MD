@@ -1,7 +1,7 @@
 # Apple Health Monitor Dashboard - Claude Guide
 
 ## Project Overview
-Building a Windows desktop application to analyze Apple Health data from CSV exports. The app features a warm, inviting UI with dashboards for daily, weekly, and monthly health metrics plus journaling functionality.
+Building a Windows desktop application to analyze Apple Health data from XML exports. The app features a warm, inviting UI with dashboards for daily, weekly, and monthly health metrics plus journaling functionality.
 
 ## Key Technical Decisions
 - **UI Framework:** PyQt6 for rich desktop experience

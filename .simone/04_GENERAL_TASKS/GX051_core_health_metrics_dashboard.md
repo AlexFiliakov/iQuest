@@ -1,10 +1,12 @@
 ---
 task_id: G051
-status: in_progress
+status: completed
 created: 2025-05-28
+started: 2025-01-28 14:32
+completed: 2025-01-28 15:10
 complexity: high
 sprint_ref: S04_M01_health_analytics
-last_updated: 2025-01-28 14:32
+last_updated: 2025-01-28 15:10
 ---
 
 # Task G051: Core Health Metrics Dashboard
@@ -208,3 +210,4 @@ class CoreHealthDashboard(QWidget):
 - **Findings:** All previous issues have been resolved
 - **Summary:** Implementation now fully complies with specifications
 - **Recommendation:** Task is ready for completion
+[2025-01-28 15:10]: Task completed - All goals and acceptance criteria met. Renaming to GX051.
