@@ -1,0 +1,14 @@
+Collecting PyQt6
+  Downloading PyQt6-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl.metadata (2.1 kB)
+Collecting PyQt6-sip<14,>=13.8 (from PyQt6)
+  Downloading pyqt6_sip-13.10.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.whl.metadata (494 bytes)
+Collecting PyQt6-Qt6<6.10.0,>=6.9.0 (from PyQt6)
+  Downloading PyQt6_Qt6-6.9.0-py3-none-manylinux_2_28_x86_64.whl.metadata (534 bytes)
+Downloading PyQt6-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl (8.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 5.7 MB/s eta 0:00:00
+Downloading PyQt6_Qt6-6.9.0-py3-none-manylinux_2_28_x86_64.whl (81.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 81.8/81.8 MB 19.7 MB/s eta 0:00:00
+Downloading pyqt6_sip-13.10.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.whl (304 kB)
+Installing collected packages: PyQt6-Qt6, PyQt6-sip, PyQt6
+
+Successfully installed PyQt6-6.9.0 PyQt6-Qt6-6.9.0 PyQt6-sip-13.10.2
