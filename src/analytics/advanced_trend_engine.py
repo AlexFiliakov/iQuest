@@ -422,6 +422,16 @@ class AdvancedTrendAnalysisEngine:
                 trend_detected=False
             )
         
+        # Check if data is constant
+        if np.std(values) == 0:
+            return ValidationResult(
+                test_name="ADF Test",
+                statistic=0.0,
+                p_value=1.0,
+                trend_detected=False,
+                interpretation="Constant series (no variation)"
+            )
+        
         try:
             from statsmodels.tsa.stattools import adfuller
             result = adfuller(values)

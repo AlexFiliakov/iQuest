@@ -314,21 +314,30 @@ class OptimizedCalculatorBase:
     
     def _optimize_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Optimize DataFrame memory usage."""
-        # Convert object columns to category if appropriate
-        for col in df.select_dtypes(['object']).columns:
-            num_unique = df[col].nunique()
-            num_total = len(df[col])
-            if num_unique / num_total < 0.5:
-                df[col] = df[col].astype('category')
-        
-        # Downcast numeric types
-        for col in df.select_dtypes(['float']).columns:
-            df[col] = pd.to_numeric(df[col], downcast='float')
-        
-        for col in df.select_dtypes(['int']).columns:
-            df[col] = pd.to_numeric(df[col], downcast='integer')
-        
-        return df
+        # Handle empty DataFrame
+        if df is None or df.empty:
+            return df
+            
+        try:
+            # Convert object columns to category if appropriate
+            for col in df.select_dtypes(['object']).columns:
+                num_unique = df[col].nunique()
+                num_total = len(df[col])
+                if num_total > 0 and num_unique / num_total < 0.5:
+                    df[col] = df[col].astype('category')
+            
+            # Downcast numeric types
+            for col in df.select_dtypes(['float']).columns:
+                df[col] = pd.to_numeric(df[col], downcast='float')
+            
+            for col in df.select_dtypes(['int']).columns:
+                df[col] = pd.to_numeric(df[col], downcast='integer')
+            
+            return df
+            
+        except Exception as e:
+            logger.warning(f"Error optimizing DataFrame: {e}")
+            return df
 
 
 class OptimizedDailyMetricsCalculator(OptimizedCalculatorBase):

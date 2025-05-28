@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QIcon, QPalette, QColor, QKeyEvent
 
+import pandas as pd
+
 from ..utils.logging_config import get_logger
 from .style_manager import StyleManager
 from .settings_manager import SettingsManager
@@ -219,6 +221,7 @@ class MainWindow(QMainWindow):
         self._create_weekly_dashboard_tab()
         self._create_monthly_dashboard_tab()
         self._create_comparative_analytics_tab()
+        self._create_health_insights_tab()
         self._create_trophy_case_tab()
         self._create_journal_tab()
         self._create_help_tab()
@@ -230,9 +233,10 @@ class MainWindow(QMainWindow):
             2: ViewType.WEEKLY,      # Weekly
             3: ViewType.MONTHLY,     # Monthly
             4: ViewType.DAILY,       # Comparative (using DAILY enum temporarily)
-            5: ViewType.JOURNAL,     # Trophy Case (using JOURNAL enum temporarily)
-            6: ViewType.JOURNAL,     # Journal
-            7: ViewType.CONFIG       # Help (using CONFIG enum temporarily)
+            5: ViewType.DAILY,       # Health Insights (using DAILY enum temporarily)
+            6: ViewType.JOURNAL,     # Trophy Case (using JOURNAL enum temporarily)
+            7: ViewType.JOURNAL,     # Journal
+            8: ViewType.CONFIG       # Help (using CONFIG enum temporarily)
         }
         
         # Store reference to previous tab for transitions
@@ -467,6 +471,72 @@ class MainWindow(QMainWindow):
         
         self.tab_widget.addTab(comparative_widget, "Compare")
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and peer groups")
+    
+    def _create_health_insights_tab(self):
+        """Create the health insights tab."""
+        try:
+            from .health_insights_widget import HealthInsightsWidget
+            from ..analytics.health_insights_engine import EnhancedHealthInsightsEngine
+            from ..analytics.evidence_database import EvidenceDatabase
+            from ..analytics.wsj_style_manager import WSJStyleManager
+            
+            # Create the insights engine
+            evidence_db = EvidenceDatabase()
+            wsj_style = WSJStyleManager()
+            insights_engine = EnhancedHealthInsightsEngine(
+                data_manager=None,  # Will be set when data is loaded
+                evidence_db=evidence_db,
+                style_manager=wsj_style
+            )
+            
+            # Create the insights widget
+            self.health_insights_widget = HealthInsightsWidget()
+            self.health_insights_widget.set_insights_engine(insights_engine)
+            
+            # Connect signals
+            self.health_insights_widget.refresh_requested.connect(self._refresh_health_insights)
+            self.health_insights_widget.insight_selected.connect(self._on_insight_selected)
+            
+            self.tab_widget.addTab(self.health_insights_widget, "💡 Insights")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personalized health insights and recommendations")
+            
+        except ImportError as e:
+            logger.warning(f"Could not import HealthInsightsWidget: {e}")
+            self._create_health_insights_placeholder()
+    
+    def _create_health_insights_placeholder(self):
+        """Create a placeholder health insights tab."""
+        insights_widget = QWidget()
+        layout = QVBoxLayout(insights_widget)
+        
+        # Placeholder content
+        label = QLabel("Health Insights & Recommendations")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("""
+            QLabel {
+                font-size: 24px;
+                font-weight: 600;
+                color: #5D4E37;
+                padding: 20px;
+            }
+        """)
+        layout.addWidget(label)
+        
+        placeholder = QLabel("Personalized health insights based on your data patterns will appear here")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        placeholder.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                color: #8B7355;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(placeholder)
+        
+        layout.addStretch()
+        
+        self.tab_widget.addTab(insights_widget, "💡 Insights")
+        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personalized health insights and recommendations")
     
     def _create_trophy_case_tab(self):
         """Create the trophy case tab."""
@@ -1013,6 +1083,10 @@ class MainWindow(QMainWindow):
         # Enable other tabs when data is loaded
         for i in range(1, self.tab_widget.count()):
             self.tab_widget.setTabEnabled(i, True)
+        
+        # Trigger health insights generation if available
+        if hasattr(self, 'health_insights_widget') and data is not None:
+            self._refresh_health_insights()
     
     def _on_filters_applied(self, filters):
         """Handle filters applied signal from configuration tab."""
@@ -1031,6 +1105,62 @@ class MainWindow(QMainWindow):
         """Handle metric change signal from monthly dashboard."""
         logger.info(f"Metric changed to: {metric}")
         self.status_bar.showMessage(f"Displaying {metric} data")
+    
+    def _refresh_health_insights(self):
+        """Refresh health insights based on current data."""
+        logger.info("Refreshing health insights")
+        
+        # Get current data from configuration tab
+        if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'get_filtered_data'):
+            data = self.config_tab.get_filtered_data()
+            
+            if data is not None and not data.empty:
+                # Convert data to format expected by insights engine
+                user_data = self._prepare_data_for_insights(data)
+                
+                # Load insights
+                if hasattr(self, 'health_insights_widget'):
+                    self.health_insights_widget.load_insights(user_data)
+                    self.status_bar.showMessage("Generating health insights...")
+            else:
+                self.status_bar.showMessage("No data available for insights")
+        else:
+            self.status_bar.showMessage("Load data first to generate insights")
+    
+    def _on_insight_selected(self, insight):
+        """Handle insight selection."""
+        logger.info(f"Insight selected: {insight.title}")
+        # Could navigate to relevant data view or show detailed dialog
+        self.status_bar.showMessage(f"Selected: {insight.title}")
+    
+    def _prepare_data_for_insights(self, data):
+        """Convert DataFrame to format expected by insights engine."""
+        # Group data by metric type
+        user_data = {}
+        
+        if 'type' in data.columns:
+            # Common health metrics mapping
+            metric_mapping = {
+                'HKQuantityTypeIdentifierStepCount': 'daily_steps',
+                'HKQuantityTypeIdentifierSleepAnalysis': 'sleep_duration',
+                'HKQuantityTypeIdentifierRestingHeartRate': 'resting_heart_rate',
+                'HKQuantityTypeIdentifierActiveEnergyBurned': 'active_calories',
+                'HKQuantityTypeIdentifierBodyMass': 'body_weight',
+                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': 'hrv'
+            }
+            
+            for metric_type, metric_name in metric_mapping.items():
+                metric_data = data[data['type'] == metric_type].copy()
+                if not metric_data.empty:
+                    # Ensure proper columns
+                    if 'creationDate' in metric_data.columns:
+                        metric_data['date'] = pd.to_datetime(metric_data['creationDate'])
+                    if 'value' in metric_data.columns:
+                        metric_data[metric_name] = metric_data['value']
+                    
+                    user_data[metric_name] = metric_data[['date', metric_name]]
+        
+        return user_data
     
     def keyPressEvent(self, event):
         """Handle key press events."""

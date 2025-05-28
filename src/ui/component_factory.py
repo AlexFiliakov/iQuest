@@ -63,14 +63,29 @@ class ComponentFactory:
         wsj_style: bool = True
     ) -> SummaryCard:
         """Create a metric card with WSJ styling."""
-        card = SummaryCard(
-            title=title,
-            value=value,
-            subtitle=subtitle,
-            trend=trend,
-            card_type=card_type,
-            size=size
-        )
+        # Create the appropriate card type
+        if card_type == "simple":
+            from src.ui.summary_cards import SimpleMetricCard
+            card = SimpleMetricCard(size=size, card_id=title)
+        elif card_type == "comparison":
+            from src.ui.summary_cards import ComparisonCard
+            card = ComparisonCard(size=size, card_id=title)
+        elif card_type == "goal":
+            from src.ui.summary_cards import GoalProgressCard
+            card = GoalProgressCard(size=size, card_id=title)
+        else:
+            # Default to base class
+            card = SummaryCard(card_type=card_type, size=size, card_id=title)
+        
+        # Update content using the update_content method
+        content = {'title': title, 'value': value}
+        if subtitle:
+            content['subtitle'] = subtitle
+        if trend:
+            # Parse trend for current/previous values if needed
+            content['trend'] = trend
+            
+        card.update_content(content, animate=False)
         
         if wsj_style:
             self._apply_wsj_card_styling(card)

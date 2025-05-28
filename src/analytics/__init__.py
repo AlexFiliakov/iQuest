@@ -26,6 +26,23 @@ from .cached_calculators import (
 )
 from .cache_performance_test import run_cache_performance_tests
 
+# Optimized analytics engine
+from .optimized_analytics_engine import OptimizedAnalyticsEngine, AnalyticsRequest
+from .streaming_data_loader import StreamingDataLoader, DataChunk
+from .computation_queue import ComputationQueue, TaskPriority
+from .progressive_loader import ProgressiveLoader, ProgressiveLoaderCallbacks, ProgressiveAnalyticsManager
+from .connection_pool import ConnectionPool, create_optimized_pool
+from .performance_monitor import PerformanceMonitor
+from .optimized_calculator_integration import (
+    OptimizedCalculatorFactory,
+    OptimizedDailyCalculator,
+    OptimizedWeeklyCalculator,
+    OptimizedMonthlyCalculator,
+    OptimizedStatisticsCalculator,
+    OptimizedComparisonCalculator,
+    migrate_to_optimized_calculators
+)
+
 __all__ = [
     # Data source abstractions
     'DataSourceProtocol',
@@ -64,5 +81,28 @@ __all__ = [
     'create_invalidation_manager',
     
     # Performance testing
-    'run_cache_performance_tests'
+    'run_cache_performance_tests',
+    
+    # Optimized analytics engine
+    'OptimizedAnalyticsEngine',
+    'AnalyticsRequest',
+    'StreamingDataLoader',
+    'DataChunk',
+    'ComputationQueue',
+    'TaskPriority',
+    'ProgressiveLoader',
+    'ProgressiveLoaderCallbacks',
+    'ProgressiveAnalyticsManager',
+    'ConnectionPool',
+    'create_optimized_pool',
+    'PerformanceMonitor',
+    
+    # Optimized calculator integration
+    'OptimizedCalculatorFactory',
+    'OptimizedDailyCalculator',
+    'OptimizedWeeklyCalculator',
+    'OptimizedMonthlyCalculator',
+    'OptimizedStatisticsCalculator',
+    'OptimizedComparisonCalculator',
+    'migrate_to_optimized_calculators'
 ]

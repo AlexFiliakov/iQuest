@@ -264,21 +264,32 @@ class StreamingDataLoader:
     def _load_data_range(self, start_date: datetime, end_date: datetime,
                         metrics: Optional[List[str]]) -> pd.DataFrame:
         """Load data for a specific date range."""
-        # Use data access layer to load data
-        data = self.data_access.get_records_by_date_range(
-            start_date=start_date,
-            end_date=end_date
-        )
-        
-        # Filter by metrics if specified
-        if metrics and not data.empty:
-            # Assuming data has a 'type' or 'metric' column
-            if 'type' in data.columns:
-                data = data[data['type'].isin(metrics)]
-            elif 'metric' in data.columns:
-                data = data[data['metric'].isin(metrics)]
-        
-        return data
+        try:
+            # Use data access layer to load data
+            data = self.data_access.get_records_by_date_range(
+                start_date=start_date,
+                end_date=end_date
+            )
+            
+            # Handle None or empty results
+            if data is None:
+                logger.warning(f"No data returned for range {start_date} to {end_date}")
+                return pd.DataFrame()
+            
+            # Filter by metrics if specified
+            if metrics and not data.empty:
+                # Assuming data has a 'type' or 'metric' column
+                if 'type' in data.columns:
+                    data = data[data['type'].isin(metrics)]
+                elif 'metric' in data.columns:
+                    data = data[data['metric'].isin(metrics)]
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"Error loading data range: {e}")
+            # Return empty DataFrame on error
+            return pd.DataFrame()
     
     def _start_prefetching(self, start_date: datetime, end_date: datetime,
                           metrics: Optional[List[str]], total_chunks: int):

@@ -8,7 +8,6 @@ import queue
 import time
 import logging
 from enum import Enum, auto
-from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 
 from .streaming_data_loader import DataChunk, StreamingDataLoader
 from .computation_queue import ComputationQueue, TaskPriority
@@ -46,29 +45,34 @@ class ProgressiveResult:
         return self.data is not None and self.stage != LoadingStage.ERROR
 
 
-class ProgressiveLoader(QObject):
+class ProgressiveLoaderCallbacks:
+    """Callbacks for progressive loading events."""
+    
+    def __init__(self):
+        self.on_loading_started: Optional[Callable[[], None]] = None
+        self.on_skeleton_ready: Optional[Callable[[dict], None]] = None
+        self.on_first_data_ready: Optional[Callable[[ProgressiveResult], None]] = None
+        self.on_progress_update: Optional[Callable[[ProgressiveResult], None]] = None
+        self.on_loading_complete: Optional[Callable[[ProgressiveResult], None]] = None
+        self.on_loading_error: Optional[Callable[[str], None]] = None
+
+
+class ProgressiveLoader:
     """
     Progressive loading manager for analytics computations.
     
-    Emits signals for UI updates at different loading stages:
+    Uses callbacks for UI updates at different loading stages:
     - Initial skeleton/placeholder
     - First data chunk (< 100ms)
     - Incremental updates
     - Final complete data
     """
     
-    # Signals for UI updates
-    loading_started = pyqtSignal()
-    skeleton_ready = pyqtSignal(dict)  # Skeleton configuration
-    first_data_ready = pyqtSignal(ProgressiveResult)
-    progress_update = pyqtSignal(ProgressiveResult)
-    loading_complete = pyqtSignal(ProgressiveResult)
-    loading_error = pyqtSignal(str)
-    
     def __init__(self, 
                  data_loader: StreamingDataLoader,
                  computation_queue: ComputationQueue,
-                 first_data_timeout_ms: int = 100):
+                 first_data_timeout_ms: int = 100,
+                 callbacks: Optional[ProgressiveLoaderCallbacks] = None):
         """
         Initialize progressive loader.
         
@@ -76,14 +80,18 @@ class ProgressiveLoader(QObject):
             data_loader: Streaming data loader
             computation_queue: Computation queue
             first_data_timeout_ms: Target time for first data
+            callbacks: Optional callbacks for events
         """
-        super().__init__()
         self.data_loader = data_loader
         self.computation_queue = computation_queue
         self.first_data_timeout_ms = first_data_timeout_ms
+        self.callbacks = callbacks or ProgressiveLoaderCallbacks()
         
         # Active loading sessions
         self._sessions: Dict[str, LoadingSession] = {}
+        
+        # Timer simulation without Qt
+        self._timer_thread = None
         
     def load_progressive(self,
                         computation_func: Callable,
@@ -168,7 +176,10 @@ class LoadingSession:
     def start(self):
         """Start the loading session."""
         self.start_time = time.time()
-        self.loader.loading_started.emit()
+        
+        # Call loading started callback
+        if self.loader.callbacks.on_loading_started:
+            self.loader.callbacks.on_loading_started()
         
         # Show skeleton immediately
         self._emit_skeleton()
@@ -180,11 +191,13 @@ class LoadingSession:
         )
         self._loading_thread.start()
         
-        # Set timer for first data
-        QTimer.singleShot(
-            self.loader.first_data_timeout_ms,
+        # Set timer for first data using threading
+        timer_thread = threading.Timer(
+            self.loader.first_data_timeout_ms / 1000.0,
             self._check_first_data
         )
+        timer_thread.daemon = True
+        timer_thread.start()
     
     def cancel(self):
         """Cancel the loading session."""
@@ -200,7 +213,8 @@ class LoadingSession:
             'metrics': self.metrics or ['all'],
             **self.skeleton_config
         }
-        self.loader.skeleton_ready.emit(skeleton_config)
+        if self.loader.callbacks.on_skeleton_ready:
+            self.loader.callbacks.on_skeleton_ready(skeleton_config)
     
     def _load_data(self):
         """Load data progressively in background thread."""
@@ -288,7 +302,8 @@ class LoadingSession:
             }
         )
         
-        self.loader.first_data_ready.emit(result)
+        if self.loader.callbacks.on_first_data_ready:
+            self.loader.callbacks.on_first_data_ready(result)
     
     def _emit_progress(self):
         """Emit progress update."""
@@ -308,7 +323,8 @@ class LoadingSession:
             }
         )
         
-        self.loader.progress_update.emit(result)
+        if self.loader.callbacks.on_progress_update:
+            self.loader.callbacks.on_progress_update(result)
     
     def _emit_complete(self):
         """Emit completion signal."""
@@ -328,12 +344,14 @@ class LoadingSession:
             }
         )
         
-        self.loader.loading_complete.emit(result)
+        if self.loader.callbacks.on_loading_complete:
+            self.loader.callbacks.on_loading_complete(result)
     
     def _emit_error(self, error_msg: str):
         """Emit error signal."""
         self.current_stage = LoadingStage.ERROR
-        self.loader.loading_error.emit(error_msg)
+        if self.loader.callbacks.on_loading_error:
+            self.loader.callbacks.on_loading_error(error_msg)
     
     def _check_first_data(self):
         """Check if first data is ready within timeout."""
@@ -346,7 +364,8 @@ class LoadingSession:
                 message="Loading data...",
                 metadata={'show_enhanced_skeleton': True}
             )
-            self.loader.progress_update.emit(result)
+            if self.loader.callbacks.on_progress_update:
+            self.loader.callbacks.on_progress_update(result)
     
     def _combine_results(self, results: List[Any]) -> Any:
         """Combine multiple chunk results."""
@@ -388,18 +407,13 @@ class ProgressiveAnalyticsManager:
                  data_loader: StreamingDataLoader,
                  computation_queue: ComputationQueue):
         """Initialize manager."""
-        self.loader = ProgressiveLoader(data_loader, computation_queue)
+        # Create callbacks for logging
+        callbacks = ProgressiveLoaderCallbacks()
+        callbacks.on_loading_started = lambda: logger.info("Progressive loading started")
+        callbacks.on_loading_complete = lambda r: logger.info(f"Loading complete in {r.metadata.get('total_time_ms')}ms")
+        callbacks.on_loading_error = lambda e: logger.error(f"Loading error: {e}")
         
-        # Connect signals for logging
-        self.loader.loading_started.connect(
-            lambda: logger.info("Progressive loading started")
-        )
-        self.loader.loading_complete.connect(
-            lambda r: logger.info(f"Loading complete in {r.metadata.get('total_time_ms')}ms")
-        )
-        self.loader.loading_error.connect(
-            lambda e: logger.error(f"Loading error: {e}")
-        )
+        self.loader = ProgressiveLoader(data_loader, computation_queue, callbacks=callbacks)
     
     def create_progressive_calculator(self, base_calculator: Any) -> Any:
         """
