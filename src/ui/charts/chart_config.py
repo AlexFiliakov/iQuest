@@ -111,6 +111,41 @@ class LineChartConfig(ChartConfig):
     show_trend_line: bool = False
     trend_line_color: str = '#999999'
     trend_line_style: str = 'dashed'
+    
+    @classmethod
+    def get_wsj_style(cls) -> 'ChartConfig':
+        """Get Wall Street Journal inspired chart configuration."""
+        return cls(
+            # WSJ uses very muted colors
+            primary_color='#0066CC',      # Blue
+            secondary_color='#666666',    # Gray
+            tertiary_color='#CC0000',     # Red
+            background_color='#FFFFFF',
+            plot_background='#FAF8F5',
+            grid_color='#E8DCC8',
+            axis_color='#333333',
+            text_color='#000000',
+            text_muted='#666666',
+            
+            # Clean typography
+            title_font_size=16,
+            subtitle_font_size=12,
+            label_font_size=10,
+            tick_font_size=9,
+            font_family='Helvetica',
+            title_font_family='Helvetica',
+            
+            # Minimal grid
+            show_grid=True,
+            grid_style='dotted',
+            grid_alpha=0.2,
+            
+            # Other styles
+            line_width=1.5,
+            marker_size=4,
+            show_data_labels=False,
+            animation_enabled=False
+        )
 
 
 class LineChartBuilder:

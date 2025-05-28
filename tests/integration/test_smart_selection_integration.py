@@ -18,14 +18,7 @@ from src.data_availability_service import (DataAvailabilityService, TimeRange,
 from src.health_database import HealthDatabase
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    """Create QApplication for testing."""
-    if not QApplication.instance():
-        app = QApplication(sys.argv)
-    else:
-        app = QApplication.instance()
-    yield app
+# qapp fixture is now provided by conftest.py
     
 
 class TestSmartSelectionIntegration:

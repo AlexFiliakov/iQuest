@@ -39,6 +39,12 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "visual: marks tests as visual regression tests"
     )
+    config.addinivalue_line(
+        "markers", "performance: marks tests as performance tests"
+    )
+    config.addinivalue_line(
+        "markers", "widget: marks tests as widget tests"
+    )
 
 
 # Test Data Generator Fixtures
@@ -216,3 +222,62 @@ def chart_renderer():
             plt.close(fig)
     
     return ChartRenderer()
+
+
+# Qt test configuration
+import os
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+
+# Import pytest-qt fixtures if available
+try:
+    from pytestqt.qt_compat import qt_api
+    pytest_qt_available = True
+except ImportError:
+    pytest_qt_available = False
+
+# Use pytest-qt fixtures if available, otherwise provide fallbacks
+if not pytest_qt_available:
+    # Fallback Qt test fixtures when pytest-qt is not available
+    @pytest.fixture(scope='session')
+    def qapp():
+        """Create QApplication for Qt tests."""
+        try:
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app is None:
+                app = QApplication([])
+            yield app
+            # Don't quit the app as it might be used by other tests
+        except Exception as e:
+            pytest.skip(f"Qt not available or cannot be initialized: {e}")
+
+    @pytest.fixture
+    def qtbot(qapp):
+        """Simple qtbot replacement for basic Qt testing."""
+        class QtBot:
+            def __init__(self, app):
+                self.app = app
+                self.widgets = []
+            
+            def addWidget(self, widget):
+                """Track widget for cleanup."""
+                self.widgets.append(widget)
+                widget.show()
+            
+            def cleanup(self):
+                """Clean up tracked widgets."""
+                for widget in self.widgets:
+                    if widget and hasattr(widget, 'close'):
+                        widget.close()
+                self.widgets.clear()
+            
+            def wait(self, ms):
+                """Wait for specified milliseconds."""
+                from PyQt6.QtCore import QTimer, QEventLoop
+                loop = QEventLoop()
+                QTimer.singleShot(ms, loop.quit)
+                loop.exec()
+        
+        bot = QtBot(qapp)
+        yield bot
+        bot.cleanup()

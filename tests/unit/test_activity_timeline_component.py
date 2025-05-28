@@ -15,9 +15,9 @@ from src.ui.activity_timeline_component import ActivityTimelineComponent, Timeli
 
 
 @pytest.fixture
-def app(qtbot):
+def app(qapp):
     """Create QApplication for testing."""
-    return QApplication.instance() or QApplication([])
+    return qapp
 
 
 @pytest.fixture

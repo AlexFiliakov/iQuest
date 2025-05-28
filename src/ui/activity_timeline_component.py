@@ -81,6 +81,9 @@ class ActivityTimelineComponent(QWidget):
         self.comparison_overlays_enabled = True
         self.overlay_widget = None
         
+        # Initialize grouped_data attribute
+        self.grouped_data = None
+        
         self.setup_ui()
         
     def setup_ui(self):
@@ -94,7 +97,12 @@ class ActivityTimelineComponent(QWidget):
         # Title (using Poppins for display)
         title = QLabel("Activity Timeline")
         title_font = QFont("Poppins", 16, QFont.Weight.Bold)
-        title_font.setFallbackFamilies(["Segoe UI", "sans-serif"])
+        # setFallbackFamilies is not available in PyQt6, use setFamilies instead
+        if hasattr(title_font, 'setFamilies'):
+            title_font.setFamilies(["Poppins", "Segoe UI", "sans-serif"])
+        elif hasattr(title_font, 'setFamily'):
+            # Fallback for older Qt versions
+            title_font.setFamily("Poppins")
         title.setFont(title_font)
         title.setStyleSheet(f"color: {self.COLORS['text']};")
         header_layout.addWidget(title)
@@ -466,11 +474,12 @@ class TimelineVisualizationWidget(QWidget):
             
     def draw_linear_timeline(self):
         """Draw linear timeline using matplotlib."""
+        import time
         start_time = time.time()
         
         self.figure.clear()
         
-        if self.timeline.grouped_data is None or self.timeline.grouped_data.empty:
+        if not hasattr(self.timeline, 'grouped_data') or self.timeline.grouped_data is None or self.timeline.grouped_data.empty:
             return
             
         ax = self.figure.add_subplot(111)
