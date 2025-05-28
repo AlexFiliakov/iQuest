@@ -3,7 +3,7 @@ task_id: G057
 status: open
 created: 2025-05-28
 complexity: medium
-sprint_ref: S04_M01_Core_Analytics
+sprint_ref: S04_M01_health_analytics
 ---
 
 # Task G057: Analytics Performance Optimization
