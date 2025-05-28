@@ -41,45 +41,34 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 repairing tests
 
 
-Review tasks G058, G059, G060, G061, G062, G063, G064, G065, G066. Flesh out the implementation details with best practices, reconcile with our specs as needed, adhere to Wall Street Journal examples and color scheme, and provide an analysis of pros and cons where multiple possible implementations are viable.
-
 
 
 ######## Repairing Tests ########
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
 
 
-Review tasks G067, G068, G069, G073, G074, G070, G071, G072, G075. Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
+Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
 
-next:
-G067_fix_daily_metrics_calculator_initialization.md
-G068_repair_ui_component_imports.md
-G074_update_test_data_generators.md
 
-then:
-G069
-G071
-G072
-G073
+Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
+
+
+current:
+G070_consolidate_prune_tests.md
 
 then:
-G070
-
-
+...test...
 
 then:
 Complete sprint `S04_M01_Core_Analytics`, close it, and begin sprint `S04_M01_health_analytics`
 
-
-
-
-
-next:
+then:
 G050_implement_lstm_temporal_anomaly_detection.md
 G051_core_health_metrics_dashboard.md
 G052_advanced_trend_analysis_engine.md
 G053_health_correlations_discovery.md
 
+then:
 G054_interactive_health_visualizations.md
 G055_health_insights_recommendations.md
 G056_export_reporting_system.md
@@ -155,5 +144,8 @@ I already created the folders `quactuary/docs/architecture/`, `quactuary/docs/ar
 - Create a sprint `S08_M01_Gamification` to gamify health data as an RPG based on health statistics to encourage healthier behavior. Utilize character progress, class determination (warrior, wizard, etc), subclassing, skills, and new item/equipment findings along the way. Add interesting elements. Create a sprint for gamification with spec details of how the gamification be implemented. The game elements should fit on one separate tab, perhaps with sub-tabs for Character Sheet, Inventory, World, etc.
 
 
-create a spec for gamification elements from sprint `S08_M01_Gamification`. The spec should be located in `02_REQUIREMENTS/SPEC_GAMIFICATION.md`. The spec should be detailed, but organized well enough and provide high-level overviews of all mechanics so that I can get up to speed quickly and assess its effectiveness as a game to make further tweaks and refinements to the various game elements.
+create a spec for gamification elements from sprint `S08_M01_Gamification` fully specifying the character system, class system, level progression, skill tree, and item system. The spec should be located in `02_REQUIREMENTS/SPEC_GAMIFICATION.md`. The spec should be detailed, but organized well enough and provide high-level overviews of all mechanics so that I can get up to speed quickly and assess its effectiveness as a game to make further tweaks and refinements to the various game elements.
+
+
+Think deeply and update sprint `S08_M01_Gamification` and its tasks to conform to the gamification specs in `02_REQUIREMENTS/SPEC_GAMIFICATION.md` and `02_REQUIREMENTS/SPEC_GAMIFICATION_ADDENDUM.md`. Update tasks and create new ones as needed. Provide implementation details and summarize implementation pros and cons of various approaches when multiple possibilities are viable.
 
