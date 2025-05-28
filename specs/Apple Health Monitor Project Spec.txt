@@ -38,17 +38,9 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 
 
 current:
-G019_implement_daily_metrics_calculator.md
-
-then:
-G020_implement_weekly_metrics_calculator.md
-G023_create_daily_trend_indicators.md
-G024_build_activity_timeline_component.md
-
-then:
 G021_implement_monthly_metrics_calculator.md
-G025_add_daily_comparison_overlays.md
 G026_create_day_of_week_pattern_analysis.md
+G025_add_daily_comparison_overlays.md
 
 then:
 G022_implement_analytics_caching_layer.md
@@ -57,9 +49,27 @@ G029_create_calendar_heatmap_component.md
 
 then:
 G028_add_monthly_context_to_weekly_view.md
+G030_build_month_over_month_trends.md
 
 
+then:
+G031_identify_seasonal_patterns.md
+G032_implement_adaptive_display_logic.md
 
+then:
+G033_create_smart_default_selection.md
+G034_build_smooth_view_transitions.md
+G035_design_data_availability_indicators.md
+
+
+### Reusable Graphics Components ###
+current:
+G036_create_reusable_line_chart_component.md
+G037_create_reusable_bar_chart_component.md
+
+next:
+G038_design_summary_card_components.md
+G039_build_simple_table_components.md
 
 
 next:
