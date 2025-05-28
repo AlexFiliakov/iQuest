@@ -1,18 +1,18 @@
 ---
 sprint_id: S02_M01_Data_Processing
-title: CSV Data Ingestion & Processing Pipeline
+title: XML Data Ingestion & Processing Pipeline
 status: planned
 start_date: 2025-02-03
 end_date: 2025-02-09
 ---
 
-# Sprint S02: CSV Data Ingestion & Processing Pipeline
+# Sprint S02: XML Data Ingestion & Processing Pipeline
 
 ## Sprint Goal
-Implement robust CSV data import functionality with validation, memory-efficient processing, and data filtering capabilities.
+Implement robust XML data import functionality with validation, memory-efficient processing, and data filtering capabilities.
 
 ## Deliverables
-- [ ] CSV file import with progress indication
+- [ ] XML file import with progress indication
 - [ ] Data validation and error handling
 - [ ] Memory-efficient processing for large files (per ADR-002)
 - [ ] Data filtering by date range
@@ -21,8 +21,8 @@ Implement robust CSV data import functionality with validation, memory-efficient
 - [ ] Basic data statistics calculation
 
 ## Definition of Done
-- [ ] Can import Apple Health CSV files up to 1GB
-- [ ] Invalid CSV format shows helpful error messages
+- [ ] Can import Apple Health XML files up to 1GB
+- [ ] Invalid XML format shows helpful error messages
 - [ ] Progress bar updates during import
 - [ ] Filters apply correctly and quickly (<200ms)
 - [ ] Filter settings persist between sessions
@@ -38,4 +38,4 @@ Implement robust CSV data import functionality with validation, memory-efficient
 
 ## Risks
 - Risk 1: Large file performance - Mitigation: Implement streaming fallback
-- Risk 2: Inconsistent CSV formats - Mitigation: Flexible parser with validation
+- Risk 2: Inconsistent XML formats - Mitigation: Flexible parser with validation

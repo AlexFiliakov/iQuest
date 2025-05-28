@@ -11,8 +11,8 @@
 - **Current Milestone**: M01_MVP
 - **Current Sprint**: S02_M01_core_ui
 - **Highest Sprint in Milestone**: S04
-- **Last General Task ID**: G009
-- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (PyQt6 application skeleton), GX004 (Configuration tab implementation), GX005 (Logging and error handling framework), GX006 (Basic CI/CD pipeline setup)
+- **Last General Task ID**: G018
+- **Completed General Tasks**: GX001 (Python project structure), GX002 (SQLite data loader), GX003 (PyQt6 application skeleton), GX004 (Configuration tab implementation), GX005 (Logging and error handling framework), GX006 (Basic CI/CD pipeline setup), GX011 (Window state persistence), GX012 (Tooltips UI implementation), GX004 (SQLite database initialization), GX013 (XML import streaming processor)
 
 ## Sprint Summary
 

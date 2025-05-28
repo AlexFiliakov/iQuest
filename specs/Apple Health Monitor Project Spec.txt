@@ -24,3 +24,30 @@ A small dataset for 2 months is available in `processed data/apple_data_subset.c
 
 break down `.simone/03_SPRINTS/S03_M01_basic_analytics/S03_sprint_meta.md` into tasks for that sprint
 
+review the task and flesh out approaches for implementation details that will help future development. Consider edge cases, testing, performance, and intuitiveness of UI and understandability of the analytics. Recommend best practices for UI building and best practices for analytics presentations. Make sure the analytics really shine and pop in this app, they are the most important feature by far. Consider any additional analytics that would be helpful and add it in as subtasks.
+
+Create analytics in the style of Wall Street Journal (see for example `examples/wall street journal chart example 1.jpg` and `examples/wall street journal chart example 2.jpg`)
+
+
+review `.simone/02_REQUIREMENTS/M01/SPECS_DB.md` database specification specifically for health data in light of the small data example in `processed data/apple_data_subset.csv` and recommend any changes to the database spec based on the available fields.
+
+review the updated spec `.simone/02_REQUIREMENTS/M01/SPECS_DB.md` and make the implementation conform to the latest spec.
+
+
+review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processing/S02_sprint_meta.md` and create tasks for any remaining work. Partition the tasks for parallel work and create subtasks when the work needs to be completed together.
+
+
+next:
+G013_xml_import_streaming_processor.md
+
+
+then:
+G014_xml_data_validation_error_handling.md
+G015_import_progress_ui_integration.md
+G016_data_filtering_engine.md
+
+
+then:
+G017_filter_configuration_persistence.md
+G018_basic_data_statistics_calculator.md
+
