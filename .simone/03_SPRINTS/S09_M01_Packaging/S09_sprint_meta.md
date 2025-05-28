@@ -1,5 +1,5 @@
 ---
-sprint_id: S07_M01_Packaging
+sprint_id: S09_M01_Packaging
 title: Windows Executable Packaging & Deployment
 status: planned
 start_date: 2025-03-10
