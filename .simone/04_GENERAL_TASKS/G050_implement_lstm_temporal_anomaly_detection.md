@@ -13,15 +13,18 @@ dependencies: G041
 Implement LSTM (Long Short-Term Memory) neural network-based temporal anomaly detection for health data time series. This detector will identify anomalies in temporal patterns by learning normal sequences and flagging reconstruction errors above threshold.
 
 ## Goals
-- [ ] Add TensorFlow/PyTorch dependency to requirements
-- [ ] Implement LSTM autoencoder architecture
+- [ ] Implement hybrid anomaly detection approach (statistical baseline + LSTM enhancement)
+- [ ] Create STL decomposition + IQR statistical detector as foundation
+- [ ] Add TensorFlow/PyTorch dependency for LSTM enhancement
+- [ ] Implement LSTM autoencoder for complex temporal patterns
 - [ ] Create sequence preparation and windowing logic
-- [ ] Implement reconstruction error-based anomaly scoring
-- [ ] Add temporal context and pattern explanation
-- [ ] Integrate with existing anomaly detection system
-- [ ] Implement online learning capability for adaptation
-- [ ] Create temporal-specific notification logic
+- [ ] Implement reconstruction error-based anomaly scoring with confidence intervals
+- [ ] Add temporal context and pattern explanation following WSJ analytics principles
+- [ ] Integrate with existing ensemble anomaly detection system
+- [ ] Implement progressive model deployment (statistical → ML)
+- [ ] Create interpretable anomaly explanations with clear visual indicators
 - [ ] Add model persistence and loading functionality
+- [ ] Implement fallback mechanisms when ML models fail
 
 ## Acceptance Criteria
 - [ ] LSTM model trains successfully on health data sequences
@@ -38,7 +41,19 @@ Implement LSTM (Long Short-Term Memory) neural network-based temporal anomaly de
 
 ## Technical Details
 
-### LSTM Architecture
+### Hybrid Architecture Approach
+**Priority 1: Statistical Foundation**
+- STL (Seasonal and Trend decomposition using Loess) for baseline
+- IQR-based outlier detection for immediate deployment
+- Fast execution (<100ms) for real-time analysis
+- Transparent, interpretable results
+
+**Priority 2: ML Enhancement**
+- LSTM autoencoder for complex pattern learning
+- Ensemble voting between statistical and ML methods
+- Confidence scoring for result reliability
+
+### LSTM Architecture (When Available)
 - **Input Layer**: Sequence length x feature dimensions
 - **Encoder LSTM**: 128 units with relu activation
 - **Repeat Vector**: Replicate encoded representation
@@ -63,6 +78,9 @@ Implement LSTM (Long Short-Term Memory) neural network-based temporal anomaly de
 - **Version Control**: Track model versions and performance
 - **Incremental Learning**: Update with new data batches
 - **Model Selection**: Choose best performing architecture
+- **Fallback Strategy**: Always maintain statistical baseline
+- **Performance Monitoring**: Track model drift and accuracy
+- **WSJ Design Compliance**: Clear confidence indicators and uncertainty visualization
 
 ## Dependencies
 - TensorFlow >= 2.12.0 or PyTorch >= 2.0.0
@@ -71,7 +89,51 @@ Implement LSTM (Long Short-Term Memory) neural network-based temporal anomaly de
 
 ## Implementation Notes
 
-### TensorFlow Implementation
+### Hybrid Detector Implementation
+```python
+class HybridTemporalAnomalyDetector(BaseDetector):
+    def __init__(self, enable_ml=True, fallback_only=False):
+        super().__init__("Hybrid Temporal Detector", DetectionMethod.HYBRID)
+        
+        # Always available statistical detector
+        self.statistical_detector = STLAnomalyDetector()
+        
+        # Optional ML enhancement
+        self.ml_detector = None
+        if enable_ml and not fallback_only:
+            try:
+                self.ml_detector = LSTMTemporalDetector()
+            except ImportError:
+                logger.warning("TensorFlow not available, using statistical only")
+        
+        self.ensemble_weights = {'statistical': 0.6, 'ml': 0.4}
+        
+    def detect(self, data: pd.Series) -> List[Anomaly]:
+        """Hybrid detection with ensemble voting."""
+        # Always get statistical results
+        statistical_anomalies = self.statistical_detector.detect(data)
+        
+        if self.ml_detector and self.ml_detector.is_trained:
+            ml_anomalies = self.ml_detector.detect(data)
+            return self._ensemble_vote(statistical_anomalies, ml_anomalies)
+        else:
+            # Fallback to statistical only
+            return statistical_anomalies
+            
+    def _ensemble_vote(self, stat_anomalies, ml_anomalies):
+        """Combine results with WSJ-style confidence indicators."""
+        # Implementation with clear confidence scoring
+        pass
+```
+
+### WSJ Design Principles for Anomaly Presentation
+- **Clear Visual Hierarchy**: Anomalies highlighted with consistent color coding
+- **Confidence Indicators**: Visual uncertainty representation
+- **Context Preservation**: Show normal patterns alongside anomalies
+- **Progressive Disclosure**: Summary → detailed explanation → raw data
+- **Minimal Decoration**: Focus on data, minimize chart junk
+
+### TensorFlow Implementation (ML Enhancement)
 ```python
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, RepeatVector, TimeDistributed

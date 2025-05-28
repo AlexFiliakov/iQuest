@@ -12,13 +12,17 @@ sprint_ref: S04_M01_Core_Analytics
 Create comprehensive dashboard for core health metrics (activity, heart rate, sleep, body measurements) with interactive visualizations, trend analysis, and comparative views. This serves as the foundation for the main analytics interface.
 
 ## Goals
-- [ ] Design unified dashboard layout for core health metrics
-- [ ] Implement activity metrics section (steps, distance, calories)
-- [ ] Create heart rate analysis panel with zones and trends
-- [ ] Build sleep analytics with efficiency and pattern analysis
+- [ ] Design unified dashboard layout following WSJ analytics principles
+- [ ] Implement component-based architecture with observer pattern for real-time updates
+- [ ] Create activity metrics section (steps, distance, calories) with clear visual hierarchy
+- [ ] Build heart rate analysis panel with zones and trends using warm color palette
+- [ ] Develop sleep analytics with efficiency and pattern analysis
 - [ ] Add body measurements tracking with weight, BMI trends
-- [ ] Integrate interactive time range selection
-- [ ] Implement metric comparison and correlation views
+- [ ] Integrate interactive time range selection with smooth transitions
+- [ ] Implement metric comparison and correlation views with progressive disclosure
+- [ ] Ensure responsive layout adapts to different screen sizes
+- [ ] Apply WSJ design principles: high data-ink ratio, minimal decoration
+- [ ] Implement consistent warm color scheme (tan #F5E6D3, orange #FF8C42, yellow #FFD166)
 
 ## Acceptance Criteria
 - [ ] Dashboard displays all 4 core health metric categories
@@ -32,18 +36,50 @@ Create comprehensive dashboard for core health metrics (activity, heart rate, sl
 
 ## Technical Details
 
-### Dashboard Structure
-- **Activity Panel**: Steps, distance, active energy, exercise minutes
-- **Heart Panel**: Resting HR, active HR, HR zones, variability
-- **Sleep Panel**: Sleep duration, efficiency, deep/REM phases
-- **Body Panel**: Weight, BMI, body fat percentage trends
+### WSJ-Inspired Dashboard Design Principles
+- **Visual Hierarchy**: Clear information prioritization with typography
+- **Data-Ink Ratio**: Maximize information content, minimize decorative elements
+- **Consistent Typography**: Readable fonts with clear size hierarchy
+- **Warm Color Palette**: Professional yet inviting aesthetic
+- **Progressive Disclosure**: Summary cards → detailed views → raw data
+- **Smart Annotations**: Key insights highlighted without clutter
 
-### Interactive Features
-- Time range selector with preset and custom ranges
-- Metric correlation matrix with hover details
-- Drill-down capability from summary to detailed view
-- Side-by-side metric comparison
-- Goal tracking indicators
+### Component-Based Architecture
+```python
+class MetricPanelComponent(QWidget):
+    """Base component for metric panels following WSJ design principles."""
+    data_updated = pyqtSignal(str, dict)  # Observer pattern
+    
+    def __init__(self, metric_type: str, style_manager: WSJStyleManager):
+        super().__init__()
+        self.metric_type = metric_type
+        self.style = style_manager
+        self.setup_wsj_styling()
+        
+    def setup_wsj_styling(self):
+        """Apply WSJ design principles to component."""
+        # Clean typography, minimal grid lines, warm colors
+        pass
+        
+    def update_data(self, data: Dict[str, Any]):
+        """Update component with new data, smooth transitions."""
+        pass
+```
+
+### Dashboard Structure
+- **Activity Panel**: Steps, distance, active energy, exercise minutes with trend sparklines
+- **Heart Panel**: Resting HR, active HR, HR zones with color-coded zones, variability trends
+- **Sleep Panel**: Sleep duration, efficiency, deep/REM phases with pattern visualization
+- **Body Panel**: Weight, BMI, body fat percentage trends with goal indicators
+
+### Interactive Features (WSJ-Style)
+- **Clean Time Range Selector**: Preset buttons (1D, 7D, 30D, 90D, 1Y) with custom range picker
+- **Subtle Hover Details**: Rich tooltips with context, avoiding visual clutter
+- **Progressive Drill-Down**: Summary cards → trend view → detailed analysis → raw data
+- **Side-by-Side Comparisons**: Clean layout with aligned axes and consistent scaling
+- **Goal Tracking**: Subtle progress indicators integrated into main visualizations
+- **Smooth Transitions**: 200ms animations for state changes, respecting accessibility
+- **Keyboard Navigation**: Full accessibility support following WCAG guidelines
 
 ### Performance Requirements
 - Dashboard renders in < 500ms for 1 year of data
@@ -59,11 +95,45 @@ Create comprehensive dashboard for core health metrics (activity, heart rate, sl
 
 ## Implementation Notes
 ```python
-class CoreHealthDashboard:
-    def __init__(self, data_manager, ui_parent):
+class CoreHealthDashboard(QWidget):
+    """Main dashboard following WSJ analytics design principles."""
+    
+    def __init__(self, data_manager, ui_parent, style_manager):
+        super().__init__(ui_parent)
         self.data_manager = data_manager
-        self.ui_parent = ui_parent
+        self.style_manager = style_manager  # WSJ styling
         self.metric_panels = {}
+        self.observer_manager = MetricObserverManager()
+        
+        # WSJ Design Setup
+        self.setup_wsj_layout()
+        self.apply_warm_color_scheme()
+        self.setup_typography_hierarchy()
+        
+    def setup_wsj_layout(self):
+        """Create clean, organized layout following WSJ principles."""
+        # Grid layout with proper spacing, visual hierarchy
+        layout = QGridLayout()
+        layout.setSpacing(20)  # Generous whitespace
+        layout.setContentsMargins(24, 24, 24, 24)
+        
+        # Apply consistent panel styling
+        for panel in self.metric_panels.values():
+            panel.setStyleSheet(self.style_manager.get_panel_style())
+            
+    def apply_warm_color_scheme(self):
+        """Apply consistent warm color palette."""
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {self.style_manager.colors['background']};
+                font-family: {self.style_manager.typography['body_font']};
+            }}
+            .metric-card {{
+                background-color: {self.style_manager.colors['card_background']};
+                border: 1px solid {self.style_manager.colors['border']};
+                border-radius: 8px;
+            }}
+        """)
         
     def create_activity_panel(self) -> QWidget:
         """Activity metrics: steps, distance, calories"""
@@ -86,8 +156,29 @@ class CoreHealthDashboard:
         pass
 ```
 
-## Notes
-- Use consistent metric icons and colors across panels
-- Implement progressive disclosure for detailed metrics
-- Consider metric availability and show appropriate fallbacks
-- Follow Apple Health design patterns for familiarity
+## WSJ Design Implementation Notes
+
+### Visual Design Standards
+- **Typography**: Clear hierarchy with readable sans-serif fonts
+- **Color Usage**: Warm palette with purposeful color coding (not decorative)
+- **Spacing**: Generous whitespace following 8px grid system
+- **Icons**: Minimal, consistent iconography integrated with typography
+- **Charts**: Clean axes, subtle grid lines, focus on data trends
+
+### Information Architecture
+- **Progressive Disclosure**: Summary → trends → details → raw data
+- **Context Preservation**: Always show relevant time periods and comparisons
+- **Smart Defaults**: Sensible initial views that work for most users
+- **Graceful Degradation**: Handle missing data with clear indicators
+
+### Accessibility & Usability
+- **High Contrast**: Ensure readability across different lighting conditions
+- **Keyboard Navigation**: Full keyboard accessibility for all interactions
+- **Screen Reader Support**: Proper ARIA labels and semantic structure
+- **Touch Friendly**: Appropriate touch targets for hybrid devices
+
+### Performance Considerations
+- **Smooth Animations**: 60fps transitions, <200ms response times
+- **Progressive Loading**: Show immediate feedback, load details progressively
+- **Memory Efficiency**: Efficient data binding, clean up observers
+- **Battery Conscious**: Minimize unnecessary updates and computations
