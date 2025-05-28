@@ -208,3 +208,4 @@ logs/
 
 # NSIS installer output
 installer/*.exe
+/ad hoc

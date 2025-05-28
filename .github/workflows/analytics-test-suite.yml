@@ -1,0 +1,330 @@
+name: Analytics Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run nightly to catch performance regressions
+    - cron: '0 2 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Install system dependencies for visual tests
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        
+    - name: Create directories for test artifacts
+      run: |
+        mkdir -p tests/visual/baselines
+        mkdir -p tests/visual/failures
+        mkdir -p test-reports
+        
+    - name: Run unit tests with coverage
+      run: |
+        pytest tests/unit tests/test_comprehensive_unit_coverage.py \
+          --cov=src/analytics \
+          --cov=src/statistics_calculator.py \
+          --cov=src/data_loader.py \
+          --cov=src/database.py \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term \
+          --cov-fail-under=90 \
+          --junit-xml=test-reports/unit-tests.xml
+    
+    - name: Run integration tests
+      run: |
+        pytest tests/integration \
+          -v \
+          --junit-xml=test-reports/integration-tests.xml
+    
+    - name: Run performance benchmarks
+      run: |
+        pytest tests/test_performance_benchmarks.py \
+          --benchmark-only \
+          --benchmark-json=test-reports/benchmark.json \
+          --benchmark-sort=mean \
+          --benchmark-columns=min,max,mean,stddev \
+          --junit-xml=test-reports/benchmark-tests.xml
+    
+    - name: Run visual regression tests
+      run: |
+        xvfb-run -a pytest tests/test_visual_regression.py \
+          -m visual \
+          --junit-xml=test-reports/visual-tests.xml
+      env:
+        DISPLAY: :99
+    
+    - name: Run chaos tests
+      run: |
+        pytest tests/test_chaos_scenarios.py \
+          -m chaos \
+          --timeout=30 \
+          --junit-xml=test-reports/chaos-tests.xml
+    
+    - name: Generate test data synthetic samples
+      run: |
+        python -c "
+        from tests.test_data_generator import TestDataGenerator
+        import pandas as pd
+        
+        generator = TestDataGenerator(seed=42)
+        data = generator.generate_synthetic_data(365)
+        data.to_csv('test-reports/synthetic-data-sample.csv', index=False)
+        
+        edge_cases = generator.generate_edge_cases()
+        for name, df in edge_cases.items():
+            df.to_csv(f'test-reports/edge-case-{name}.csv', index=False)
+        "
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+    
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-reports-python-${{ matrix.python-version }}
+        path: |
+          test-reports/
+          htmlcov/
+          tests/visual/failures/
+    
+    - name: Generate performance baseline
+      if: github.ref == 'refs/heads/main'
+      run: |
+        pytest tests/test_performance_benchmarks.py \
+          --benchmark-only \
+          --benchmark-save=baseline-${{ github.sha }}
+    
+    - name: Comment PR with test results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read coverage report
+          let coverageText = '';
+          try {
+            const coverage = fs.readFileSync('coverage.txt', 'utf8');
+            coverageText = coverage;
+          } catch (e) {
+            coverageText = 'Coverage report not available';
+          }
+          
+          // Read benchmark results
+          let benchmarkText = '';
+          try {
+            const benchmark = JSON.parse(fs.readFileSync('test-reports/benchmark.json', 'utf8'));
+            benchmarkText = `
+## Performance Benchmarks
+
+| Test | Mean Time | Min Time | Max Time |
+|------|-----------|----------|----------|`;
+            
+            for (const test of benchmark.benchmarks) {
+              const name = test.name.split('::').pop();
+              const mean = (test.stats.mean * 1000).toFixed(2);
+              const min = (test.stats.min * 1000).toFixed(2);
+              const max = (test.stats.max * 1000).toFixed(2);
+              benchmarkText += `\n| ${name} | ${mean}ms | ${min}ms | ${max}ms |`;
+            }
+          } catch (e) {
+            benchmarkText = 'Benchmark results not available';
+          }
+          
+          const body = `## 🧪 Test Results
+          
+### Coverage Report
+\`\`\`
+${coverageText}
+\`\`\`
+
+${benchmarkText}
+
+### Test Status
+- ✅ Unit Tests: Passed
+- ✅ Integration Tests: Passed  
+- ✅ Performance Tests: Passed
+- ✅ Visual Regression Tests: Passed
+- ✅ Chaos Tests: Passed
+
+Generated by [Analytics Test Suite](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+  performance-regression-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need history for comparison
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run current performance tests
+      run: |
+        pytest tests/test_performance_benchmarks.py \
+          --benchmark-only \
+          --benchmark-json=current-benchmark.json
+    
+    - name: Checkout main branch
+      run: |
+        git checkout origin/main
+        pip install -r requirements.txt
+    
+    - name: Run baseline performance tests
+      run: |
+        pytest tests/test_performance_benchmarks.py \
+          --benchmark-only \
+          --benchmark-json=baseline-benchmark.json
+    
+    - name: Compare performance
+      run: |
+        python -c "
+        import json
+        
+        with open('current-benchmark.json') as f:
+            current = json.load(f)
+        with open('baseline-benchmark.json') as f:
+            baseline = json.load(f)
+        
+        print('# Performance Comparison')
+        print('| Test | Current | Baseline | Change |')
+        print('|------|---------|----------|--------|')
+        
+        for curr_test in current['benchmarks']:
+            test_name = curr_test['name']
+            curr_mean = curr_test['stats']['mean']
+            
+            # Find matching baseline test
+            baseline_test = next((t for t in baseline['benchmarks'] if t['name'] == test_name), None)
+            if baseline_test:
+                base_mean = baseline_test['stats']['mean']
+                change_pct = ((curr_mean - base_mean) / base_mean) * 100
+                
+                curr_ms = curr_mean * 1000
+                base_ms = base_mean * 1000
+                
+                if change_pct > 20:
+                    status = '🔴'
+                elif change_pct > 10:
+                    status = '🟡'
+                else:
+                    status = '🟢'
+                
+                print(f'| {test_name.split(\"::\")[-1]} | {curr_ms:.2f}ms | {base_ms:.2f}ms | {status} {change_pct:+.1f}% |')
+        " > performance-comparison.md
+        
+        cat performance-comparison.md
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Bandit Security Scan
+      run: |
+        pip install bandit
+        bandit -r src/ -f json -o security-report.json || true
+        
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-report
+        path: security-report.json
+
+  test-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install sphinx sphinx-rtd-theme
+    
+    - name: Generate test documentation
+      run: |
+        python -c "
+        import pytest
+        import subprocess
+        
+        # Generate test inventory
+        result = subprocess.run(['pytest', '--collect-only', '-q'], 
+                              capture_output=True, text=True)
+        
+        with open('test-inventory.md', 'w') as f:
+            f.write('# Test Suite Inventory\n\n')
+            f.write('## Test Categories\n\n')
+            f.write('- **Unit Tests**: Test individual components in isolation\n')
+            f.write('- **Integration Tests**: Test component interactions\n')
+            f.write('- **Performance Tests**: Benchmark speed and resource usage\n')
+            f.write('- **Visual Tests**: Ensure UI consistency\n')
+            f.write('- **Chaos Tests**: Test edge cases and failure scenarios\n\n')
+            f.write('## Test Files\n\n')
+            f.write(result.stdout)
+        "
+    
+    - name: Upload test documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-documentation
+        path: test-inventory.md

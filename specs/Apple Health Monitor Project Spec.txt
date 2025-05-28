@@ -38,17 +38,9 @@ review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processin
 
 
 current:
-G043_implement_goal_setting_tracking.md
-G044_build_comparative_analytics.md
-G045_create_health_score_calculator.md
-G046_implement_predictive_analytics.md
-G047_design_data_story_generator.md
-G007_project_documentation_structure.md
 
 
 
-next:
-/do G008_Sprint_S02_Task_Breakdown.md see which steps remain in this task because it has been superseded by subsequent tasks, implement any remaining features, and report task status.
 
 
 
@@ -57,7 +49,7 @@ fix the following test errors, the tests still fail:
 
 
 
-### future ###############
+### ongoing ###############
 Please analyze my codebase and create two types of mermaid diagrams:
 
 1. **High-Level Context Diagram**: Show the overall system architecture, including:
@@ -113,6 +105,9 @@ I already created the folders `quactuary/docs/architecture/`, `quactuary/docs/ar
 
 ## Additional Instructions ##
 - Document configuration flows and dependency injection patterns
+- Create a Claude command markdown file under `.claude/commands/simone` called `mermaid.md` with instructions for keeping the mermaid diagrams current as code evolves.
+
+
 
 
 
