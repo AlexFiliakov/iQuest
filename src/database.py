@@ -17,13 +17,38 @@ DB_FILE_NAME = "health_monitor.db"
 
 
 class DatabaseManager:
-    """Manages SQLite database connections and operations."""
+    """Manages SQLite database connections and operations.
+    
+    This class implements a singleton pattern to ensure only one database manager
+    instance exists throughout the application lifecycle. It handles database
+    initialization, connection management, and provides high-level database
+    operations with proper error handling and resource cleanup.
+    
+    The database manager automatically creates the database file and required
+    tables on first use, manages connection pooling, and provides both
+    transactional and non-transactional operations.
+    
+    Attributes:
+        db_path (Path): Path to the SQLite database file.
+        initialized (bool): Flag indicating if the manager has been initialized.
+        
+    Example:
+        >>> db = DatabaseManager()
+        >>> with db.get_connection() as conn:
+        ...     cursor = conn.cursor()
+        ...     cursor.execute("SELECT COUNT(*) FROM journal_entries")
+        ...     count = cursor.fetchone()[0]
+    """
     
     _instance = None
     _lock = threading.Lock()
     
     def __new__(cls):
-        """Singleton pattern to ensure single database manager instance."""
+        """Singleton pattern to ensure single database manager instance.
+        
+        Returns:
+            DatabaseManager: The singleton instance of the database manager.
+        """
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -31,14 +56,23 @@ class DatabaseManager:
         return cls._instance
     
     def __init__(self):
-        """Initialize database manager."""
+        """Initialize database manager.
+        
+        Sets up the database path, creates the database file if it doesn't exist,
+        and initializes all required tables and indexes. This method is safe to
+        call multiple times due to the singleton pattern.
+        """
         if not hasattr(self, 'initialized'):
             self.db_path = Path(config.DATA_DIR) / DB_FILE_NAME
             self.initialized = True
             self._ensure_database_exists()
     
     def _ensure_database_exists(self):
-        """Ensure database file and directory exist."""
+        """Ensure database file and directory exist.
+        
+        Creates the data directory if it doesn't exist and initializes
+        the database with all required tables if the database file is missing.
+        """
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.db_path.exists():
             logger.info(f"Creating new database at {self.db_path}")
@@ -46,7 +80,24 @@ class DatabaseManager:
     
     @contextmanager
     def get_connection(self):
-        """Get a database connection with automatic cleanup."""
+        """Get a database connection with automatic cleanup.
+        
+        Provides a context manager for database connections that automatically
+        handles connection cleanup and error logging. Connections use Row factory
+        for convenient column access by name.
+        
+        Yields:
+            sqlite3.Connection: Database connection with Row factory enabled.
+            
+        Raises:
+            sqlite3.Error: If connection cannot be established or other database errors occur.
+            
+        Example:
+            >>> with db_manager.get_connection() as conn:
+            ...     cursor = conn.cursor()
+            ...     cursor.execute("SELECT * FROM user_preferences")
+            ...     rows = cursor.fetchall()
+        """
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
@@ -60,7 +111,23 @@ class DatabaseManager:
                 conn.close()
     
     def initialize_database(self):
-        """Initialize database with required tables as per SPECS_DB.md."""
+        """Initialize database with required tables as per SPECS_DB.md.
+        
+        Creates all required tables, indexes, triggers, and inserts default
+        preferences according to the database specification. This method is
+        idempotent and safe to call multiple times.
+        
+        Tables created:
+            - schema_migrations: Track database schema versions
+            - journal_entries: Store daily, weekly, and monthly journal entries
+            - user_preferences: Store application preferences with type information
+            - recent_files: Track recently accessed files
+            - cached_metrics: Cache computed health metrics for performance
+            - health_metrics_metadata: Store metadata for health metric types
+            - data_sources: Track data sources and their activity
+            - import_history: Log data import operations
+            - filter_configs: Store filter presets and configurations
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -251,7 +318,15 @@ class DatabaseManager:
             logger.info("Database initialized successfully with all required tables")
     
     def _apply_migrations(self, cursor):
-        """Apply database migrations."""
+        """Apply database migrations.
+        
+        Checks the current schema version and applies any pending migrations
+        to bring the database up to the latest schema version. Each migration
+        is applied transactionally and logged to the schema_migrations table.
+        
+        Args:
+            cursor: Database cursor for executing migration queries.
+        """
         # Check current schema version
         cursor.execute("SELECT COALESCE(MAX(version), 0) FROM schema_migrations")
         current_version = cursor.fetchone()[0]
@@ -295,7 +370,21 @@ class DatabaseManager:
             logger.info("Migration 2 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
-        """Execute a SELECT query and return results."""
+        """Execute a SELECT query and return results.
+        
+        Args:
+            query: SQL SELECT query to execute.
+            params: Optional tuple of parameters for parameterized queries.
+            
+        Returns:
+            List[sqlite3.Row]: List of rows returned by the query. Each row
+                supports both index and column name access.
+                
+        Example:
+            >>> rows = db.execute_query("SELECT * FROM user_preferences WHERE preference_key = ?", ("theme_mode",))
+            >>> for row in rows:
+            ...     print(f"Key: {row['preference_key']}, Value: {row['preference_value']}")
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             if params:
@@ -305,7 +394,22 @@ class DatabaseManager:
             return cursor.fetchall()
     
     def execute_command(self, query: str, params: Optional[tuple] = None) -> int:
-        """Execute an INSERT, UPDATE, or DELETE command."""
+        """Execute an INSERT, UPDATE, or DELETE command.
+        
+        Args:
+            query: SQL command to execute (INSERT, UPDATE, DELETE).
+            params: Optional tuple of parameters for parameterized queries.
+            
+        Returns:
+            int: The last row ID for INSERT operations, or number of affected
+                rows for UPDATE/DELETE operations.
+                
+        Example:
+            >>> row_id = db.execute_command(
+            ...     "INSERT INTO user_preferences (preference_key, preference_value, data_type) VALUES (?, ?, ?)",
+            ...     ("new_setting", "value", "string")
+            ... )
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             if params:
@@ -316,14 +420,40 @@ class DatabaseManager:
             return cursor.lastrowid
     
     def execute_many(self, query: str, params_list: List[tuple]) -> None:
-        """Execute multiple commands efficiently."""
+        """Execute multiple commands efficiently.
+        
+        Uses executemany for better performance when executing the same
+        query with different parameters multiple times.
+        
+        Args:
+            query: SQL command to execute multiple times.
+            params_list: List of parameter tuples, one for each execution.
+            
+        Example:
+            >>> params = [("key1", "value1"), ("key2", "value2")]
+            >>> db.execute_many(
+            ...     "INSERT INTO user_preferences (preference_key, preference_value) VALUES (?, ?)",
+            ...     params
+            ... )
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany(query, params_list)
             conn.commit()
     
     def table_exists(self, table_name: str) -> bool:
-        """Check if a table exists in the database."""
+        """Check if a table exists in the database.
+        
+        Args:
+            table_name: Name of the table to check for existence.
+            
+        Returns:
+            bool: True if the table exists, False otherwise.
+            
+        Example:
+            >>> if db.table_exists("user_preferences"):
+            ...     print("Preferences table is available")
+        """
         query = """
             SELECT name FROM sqlite_master 
             WHERE type='table' AND name=?

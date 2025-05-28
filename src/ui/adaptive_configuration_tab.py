@@ -250,7 +250,7 @@ class AdaptiveConfigurationTab(QWidget):
         
         full_data_button = QPushButton("Full Data Only")
         full_data_button.clicked.connect(self.metric_selector.checkFullDataOnly)
-        full_data_button.setToolTip("Select only metrics with complete data")\n        
+        full_data_button.setToolTip("Select only metrics with complete data")
         any_data_button = QPushButton("Any Data")
         any_data_button.clicked.connect(self.metric_selector.checkAll)
         any_data_button.setToolTip("Select all metrics with any available data")

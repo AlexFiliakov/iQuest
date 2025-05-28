@@ -17,7 +17,20 @@ logger = get_logger(__name__)
 
 
 def exception_hook(exc_type, exc_value, exc_traceback):
-    """Handle uncaught exceptions by logging them and showing user-friendly error dialog."""
+    """Handle uncaught exceptions by logging them and showing user-friendly error dialog.
+    
+    This function replaces the default Python exception handler to provide
+    better error reporting for the GUI application. It logs all exceptions
+    and shows user-friendly error dialogs when the application is running.
+    
+    Args:
+        exc_type: The exception type.
+        exc_value: The exception instance.
+        exc_traceback: The traceback object.
+        
+    Note:
+        KeyboardInterrupt exceptions are passed through to the default handler.
+    """
     # Don't handle KeyboardInterrupt
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -51,7 +64,22 @@ sys.excepthook = exception_hook
 
 
 def main():
-    """Run the application."""
+    """Run the application.
+    
+    This is the main entry point for the Apple Health Monitor Dashboard.
+    It initializes the Qt application, applies styling, creates the main
+    window, and starts the event loop.
+    
+    The function handles application-level configuration including:
+    - Setting application metadata
+    - Configuring tooltip timing
+    - Applying global styling
+    - Creating and showing the main window
+    - Starting the Qt event loop
+    
+    Raises:
+        SystemExit: If the application fails to start or encounters a critical error.
+    """
     try:
         logger.info("Starting Apple Health Monitor Dashboard")
         

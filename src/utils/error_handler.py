@@ -18,27 +18,76 @@ logger = get_logger(__name__)
 
 # Custom Exceptions
 class AppleHealthError(Exception):
-    """Base exception for Apple Health Monitor application"""
+    """Base exception for Apple Health Monitor application.
+    
+    This is the base class for all custom exceptions in the Apple Health
+    Monitor application. It provides a common interface for handling
+    application-specific errors and allows for easier exception catching
+    and logging throughout the codebase.
+    """
     pass
 
 
 class DataImportError(AppleHealthError):
-    """Raised when data import fails"""
+    """Raised when data import operations fail.
+    
+    This exception is raised when importing data from CSV files, XML files,
+    or other data sources fails due to file format issues, corruption,
+    permission problems, or other import-related errors.
+    
+    Examples:
+        - File not found or inaccessible
+        - Invalid file format or structure
+        - Data parsing errors
+        - Permission denied when reading files
+    """
     pass
 
 
 class DataValidationError(AppleHealthError):
-    """Raised when data validation fails"""
+    """Raised when data validation fails.
+    
+    This exception is raised when data doesn't meet expected validation
+    criteria, such as missing required fields, invalid data types,
+    or data that doesn't conform to expected formats or ranges.
+    
+    Examples:
+        - Missing required columns in CSV data
+        - Invalid date formats
+        - Out-of-range numerical values
+        - Malformed XML structure
+    """
     pass
 
 
 class DatabaseError(AppleHealthError):
-    """Raised when database operations fail"""
+    """Raised when database operations fail.
+    
+    This exception is raised when SQLite database operations encounter
+    errors such as connection failures, query execution errors, schema
+    mismatches, or transaction rollbacks.
+    
+    Examples:
+        - Database connection failures
+        - SQL syntax errors
+        - Constraint violations
+        - Transaction deadlocks
+    """
     pass
 
 
 class ConfigurationError(AppleHealthError):
-    """Raised when configuration is invalid"""
+    """Raised when configuration is invalid.
+    
+    This exception is raised when application configuration settings
+    are invalid, missing, or incompatible with the current system state.
+    
+    Examples:
+        - Missing required configuration values
+        - Invalid configuration file format
+        - Incompatible settings combinations
+        - Configuration version mismatches
+    """
     pass
 
 
@@ -96,6 +145,27 @@ def safe_file_operation(func: Callable) -> Callable:
     Decorator for safe file operations with proper error handling.
     
     Automatically handles common file operation errors and logs them appropriately.
+    Converts system-level file exceptions into application-specific DataImportError
+    exceptions for consistent error handling throughout the application.
+    
+    This decorator catches and handles:
+    - FileNotFoundError: When specified files don't exist
+    - PermissionError: When file access is denied
+    - IOError: When general I/O operations fail
+    - Other unexpected exceptions (re-raised as-is)
+    
+    Args:
+        func: The function to wrap with error handling.
+        
+    Returns:
+        Callable: The wrapped function with error handling.
+        
+    Example:
+        >>> @safe_file_operation
+        ... def read_csv_file(file_path):
+        ...     return pd.read_csv(file_path)
+        ...
+        >>> data = read_csv_file('health_data.csv')  # Handles file errors gracefully
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -122,6 +192,27 @@ def safe_database_operation(func: Callable) -> Callable:
     Decorator for safe database operations with proper error handling.
     
     Handles SQLite-specific errors and ensures connections are properly closed.
+    Converts SQLite exceptions into application-specific DatabaseError exceptions
+    for consistent error handling and logging.
+    
+    This decorator is specifically designed for database operations and:
+    - Detects SQLite-related exceptions by module name
+    - Converts them to DatabaseError instances
+    - Logs detailed error information
+    - Re-raises non-database exceptions unchanged
+    
+    Args:
+        func: The database function to wrap with error handling.
+        
+    Returns:
+        Callable: The wrapped function with database error handling.
+        
+    Example:
+        >>> @safe_database_operation
+        ... def insert_health_record(record_data):
+        ...     conn.execute("INSERT INTO health_records ...", record_data)
+        ...
+        >>> insert_health_record(data)  # Handles database errors gracefully
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -142,24 +233,68 @@ class ErrorContext:
     """
     Context manager for error handling with detailed context information.
     
-    Usage:
-        with ErrorContext("Processing health data", reraise=True):
-            # code that might raise exceptions
+    This context manager provides a clean way to handle errors within specific
+    operations while maintaining detailed context about what was being performed
+    when the error occurred. It automatically logs errors with operation context
+    and can convert generic exceptions to application-specific ones.
+    
+    The context manager can:
+    - Log errors with operation context
+    - Convert generic exceptions to custom application exceptions
+    - Control whether exceptions are re-raised or suppressed
+    - Provide detailed error reporting with traceback information
+    
+    Args:
+        operation: Description of the operation being performed.
+        reraise: Whether to re-raise exceptions after logging (default: True).
+        log_level: Logging level for error messages (default: "ERROR").
+    
+    Example:
+        >>> with ErrorContext("Processing health data import", reraise=True):
+        ...     data = load_health_data(file_path)
+        ...     validate_data_format(data)
+        ...     save_to_database(data)
+        
+        >>> # For operations where you want to continue on error:
+        >>> with ErrorContext("Optional data cleanup", reraise=False):
+        ...     cleanup_temporary_files()
     """
     
     def __init__(self, 
                  operation: str, 
                  reraise: bool = True,
                  log_level: str = "ERROR"):
+        """Initialize the error context.
+        
+        Args:
+            operation: Human-readable description of the operation.
+            reraise: If True, re-raise exceptions after logging.
+            log_level: Logging level for error messages.
+        """
         self.operation = operation
         self.reraise = reraise
         self.log_level = log_level
         self.logger = get_logger(self.__class__.__name__)
         
     def __enter__(self):
+        """Enter the error context.
+        
+        Returns:
+            ErrorContext: Self for use in with statements.
+        """
         return self
         
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the error context and handle any exceptions.
+        
+        Args:
+            exc_type: Exception type if an exception occurred.
+            exc_val: Exception instance if an exception occurred.
+            exc_tb: Traceback object if an exception occurred.
+            
+        Returns:
+            bool: True to suppress the exception, False to re-raise it.
+        """
         if exc_type is not None:
             error_details = {
                 'operation': self.operation,
@@ -187,12 +322,23 @@ def format_error_message(error: Exception, include_traceback: bool = False) -> s
     """
     Format an error message for user display.
     
+    Creates a user-friendly error message from an exception object,
+    optionally including detailed traceback information for debugging.
+    The formatted message includes the exception type and description.
+    
     Args:
-        error: The exception to format
-        include_traceback: Whether to include full traceback
+        error: The exception to format into a message.
+        include_traceback: Whether to include the full traceback for debugging.
         
     Returns:
-        Formatted error message
+        str: A formatted error message suitable for display to users.
+        
+    Example:
+        >>> try:
+        ...     raise ValueError("Invalid input data")
+        ... except Exception as e:
+        ...     message = format_error_message(e, include_traceback=False)
+        ...     print(message)  # "ValueError: Invalid input data"
     """
     message = f"{type(error).__name__}: {str(error)}"
     

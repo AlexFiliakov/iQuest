@@ -24,9 +24,44 @@ logger = get_logger(__name__)
 
 
 class MainWindow(QMainWindow):
-    """Main application window with tab-based navigation."""
+    """Main application window with tab-based navigation.
+    
+    This is the primary window of the Apple Health Monitor Dashboard application.
+    It provides a tab-based interface for different views and functionalities:
+    
+    - Configuration: Data import and filtering settings
+    - Daily Dashboard: Daily health metrics visualization
+    - Weekly Dashboard: Weekly aggregated health data
+    - Monthly Dashboard: Monthly health trends and patterns
+    - Comparative Analytics: Cross-metric analysis and comparisons
+    - Trophy Case: Personal records and achievements
+    - Journal: Daily, weekly, and monthly reflection entries
+    - Help: Application documentation and shortcuts
+    
+    The window supports keyboard navigation, view transitions, theming,
+    and persistent window state management.
+    
+    Attributes:
+        style_manager (StyleManager): Manages application styling and themes.
+        settings_manager (SettingsManager): Handles window state persistence.
+        transition_manager (ViewTransitionManager): Manages smooth view transitions.
+        personal_records_tracker (PersonalRecordsTracker): Tracks health achievements.
+        tab_widget (QTabWidget): The main tab container widget.
+        config_tab (ConfigurationTab): The configuration tab instance.
+    """
     
     def __init__(self):
+        """Initialize the main window.
+        
+        Sets up the window structure, applies theming, creates all tabs,
+        configures keyboard navigation, and restores the previous window state.
+        The initialization follows this sequence:
+        1. Initialize managers (style, settings, transitions, records)
+        2. Set window properties (title, size, minimum dimensions)
+        3. Apply warm color theme
+        4. Create UI components (menu bar, tabs, status bar)
+        5. Restore previous window state
+        """
         super().__init__()
         logger.info("Initializing main window with tab navigation")
         
@@ -60,7 +95,15 @@ class MainWindow(QMainWindow):
         logger.info("Main window initialization complete")
     
     def _apply_theme(self):
-        """Apply the warm color theme to the window."""
+        """Apply the warm color theme to the window.
+        
+        Sets up the application's visual styling with a warm, welcoming
+        color palette. The theme includes:
+        - Warm background colors (light beige/cream tones)
+        - Earth tone text colors (brown)
+        - Orange accent colors for highlights
+        - Consistent styling across all UI elements
+        """
         logger.debug("Applying warm color theme")
         
         # Apply stylesheet
@@ -80,7 +123,16 @@ class MainWindow(QMainWindow):
         self.setPalette(palette)
     
     def _create_menu_bar(self):
-        """Create the application menu bar."""
+        """Create the application menu bar.
+        
+        Sets up the main menu structure with the following menus:
+        - File: Import, Save, Exit
+        - View: Refresh and view options
+        - Help: Keyboard shortcuts, About
+        
+        All menu items include keyboard shortcuts, tooltips, and status tips
+        for better accessibility and user experience.
+        """
         logger.debug("Creating menu bar")
         
         menu_bar = self.menuBar()
@@ -147,7 +199,13 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about_action)
     
     def _create_central_widget(self):
-        """Create the central widget with tab navigation."""
+        """Create the central widget with tab navigation.
+        
+        Sets up the main tab widget containing all application views.
+        Establishes tab-to-view mappings for transition management,
+        connects signal handlers for tab changes and transitions,
+        and configures keyboard navigation for the tab system.
+        """
         logger.debug("Creating central widget with tabs")
         
         # Create tab widget
@@ -192,7 +250,13 @@ class MainWindow(QMainWindow):
         self._setup_keyboard_navigation()
     
     def _create_configuration_tab(self):
-        """Create the configuration tab."""
+        """Create the configuration tab.
+        
+        Initializes the configuration tab which handles data import,
+        filtering options, and data source management. Connects the
+        tab's signals to main window handlers for data loading and
+        filter changes.
+        """
         self.config_tab = ConfigurationTab()
         
         # Connect signals

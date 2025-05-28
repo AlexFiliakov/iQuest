@@ -33,13 +33,53 @@ logger = get_logger(__name__)
 
 
 class ConfigurationTab(QWidget):
-    """Configuration tab for importing data and setting filters."""
+    """Configuration tab for importing data and setting filters.
+    
+    This tab provides the main interface for data management in the Apple Health
+    Monitor Dashboard. It handles:
+    
+    - CSV and XML data import with progress tracking
+    - Date range filtering for data analysis
+    - Device/source filtering to focus on specific data sources
+    - Health metric type filtering
+    - Filter preset saving and loading
+    - Real-time statistics display
+    - Database integration for persistent settings
+    
+    The tab features a clean, organized layout with distinct sections for
+    import operations, filtering controls, and data statistics. It provides
+    immediate feedback through progress bars, status messages, and summary cards.
+    
+    Signals:
+        data_loaded (object): Emitted when data is successfully loaded with the DataFrame.
+        filters_applied (dict): Emitted when filters are applied with filter parameters.
+    
+    Attributes:
+        data_loader (DataLoader): Handles CSV and database loading operations.
+        filter_config_manager (FilterConfigManager): Manages filter presets.
+        statistics_calculator (StatisticsCalculator): Computes data statistics.
+        data (DataFrame): Currently loaded health data.
+        filtered_data (DataFrame): Data after applying current filters.
+    """
     
     # Signals
     data_loaded = pyqtSignal(object)  # Emitted when data is successfully loaded
     filters_applied = pyqtSignal(dict)  # Emitted when filters are applied
     
     def __init__(self):
+        """Initialize the configuration tab.
+        
+        Sets up the user interface, initializes data management components,
+        creates filter controls, configures keyboard navigation, and loads
+        any existing filter presets from the database.
+        
+        The initialization process:
+        1. Initialize managers and data components
+        2. Create the main UI layout with import and filter sections
+        3. Set up signal connections for user interactions
+        4. Configure keyboard navigation and accessibility
+        5. Migrate legacy filter presets if they exist
+        """
         super().__init__()
         logger.info("Initializing Configuration tab")
         
@@ -79,7 +119,16 @@ class ConfigurationTab(QWidget):
         logger.info("Configuration tab initialized")
     
     def _create_ui(self):
-        """Create the configuration tab UI."""
+        """Create the configuration tab UI.
+        
+        Builds the complete user interface with the following sections:
+        - Title header with application branding
+        - Data import section with file selection and progress tracking
+        - Filter controls section with date ranges and multi-select options
+        - Statistics display section with summary cards and metrics table
+        
+        Uses consistent spacing, margins, and styling for a professional appearance.
+        """
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(24, 24, 24, 24)
         main_layout.setSpacing(20)

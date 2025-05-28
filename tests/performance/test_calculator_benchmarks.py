@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from tests.performance.benchmark_base import PerformanceBenchmark
 from tests.performance.adaptive_thresholds import AdaptiveThresholds
-from tests.generators.health_data import HealthDataGenerator
+from tests.generators.health_data import HealthMetricGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator  
 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -24,7 +24,7 @@ class TestCalculatorPerformance(PerformanceBenchmark):
         """Set up test environment."""
         super().__init__()
         self.thresholds = AdaptiveThresholds()
-        self.generator = HealthDataGenerator(seed=42)
+        self.generator = HealthMetricGenerator(seed=42)
         
     @pytest.mark.parametrize('days,expected_time', [
         (30, 0.1),    # 1 month: 100ms

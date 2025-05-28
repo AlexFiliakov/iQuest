@@ -106,7 +106,8 @@ class CorrelationMatrixWidget(QWidget):
         filter_layout.addWidget(self.min_corr_label, 1, 2)
         
         # Display options
-        self.show_values_cb = QCheckBox("Show Values")\n        self.show_values_cb.setChecked(True)
+        self.show_values_cb = QCheckBox("Show Values")
+        self.show_values_cb.setChecked(True)
         self.show_values_cb.toggled.connect(self.update_correlation_matrix)
         filter_layout.addWidget(self.show_values_cb, 2, 0, 1, 3)
         

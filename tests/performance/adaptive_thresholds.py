@@ -8,7 +8,7 @@ environments and hardware capabilities.
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Any
 import platform
 import psutil
 import timeit
@@ -249,5 +249,3 @@ for i in range(1000000):
         return 1.0
 
 
-# Import Any type for type hints
-from typing import Any
