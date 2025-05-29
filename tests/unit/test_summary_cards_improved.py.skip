@@ -1,0 +1,427 @@
+"""Comprehensive tests for summary cards UI component."""
+
+import pytest
+from datetime import datetime, date, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtGui import QIcon, QPainter, QColor
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel
+
+from src.ui.summary_cards import (
+    SummaryCard, AnimatedSummaryCard, SummaryCardsWidget,
+    TrendDirection, CardType, calculate_trend
+)
+
+
+@pytest.fixture
+def app(qtbot):
+    """Create QApplication for tests."""
+    return QApplication.instance() or QApplication([])
+
+
+@pytest.fixture
+def summary_card(qtbot):
+    """Create summary card instance."""
+    card = SummaryCard(
+        title="Test Card",
+        value="100",
+        subtitle="Test subtitle",
+        icon_name="chart",
+        trend=TrendDirection.UP,
+        change_percent=5.5
+    )
+    qtbot.addWidget(card)
+    return card
+
+
+@pytest.fixture
+def animated_card(qtbot):
+    """Create animated summary card instance."""
+    card = AnimatedSummaryCard(
+        title="Animated Card",
+        value="200",
+        card_type=CardType.PRIMARY
+    )
+    qtbot.addWidget(card)
+    return card
+
+
+@pytest.fixture
+def summary_cards_widget(qtbot):
+    """Create summary cards widget instance."""
+    widget = SummaryCardsWidget()
+    qtbot.addWidget(widget)
+    return widget
+
+
+class TestSummaryCard:
+    """Test SummaryCard class."""
+    
+    def test_initialization(self, summary_card):
+        """Test card initialization."""
+        assert summary_card._title == "Test Card"
+        assert summary_card._value == "100"
+        assert summary_card._subtitle == "Test subtitle"
+        assert summary_card._trend == TrendDirection.UP
+        assert summary_card._change_percent == 5.5
+        
+    def test_update_value(self, summary_card):
+        """Test updating card value."""
+        summary_card.update_value("200")
+        assert summary_card._value == "200"
+        
+    def test_update_trend(self, summary_card):
+        """Test updating card trend."""
+        summary_card.update_trend(TrendDirection.DOWN, -3.2)
+        assert summary_card._trend == TrendDirection.DOWN
+        assert summary_card._change_percent == -3.2
+        
+    def test_set_loading(self, summary_card):
+        """Test setting loading state."""
+        summary_card.set_loading(True)
+        assert summary_card._is_loading is True
+        
+        summary_card.set_loading(False)
+        assert summary_card._is_loading is False
+        
+    def test_set_error(self, summary_card):
+        """Test setting error state."""
+        summary_card.set_error("Test error")
+        assert summary_card._error_message == "Test error"
+        assert summary_card._has_error is True
+        
+        summary_card.set_error(None)
+        assert summary_card._error_message is None
+        assert summary_card._has_error is False
+        
+    def test_trend_icon(self, summary_card):
+        """Test trend icon generation."""
+        # Up trend
+        summary_card.update_trend(TrendDirection.UP, 10)
+        icon_up = summary_card._get_trend_icon()
+        assert icon_up == "↑"
+        
+        # Down trend
+        summary_card.update_trend(TrendDirection.DOWN, -10)
+        icon_down = summary_card._get_trend_icon()
+        assert icon_down == "↓"
+        
+        # Stable trend
+        summary_card.update_trend(TrendDirection.STABLE, 0)
+        icon_stable = summary_card._get_trend_icon()
+        assert icon_stable == "→"
+        
+    def test_trend_color(self, summary_card):
+        """Test trend color selection."""
+        # Positive trend
+        summary_card.update_trend(TrendDirection.UP, 10)
+        color_up = summary_card._get_trend_color()
+        assert "green" in color_up or "#" in color_up
+        
+        # Negative trend
+        summary_card.update_trend(TrendDirection.DOWN, -10)
+        color_down = summary_card._get_trend_color()
+        assert "red" in color_down or "#" in color_down
+        
+    def test_card_clicked_signal(self, summary_card, qtbot):
+        """Test card clicked signal emission."""
+        with qtbot.waitSignal(summary_card.clicked) as blocker:
+            # Simulate mouse click
+            qtbot.mouseClick(summary_card, Qt.MouseButton.LeftButton)
+            
+        # Signal should be emitted
+        assert blocker.signal_triggered
+
+
+class TestAnimatedSummaryCard:
+    """Test AnimatedSummaryCard class."""
+    
+    def test_initialization(self, animated_card):
+        """Test animated card initialization."""
+        assert animated_card._title == "Animated Card"
+        assert animated_card._value == "200"
+        assert animated_card._card_type == CardType.PRIMARY
+        assert animated_card._target_value == 200
+        assert animated_card._current_value == 0
+        
+    def test_animate_value(self, animated_card, qtbot):
+        """Test value animation."""
+        # Set target value
+        animated_card.animate_to_value(500)
+        
+        assert animated_card._target_value == 500
+        
+        # Wait for animation to progress
+        qtbot.wait(100)
+        
+        # Current value should be moving towards target
+        assert animated_card._current_value > 0
+        
+    def test_card_type_styling(self, animated_card):
+        """Test card type styling."""
+        # Primary type
+        animated_card.set_card_type(CardType.PRIMARY)
+        assert animated_card._card_type == CardType.PRIMARY
+        
+        # Success type
+        animated_card.set_card_type(CardType.SUCCESS)
+        assert animated_card._card_type == CardType.SUCCESS
+        
+        # Warning type
+        animated_card.set_card_type(CardType.WARNING)
+        assert animated_card._card_type == CardType.WARNING
+        
+        # Danger type
+        animated_card.set_card_type(CardType.DANGER)
+        assert animated_card._card_type == CardType.DANGER
+        
+    def test_hover_effect(self, animated_card, qtbot):
+        """Test hover animation effect."""
+        # Simulate mouse enter
+        animated_card.enterEvent(None)
+        assert animated_card._hover is True
+        
+        # Simulate mouse leave
+        animated_card.leaveEvent(None)
+        assert animated_card._hover is False
+
+
+class TestSummaryCardsWidget:
+    """Test SummaryCardsWidget class."""
+    
+    def test_initialization(self, summary_cards_widget):
+        """Test widget initialization."""
+        assert summary_cards_widget._cards == {}
+        assert summary_cards_widget._layout is not None
+        
+    def test_add_card(self, summary_cards_widget):
+        """Test adding a card."""
+        card = summary_cards_widget.add_card(
+            card_id="test_card",
+            title="Test",
+            value="100",
+            card_type=CardType.PRIMARY
+        )
+        
+        assert "test_card" in summary_cards_widget._cards
+        assert summary_cards_widget._cards["test_card"] == card
+        assert isinstance(card, AnimatedSummaryCard)
+        
+    def test_update_card(self, summary_cards_widget):
+        """Test updating a card."""
+        # Add card first
+        summary_cards_widget.add_card(
+            card_id="test_card",
+            title="Test",
+            value="100"
+        )
+        
+        # Update card
+        summary_cards_widget.update_card(
+            card_id="test_card",
+            value="200",
+            trend=TrendDirection.UP,
+            change_percent=10
+        )
+        
+        card = summary_cards_widget._cards["test_card"]
+        assert card._value == "200"
+        assert card._trend == TrendDirection.UP
+        
+    def test_remove_card(self, summary_cards_widget):
+        """Test removing a card."""
+        # Add card
+        summary_cards_widget.add_card(
+            card_id="test_card",
+            title="Test",
+            value="100"
+        )
+        
+        # Remove card
+        summary_cards_widget.remove_card("test_card")
+        
+        assert "test_card" not in summary_cards_widget._cards
+        
+    def test_update_from_data(self, summary_cards_widget):
+        """Test updating cards from data."""
+        # Mock data
+        data = pd.DataFrame({
+            'date': pd.date_range(start='2023-01-01', periods=30),
+            'steps': np.random.randint(5000, 10000, 30),
+            'heart_rate': np.random.randint(60, 80, 30)
+        })
+        
+        summary_cards_widget.update_from_data(data, metric='steps')
+        
+        # Should have created standard cards
+        assert len(summary_cards_widget._cards) > 0
+        
+    def test_calculate_statistics(self, summary_cards_widget):
+        """Test statistics calculation."""
+        data = pd.DataFrame({
+            'date': pd.date_range(start='2023-01-01', periods=30),
+            'value': np.random.randint(5000, 10000, 30)
+        })
+        
+        stats = summary_cards_widget._calculate_statistics(data, 'value')
+        
+        assert 'average' in stats
+        assert 'total' in stats
+        assert 'max' in stats
+        assert 'min' in stats
+        assert 'trend' in stats
+        assert 'change_percent' in stats
+
+
+class TestTrendCalculation:
+    """Test trend calculation function."""
+    
+    def test_calculate_trend_up(self):
+        """Test upward trend calculation."""
+        values = [100, 110, 120, 130, 140]
+        trend, change = calculate_trend(values)
+        
+        assert trend == TrendDirection.UP
+        assert change > 0
+        
+    def test_calculate_trend_down(self):
+        """Test downward trend calculation."""
+        values = [140, 130, 120, 110, 100]
+        trend, change = calculate_trend(values)
+        
+        assert trend == TrendDirection.DOWN
+        assert change < 0
+        
+    def test_calculate_trend_stable(self):
+        """Test stable trend calculation."""
+        values = [100, 101, 100, 99, 100]
+        trend, change = calculate_trend(values)
+        
+        assert trend == TrendDirection.STABLE
+        assert abs(change) < 2  # Small threshold for stability
+        
+    def test_calculate_trend_empty(self):
+        """Test trend calculation with empty data."""
+        trend, change = calculate_trend([])
+        
+        assert trend == TrendDirection.STABLE
+        assert change == 0
+
+
+class TestCardInteractions:
+    """Test card interaction features."""
+    
+    def test_card_selection(self, summary_cards_widget):
+        """Test card selection functionality."""
+        # Add multiple cards
+        for i in range(3):
+            summary_cards_widget.add_card(
+                card_id=f"card_{i}",
+                title=f"Card {i}",
+                value=str(i * 100)
+            )
+            
+        # Select a card
+        card = summary_cards_widget._cards["card_1"]
+        card.set_selected(True)
+        
+        assert card._is_selected is True
+        
+    def test_batch_update(self, summary_cards_widget):
+        """Test batch updating multiple cards."""
+        # Add cards
+        card_ids = ["steps", "heart_rate", "calories"]
+        for card_id in card_ids:
+            summary_cards_widget.add_card(
+                card_id=card_id,
+                title=card_id.replace("_", " ").title(),
+                value="0"
+            )
+            
+        # Batch update
+        updates = {
+            "steps": {"value": "8500", "trend": TrendDirection.UP},
+            "heart_rate": {"value": "72", "trend": TrendDirection.STABLE},
+            "calories": {"value": "2100", "trend": TrendDirection.DOWN}
+        }
+        
+        for card_id, update_data in updates.items():
+            summary_cards_widget.update_card(card_id, **update_data)
+            
+        # Verify updates
+        assert summary_cards_widget._cards["steps"]._value == "8500"
+        assert summary_cards_widget._cards["heart_rate"]._value == "72"
+        assert summary_cards_widget._cards["calories"]._value == "2100"
+
+
+class TestResponsiveLayout:
+    """Test responsive layout features."""
+    
+    def test_layout_adjustment(self, summary_cards_widget):
+        """Test layout adjusts to widget size."""
+        # Resize widget
+        summary_cards_widget.resize(800, 200)
+        
+        # Add cards
+        for i in range(4):
+            summary_cards_widget.add_card(
+                card_id=f"card_{i}",
+                title=f"Card {i}",
+                value=str(i * 100)
+            )
+            
+        # Layout should adjust card sizes
+        # This is visual - mainly testing no errors occur
+        assert summary_cards_widget.width() == 800
+        
+    def test_minimum_card_size(self, summary_cards_widget):
+        """Test cards maintain minimum size."""
+        card = summary_cards_widget.add_card(
+            card_id="test",
+            title="Test",
+            value="100"
+        )
+        
+        # Cards should have minimum size
+        assert card.minimumWidth() > 0
+        assert card.minimumHeight() > 0
+
+
+class TestAccessibility:
+    """Test accessibility features."""
+    
+    def test_keyboard_navigation(self, summary_cards_widget, qtbot):
+        """Test keyboard navigation between cards."""
+        # Add cards
+        for i in range(3):
+            summary_cards_widget.add_card(
+                card_id=f"card_{i}",
+                title=f"Card {i}",
+                value=str(i * 100)
+            )
+            
+        # Set focus
+        summary_cards_widget.setFocus()
+        
+        # Simulate tab key
+        qtbot.keyClick(summary_cards_widget, Qt.Key.Key_Tab)
+        
+        # Focus should move between cards
+        assert summary_cards_widget.hasFocus() or any(
+            card.hasFocus() for card in summary_cards_widget._cards.values()
+        )
+        
+    def test_screen_reader_labels(self, summary_card):
+        """Test screen reader accessibility."""
+        # Cards should have accessible names
+        assert summary_card.accessibleName() != ""
+        
+        # Update with value
+        summary_card.update_value("1234")
+        
+        # Accessible description should include value
+        desc = summary_card.accessibleDescription()
+        assert "1234" in desc or summary_card.accessibleName() != ""

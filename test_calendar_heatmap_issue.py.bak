@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Test script to reproduce the calendar heatmap issue."""
+
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QTimer
+
+def test_calendar_heatmap():
+    """Test the calendar heatmap component."""
+    app = QApplication(sys.argv)
+    
+    try:
+        from ui.charts.calendar_heatmap import CalendarHeatmapComponent, ViewMode
+        
+        # Create widget
+        widget = CalendarHeatmapComponent()
+        
+        # Check if method exists
+        print(f"Has animate_update: {hasattr(widget, 'animate_update')}")
+        print(f"Method type: {type(getattr(widget, 'animate_update', None))}")
+        
+        # Try to call the method directly
+        try:
+            widget.animate_update()
+            print("Direct call to animate_update() succeeded")
+        except AttributeError as e:
+            print(f"Direct call failed: {e}")
+            
+        # Try to call _change_view_mode
+        try:
+            widget._change_view_mode(ViewMode.CIRCULAR)
+            print("Call to _change_view_mode() succeeded")
+        except AttributeError as e:
+            print(f"_change_view_mode call failed: {e}")
+            
+        # Show widget
+        widget.show()
+        
+        # Simulate button click after widget is shown
+        def simulate_click():
+            try:
+                # Find the circular button and click it
+                for child in widget.findChildren(QPushButton):
+                    if child.text() == "Circular View":
+                        print("Clicking Circular View button...")
+                        child.click()
+                        break
+                app.quit()
+            except Exception as e:
+                print(f"Error during click simulation: {e}")
+                app.quit()
+                
+        QTimer.singleShot(100, simulate_click)
+        
+        app.exec()
+        
+    except Exception as e:
+        print(f"Error: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+
+if __name__ == "__main__":
+    test_calendar_heatmap()

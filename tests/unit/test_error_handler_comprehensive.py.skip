@@ -1,0 +1,459 @@
+"""Comprehensive tests for error handler module."""
+
+import pytest
+import logging
+from unittest.mock import Mock, patch, MagicMock, call
+from datetime import datetime
+import sys
+import traceback
+
+from src.utils.error_handler import (
+    ErrorHandler, ErrorCategory, ErrorSeverity,
+    error_handler, log_error, handle_exception,
+    create_error_report, ValidationError, DataError,
+    UIError, AnalyticsError
+)
+
+
+@pytest.fixture
+def mock_logger():
+    """Create mock logger."""
+    logger = Mock(spec=logging.Logger)
+    logger.error = Mock()
+    logger.warning = Mock()
+    logger.info = Mock()
+    logger.debug = Mock()
+    return logger
+
+
+@pytest.fixture
+def error_handler_instance(mock_logger):
+    """Create error handler instance."""
+    with patch('src.utils.error_handler.logger', mock_logger):
+        handler = ErrorHandler()
+        return handler
+
+
+class TestErrorHandler:
+    """Test ErrorHandler class."""
+    
+    def test_initialization(self, error_handler_instance):
+        """Test error handler initialization."""
+        assert error_handler_instance.error_count == {}
+        assert error_handler_instance.error_history == []
+        assert error_handler_instance.max_history == 100
+        
+    def test_handle_error_basic(self, error_handler_instance, mock_logger):
+        """Test basic error handling."""
+        error = ValueError("Test error")
+        
+        result = error_handler_instance.handle_error(
+            error,
+            context="test_context",
+            severity=ErrorSeverity.ERROR
+        )
+        
+        assert result is True
+        assert error_handler_instance.error_count[ValueError] == 1
+        assert len(error_handler_instance.error_history) == 1
+        mock_logger.error.assert_called()
+        
+    def test_handle_error_with_recovery(self, error_handler_instance):
+        """Test error handling with recovery action."""
+        error = DataError("Data validation failed")
+        recovery_called = False
+        
+        def recovery_action():
+            nonlocal recovery_called
+            recovery_called = True
+            return True
+            
+        result = error_handler_instance.handle_error(
+            error,
+            context="data_validation",
+            recovery_action=recovery_action
+        )
+        
+        assert result is True
+        assert recovery_called is True
+        
+    def test_handle_error_recovery_fails(self, error_handler_instance):
+        """Test error handling when recovery fails."""
+        error = DataError("Data validation failed")
+        
+        def failing_recovery():
+            raise Exception("Recovery failed")
+            
+        result = error_handler_instance.handle_error(
+            error,
+            context="data_validation",
+            recovery_action=failing_recovery
+        )
+        
+        assert result is False
+        
+    def test_error_categorization(self, error_handler_instance):
+        """Test automatic error categorization."""
+        # Data error
+        data_error = DataError("Invalid data")
+        category = error_handler_instance._categorize_error(data_error)
+        assert category == ErrorCategory.DATA
+        
+        # UI error
+        ui_error = UIError("Widget failed")
+        category = error_handler_instance._categorize_error(ui_error)
+        assert category == ErrorCategory.UI
+        
+        # Analytics error
+        analytics_error = AnalyticsError("Calculation failed")
+        category = error_handler_instance._categorize_error(analytics_error)
+        assert category == ErrorCategory.ANALYTICS
+        
+        # Generic error
+        generic_error = Exception("Generic error")
+        category = error_handler_instance._categorize_error(generic_error)
+        assert category == ErrorCategory.SYSTEM
+        
+    def test_should_notify_user(self, error_handler_instance):
+        """Test user notification logic."""
+        # Critical error should notify
+        assert error_handler_instance._should_notify_user(
+            Exception("Critical"),
+            ErrorSeverity.CRITICAL
+        ) is True
+        
+        # UI error should notify
+        assert error_handler_instance._should_notify_user(
+            UIError("UI Failed"),
+            ErrorSeverity.ERROR
+        ) is True
+        
+        # Debug level should not notify
+        assert error_handler_instance._should_notify_user(
+            Exception("Debug"),
+            ErrorSeverity.DEBUG
+        ) is False
+            
+    def test_error_history_limit(self, error_handler_instance):
+        """Test error history size limit."""
+        # Add more errors than limit
+        for i in range(150):
+            error_handler_instance.handle_error(
+                Exception(f"Error {i}"),
+                context=f"context_{i}"
+            )
+            
+        assert len(error_handler_instance.error_history) == 100
+        
+    def test_get_error_summary(self, error_handler_instance):
+        """Test getting error summary."""
+        # Add various errors
+        error_handler_instance.handle_error(ValueError("Val1"), context="test")
+        error_handler_instance.handle_error(ValueError("Val2"), context="test")
+        error_handler_instance.handle_error(TypeError("Type1"), context="test")
+        
+        summary = error_handler_instance.get_error_summary()
+        
+        assert summary['total_errors'] == 3
+        assert summary['error_types'][ValueError] == 2
+        assert summary['error_types'][TypeError] == 1
+        assert len(summary['recent_errors']) == 3
+        
+    def test_clear_error_history(self, error_handler_instance):
+        """Test clearing error history."""
+        # Add errors
+        error_handler_instance.handle_error(Exception("Test"), context="test")
+        
+        # Clear history
+        error_handler_instance.clear_history()
+        
+        assert len(error_handler_instance.error_history) == 0
+        assert error_handler_instance.error_count == {}
+
+
+class TestErrorHandlerDecorator:
+    """Test error_handler decorator."""
+    
+    def test_decorator_success(self, mock_logger):
+        """Test decorator with successful function."""
+        @error_handler(default_return=42)
+        def successful_function():
+            return 100
+            
+        with patch('src.utils.error_handler.logger', mock_logger):
+            result = successful_function()
+            
+        assert result == 100
+        mock_logger.error.assert_not_called()
+        
+    def test_decorator_with_exception(self, mock_logger):
+        """Test decorator with function that raises exception."""
+        @error_handler(default_return=42)
+        def failing_function():
+            raise ValueError("Test error")
+            
+        with patch('src.utils.error_handler.logger', mock_logger):
+            result = failing_function()
+            
+        assert result == 42
+        mock_logger.error.assert_called()
+        
+    def test_decorator_with_context(self, mock_logger):
+        """Test decorator with context."""
+        @error_handler(context="test_function", default_return=None)
+        def contextual_function():
+            raise Exception("Context test")
+            
+        with patch('src.utils.error_handler.logger', mock_logger):
+            result = contextual_function()
+            
+        assert result is None
+        # Check that context was included in log
+        log_call = mock_logger.error.call_args[0][0]
+        assert "test_function" in log_call
+        
+    def test_decorator_reraise(self, mock_logger):
+        """Test decorator with reraise option."""
+        @error_handler(reraise=True)
+        def reraise_function():
+            raise ValueError("Should reraise")
+            
+        with patch('src.utils.error_handler.logger', mock_logger):
+            with pytest.raises(ValueError):
+                reraise_function()
+                
+        mock_logger.error.assert_called()
+
+
+class TestLogError:
+    """Test log_error function."""
+    
+    def test_log_error_basic(self, mock_logger):
+        """Test basic error logging."""
+        error = Exception("Test error")
+        
+        with patch('src.utils.error_handler.logger', mock_logger):
+            log_error(error, context="test_context")
+            
+        mock_logger.error.assert_called()
+        log_message = mock_logger.error.call_args[0][0]
+        assert "test_context" in log_message
+        assert "Test error" in log_message
+        
+    def test_log_error_with_details(self, mock_logger):
+        """Test error logging with additional details."""
+        error = ValueError("Detailed error")
+        details = {"user_id": 123, "action": "data_load"}
+        
+        with patch('src.utils.error_handler.logger', mock_logger):
+            log_error(error, context="detailed_test", details=details)
+            
+        log_message = mock_logger.error.call_args[0][0]
+        assert "user_id" in log_message
+        assert "123" in log_message
+        
+    def test_log_error_with_traceback(self, mock_logger):
+        """Test error logging includes traceback."""
+        try:
+            raise ValueError("Traceback test")
+        except ValueError as e:
+            with patch('src.utils.error_handler.logger', mock_logger):
+                log_error(e, context="traceback_test", include_traceback=True)
+                
+        log_message = mock_logger.error.call_args[0][0]
+        assert "Traceback" in log_message or "ValueError" in log_message
+
+
+class TestHandleException:
+    """Test handle_exception function."""
+    
+    @patch('PyQt6.QtWidgets.QMessageBox')
+    def test_handle_exception_with_ui(self, mock_messagebox, mock_logger):
+        """Test exception handling with UI notification."""
+        error = UIError("UI component failed")
+        
+        with patch('src.utils.error_handler.logger', mock_logger):
+            result = handle_exception(
+                error,
+                context="ui_test",
+                show_user_message=True,
+                user_message="Something went wrong"
+            )
+            
+        assert result is False
+        mock_messagebox.critical.assert_called()
+        
+    def test_handle_exception_with_recovery(self, mock_logger):
+        """Test exception handling with recovery."""
+        error = DataError("Data error")
+        recovery_executed = False
+        
+        def recovery():
+            nonlocal recovery_executed
+            recovery_executed = True
+            return True
+            
+        with patch('src.utils.error_handler.logger', mock_logger):
+            result = handle_exception(
+                error,
+                context="recovery_test",
+                recovery_action=recovery
+            )
+            
+        assert result is True
+        assert recovery_executed is True
+        
+    def test_handle_exception_critical(self, mock_logger):
+        """Test handling critical exceptions."""
+        error = Exception("Critical system error")
+        
+        with patch('src.utils.error_handler.logger', mock_logger):
+            result = handle_exception(
+                error,
+                context="critical_test",
+                severity=ErrorSeverity.CRITICAL
+            )
+            
+        assert result is False
+        mock_logger.critical.assert_called()
+
+
+class TestCreateErrorReport:
+    """Test create_error_report function."""
+    
+    def test_create_basic_error_report(self):
+        """Test creating basic error report."""
+        error = ValueError("Report test error")
+        
+        report = create_error_report(
+            error,
+            context="report_test",
+            include_system_info=False
+        )
+        
+        assert "Error Report" in report
+        assert "ValueError" in report
+        assert "Report test error" in report
+        assert "report_test" in report
+        
+    def test_create_detailed_error_report(self):
+        """Test creating detailed error report."""
+        error = Exception("Detailed report")
+        details = {
+            "user": "test_user",
+            "action": "process_data",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        report = create_error_report(
+            error,
+            context="detailed_report",
+            details=details,
+            include_system_info=True
+        )
+        
+        assert "System Information" in report
+        assert "Python Version" in report
+        assert "test_user" in report
+        assert "process_data" in report
+        
+    def test_create_error_report_with_traceback(self):
+        """Test error report with traceback."""
+        try:
+            raise RuntimeError("Traceback report")
+        except RuntimeError as e:
+            report = create_error_report(
+                e,
+                context="traceback_report",
+                include_traceback=True
+            )
+            
+        assert "Traceback" in report
+        assert "RuntimeError" in report
+
+
+class TestCustomExceptions:
+    """Test custom exception classes."""
+    
+    def test_validation_error(self):
+        """Test ValidationError."""
+        error = ValidationError("Invalid input", field="username")
+        assert str(error) == "Invalid input"
+        assert error.field == "username"
+        
+    def test_data_error(self):
+        """Test DataError."""
+        error = DataError("Data processing failed", data_type="CSV")
+        assert str(error) == "Data processing failed"
+        assert error.data_type == "CSV"
+        
+    def test_ui_error(self):
+        """Test UIError."""
+        error = UIError("Widget render failed", component="SummaryCard")
+        assert str(error) == "Widget render failed"
+        assert error.component == "SummaryCard"
+        
+    def test_analytics_error(self):
+        """Test AnalyticsError."""
+        error = AnalyticsError("Calculation error", metric="steps")
+        assert str(error) == "Calculation error"
+        assert error.metric == "steps"
+
+
+class TestErrorPatterns:
+    """Test common error patterns and handling."""
+    
+    def test_retry_pattern(self, error_handler_instance):
+        """Test retry pattern for transient errors."""
+        attempt_count = 0
+        
+        def flaky_operation():
+            nonlocal attempt_count
+            attempt_count += 1
+            if attempt_count < 3:
+                raise ConnectionError("Transient error")
+            return "Success"
+            
+        # Implement retry logic
+        max_retries = 3
+        for i in range(max_retries):
+            try:
+                result = flaky_operation()
+                break
+            except ConnectionError as e:
+                if i < max_retries - 1:
+                    error_handler_instance.handle_error(
+                        e,
+                        context=f"retry_attempt_{i}",
+                        severity=ErrorSeverity.WARNING
+                    )
+                else:
+                    error_handler_instance.handle_error(
+                        e,
+                        context="final_retry_failed",
+                        severity=ErrorSeverity.ERROR
+                    )
+                    result = None
+                    
+        assert result == "Success"
+        assert attempt_count == 3
+        
+    def test_fallback_pattern(self, error_handler_instance):
+        """Test fallback pattern for errors."""
+        def primary_operation():
+            raise Exception("Primary failed")
+            
+        def fallback_operation():
+            return "Fallback result"
+            
+        try:
+            result = primary_operation()
+        except Exception as e:
+            error_handler_instance.handle_error(
+                e,
+                context="primary_operation",
+                severity=ErrorSeverity.WARNING
+            )
+            result = fallback_operation()
+            
+        assert result == "Fallback result"
