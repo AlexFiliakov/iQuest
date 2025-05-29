@@ -481,8 +481,80 @@ class ConfigurationTab(QWidget):
     
     def _create_statistics_section(self):
         """Create the statistics display section."""
-        group = QGroupBox("Data Statistics")
-        group.setStyleSheet(f"""
+        # Main container without GroupBox for better integration
+        container = QWidget(self)
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
+        
+        # Data Preview Section
+        preview_group = QGroupBox("Data Preview")
+        preview_group.setStyleSheet(f"""
+            QGroupBox {{
+                font-size: 18px;
+                font-weight: 600;
+                color: {self.style_manager.TEXT_PRIMARY};
+                background-color: {self.style_manager.SECONDARY_BG};
+                border: 1px solid rgba(139, 115, 85, 0.1);
+                border-radius: 12px;
+                padding: 20px;
+                padding-top: 32px;
+                margin-bottom: 10px;
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 20px;
+                padding: 0 10px 0 10px;
+                color: {self.style_manager.ACCENT_PRIMARY};
+            }}
+        """)
+        
+        preview_layout = QVBoxLayout()
+        preview_layout.setContentsMargins(12, 12, 12, 12)
+        
+        # Create data preview table with larger page size
+        self.data_preview_table = self.component_factory.create_data_table(
+            config=TableConfig(
+                page_size=10,  # Increased from 5
+                alternating_rows=True,
+                grid_style='dotted'
+            ),
+            wsj_style=True
+        )
+        
+        # Set minimum height for better visibility
+        self.data_preview_table.setMinimumHeight(300)
+        
+        # Apply custom styling for better readability
+        self.data_preview_table.setStyleSheet(f"""
+            QTableWidget {{
+                font-size: 14px;
+                gridline-color: rgba(139, 115, 85, 0.2);
+                background-color: white;
+                alternate-background-color: {self.style_manager.TERTIARY_BG};
+                selection-background-color: {self.style_manager.ACCENT_LIGHT};
+            }}
+            QTableWidget::item {{
+                padding: 8px;
+                border: none;
+            }}
+            QHeaderView::section {{
+                background-color: {self.style_manager.ACCENT_PRIMARY};
+                color: white;
+                padding: 10px;
+                border: none;
+                font-weight: 600;
+                font-size: 14px;
+            }}
+        """)
+        
+        preview_layout.addWidget(self.data_preview_table)
+        preview_group.setLayout(preview_layout)
+        layout.addWidget(preview_group)
+        
+        # Data Statistics Section
+        stats_group = QGroupBox("Data Statistics")
+        stats_group.setStyleSheet(f"""
             QGroupBox {{
                 font-size: 18px;
                 font-weight: 600;
@@ -501,29 +573,145 @@ class ConfigurationTab(QWidget):
             }}
         """)
         
-        layout = QVBoxLayout(group)
-        layout.setContentsMargins(12, 12, 12, 12)
+        stats_layout = QVBoxLayout()
+        stats_layout.setContentsMargins(12, 12, 12, 12)
         
-        # Create data preview table
-        preview_group = QGroupBox("Data Preview")
-        preview_layout = QVBoxLayout()
+        # Create custom statistics widget without internal scroll
+        self.statistics_widget = self._create_custom_statistics_widget()
+        stats_layout.addWidget(self.statistics_widget)
         
-        self.data_preview_table = self.component_factory.create_data_table(
+        stats_group.setLayout(stats_layout)
+        layout.addWidget(stats_group)
+        
+        return container
+    
+    def _create_custom_statistics_widget(self):
+        """Create custom statistics widget without internal scrolling."""
+        widget = QWidget(self)
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
+        
+        # Summary section
+        summary_layout = QHBoxLayout()
+        summary_layout.setSpacing(16)
+        
+        # Total Records
+        self.stats_total_label = QLabel("Total Records: -")
+        self.stats_total_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 16px;
+                font-weight: 600;
+                color: {self.style_manager.TEXT_PRIMARY};
+                padding: 12px 20px;
+                background-color: {self.style_manager.TERTIARY_BG};
+                border-radius: 8px;
+            }}
+        """)
+        summary_layout.addWidget(self.stats_total_label)
+        
+        # Date Range
+        self.stats_date_label = QLabel("Date Range: -")
+        self.stats_date_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 16px;
+                font-weight: 600;
+                color: {self.style_manager.TEXT_PRIMARY};
+                padding: 12px 20px;
+                background-color: {self.style_manager.TERTIARY_BG};
+                border-radius: 8px;
+            }}
+        """)
+        summary_layout.addWidget(self.stats_date_label)
+        summary_layout.addStretch()
+        
+        layout.addLayout(summary_layout)
+        
+        # Separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
+        layout.addWidget(separator)
+        
+        # Two-column layout for Record Types and Data Sources
+        columns_layout = QHBoxLayout()
+        columns_layout.setSpacing(20)
+        
+        # Record Types Column
+        types_column = QWidget()
+        types_layout = QVBoxLayout(types_column)
+        types_layout.setContentsMargins(0, 0, 0, 0)
+        
+        types_title = QLabel("Record Types")
+        types_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: 16px;
+                font-weight: 600;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 8px;
+            }}
+        """)
+        types_layout.addWidget(types_title)
+        
+        # Record types table
+        self.record_types_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=5
+                page_size=15,  # Show more records
+                alternating_rows=True,
+                resizable_columns=True,
+                movable_columns=False,
+                selection_mode='row',
+                multi_select=False
             ),
             wsj_style=True
         )
-        preview_layout.addWidget(self.data_preview_table)
-        preview_group.setLayout(preview_layout)
-        layout.addWidget(preview_group)
+        self.record_types_table.setMinimumHeight(250)
+        self.record_types_table.setMaximumHeight(400)
+        types_layout.addWidget(self.record_types_table)
         
-        # Create statistics widget
+        columns_layout.addWidget(types_column, 1)
+        
+        # Data Sources Column
+        sources_column = QWidget()
+        sources_layout = QVBoxLayout(sources_column)
+        sources_layout.setContentsMargins(0, 0, 0, 0)
+        
+        sources_title = QLabel("Data Sources")
+        sources_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: 16px;
+                font-weight: 600;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 8px;
+            }}
+        """)
+        sources_layout.addWidget(sources_title)
+        
+        # Data sources table
+        self.data_sources_table = self.component_factory.create_data_table(
+            config=TableConfig(
+                page_size=15,  # Show more records
+                alternating_rows=True,
+                resizable_columns=True,
+                movable_columns=False,
+                selection_mode='row',
+                multi_select=False
+            ),
+            wsj_style=True
+        )
+        self.data_sources_table.setMinimumHeight(250)
+        self.data_sources_table.setMaximumHeight(400)
+        sources_layout.addWidget(self.data_sources_table)
+        
+        columns_layout.addWidget(sources_column, 1)
+        
+        layout.addLayout(columns_layout)
+        
+        # Store original statistics widget for compatibility
         self.statistics_widget = StatisticsWidget()
-        self.statistics_widget.filter_requested.connect(self._on_statistics_filter_requested)
-        layout.addWidget(self.statistics_widget)
+        self.statistics_widget.setVisible(False)  # Hide original widget
         
-        return group
+        return widget
     
     def _create_summary_cards_section(self):
         """Create summary cards for data overview."""
@@ -687,7 +875,7 @@ class ConfigurationTab(QWidget):
             # Calculate and display statistics
             if self.data is not None and not self.data.empty:
                 stats = self.statistics_calculator.calculate_from_dataframe(self.data)
-                self.statistics_widget.update_statistics(stats)
+                self._update_custom_statistics(stats)
             
             # Load last used filters if available
             self._load_last_used_filters()
@@ -1155,7 +1343,7 @@ class ConfigurationTab(QWidget):
             # Calculate and display statistics
             if self.data is not None and not self.data.empty:
                 stats = self.statistics_calculator.calculate_from_dataframe(self.data)
-                self.statistics_widget.update_statistics(stats)
+                self._update_custom_statistics(stats)
             
             # Initialize calculators with the loaded data
             self._initialize_calculators()
@@ -1266,10 +1454,101 @@ class ConfigurationTab(QWidget):
         import_action.setShortcut("Alt+I")
         import_action.triggered.connect(self._on_import_clicked)
         self.addAction(import_action)
+    
+    def _update_custom_statistics(self, stats):
+        """Update the custom statistics display."""
+        if not stats:
+            self.stats_total_label.setText("Total Records: -")
+            self.stats_date_label.setText("Date Range: -")
+            self.record_types_table.clear_data() if hasattr(self, 'record_types_table') else None
+            self.data_sources_table.clear_data() if hasattr(self, 'data_sources_table') else None
+            return
         
-        # Alt+A for Apply Filters
-        apply_action = QAction(self)
-        apply_action.setShortcut("Alt+A")
+        # Update summary labels
+        self.stats_total_label.setText(f"Total Records: {stats.total_records:,}")
+        
+        if stats.date_range[0] and stats.date_range[1]:
+            try:
+                date_str = f"{stats.date_range[0].strftime('%Y-%m-%d')} to {stats.date_range[1].strftime('%Y-%m-%d')}"
+                self.stats_date_label.setText(f"Date Range: {date_str}")
+            except:
+                self.stats_date_label.setText("Date Range: Invalid dates")
+        else:
+            self.stats_date_label.setText("Date Range: -")
+        
+        # Update record types table
+        if hasattr(self, 'record_types_table') and stats.records_by_type:
+            types_data = []
+            for type_name, count in sorted(stats.records_by_type.items(), 
+                                         key=lambda x: x[1], reverse=True):
+                types_data.append({
+                    'Type': type_name,
+                    'Count': f"{count:,}",
+                    'Percentage': f"{(count/stats.total_records)*100:.1f}%"
+                })
+            if types_data:
+                types_df = pd.DataFrame(types_data)
+                self.record_types_table.load_data(types_df)
+        
+        # Update data sources table
+        if hasattr(self, 'data_sources_table') and stats.records_by_source:
+            sources_data = []
+            for source_name, count in sorted(stats.records_by_source.items(), 
+                                           key=lambda x: x[1], reverse=True):
+                sources_data.append({
+                    'Source': source_name,
+                    'Count': f"{count:,}",
+                    'Percentage': f"{(count/stats.total_records)*100:.1f}%"
+                })
+            if sources_data:
+                sources_df = pd.DataFrame(sources_data)
+                self.data_sources_table.load_data(sources_df)
+        
+        # Also update original statistics widget for compatibility
+        if hasattr(self, 'statistics_widget'):
+            self.statistics_widget.update_statistics(stats)
+    
+    def _update_data_preview(self):
+        """Update the data preview table with sample data."""
+        if self.data is None or self.data.empty:
+            if hasattr(self, 'data_preview_table'):
+                self.data_preview_table.clear_data()
+            return
+        
+        # Get a sample of the data
+        sample_size = min(10, len(self.data))
+        sample_data = self.data.head(sample_size).copy()
+        
+        # Select relevant columns for preview
+        preview_columns = []
+        for col in ['type', 'sourceName', 'value', 'unit', 'creationDate', 'startDate', 'endDate']:
+            if col in sample_data.columns:
+                preview_columns.append(col)
+        
+        if preview_columns:
+            preview_data = sample_data[preview_columns]
+            
+            # Format dates for better readability
+            for col in ['creationDate', 'startDate', 'endDate']:
+                if col in preview_data.columns:
+                    try:
+                        preview_data[col] = pd.to_datetime(preview_data[col]).dt.strftime('%Y-%m-%d %H:%M')
+                    except:
+                        pass
+            
+            # Load into preview table
+            if hasattr(self, 'data_preview_table'):
+                self.data_preview_table.load_data(preview_data)
+    
+    def _update_status(self, message):
+        """Update the status label with a message."""
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(message)
+    
+    def _on_statistics_filter_requested(self, filter_type, filter_value):
+        """Handle filter request from statistics widget."""
+        # This method handles clicks on statistics items to filter data
+        pass
         apply_action.triggered.connect(self._on_apply_filters_clicked)
         self.addAction(apply_action)
         

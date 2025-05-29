@@ -23,11 +23,12 @@ Example:
 """
 
 from typing import Any, Dict, Optional, List, Union
-from datetime import datetime
+from datetime import datetime, date
 import logging
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass
+from enum import Enum
 
 from ..health_database import HealthDatabase
 from .streaming_data_loader import StreamingDataLoader, DataChunk
@@ -40,6 +41,29 @@ from .cache_manager import AnalyticsCacheManager as CacheManager
 logger = logging.getLogger(__name__)
 
 
+# Aliases for backward compatibility
+Priority = TaskPriority
+
+
+class CalculationType(Enum):
+    """Types of calculations available."""
+    DAILY_METRICS = "daily_metrics"
+    WEEKLY_METRICS = "weekly_metrics"
+    MONTHLY_METRICS = "monthly_metrics"
+    TREND_ANALYSIS = "trend_analysis"
+    CORRELATION = "correlation"
+    STREAMING = "streaming"
+    PROGRESSIVE = "progressive"
+    CUSTOM = "custom"
+
+
+class CacheStrategy(Enum):
+    """Cache strategy options."""
+    NONE = "none"
+    STANDARD = "standard"
+    AGGRESSIVE = "aggressive"
+
+
 @dataclass
 class AnalyticsRequest:
     """Request for analytics computation.
@@ -50,20 +74,37 @@ class AnalyticsRequest:
     
     Attributes:
         metric_type (str): The health metric type to analyze.
-        start_date (datetime): Start date for the analysis.
-        end_date (datetime): End date for the analysis.
+        start_date (Union[datetime, date]): Start date for the analysis.
+        end_date (Union[datetime, date]): End date for the analysis.
+        calculation_type (Optional[CalculationType]): Type of calculation to perform.
         aggregation_level (str): Time grouping level ('daily', 'weekly', 'monthly').
         metrics (Optional[List[str]]): Specific metrics to calculate.
-        options (Dict[str, Any]): Additional processing options.
-        priority (TaskPriority): Task priority for queue scheduling.
+        options (Optional[Dict[str, Any]]): Additional processing options.
+        priority (Priority): Task priority for queue scheduling.
+        cache_strategy (Optional[CacheStrategy]): Cache strategy to use.
+        optimize (bool): Whether to use optimized calculations.
+        memory_limit_mb (Optional[int]): Memory limit for processing.
     """
     metric_type: str
-    start_date: datetime
-    end_date: datetime
+    start_date: Union[datetime, date] = None
+    end_date: Union[datetime, date] = None
+    calculation_type: Optional[CalculationType] = None
     aggregation_level: str = 'daily'  # daily, weekly, monthly
     metrics: Optional[List[str]] = None
-    options: Dict[str, Any] = None
-    priority: TaskPriority = TaskPriority.NORMAL
+    options: Optional[Dict[str, Any]] = None
+    priority: Priority = TaskPriority.NORMAL
+    cache_strategy: Optional[CacheStrategy] = None
+    optimize: bool = False
+    memory_limit_mb: Optional[int] = None
+    
+    def __post_init__(self):
+        """Initialize optional fields."""
+        if self.options is None:
+            self.options = {}
+        if self.start_date is None:
+            self.start_date = datetime.now().date()
+        if self.end_date is None:
+            self.end_date = datetime.now().date()
     
     def cache_key(self) -> str:
         """Generate cache key for this request.
@@ -75,7 +116,35 @@ class AnalyticsRequest:
             str: Unique cache key string.
         """
         metrics_str = ','.join(sorted(self.metrics)) if self.metrics else 'all'
-        return f"{self.metric_type}_{self.aggregation_level}_{self.start_date.date()}_{self.end_date.date()}_{metrics_str}"
+        start = self.start_date if isinstance(self.start_date, date) else self.start_date.date()
+        end = self.end_date if isinstance(self.end_date, date) else self.end_date.date()
+        calc_type = self.calculation_type.value if self.calculation_type else 'default'
+        return f"{self.metric_type}_{calc_type}_{self.aggregation_level}_{start}_{end}_{metrics_str}"
+    
+    def __hash__(self):
+        """Make request hashable for caching."""
+        return hash(self.cache_key())
+
+
+@dataclass
+class AnalyticsResult:
+    """Result of analytics computation.
+    
+    Contains the computed results along with metadata about the computation
+    including success status, any errors, and the original request.
+    
+    Attributes:
+        request (AnalyticsRequest): The original request that generated this result.
+        data (Dict[str, Any]): The computed results data.
+        success (bool): Whether the computation was successful.
+        error (Optional[str]): Error message if computation failed.
+        metadata (Optional[Dict[str, Any]]): Additional metadata about the computation.
+    """
+    request: AnalyticsRequest
+    data: Dict[str, Any]
+    success: bool = True
+    error: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class OptimizedAnalyticsEngine:

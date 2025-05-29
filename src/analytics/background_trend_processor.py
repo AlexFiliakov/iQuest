@@ -66,6 +66,7 @@ class BackgroundTrendProcessor:
     CACHE_EXPIRY_HOURS = 24  # Default cache expiry
     MAX_WORKERS = 2  # Limit concurrent processing
     BATCH_SIZE = 5  # Process trends in batches
+    VALID_METRICS = VALID_METRICS  # Use module-level constant
     
     def __init__(self, database, cache_manager: Optional[CacheManager] = None):
         """Initialize the background trend processor."""
@@ -85,7 +86,9 @@ class BackgroundTrendProcessor:
         
         # Initialize analytics engines
         self.trend_engine = AdvancedTrendAnalysisEngine()
-        self.comparative_engine = ComparativeAnalyticsEngine(database)
+        
+        # Comparative engine will be set externally if needed
+        self.comparative_engine = None
         
         # Cache configuration
         self.cache_dir = Path.home() / ".apple_health_monitor" / "trend_cache"
@@ -166,22 +169,23 @@ class BackgroundTrendProcessor:
                 forecast_days=30
             )
             
-            # Calculate comparative analytics
-            historical_comparison = self.comparative_engine.get_historical_comparison(
-                metric=metric,
-                current_date=end_date
-            )
-            
-            # Enhance trend result with comparative data
-            if trend_result and historical_comparison:
-                trend_result.comparative_data = {
-                    'rolling_7_day': historical_comparison.rolling_7_day,
-                    'rolling_30_day': historical_comparison.rolling_30_day,
-                    'rolling_90_day': historical_comparison.rolling_90_day,
-                    'trend_direction': historical_comparison.trend_direction,
-                    'personal_best': historical_comparison.personal_best,
-                    'personal_average': historical_comparison.personal_average
-                }
+            # Calculate comparative analytics if engine is available
+            if self.comparative_engine:
+                historical_comparison = self.comparative_engine.get_historical_comparison(
+                    metric=metric,
+                    current_date=end_date
+                )
+                
+                # Enhance trend result with comparative data
+                if trend_result and historical_comparison:
+                    trend_result.comparative_data = {
+                        'rolling_7_day': historical_comparison.rolling_7_day,
+                        'rolling_30_day': historical_comparison.rolling_30_day,
+                        'rolling_90_day': historical_comparison.rolling_90_day,
+                        'trend_direction': historical_comparison.trend_direction,
+                        'personal_best': historical_comparison.personal_best,
+                        'personal_average': historical_comparison.personal_average
+                    }
             
             # Cache the result
             if trend_result:
@@ -357,3 +361,7 @@ class BackgroundTrendProcessor:
         self.executor.shutdown(wait=True, cancel_futures=True)
         
         logger.info("Background trend processor shutdown complete")
+    
+    def set_comparative_engine(self, engine: ComparativeAnalyticsEngine):
+        """Set the comparative analytics engine."""
+        self.comparative_engine = engine

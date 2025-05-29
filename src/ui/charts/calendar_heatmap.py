@@ -781,3 +781,7 @@ class CalendarHeatmapComponent(QWidget):
         # Start pulse animation for today marker
         if self._show_today_marker:
             self._pulse_animation.start()
+
+
+# Alias for backward compatibility
+CalendarHeatmap = CalendarHeatmapComponent

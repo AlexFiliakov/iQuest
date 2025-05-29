@@ -150,6 +150,7 @@ class ComparisonCard(QFrame):
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
         self.title = title
+        self.is_loading = False
         self.setup_ui()
         
     def setup_ui(self):
@@ -241,6 +242,34 @@ class ComparisonCard(QFrame):
         """Set the insight text."""
         self.insight_label.setText(insight)
         
+    def set_loading(self, loading: bool):
+        """Set loading state."""
+        self.is_loading = loading
+        if loading:
+            self.value_label.setText("...")
+            self.comparison_label.setText("Calculating trends")
+            self.insight_label.setText("")
+        else:
+            self.value_label.setText("--")
+            self.comparison_label.setText("")
+            self.insight_label.setText("")
+            
+    def set_value(self, value: float, trend: str = 'stable'):
+        """Set the comparison value and trend."""
+        self.is_loading = False
+        self.value_label.setText(f"{value:,.0f}")
+        
+        # Set trend indicator
+        if trend == 'improving':
+            self.comparison_label.setText("↑ Improving trend")
+            self.comparison_label.setStyleSheet("font-size: 12px; color: #4CAF50;")
+        elif trend == 'declining':
+            self.comparison_label.setText("↓ Declining trend")
+            self.comparison_label.setStyleSheet("font-size: 12px; color: #FF5252;")
+        else:
+            self.comparison_label.setText("→ Stable trend")
+            self.comparison_label.setStyleSheet("font-size: 12px; color: #666666;")
+    
     def mousePressEvent(self, event):
         """Handle mouse press."""
         self.clicked.emit()
@@ -561,6 +590,8 @@ class ComparativeAnalyticsWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.comparative_engine = None
+        self.current_metric = 'HKQuantityTypeIdentifierStepCount'
         self.setup_ui()
         
     def setup_ui(self):
@@ -634,3 +665,87 @@ class ComparativeAnalyticsWidget(QWidget):
         
         self.historical_widget.hide()
         self.group_widget.show()
+    
+    def set_comparative_engine(self, engine):
+        """Set the comparative analytics engine."""
+        self.comparative_engine = engine
+        logger.info("Comparative engine set for visualization widget")
+        
+        # Trigger initial trend calculation for default metric
+        if engine and hasattr(engine, 'background_processor') and engine.background_processor:
+            engine.background_processor.queue_trend_calculation(self.current_metric, priority=10)
+            
+    def set_current_metric(self, metric: str):
+        """Set the current metric and update display."""
+        self.current_metric = metric
+        self.update_comparisons()
+        
+    def update_comparisons(self):
+        """Update comparison displays using cached trends."""
+        if not self.comparative_engine:
+            logger.warning("No comparative engine set")
+            return
+            
+        # Get cached trend data
+        trend_data = self.comparative_engine.get_trend_analysis(self.current_metric, use_cache=True)
+        
+        if trend_data:
+            # Update historical comparison with cached data
+            self._update_historical_display(trend_data)
+        else:
+            # Show loading state and queue calculation
+            self._show_loading_state()
+            if hasattr(self.comparative_engine, 'background_processor') and self.comparative_engine.background_processor:
+                self.comparative_engine.background_processor.queue_trend_calculation(
+                    self.current_metric, 
+                    priority=10
+                )
+                # Set up a timer to check for results
+                QTimer.singleShot(1000, self._check_for_trend_results)
+                
+    def _update_historical_display(self, trend_data):
+        """Update the historical comparison display with trend data."""
+        if hasattr(trend_data, 'comparative_data') and trend_data.comparative_data:
+            comp_data = trend_data.comparative_data
+            
+            # Update comparison cards
+            if comp_data.get('rolling_7_day'):
+                self.historical_widget.week_card.set_value(
+                    comp_data['rolling_7_day'].mean if hasattr(comp_data['rolling_7_day'], 'mean') else 0,
+                    trend_data.trend_direction if hasattr(trend_data, 'trend_direction') else 'stable'
+                )
+                
+            if comp_data.get('rolling_30_day'):
+                self.historical_widget.month_card.set_value(
+                    comp_data['rolling_30_day'].mean if hasattr(comp_data['rolling_30_day'], 'mean') else 0,
+                    trend_data.trend_direction if hasattr(trend_data, 'trend_direction') else 'stable'
+                )
+                
+            # Add trend insights
+            if hasattr(trend_data, 'insights') and trend_data.insights:
+                self._display_insights(trend_data.insights)
+                
+    def _show_loading_state(self):
+        """Show loading state while trends are being calculated."""
+        # Update cards to show loading
+        self.historical_widget.week_card.set_loading(True)
+        self.historical_widget.month_card.set_loading(True)
+        self.historical_widget.quarter_card.set_loading(True)
+        self.historical_widget.year_card.set_loading(True)
+        
+    def _check_for_trend_results(self):
+        """Check if trend results are ready."""
+        if not self.comparative_engine:
+            return
+            
+        trend_data = self.comparative_engine.get_trend_analysis(self.current_metric, use_cache=True)
+        if trend_data:
+            self._update_historical_display(trend_data)
+        else:
+            # Check again in a bit
+            QTimer.singleShot(2000, self._check_for_trend_results)
+            
+    def _display_insights(self, insights: List[str]):
+        """Display trend insights."""
+        # This would update an insights panel in the UI
+        logger.info(f"Displaying {len(insights)} insights")

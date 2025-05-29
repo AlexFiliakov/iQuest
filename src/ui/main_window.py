@@ -81,8 +81,13 @@ class MainWindow(QMainWindow):
         self.personal_records_tracker = PersonalRecordsTracker(db_manager)
         
         # Initialize background trend processor
-        # self.background_trend_processor = BackgroundTrendProcessor(db_manager)
-        logger.info("Background trend processor initialized")
+        self.background_trend_processor = None
+        try:
+            from ..analytics.background_trend_processor import BackgroundTrendProcessor
+            self.background_trend_processor = BackgroundTrendProcessor(db_manager)
+            logger.info("Background trend processor initialized")
+        except ImportError as e:
+            logger.warning(f"Could not initialize background trend processor: {e}")
         
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
@@ -464,11 +469,16 @@ class MainWindow(QMainWindow):
                 background_processor=self.background_trend_processor if hasattr(self, 'background_trend_processor') else None
             )
             
+            # Set the comparative engine in the background processor
+            if self.background_trend_processor and hasattr(self.background_trend_processor, 'set_comparative_engine'):
+                self.background_trend_processor.set_comparative_engine(self.comparative_engine)
+            
             # Create peer group manager
             self.peer_group_manager = PeerGroupManager()
             
             # Create the widget
             self.comparative_widget = ComparativeAnalyticsWidget()
+            self.comparative_widget.set_comparative_engine(self.comparative_engine)
             
             self.tab_widget.addTab(self.comparative_widget, "Compare")
             self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and peer groups")
@@ -1141,6 +1151,21 @@ class MainWindow(QMainWindow):
         for i in range(1, self.tab_widget.count()):
             self.tab_widget.setTabEnabled(i, True)
         
+        # Trigger background trend calculation for all metrics
+        if self.background_trend_processor and data is not None:
+            logger.info("Triggering background trend calculation for all metrics")
+            # Get unique metrics from the data
+            if hasattr(data, 'columns') and 'type' in data.columns:
+                unique_metrics = data['type'].unique().tolist()
+                for metric in unique_metrics:
+                    if metric in self.background_trend_processor.VALID_METRICS:
+                        self.background_trend_processor.queue_trend_calculation(
+                            metric, priority=5, force_refresh=True
+                        )
+            else:
+                # Queue all known metrics
+                self.background_trend_processor.queue_all_metrics(priority=5)
+        
         # Trigger health insights generation if available
         if hasattr(self, 'health_insights_widget') and data is not None:
             self._refresh_health_insights()
@@ -1242,6 +1267,11 @@ class MainWindow(QMainWindow):
         
         # Save window state before closing
         self.settings_manager.save_window_state(self)
+        
+        # Shutdown background trend processor
+        if self.background_trend_processor:
+            logger.info("Shutting down background trend processor")
+            self.background_trend_processor.shutdown()
         
         # Accept the close event
         event.accept()

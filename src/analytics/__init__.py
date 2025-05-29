@@ -139,5 +139,5 @@ __all__ = [
     'migrate_to_optimized_calculators',
     
     # Background trend processing
-    'BackgroundTrendProcessor'
+    # 'BackgroundTrendProcessor'  # Commented out due to import issues
 ]
