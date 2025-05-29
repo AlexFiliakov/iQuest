@@ -12,6 +12,7 @@ end_date: 2025-03-15
 Package the application as a professional Windows executable with installer, ensuring easy distribution and installation for non-technical users.
 
 ## Deliverables
+- [ ] Implement remaining tasks in `G064_visualization_performance_optimization.md`
 - [ ] PyInstaller configuration and build script
 - [ ] Windows executable with icon and metadata
 - [ ] NSIS installer with proper UI
