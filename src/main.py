@@ -88,6 +88,13 @@ def main():
     """
     try:
         logger.info("Starting Apple Health Monitor Dashboard")
+        
+        # PyQt6 handles high DPI scaling automatically
+        # Set the rounding policy for fractional scale factors
+        QApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+        )
+        
         app = QApplication(sys.argv)
 
         # install proxy style to customize tooltip delays

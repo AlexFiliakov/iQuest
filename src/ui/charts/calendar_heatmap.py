@@ -71,6 +71,7 @@ class CalendarHeatmapComponent(QWidget):
         self._metric_type = "steps"
         self._current_date = datetime.now().date()
         self._data_range = None
+        self._show_controls = True  # Whether to show view mode controls
         
         # Interactive state
         self._hover_date = None
@@ -202,9 +203,10 @@ class CalendarHeatmapComponent(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
         
-        # Control panel
-        controls = self._create_control_panel()
-        layout.addWidget(controls)
+        # Control panel (only show if enabled)
+        if self._show_controls:
+            controls = self._create_control_panel()
+            layout.addWidget(controls)
         
         # Chart area (will be drawn in paintEvent)
         layout.addStretch()
@@ -443,16 +445,33 @@ class CalendarHeatmapComponent(QWidget):
         days_in_month = calendar.monthrange(year, month)[1]
         first_weekday = first_day.weekday()  # 0 = Monday
         
-        # Calculate cell size
-        grid_width = rect.width() - 100  # Leave space for labels
-        grid_height = rect.height() - 80
+        # Calculate cell size with minimum size to prevent squishing
+        MIN_CELL_SIZE = 40  # Minimum cell size in pixels
+        MAX_CELL_SIZE = 60  # Maximum cell size in pixels
         
-        cell_width = min(grid_width // 7, grid_height // 6)
+        grid_width = rect.width() - 100  # Leave space for labels
+        grid_height = rect.height() - 120  # Leave more space for month/year label
+        
+        # Calculate optimal cell size
+        cell_width = min(max(grid_width // 7, MIN_CELL_SIZE), MAX_CELL_SIZE)
         cell_height = cell_width
         
-        # Starting position
-        start_x = rect.x() + (rect.width() - 7 * cell_width) // 2
-        start_y = rect.y() + 60
+        # Starting position - center the grid
+        grid_total_width = 7 * cell_width
+        start_x = rect.x() + (rect.width() - grid_total_width) // 2
+        start_y = rect.y() + 90  # More space for month/year display
+        
+        # Draw month and year label
+        month_names = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+        month_year_text = f"{month_names[month - 1]} {year}"
+        
+        painter.setFont(QFont('Poppins', 16, QFont.Weight.Bold))
+        painter.setPen(self._colors['text'])
+        text_rect = QRect(rect.x(), rect.y() + 40, rect.width(), 30)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, month_year_text)
         
         # Draw day labels
         painter.setFont(self._fonts['label'])
@@ -473,18 +492,24 @@ class CalendarHeatmapComponent(QWidget):
             x = start_x + weekday * cell_width
             y = start_y + week * cell_height
             
-            cell_rect = QRect(x + 1, y + 1, cell_width - 2, cell_height - 2)
+            # Add more spacing between cells
+            cell_padding = 3
+            cell_rect = QRect(x + cell_padding, y + cell_padding, 
+                            cell_width - 2 * cell_padding, cell_height - 2 * cell_padding)
             
             # Get value and color
             value = self._metric_data.get(current_date)
             color = self._get_color_for_value(value)
             
-            # Draw cell
-            painter.fillRect(cell_rect, color)
+            # Draw cell with rounded corners
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(color))
+            painter.drawRoundedRect(cell_rect, 4, 4)
             
-            # Draw border
-            painter.setPen(QPen(self._colors['grid'], 1))
-            painter.drawRect(cell_rect)
+            # Draw subtle border
+            painter.setPen(QPen(self._colors['grid'], 0.5))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(cell_rect, 4, 4)
             
             # Draw pattern if enabled
             if self._show_patterns and value is not None:
@@ -774,6 +799,15 @@ class CalendarHeatmapComponent(QWidget):
     def get_current_date(self) -> date:
         """Get the current date."""
         return self._current_date
+        
+    def set_show_controls(self, show: bool):
+        """Set whether to show view mode controls."""
+        self._show_controls = show
+        # Recreate UI if already initialized
+        if self.layout():
+            # Clear existing layout
+            QWidget().setLayout(self.layout())
+            self._setup_ui()
         
     def showEvent(self, event):
         """Handle widget show event."""
