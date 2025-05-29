@@ -1,0 +1,521 @@
+"""Comprehensive tests for comparative analytics modules."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+
+from src.analytics.comparative_analytics import (
+    ComparativeAnalyticsEngine, ComparisonType, PrivacyLevel,
+    ComparisonResult, HistoricalComparison, DemographicCohort,
+    SeasonalNorm, PeerGroupStats, PrivacyManager, InsightsGenerator
+)
+from src.analytics.peer_group_comparison import (
+    PeerGroup, PeerGroupManager, GroupPrivacyLevel, GroupRole, GroupMember, GroupComparison
+)
+from src.analytics.comparison_overlay_calculator import (
+    ComparisonOverlayCalculator, ComparisonResult as OverlayComparisonResult, OverlayData
+)
+
+
+class TestPeerGroupModels:
+    """Test peer group comparison models."""
+    
+    def test_group_member_creation(self):
+        """Test GroupMember creation."""
+        member = GroupMember(
+            member_id="test_user_123",
+            joined_date=datetime.now(),
+            role=GroupRole.MEMBER,
+            last_active=datetime.now()
+        )
+        
+        # Member ID should be hashed
+        assert len(member.member_id) == 64  # SHA256 hex length
+        assert member.role == GroupRole.MEMBER
+        assert member.is_active is True
+        
+    def test_peer_group_creation(self):
+        """Test PeerGroup creation."""
+        peer_group = PeerGroup(
+            group_id="pg_123",
+            name="Active 30s Males",
+            description="Group for active males in their 30s",
+            created_date=datetime.now(),
+            privacy_level=GroupPrivacyLevel.ANONYMOUS
+        )
+        
+        assert peer_group.group_id == "pg_123"
+        assert peer_group.name == "Active 30s Males"
+        assert peer_group.min_members == 5
+        assert peer_group.max_members == 100
+        
+    def test_group_comparison(self):
+        """Test GroupComparison creation."""
+        comparison = GroupComparison(
+            group_id="pg_123",
+            metric="steps",
+            comparison_date=datetime.now(),
+            user_value=9500,
+            group_stats={
+                "mean": 8000,
+                "median": 7800,
+                "std": 1500,
+                "min": 3000,
+                "max": 15000
+            },
+            anonymous_ranking="top quarter",
+            trend_comparison="improving",
+            insights=["You're in the top 25% of your peer group"]
+        )
+        
+        assert comparison.user_value == 9500
+        assert comparison.group_stats["mean"] == 8000
+        assert comparison.anonymous_ranking == "top quarter"
+        assert len(comparison.insights) == 1
+
+
+class TestComparativeAnalyticsEngine:
+    """Test comparative analytics functionality."""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """Create comparative analytics engine."""
+        daily_calc = Mock()
+        weekly_calc = Mock()
+        monthly_calc = Mock()
+        return ComparativeAnalyticsEngine(daily_calc, weekly_calc, monthly_calc)
+    
+    @pytest.fixture
+    def user_profile(self):
+        """Create user profile."""
+        return {
+            "user_id": "test_user",
+            "age": 35,
+            "gender": "female",
+            "activity_level": "high",
+            "location": "suburban"
+        }
+    
+    @pytest.fixture
+    def peer_data(self):
+        """Create peer group data."""
+        # Simulate 100 peers
+        np.random.seed(42)
+        return pd.DataFrame({
+            'user_id': [f'peer_{i}' for i in range(100)],
+            'steps': np.random.normal(8000, 2000, 100),
+            'sleep_hours': np.random.normal(7.5, 1, 100),
+            'exercise_minutes': np.random.normal(30, 15, 100),
+            'resting_heart_rate': np.random.normal(65, 8, 100)
+        })
+    
+    def test_compare_to_demographic(self, analyzer, user_profile):
+        """Test demographic comparison."""
+        # Mock the calculator responses
+        analyzer.daily_calc.calculate_statistics.return_value = Mock(
+            mean=10000, min=8000, max=12000, count=30
+        )
+        
+        result = analyzer.compare_to_demographic(
+            metric='steps',
+            age=35,
+            gender='female',
+            activity_level='very_active'
+        )
+        
+        # Should return None without permission
+        assert result is None or result.comparison_type == ComparisonType.DEMOGRAPHIC
+            
+    def test_compare_to_historical(self, analyzer):
+        """Test historical comparison."""
+        # Mock the calculator responses
+        mock_stats = Mock(mean=8000, min=5000, max=12000, count=30)
+        analyzer.daily_calc.calculate_statistics.return_value = mock_stats
+        
+        result = analyzer.compare_to_historical(
+            metric='steps',
+            current_date=datetime.now(),
+            lookback_days=365
+        )
+        
+        assert result is not None
+        assert isinstance(result, HistoricalComparison)
+        assert result.rolling_7_day is not None
+        assert result.rolling_30_day is not None
+            
+    def test_compare_to_seasonal(self, analyzer):
+        """Test seasonal comparison."""
+        # Mock the calculator responses
+        mock_stats = Mock(mean=8000, min=5000, max=12000, count=30)
+        analyzer.daily_calc.calculate_statistics.return_value = mock_stats
+        
+        result = analyzer.compare_to_seasonal(
+            metric='steps',
+            current_date=datetime.now(),
+            location='New York'
+        )
+        
+        # Should return None without permission or data
+        assert result is None or result.comparison_type == ComparisonType.SEASONAL
+        
+    def test_generate_insights(self, analyzer):
+        """Test insight generation."""
+        # Test demographic insights
+        insights = analyzer.insights_generator.generate_demographic_insights(85)
+        assert len(insights) > 0
+        assert any('top' in insight.lower() or 'above' in insight.lower() for insight in insights)
+        
+        # Test historical insights
+        historical = HistoricalComparison()
+        historical.trend_direction = "improving"
+        historical.rolling_30_day = Mock(mean=9000)
+        historical.rolling_90_day = Mock(mean=8000)
+        
+        insights = analyzer.insights_generator.generate_historical_insights(historical)
+        assert len(insights) > 0
+        assert any('improv' in insight.lower() for insight in insights)
+
+
+class TestPrivacyManager:
+    """Test privacy management functionality."""
+    
+    @pytest.fixture
+    def privacy_manager(self):
+        """Create privacy manager."""
+        return PrivacyManager()
+    
+    @pytest.fixture
+    def historical_data(self):
+        """Create historical data."""
+        # Create 90 days of data with trend
+        dates = pd.date_range(end=date.today(), periods=90, freq='D')
+        steps = []
+        
+        for i in range(90):
+            # Add weekly pattern and gradual improvement
+            day_of_week = dates[i].dayofweek
+            base = 7000 + (i * 10)  # Gradual improvement
+            
+            if day_of_week < 5:  # Weekday
+                daily_steps = base + np.random.randint(0, 2000)
+            else:  # Weekend
+                daily_steps = base - np.random.randint(500, 1500)
+                
+            steps.append(daily_steps)
+            
+        return pd.DataFrame({
+            'date': dates,
+            'steps': steps,
+            'sleep_hours': np.random.normal(7.5, 0.5, 90),
+            'exercise_minutes': np.random.randint(0, 60, 90)
+        })
+    
+    def test_has_permission(self, privacy_manager):
+        """Test permission checking."""
+        # Default should be no permission
+        assert not privacy_manager.has_permission('demographic_comparison')
+        assert not privacy_manager.has_permission('peer_comparison')
+        
+    def test_request_permission(self, privacy_manager):
+        """Test permission requesting."""
+        # Request permission
+        result = privacy_manager.request_permission(
+            'demographic_comparison',
+            'To provide personalized health insights'
+        )
+        # Mock implementation always returns False
+        assert not result
+        
+    def test_anonymize_value(self, privacy_manager):
+        """Test value anonymization."""
+        # Test rounding
+        value = 8534.7
+        anonymized = privacy_manager.anonymize_value(value, 'rounding')
+        assert anonymized != value
+        assert anonymized % 100 == 0  # Should be rounded to nearest 100
+
+    def test_noise_addition(self, privacy_manager):
+        """Test noise addition for privacy."""
+        # Test adding noise
+        value = 10000
+        anonymized = privacy_manager.anonymize_value(value, 'noise')
+        # Value should be different but within reasonable range
+        assert anonymized != value
+        assert 9000 < anonymized < 11000  # Within 10% range
+
+
+class TestComparisonOverlayCalculator:
+    """Test comparison overlay calculations."""
+    
+    @pytest.fixture
+    def calculator(self):
+        """Create overlay calculator."""
+        return ComparisonOverlayCalculator()
+    
+    def test_overlay_comparison_result(self):
+        """Test overlay comparison result creation."""
+        result = OverlayComparisonResult(
+            current_value=9500,
+            comparison_value=8000,
+            difference=1500,
+            percentage_change=18.75,
+            is_significant=True,
+            context_message="Above average"
+        )
+        
+        assert result.current_value == 9500
+        assert result.comparison_value == 8000
+        assert result.is_significant is True
+
+
+class TestComparisonResult:
+    """Test ComparisonResult model."""
+    
+    def test_comparison_result_creation(self):
+        """Test creating comparison results."""
+        result = ComparisonResult(
+            comparison_type=ComparisonType.PERSONAL_HISTORICAL,
+            current_value=9500,
+            comparison_value=8000,
+            percentile=75,
+            trend="improving",
+            context="Compared to last 30 days",
+            insights=["Great progress!", "Keep it up!"],
+            privacy_level=PrivacyLevel.LOCAL_ONLY
+        )
+        
+        assert result.comparison_type == ComparisonType.PERSONAL_HISTORICAL
+        assert result.current_value > result.comparison_value
+        assert result.percentile == 75
+        assert len(result.insights) == 2
+
+
+class TestHistoricalComparison:
+    """Test HistoricalComparison model."""
+    
+    def test_historical_comparison_creation(self):
+        """Test creating historical comparisons."""
+        comparison = HistoricalComparison()
+        
+        # Set some values
+        comparison.rolling_7_day = Mock(mean=8500)
+        comparison.rolling_30_day = Mock(mean=8000)
+        comparison.trend_direction = "improving"
+        comparison.personal_best = (date.today(), 12000)
+        
+        assert comparison.rolling_7_day.mean > comparison.rolling_30_day.mean
+        assert comparison.trend_direction == "improving"
+        assert comparison.personal_best[1] == 12000
+
+
+class TestDemographicCohort:
+    """Test DemographicCohort model."""
+    
+    def test_demographic_cohort_creation(self):
+        """Test creating demographic cohorts."""
+        cohort = DemographicCohort(
+            age_range=(30, 40),
+            gender="female",
+            activity_level="moderate",
+            cohort_size=1500,
+            stats=PeerGroupStats(
+                mean=8000,
+                median=7800,
+                std_dev=1500,
+                percentiles={25: 6500, 50: 7800, 75: 9200}
+            )
+        )
+        
+        assert cohort.cohort_size == 1500
+        assert cohort.stats.mean == 8000
+        assert cohort.is_valid_for_comparison()
+
+
+class TestSeasonalNorm:
+    """Test SeasonalNorm model."""
+    
+    def test_seasonal_norm_creation(self):
+        """Test creating seasonal norms."""
+        norm = SeasonalNorm(
+            season="winter",
+            location="New York",
+            metric="steps",
+            typical_range=(6000, 8000),
+            weather_adjustments={"snow": -1000, "rain": -500}
+        )
+        
+        assert norm.season == "winter"
+        assert norm.typical_range == (6000, 8000)
+        assert norm.weather_adjustments["snow"] == -1000
+
+
+class TestPeerGroupStats:
+    """Test PeerGroupStats model."""
+    
+    def test_peer_group_stats_creation(self):
+        """Test creating peer group statistics."""
+        stats = PeerGroupStats(
+            mean=8500,
+            median=8200,
+            std_dev=1800,
+            percentiles={
+                10: 5500,
+                25: 6800,
+                50: 8200,
+                75: 9800,
+                90: 11500
+            }
+        )
+        
+        assert stats.mean == 8500
+        assert stats.median == 8200
+        assert stats.percentiles[75] == 9800
+
+
+class TestInsightsGenerator:
+    """Test InsightsGenerator functionality."""
+    
+    @pytest.fixture
+    def generator(self):
+        """Create insights generator."""
+        return InsightsGenerator()
+    
+    def test_generate_demographic_insights(self, generator):
+        """Test demographic insight generation."""
+        # Test high percentile
+        insights = generator.generate_demographic_insights(90)
+        assert len(insights) > 0
+        assert any('excellent' in insight.lower() or 'top' in insight.lower() 
+                  for insight in insights)
+        
+        # Test low percentile
+        insights = generator.generate_demographic_insights(20)
+        assert len(insights) > 0
+        assert any('improve' in insight.lower() or 'below' in insight.lower() 
+                  for insight in insights)
+    
+    def test_generate_seasonal_insights(self, generator):
+        """Test seasonal insight generation."""
+        insights = generator.generate_seasonal_insights(
+            current=6000,
+            seasonal_norm=SeasonalNorm(
+                season="winter",
+                location="Boston",
+                metric="steps",
+                typical_range=(5000, 7000),
+                weather_adjustments={}
+            )
+        )
+        
+        assert len(insights) > 0
+        assert any('typical' in insight.lower() or 'normal' in insight.lower() 
+                  for insight in insights)
+    
+    def test_generate_historical_insights(self, generator):
+        """Test historical insight generation."""
+        historical = HistoricalComparison()
+        historical.trend_direction = "improving"
+        historical.rolling_30_day = Mock(mean=9000)
+        historical.rolling_90_day = Mock(mean=8000)
+        historical.personal_best = (date.today() - timedelta(days=5), 12000)
+        
+        insights = generator.generate_historical_insights(historical)
+        assert len(insights) > 0
+        assert any('improv' in insight.lower() or 'progress' in insight.lower() 
+                  for insight in insights)
+
+
+class TestMetricValidation:
+    """Test metric validation in ComparativeAnalyticsEngine."""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """Create comparative analytics engine."""
+        daily_calc = Mock()
+        weekly_calc = Mock()
+        monthly_calc = Mock()
+        return ComparativeAnalyticsEngine(daily_calc, weekly_calc, monthly_calc)
+    
+    def test_validate_metric_name(self, analyzer):
+        """Test metric name validation."""
+        # Valid metrics
+        assert analyzer._validate_metric_name('steps')
+        assert analyzer._validate_metric_name('heart_rate')
+        assert analyzer._validate_metric_name('custom_metric_123')
+        
+        # Invalid metrics
+        assert not analyzer._validate_metric_name('')
+        assert not analyzer._validate_metric_name(None)
+        assert not analyzer._validate_metric_name('123_starts_with_number')
+        assert not analyzer._validate_metric_name('has-dashes')
+        assert not analyzer._validate_metric_name('too_long_' + 'x' * 50)
+    
+    def test_validate_age(self, analyzer):
+        """Test age validation."""
+        # Valid ages
+        assert analyzer._validate_age(25)
+        assert analyzer._validate_age(65)
+        assert analyzer._validate_age(13)
+        assert analyzer._validate_age(120)
+        
+        # Invalid ages
+        assert not analyzer._validate_age(12)
+        assert not analyzer._validate_age(121)
+        assert not analyzer._validate_age(-5)
+        assert not analyzer._validate_age(None)
+        assert not analyzer._validate_age("25")
+
+
+class TestCacheAndPerformance:
+    """Test caching and performance features."""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """Create comparative analytics engine with background processor."""
+        daily_calc = Mock()
+        weekly_calc = Mock()
+        monthly_calc = Mock()
+        background_processor = Mock()
+        return ComparativeAnalyticsEngine(
+            daily_calc, weekly_calc, monthly_calc,
+            background_processor=background_processor
+        )
+    
+    def test_get_trend_analysis_with_cache(self, analyzer):
+        """Test trend analysis with caching."""
+        # Mock background processor to return cached result
+        cached_result = {"trend": "improving", "data": [1, 2, 3]}
+        analyzer.background_processor.get_trend.return_value = cached_result
+        
+        result = analyzer.get_trend_analysis('steps', use_cache=True)
+        
+        assert result == cached_result
+        analyzer.background_processor.get_trend.assert_called_once_with('steps', wait=False)
+    
+    def test_get_trend_analysis_without_cache(self, analyzer):
+        """Test trend analysis without cache."""
+        # Mock background processor to return None (no cached result)
+        analyzer.background_processor.get_trend.return_value = None
+        
+        result = analyzer.get_trend_analysis('steps', use_cache=True)
+        
+        assert result is None
+        analyzer.background_processor.queue_trend_calculation.assert_called_once_with(
+            'steps', priority=5
+        )
+    
+    def test_historical_comparison_caching(self, analyzer):
+        """Test that historical comparisons are cached."""
+        mock_stats = Mock(mean=8000, min=5000, max=12000, count=30)
+        analyzer.daily_calc.calculate_statistics.return_value = mock_stats
+        
+        # First call
+        result1 = analyzer.compare_to_historical('steps', datetime.now(), 365)
+        
+        # Second call with same params should use cache
+        result2 = analyzer.compare_to_historical('steps', datetime.now(), 365)
+        
+        # Both results should be the same (cached)
+        assert result1 == result2

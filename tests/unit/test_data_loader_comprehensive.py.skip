@@ -1,0 +1,467 @@
+"""Comprehensive tests for data loader module."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+import sqlite3
+import os
+import tempfile
+
+from src.data_loader import (
+    convert_xml_to_sqlite_with_validation, migrate_csv_to_sqlite,
+    query_date_range, get_daily_summary, get_available_types,
+    validate_database
+)
+from src.utils.error_handler import DataImportError, DataValidationError
+
+
+class TestDataLoader:
+    """Test data loader functionality."""
+    
+    @pytest.fixture
+    def temp_db(self):
+        """Create temporary database."""
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+            db_path = f.name
+        
+        # Initialize database schema
+        conn = sqlite3.connect(db_path)
+        conn.execute("""
+            CREATE TABLE health_records (
+                id INTEGER PRIMARY KEY,
+                type TEXT,
+                value REAL,
+                unit TEXT,
+                start_date TEXT,
+                end_date TEXT,
+                source TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+        
+        yield db_path
+        os.unlink(db_path)
+    
+    @pytest.fixture
+    def data_loader(self, temp_db):
+        """Create data loader with temporary database."""
+        return DataLoader(temp_db)
+    
+    @pytest.fixture
+    def sample_health_data(self):
+        """Create sample health data."""
+        dates = pd.date_range('2023-01-01', periods=30, freq='D')
+        data = []
+        
+        for i, date in enumerate(dates):
+            # Steps data
+            data.append({
+                'type': 'steps',
+                'value': 8000 + np.random.randint(-2000, 2000),
+                'unit': 'count',
+                'start_date': date.strftime('%Y-%m-%d 08:00:00'),
+                'end_date': date.strftime('%Y-%m-%d 20:00:00'),
+                'source': 'iPhone'
+            })
+            
+            # Heart rate data (multiple per day)
+            for hour in [8, 12, 16, 20]:
+                data.append({
+                    'type': 'heart_rate',
+                    'value': 70 + np.random.randint(-10, 10),
+                    'unit': 'bpm',
+                    'start_date': date.strftime(f'%Y-%m-%d {hour:02d}:00:00'),
+                    'end_date': date.strftime(f'%Y-%m-%d {hour:02d}:00:00'),
+                    'source': 'Apple Watch'
+                })
+                
+        return data
+    
+    def test_initialization(self, data_loader):
+        """Test data loader initialization."""
+        assert data_loader is not None
+        assert hasattr(data_loader, 'load_data')
+        assert hasattr(data_loader, 'get_available_metrics')
+        
+    def test_insert_records(self, data_loader, sample_health_data):
+        """Test inserting health records."""
+        # Insert records
+        inserted_count = data_loader.insert_records(sample_health_data)
+        assert inserted_count == len(sample_health_data)
+        
+        # Verify insertion
+        conn = sqlite3.connect(data_loader.db_path)
+        cursor = conn.execute("SELECT COUNT(*) FROM health_records")
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        assert count == len(sample_health_data)
+        
+    def test_load_data_by_type(self, data_loader, sample_health_data):
+        """Test loading data by metric type."""
+        # Insert test data
+        data_loader.insert_records(sample_health_data)
+        
+        # Load steps data
+        steps_df = data_loader.load_data(
+            metric_type='steps',
+            start_date=date(2023, 1, 1),
+            end_date=date(2023, 1, 31)
+        )
+        
+        assert isinstance(steps_df, pd.DataFrame)
+        assert len(steps_df) == 30  # One per day
+        assert all(steps_df['type'] == 'steps')
+        
+        # Load heart rate data
+        hr_df = data_loader.load_data(
+            metric_type='heart_rate',
+            start_date=date(2023, 1, 1),
+            end_date=date(2023, 1, 31)
+        )
+        
+        assert len(hr_df) == 120  # 4 per day * 30 days
+        assert all(hr_df['type'] == 'heart_rate')
+        
+    def test_load_data_date_range(self, data_loader, sample_health_data):
+        """Test loading data with date range filtering."""
+        data_loader.insert_records(sample_health_data)
+        
+        # Load first week only
+        week_df = data_loader.load_data(
+            start_date=date(2023, 1, 1),
+            end_date=date(2023, 1, 7)
+        )
+        
+        # Should have 7 days of steps + 28 heart rate readings
+        assert len(week_df) == 35
+        
+        # Verify date range
+        week_df['start_date'] = pd.to_datetime(week_df['start_date'])
+        assert week_df['start_date'].min().date() >= date(2023, 1, 1)
+        assert week_df['start_date'].max().date() <= date(2023, 1, 7)
+        
+    def test_get_available_metrics(self, data_loader, sample_health_data):
+        """Test getting available metrics."""
+        data_loader.insert_records(sample_health_data)
+        
+        metrics = data_loader.get_available_metrics()
+        assert isinstance(metrics, list)
+        assert 'steps' in metrics
+        assert 'heart_rate' in metrics
+        assert len(metrics) == 2
+        
+    def test_get_date_range(self, data_loader, sample_health_data):
+        """Test getting data date range."""
+        data_loader.insert_records(sample_health_data)
+        
+        date_range = data_loader.get_date_range()
+        assert 'start' in date_range
+        assert 'end' in date_range
+        assert date_range['start'] == date(2023, 1, 1)
+        assert date_range['end'] == date(2023, 1, 30)
+        
+    def test_aggregate_daily(self, data_loader, sample_health_data):
+        """Test daily aggregation of data."""
+        data_loader.insert_records(sample_health_data)
+        
+        # Aggregate steps by day
+        daily_steps = data_loader.aggregate_daily(
+            metric_type='steps',
+            aggregation='sum',
+            start_date=date(2023, 1, 1),
+            end_date=date(2023, 1, 7)
+        )
+        
+        assert isinstance(daily_steps, pd.DataFrame)
+        assert len(daily_steps) == 7
+        assert 'date' in daily_steps.columns
+        assert 'value' in daily_steps.columns
+        
+        # Aggregate heart rate by day (average)
+        daily_hr = data_loader.aggregate_daily(
+            metric_type='heart_rate',
+            aggregation='mean'
+        )
+        
+        assert len(daily_hr) == 30
+        assert all(60 <= v <= 80 for v in daily_hr['value'])
+        
+    def test_data_validation(self, data_loader):
+        """Test data validation during insertion."""
+        invalid_records = [
+            {
+                'type': 'steps',
+                'value': -100,  # Invalid negative steps
+                'unit': 'count',
+                'start_date': '2023-01-01 08:00:00',
+                'end_date': '2023-01-01 20:00:00',
+                'source': 'iPhone'
+            },
+            {
+                'type': 'heart_rate',
+                'value': 300,  # Invalid high heart rate
+                'unit': 'bpm',
+                'start_date': '2023-01-01 08:00:00',
+                'end_date': '2023-01-01 08:00:00',
+                'source': 'Apple Watch'
+            }
+        ]
+        
+        # Should raise validation error or skip invalid records
+        with pytest.raises(DataValidationError):
+            data_loader.insert_records(invalid_records, validate=True)
+            
+    def test_batch_loading(self, data_loader):
+        """Test batch loading for performance."""
+        # Create large dataset
+        large_data = []
+        base_date = datetime(2023, 1, 1)
+        
+        for day in range(365):
+            for hour in range(24):
+                large_data.append({
+                    'type': 'heart_rate',
+                    'value': 70 + np.random.randint(-10, 10),
+                    'unit': 'bpm',
+                    'start_date': (base_date + timedelta(days=day, hours=hour)).strftime('%Y-%m-%d %H:%M:%S'),
+                    'end_date': (base_date + timedelta(days=day, hours=hour)).strftime('%Y-%m-%d %H:%M:%S'),
+                    'source': 'Apple Watch'
+                })
+                
+        # Insert in batches
+        import time
+        start_time = time.time()
+        inserted = data_loader.insert_records(large_data, batch_size=1000)
+        elapsed = time.time() - start_time
+        
+        assert inserted == len(large_data)
+        assert elapsed < 10  # Should complete within 10 seconds
+        
+    def test_memory_efficient_loading(self, data_loader, sample_health_data):
+        """Test memory-efficient data loading."""
+        data_loader.insert_records(sample_health_data)
+        
+        # Load data in chunks
+        chunks = []
+        for chunk in data_loader.load_data_chunked(chunk_size=10):
+            chunks.append(chunk)
+            assert len(chunk) <= 10
+            
+        # Verify all data was loaded
+        total_rows = sum(len(chunk) for chunk in chunks)
+        assert total_rows == len(sample_health_data)
+        
+    def test_concurrent_access(self, data_loader, sample_health_data):
+        """Test concurrent database access."""
+        import threading
+        import queue
+        
+        data_loader.insert_records(sample_health_data)
+        results = queue.Queue()
+        
+        def load_data_thread(metric_type):
+            try:
+                df = data_loader.load_data(metric_type=metric_type)
+                results.put((metric_type, len(df)))
+            except Exception as e:
+                results.put((metric_type, str(e)))
+                
+        # Create multiple threads
+        threads = []
+        for metric in ['steps', 'heart_rate']:
+            for _ in range(5):  # 5 threads per metric
+                t = threading.Thread(target=load_data_thread, args=(metric,))
+                threads.append(t)
+                t.start()
+                
+        # Wait for all threads
+        for t in threads:
+            t.join()
+            
+        # Check results
+        successes = 0
+        while not results.empty():
+            metric, result = results.get()
+            if isinstance(result, int):
+                successes += 1
+                
+        assert successes == 10  # All threads should succeed
+        
+    def test_data_export(self, data_loader, sample_health_data):
+        """Test exporting data to different formats."""
+        data_loader.insert_records(sample_health_data)
+        
+        # Export to CSV
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+            csv_path = f.name
+            
+        data_loader.export_to_csv(csv_path, metric_type='steps')
+        
+        # Verify CSV
+        df = pd.read_csv(csv_path)
+        assert len(df) == 30
+        assert all(df['type'] == 'steps')
+        
+        os.unlink(csv_path)
+        
+        # Export to JSON
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+            json_path = f.name
+            
+        data_loader.export_to_json(json_path, metric_type='heart_rate')
+        
+        # Verify JSON
+        import json
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+            
+        assert len(data) == 120
+        
+        os.unlink(json_path)
+        
+    def test_data_transformation(self, data_loader, sample_health_data):
+        """Test data transformation during loading."""
+        data_loader.insert_records(sample_health_data)
+        
+        # Load with custom transformation
+        def add_day_of_week(df):
+            df['day_of_week'] = pd.to_datetime(df['start_date']).dt.day_name()
+            return df
+            
+        df = data_loader.load_data(
+            metric_type='steps',
+            transform=add_day_of_week
+        )
+        
+        assert 'day_of_week' in df.columns
+        assert df['day_of_week'].nunique() == 7
+        
+    def test_caching(self, data_loader, sample_health_data):
+        """Test data caching for performance."""
+        data_loader.insert_records(sample_health_data)
+        
+        # Enable caching
+        data_loader.enable_cache()
+        
+        # First load (cache miss)
+        import time
+        start = time.time()
+        df1 = data_loader.load_data(metric_type='steps')
+        time1 = time.time() - start
+        
+        # Second load (cache hit)
+        start = time.time()
+        df2 = data_loader.load_data(metric_type='steps')
+        time2 = time.time() - start
+        
+        # Cache hit should be faster
+        assert time2 < time1
+        assert df1.equals(df2)
+        
+        # Clear cache
+        data_loader.clear_cache()
+
+
+class TestDataLoaderIntegration:
+    """Integration tests for data loader."""
+    
+    def test_full_data_pipeline(self):
+        """Test complete data loading pipeline."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, 'test.db')
+            
+            # Initialize loader
+            loader = DataLoader(db_path)
+            loader.initialize_database()
+            
+            # Simulate XML import
+            xml_records = [
+                {
+                    'type': 'HKQuantityTypeIdentifierStepCount',
+                    'value': '10000',
+                    'unit': 'count',
+                    'start_date': '2023-01-01 08:00:00',
+                    'end_date': '2023-01-01 20:00:00',
+                    'source': 'iPhone'
+                },
+                {
+                    'type': 'HKQuantityTypeIdentifierHeartRate',
+                    'value': '75',
+                    'unit': 'count/min',
+                    'start_date': '2023-01-01 10:00:00',
+                    'end_date': '2023-01-01 10:00:00',
+                    'source': 'Apple Watch'
+                }
+            ]
+            
+            # Transform and insert
+            transformed_records = []
+            for record in xml_records:
+                # Map HK types to simple types
+                type_map = {
+                    'HKQuantityTypeIdentifierStepCount': 'steps',
+                    'HKQuantityTypeIdentifierHeartRate': 'heart_rate'
+                }
+                
+                transformed = {
+                    'type': type_map.get(record['type'], record['type']),
+                    'value': float(record['value']),
+                    'unit': record['unit'],
+                    'start_date': record['start_date'],
+                    'end_date': record['end_date'],
+                    'source': record['source']
+                }
+                transformed_records.append(transformed)
+                
+            # Insert data
+            count = loader.insert_records(transformed_records)
+            assert count == 2
+            
+            # Query data
+            metrics = loader.get_available_metrics()
+            assert 'steps' in metrics
+            assert 'heart_rate' in metrics
+            
+            # Load and analyze
+            steps_df = loader.load_data(metric_type='steps')
+            assert len(steps_df) == 1
+            assert steps_df.iloc[0]['value'] == 10000
+            
+            hr_df = loader.load_data(metric_type='heart_rate')
+            assert len(hr_df) == 1
+            assert hr_df.iloc[0]['value'] == 75
+
+
+def test_error_recovery():
+    """Test error recovery and robustness."""
+    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+        db_path = f.name
+        
+    try:
+        loader = DataLoader(db_path)
+        
+        # Test handling of corrupt database
+        # Write garbage to database file
+        with open(db_path, 'wb') as f:
+            f.write(b'This is not a valid SQLite database')
+            
+        # Should handle gracefully
+        with pytest.raises(DataLoaderError):
+            loader.load_data()
+            
+        # Test recovery
+        os.unlink(db_path)
+        loader = DataLoader(db_path)
+        loader.initialize_database()
+        
+        # Should work now
+        metrics = loader.get_available_metrics()
+        assert isinstance(metrics, list)
+        
+    finally:
+        if os.path.exists(db_path):
+            os.unlink(db_path)

@@ -344,3 +344,11 @@ class HealthDataGenerator:
             'multi_year': self.generate(365 * 3),
             'stress_test': self.generate_performance_data('large')
         }
+    
+    def create_sample_datasets(self) -> Dict[str, pd.DataFrame]:
+        """Create sample datasets for testing (alias for create_test_database_data)."""
+        return {
+            'normal_year': self.generate_synthetic_data(365),
+            'leap_year': self.generate_synthetic_data(366),
+            'partial_year': self.generate_synthetic_data(90)
+        }

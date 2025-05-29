@@ -63,7 +63,7 @@ class TestHealthDataGeneratorBasic:
     
     def test_synthetic_data_generation(self, generator):
         """Test synthetic data generation."""
-        data = generator.generate(30)
+        data = generator.generate_synthetic_data(30)
         
         assert isinstance(data, pd.DataFrame)
         assert len(data) == 30
@@ -127,7 +127,7 @@ class TestHealthDataGeneratorBasic:
     
     def test_database_data_generation(self, generator):
         """Test database test data generation."""
-        db_data = generator.create_sample_datasets()
+        db_data = generator.create_test_database_data()
         
         assert isinstance(db_data, dict)
         assert 'normal_year' in db_data

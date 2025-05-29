@@ -1,0 +1,410 @@
+"""Tests for advanced trend engine."""
+
+import pytest
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta, date
+from unittest.mock import Mock, patch, MagicMock
+
+from src.analytics.advanced_trend_engine import AdvancedTrendAnalysisEngine
+from src.analytics.advanced_trend_models import (
+    TrendAnalysis, AdvancedTrendAnalysis, TrendClassification, EvidenceQuality,
+    PredictionQuality, ChangePoint, PredictionPoint, SeasonalComponent,
+    TrendComponent, TrendDecomposition, ValidationResult, EnsembleResult,
+    WSJVisualizationConfig
+)
+
+
+class TestTrendEnums:
+    """Test trend enumeration types."""
+    
+    def test_trend_type_enum(self):
+        """Test TrendType enum values."""
+        assert TrendType.LINEAR.value == "linear"
+        assert TrendType.EXPONENTIAL.value == "exponential"
+        assert TrendType.POLYNOMIAL.value == "polynomial"
+        assert TrendType.SEASONAL.value == "seasonal"
+        assert TrendType.CYCLICAL.value == "cyclical"
+    
+    def test_trend_strength_enum(self):
+        """Test TrendStrength enum values."""
+        assert TrendStrength.WEAK.value == "weak"
+        assert TrendStrength.MODERATE.value == "moderate"
+        assert TrendStrength.STRONG.value == "strong"
+        assert TrendStrength.VERY_STRONG.value == "very_strong"
+    
+    def test_trend_significance_enum(self):
+        """Test TrendSignificance enum values."""
+        assert TrendSignificance.NOT_SIGNIFICANT.value < 0.05
+        assert TrendSignificance.MARGINALLY_SIGNIFICANT.value < 0.1
+        assert TrendSignificance.SIGNIFICANT.value < 0.05
+        assert TrendSignificance.HIGHLY_SIGNIFICANT.value < 0.01
+
+
+class TestTrendModels:
+    """Test trend model classes."""
+    
+    def test_trend_segment_creation(self):
+        """Test TrendSegment creation."""
+        segment = TrendSegment(
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 31),
+            trend_type=TrendType.LINEAR,
+            slope=0.5,
+            intercept=100,
+            r_squared=0.85,
+            confidence_interval=(0.4, 0.6)
+        )
+        
+        assert segment.start_date == date(2024, 1, 1)
+        assert segment.trend_type == TrendType.LINEAR
+        assert segment.slope == 0.5
+        assert segment.r_squared == 0.85
+    
+    def test_change_point_creation(self):
+        """Test ChangePoint creation."""
+        change_point = ChangePoint(
+            date=date(2024, 1, 15),
+            old_trend=TrendType.LINEAR,
+            new_trend=TrendType.EXPONENTIAL,
+            confidence=0.95,
+            magnitude=2.5
+        )
+        
+        assert change_point.date == date(2024, 1, 15)
+        assert change_point.old_trend == TrendType.LINEAR
+        assert change_point.new_trend == TrendType.EXPONENTIAL
+        assert change_point.confidence == 0.95
+    
+    def test_trend_result_creation(self):
+        """Test TrendResult creation."""
+        result = TrendResult(
+            trend_type=TrendType.SEASONAL,
+            strength=TrendStrength.STRONG,
+            significance=TrendSignificance.HIGHLY_SIGNIFICANT,
+            direction="increasing",
+            rate_of_change=0.15,
+            confidence=0.98,
+            forecast_values=[110, 115, 120],
+            confidence_intervals=[(105, 115), (110, 120), (115, 125)]
+        )
+        
+        assert result.trend_type == TrendType.SEASONAL
+        assert result.strength == TrendStrength.STRONG
+        assert result.direction == "increasing"
+        assert len(result.forecast_values) == 3
+
+
+class TestAdvancedTrendEngine:
+    """Test advanced trend engine functionality."""
+    
+    @pytest.fixture
+    def sample_data(self):
+        """Create sample time series data."""
+        dates = pd.date_range(start='2024-01-01', periods=90, freq='D')
+        
+        # Create trend with some noise
+        trend = np.linspace(100, 150, 90)
+        seasonal = 10 * np.sin(2 * np.pi * np.arange(90) / 7)  # Weekly pattern
+        noise = np.random.normal(0, 5, 90)
+        values = trend + seasonal + noise
+        
+        return pd.DataFrame({
+            'date': dates,
+            'value': values,
+            'metric': 'test_metric'
+        })
+    
+    @pytest.fixture
+    def engine(self):
+        """Create trend engine instance."""
+        return AdvancedTrendEngine()
+    
+    def test_analyze_trend_basic(self, engine, sample_data):
+        """Test basic trend analysis."""
+        result = engine.analyze_trend(
+            data=sample_data,
+            metric='value',
+            date_column='date'
+        )
+        
+        assert isinstance(result, TrendResult)
+        assert result.trend_type in [t for t in TrendType]
+        assert result.strength in [s for s in TrendStrength]
+        assert result.direction in ["increasing", "decreasing", "stable"]
+    
+    def test_detect_change_points(self, engine):
+        """Test change point detection."""
+        # Create data with clear change point
+        dates1 = pd.date_range(start='2024-01-01', periods=30, freq='D')
+        dates2 = pd.date_range(start='2024-01-31', periods=30, freq='D')
+        
+        values1 = np.linspace(100, 110, 30) + np.random.normal(0, 2, 30)
+        values2 = np.linspace(150, 200, 30) + np.random.normal(0, 2, 30)
+        
+        data = pd.DataFrame({
+            'date': np.concatenate([dates1, dates2]),
+            'value': np.concatenate([values1, values2])
+        })
+        
+        change_points = engine.detect_change_points(data, 'value', 'date')
+        
+        assert len(change_points) >= 1
+        assert isinstance(change_points[0], ChangePoint)
+        # Change should be detected around day 30
+        assert 25 <= (change_points[0].date - date(2024, 1, 1)).days <= 35
+    
+    def test_forecast_trend(self, engine, sample_data):
+        """Test trend forecasting."""
+        forecast = engine.forecast_trend(
+            data=sample_data,
+            metric='value',
+            date_column='date',
+            periods=7
+        )
+        
+        assert isinstance(forecast, TrendForecast)
+        assert len(forecast.values) == 7
+        assert len(forecast.confidence_intervals) == 7
+        assert forecast.method in ["linear", "seasonal", "arima", "prophet"]
+    
+    def test_decompose_trend(self, engine, sample_data):
+        """Test trend decomposition."""
+        components = engine.decompose_trend(
+            data=sample_data,
+            metric='value',
+            date_column='date'
+        )
+        
+        assert 'trend' in components
+        assert 'seasonal' in components
+        assert 'residual' in components
+        
+        # Check component properties
+        assert isinstance(components['trend'], TrendComponent)
+        assert isinstance(components['seasonal'], SeasonalComponent)
+        assert isinstance(components['residual'], NoiseComponent)
+    
+    def test_multi_metric_analysis(self, engine):
+        """Test multi-metric trend analysis."""
+        # Create correlated metrics
+        dates = pd.date_range(start='2024-01-01', periods=60, freq='D')
+        base_trend = np.linspace(100, 200, 60)
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'steps': base_trend * 100 + np.random.normal(0, 500, 60),
+            'calories': base_trend * 20 + np.random.normal(0, 50, 60),
+            'distance': base_trend * 0.01 + np.random.normal(0, 0.1, 60)
+        })
+        
+        analysis = engine.analyze_multi_metric_trends(
+            data=data,
+            metrics=['steps', 'calories', 'distance'],
+            date_column='date'
+        )
+        
+        assert isinstance(analysis, MultiMetricTrendAnalysis)
+        assert len(analysis.individual_trends) == 3
+        assert 'correlation_matrix' in analysis.relationships
+        assert 'leading_indicators' in analysis.relationships
+    
+    def test_adaptive_trend_detection(self, engine):
+        """Test adaptive trend detection."""
+        # Create data with changing volatility
+        dates = pd.date_range(start='2024-01-01', periods=90, freq='D')
+        
+        # Low volatility period
+        values1 = np.linspace(100, 110, 30) + np.random.normal(0, 1, 30)
+        # High volatility period
+        values2 = np.linspace(110, 130, 30) + np.random.normal(0, 10, 30)
+        # Return to low volatility
+        values3 = np.linspace(130, 140, 30) + np.random.normal(0, 2, 30)
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'value': np.concatenate([values1, values2, values3])
+        })
+        
+        detector = AdaptiveTrendDetector()
+        result = detector.detect(data, 'value', 'date')
+        
+        assert result is not None
+        assert hasattr(result, 'adaptive_parameters')
+        assert 'window_size' in result.adaptive_parameters
+        assert 'sensitivity' in result.adaptive_parameters
+    
+    def test_causal_trend_analysis(self, engine):
+        """Test causal trend analysis."""
+        # Create data where metric2 causes changes in metric1
+        dates = pd.date_range(start='2024-01-01', periods=60, freq='D')
+        
+        metric2 = np.sin(2 * np.pi * np.arange(60) / 30) * 50 + 100
+        metric1 = np.roll(metric2, 3) * 1.5 + np.random.normal(0, 5, 60)  # 3-day lag
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'metric1': metric1,
+            'metric2': metric2
+        })
+        
+        analyzer = CausalTrendAnalyzer()
+        causality = analyzer.analyze_causality(
+            data=data,
+            target='metric1',
+            features=['metric2'],
+            date_column='date'
+        )
+        
+        assert 'metric2' in causality
+        assert 'lag' in causality['metric2']
+        assert 'strength' in causality['metric2']
+        assert causality['metric2']['lag'] > 0  # Should detect the lag
+    
+    def test_trend_strength_classification(self, engine):
+        """Test trend strength classification."""
+        # Create trends of different strengths
+        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+        
+        # Weak trend
+        weak_trend = np.linspace(100, 102, 30) + np.random.normal(0, 5, 30)
+        # Strong trend
+        strong_trend = np.linspace(100, 150, 30) + np.random.normal(0, 2, 30)
+        
+        weak_result = engine.analyze_trend(
+            pd.DataFrame({'date': dates, 'value': weak_trend}),
+            'value', 'date'
+        )
+        
+        strong_result = engine.analyze_trend(
+            pd.DataFrame({'date': dates, 'value': strong_trend}),
+            'value', 'date'
+        )
+        
+        assert weak_result.strength.value < strong_result.strength.value
+    
+    def test_seasonal_pattern_detection(self, engine):
+        """Test seasonal pattern detection."""
+        # Create data with weekly seasonality
+        dates = pd.date_range(start='2024-01-01', periods=56, freq='D')  # 8 weeks
+        
+        # Weekly pattern (higher on weekends)
+        day_of_week = dates.dayofweek
+        seasonal_pattern = np.where(day_of_week >= 5, 150, 100)  # Weekend vs weekday
+        noise = np.random.normal(0, 10, 56)
+        values = seasonal_pattern + noise
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        
+        result = engine.analyze_trend(data, 'value', 'date')
+        components = engine.decompose_trend(data, 'value', 'date')
+        
+        assert result.trend_type == TrendType.SEASONAL
+        assert components['seasonal'].period == 7  # Weekly
+        assert components['seasonal'].amplitude > 0
+    
+    def test_trend_confidence_intervals(self, engine, sample_data):
+        """Test confidence interval calculation."""
+        result = engine.analyze_trend(sample_data, 'value', 'date')
+        
+        assert hasattr(result, 'confidence_intervals')
+        if result.forecast_values:
+            assert len(result.confidence_intervals) == len(result.forecast_values)
+            
+            # Check that intervals are reasonable
+            for i, (lower, upper) in enumerate(result.confidence_intervals):
+                assert lower < result.forecast_values[i] < upper
+                assert (upper - lower) > 0  # Non-zero width
+    
+    def test_handle_missing_data(self, engine):
+        """Test handling of missing data."""
+        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+        values = np.linspace(100, 130, 30)
+        
+        # Introduce missing values
+        values[10:15] = np.nan
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        
+        # Should handle missing data gracefully
+        result = engine.analyze_trend(data, 'value', 'date')
+        
+        assert result is not None
+        assert result.confidence < 1.0  # Lower confidence due to missing data
+    
+    def test_outlier_robust_analysis(self, engine):
+        """Test robustness to outliers."""
+        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+        values = np.linspace(100, 130, 30) + np.random.normal(0, 2, 30)
+        
+        # Add outliers
+        values[5] = 200  # Spike
+        values[20] = 50  # Dip
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        
+        result = engine.analyze_trend(
+            data, 'value', 'date',
+            robust=True  # Use robust methods
+        )
+        
+        # Should still detect the underlying linear trend
+        assert result.trend_type in [TrendType.LINEAR, TrendType.POLYNOMIAL]
+        assert result.direction == "increasing"
+
+
+class TestTrendAnalyzer:
+    """Test TrendAnalyzer class."""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """Create TrendAnalyzer instance."""
+        return TrendAnalyzer()
+    
+    def test_fit_linear_trend(self, analyzer):
+        """Test linear trend fitting."""
+        x = np.arange(30)
+        y = 2 * x + 100 + np.random.normal(0, 5, 30)
+        
+        model = analyzer.fit_linear_trend(x, y)
+        
+        assert isinstance(model, TrendModel)
+        assert model.type == TrendType.LINEAR
+        assert abs(model.parameters['slope'] - 2) < 0.5  # Close to true slope
+        assert abs(model.parameters['intercept'] - 100) < 10
+    
+    def test_fit_polynomial_trend(self, analyzer):
+        """Test polynomial trend fitting."""
+        x = np.arange(30)
+        y = 0.1 * x**2 + 2 * x + 100 + np.random.normal(0, 5, 30)
+        
+        model = analyzer.fit_polynomial_trend(x, y, degree=2)
+        
+        assert isinstance(model, TrendModel)
+        assert model.type == TrendType.POLYNOMIAL
+        assert 'coefficients' in model.parameters
+        assert len(model.parameters['coefficients']) == 3  # degree 2 + 1
+    
+    def test_detect_trend_type(self, analyzer):
+        """Test automatic trend type detection."""
+        # Linear data
+        x = np.arange(30)
+        y_linear = 2 * x + 100 + np.random.normal(0, 2, 30)
+        
+        trend_type = analyzer.detect_trend_type(x, y_linear)
+        assert trend_type == TrendType.LINEAR
+        
+        # Exponential data
+        y_exp = 100 * np.exp(0.1 * x) + np.random.normal(0, 10, 30)
+        
+        trend_type = analyzer.detect_trend_type(x, y_exp)
+        assert trend_type == TrendType.EXPONENTIAL

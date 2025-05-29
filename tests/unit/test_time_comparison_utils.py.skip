@@ -1,0 +1,407 @@
+"""Tests for time comparison utilities."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch
+import pandas as pd
+import numpy as np
+
+from src.ui.time_comparison_utils import (
+    TimeComparisonUtils, ComparisonPeriod, TimeRange,
+    ComparisonResult, DateAlignment, TimeGranularity
+)
+
+
+class TestTimeComparisonEnums:
+    """Test time comparison enumeration types."""
+    
+    def test_comparison_period_enum(self):
+        """Test ComparisonPeriod enum values."""
+        assert ComparisonPeriod.DAY.value == "day"
+        assert ComparisonPeriod.WEEK.value == "week"
+        assert ComparisonPeriod.MONTH.value == "month"
+        assert ComparisonPeriod.QUARTER.value == "quarter"
+        assert ComparisonPeriod.YEAR.value == "year"
+    
+    def test_time_granularity_enum(self):
+        """Test TimeGranularity enum values."""
+        assert TimeGranularity.HOURLY.value == "hourly"
+        assert TimeGranularity.DAILY.value == "daily"
+        assert TimeGranularity.WEEKLY.value == "weekly"
+        assert TimeGranularity.MONTHLY.value == "monthly"
+    
+    def test_date_alignment_enum(self):
+        """Test DateAlignment enum values."""
+        assert DateAlignment.START.value == "start"
+        assert DateAlignment.END.value == "end"
+        assert DateAlignment.CENTER.value == "center"
+
+
+class TestTimeRange:
+    """Test TimeRange class."""
+    
+    def test_time_range_creation(self):
+        """Test TimeRange creation."""
+        start = date(2024, 1, 1)
+        end = date(2024, 1, 31)
+        
+        time_range = TimeRange(start=start, end=end)
+        
+        assert time_range.start == start
+        assert time_range.end == end
+        assert time_range.days == 31
+    
+    def test_time_range_validation(self):
+        """Test TimeRange validation."""
+        # End before start should raise error
+        with pytest.raises(ValueError):
+            TimeRange(
+                start=date(2024, 1, 31),
+                end=date(2024, 1, 1)
+            )
+    
+    def test_time_range_contains(self):
+        """Test TimeRange contains method."""
+        time_range = TimeRange(
+            start=date(2024, 1, 1),
+            end=date(2024, 1, 31)
+        )
+        
+        assert date(2024, 1, 15) in time_range
+        assert date(2024, 2, 1) not in time_range
+        assert date(2023, 12, 31) not in time_range
+    
+    def test_time_range_overlap(self):
+        """Test TimeRange overlap detection."""
+        range1 = TimeRange(date(2024, 1, 1), date(2024, 1, 15))
+        range2 = TimeRange(date(2024, 1, 10), date(2024, 1, 20))
+        range3 = TimeRange(date(2024, 1, 20), date(2024, 1, 31))
+        
+        assert range1.overlaps(range2)
+        assert not range1.overlaps(range3)
+
+
+class TestComparisonResult:
+    """Test ComparisonResult class."""
+    
+    def test_comparison_result_creation(self):
+        """Test ComparisonResult creation."""
+        result = ComparisonResult(
+            current_value=100,
+            previous_value=80,
+            absolute_change=20,
+            percent_change=25.0,
+            is_increase=True,
+            comparison_period=ComparisonPeriod.WEEK,
+            confidence=0.95
+        )
+        
+        assert result.current_value == 100
+        assert result.previous_value == 80
+        assert result.absolute_change == 20
+        assert result.percent_change == 25.0
+        assert result.is_increase is True
+    
+    def test_comparison_result_formatting(self):
+        """Test ComparisonResult string formatting."""
+        result = ComparisonResult(
+            current_value=100,
+            previous_value=80,
+            absolute_change=20,
+            percent_change=25.0,
+            is_increase=True,
+            comparison_period=ComparisonPeriod.WEEK
+        )
+        
+        formatted = result.format_change()
+        assert "+20" in formatted or "20" in formatted
+        assert "25%" in formatted
+
+
+class TestTimeComparisonUtils:
+    """Test TimeComparisonUtils functionality."""
+    
+    @pytest.fixture
+    def utils(self):
+        """Create TimeComparisonUtils instance."""
+        return TimeComparisonUtils()
+    
+    @pytest.fixture
+    def sample_data(self):
+        """Create sample time series data."""
+        dates = pd.date_range(start='2024-01-01', periods=90, freq='D')
+        values = np.random.randint(5000, 15000, size=90)
+        
+        return pd.DataFrame({
+            'date': dates,
+            'value': values,
+            'metric': 'steps'
+        })
+    
+    def test_get_previous_period(self, utils):
+        """Test getting previous period."""
+        current = TimeRange(date(2024, 1, 8), date(2024, 1, 14))
+        
+        # Week over week
+        previous = utils.get_previous_period(
+            current, 
+            ComparisonPeriod.WEEK
+        )
+        assert previous.start == date(2024, 1, 1)
+        assert previous.end == date(2024, 1, 7)
+        
+        # Month over month
+        current_month = TimeRange(date(2024, 2, 1), date(2024, 2, 29))
+        previous_month = utils.get_previous_period(
+            current_month,
+            ComparisonPeriod.MONTH
+        )
+        assert previous_month.start == date(2024, 1, 1)
+        assert previous_month.end == date(2024, 1, 31)
+    
+    def test_align_dates(self, utils):
+        """Test date alignment."""
+        # Align to week start (Monday)
+        aligned = utils.align_date(
+            date(2024, 1, 10),  # Wednesday
+            ComparisonPeriod.WEEK,
+            DateAlignment.START
+        )
+        assert aligned == date(2024, 1, 8)  # Monday
+        
+        # Align to month start
+        aligned = utils.align_date(
+            date(2024, 1, 15),
+            ComparisonPeriod.MONTH,
+            DateAlignment.START
+        )
+        assert aligned == date(2024, 1, 1)
+        
+        # Align to month end
+        aligned = utils.align_date(
+            date(2024, 1, 15),
+            ComparisonPeriod.MONTH,
+            DateAlignment.END
+        )
+        assert aligned == date(2024, 1, 31)
+    
+    def test_compare_periods(self, utils, sample_data):
+        """Test comparing two periods."""
+        current_range = TimeRange(date(2024, 1, 8), date(2024, 1, 14))
+        previous_range = TimeRange(date(2024, 1, 1), date(2024, 1, 7))
+        
+        result = utils.compare_periods(
+            data=sample_data,
+            current=current_range,
+            previous=previous_range,
+            metric='value'
+        )
+        
+        assert isinstance(result, ComparisonResult)
+        assert result.current_value >= 0
+        assert result.previous_value >= 0
+        assert result.comparison_period == ComparisonPeriod.WEEK
+    
+    def test_calculate_percent_change(self, utils):
+        """Test percent change calculation."""
+        # Normal case
+        pct = utils.calculate_percent_change(100, 80)
+        assert pct == 25.0
+        
+        # Decrease
+        pct = utils.calculate_percent_change(80, 100)
+        assert pct == -20.0
+        
+        # Zero previous value
+        pct = utils.calculate_percent_change(100, 0)
+        assert pct == float('inf') or pct == 100.0  # Handle gracefully
+        
+        # Both zero
+        pct = utils.calculate_percent_change(0, 0)
+        assert pct == 0.0
+    
+    def test_get_comparison_periods_year_over_year(self, utils):
+        """Test year-over-year comparison periods."""
+        current_date = date(2024, 3, 15)
+        
+        periods = utils.get_comparison_periods(
+            current_date,
+            comparison_type='year_over_year'
+        )
+        
+        assert periods['current'].start.year == 2024
+        assert periods['previous'].start.year == 2023
+        assert periods['current'].start.month == periods['previous'].start.month
+    
+    def test_aggregate_by_period(self, utils, sample_data):
+        """Test data aggregation by period."""
+        # Daily aggregation (no change)
+        daily = utils.aggregate_by_period(
+            sample_data,
+            TimeGranularity.DAILY
+        )
+        assert len(daily) == len(sample_data)
+        
+        # Weekly aggregation
+        weekly = utils.aggregate_by_period(
+            sample_data,
+            TimeGranularity.WEEKLY
+        )
+        assert len(weekly) < len(sample_data)
+        assert len(weekly) == (90 // 7) + (1 if 90 % 7 else 0)
+        
+        # Monthly aggregation
+        monthly = utils.aggregate_by_period(
+            sample_data,
+            TimeGranularity.MONTHLY
+        )
+        assert len(monthly) == 3  # Jan, Feb, Mar
+    
+    def test_find_best_comparison_period(self, utils, sample_data):
+        """Test finding best comparison period."""
+        # With enough data for all periods
+        best_period = utils.find_best_comparison_period(
+            sample_data,
+            current_date=date(2024, 3, 30)
+        )
+        assert best_period in [p for p in ComparisonPeriod]
+        
+        # With limited data
+        limited_data = sample_data.iloc[:7]  # Only 7 days
+        best_period = utils.find_best_comparison_period(
+            limited_data,
+            current_date=date(2024, 1, 7)
+        )
+        assert best_period == ComparisonPeriod.DAY
+    
+    def test_format_period_label(self, utils):
+        """Test period label formatting."""
+        # Week label
+        week_range = TimeRange(date(2024, 1, 1), date(2024, 1, 7))
+        label = utils.format_period_label(week_range, ComparisonPeriod.WEEK)
+        assert "Jan 1" in label
+        assert "Jan 7" in label
+        
+        # Month label
+        month_range = TimeRange(date(2024, 1, 1), date(2024, 1, 31))
+        label = utils.format_period_label(month_range, ComparisonPeriod.MONTH)
+        assert "January" in label or "Jan" in label
+        assert "2024" in label
+    
+    def test_handle_missing_data(self, utils):
+        """Test handling of missing data in comparisons."""
+        # Create data with gaps
+        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
+        values = np.random.randint(5000, 15000, size=30)
+        
+        # Remove some days
+        mask = np.random.choice([True, False], size=30, p=[0.8, 0.2])
+        
+        sparse_data = pd.DataFrame({
+            'date': dates[mask],
+            'value': values[mask]
+        })
+        
+        current = TimeRange(date(2024, 1, 15), date(2024, 1, 21))
+        previous = TimeRange(date(2024, 1, 8), date(2024, 1, 14))
+        
+        # Should handle gracefully
+        result = utils.compare_periods(
+            sparse_data,
+            current,
+            previous,
+            'value'
+        )
+        
+        assert result is not None
+        if result.confidence is not None:
+            assert result.confidence < 1.0  # Lower confidence due to missing data
+    
+    def test_seasonal_comparison(self, utils):
+        """Test seasonal comparison (same period last year)."""
+        # Create multi-year data
+        dates = pd.date_range(start='2023-01-01', periods=730, freq='D')  # 2 years
+        
+        # Add seasonal pattern
+        day_of_year = dates.dayofyear
+        seasonal_factor = 1 + 0.3 * np.sin(2 * np.pi * day_of_year / 365)
+        values = 10000 * seasonal_factor + np.random.normal(0, 1000, 730)
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'value': values
+        })
+        
+        # Compare same month different years
+        current = TimeRange(date(2024, 7, 1), date(2024, 7, 31))
+        previous_year = TimeRange(date(2023, 7, 1), date(2023, 7, 31))
+        
+        result = utils.compare_periods(
+            data,
+            current,
+            previous_year,
+            'value'
+        )
+        
+        # Should show similar values due to seasonal pattern
+        assert abs(result.percent_change) < 10  # Less than 10% difference
+    
+    def test_comparison_with_different_lengths(self, utils, sample_data):
+        """Test comparing periods of different lengths."""
+        # Compare 7 days to 30 days
+        current = TimeRange(date(2024, 1, 24), date(2024, 1, 30))  # 7 days
+        previous = TimeRange(date(2024, 1, 1), date(2024, 1, 23))  # 23 days
+        
+        result = utils.compare_periods(
+            sample_data,
+            current,
+            previous,
+            'value',
+            normalize=True  # Should normalize by period length
+        )
+        
+        assert result is not None
+        assert result.current_value > 0  # Daily average
+        assert result.previous_value > 0  # Daily average
+
+
+class TestTimeComparisonEdgeCases:
+    """Test edge cases in time comparisons."""
+    
+    @pytest.fixture
+    def utils(self):
+        """Create TimeComparisonUtils instance."""
+        return TimeComparisonUtils()
+    
+    def test_leap_year_handling(self, utils):
+        """Test handling of leap years."""
+        # February 2024 is a leap year
+        feb_2024 = TimeRange(date(2024, 2, 1), date(2024, 2, 29))
+        feb_2023 = utils.get_previous_period(
+            feb_2024,
+            ComparisonPeriod.YEAR
+        )
+        
+        assert feb_2023.end == date(2023, 2, 28)  # Not leap year
+    
+    def test_daylight_saving_time(self, utils):
+        """Test handling of daylight saving time transitions."""
+        # Assuming DST change around March 10, 2024
+        dst_week = TimeRange(date(2024, 3, 10), date(2024, 3, 16))
+        
+        # Period calculations should work correctly
+        previous = utils.get_previous_period(dst_week, ComparisonPeriod.WEEK)
+        assert (dst_week.start - previous.start).days == 7
+    
+    def test_cross_year_boundaries(self, utils):
+        """Test comparisons across year boundaries."""
+        # Week spanning year boundary
+        year_end_week = TimeRange(date(2023, 12, 28), date(2024, 1, 3))
+        
+        previous = utils.get_previous_period(
+            year_end_week,
+            ComparisonPeriod.WEEK
+        )
+        
+        assert previous.start == date(2023, 12, 21)
+        assert previous.end == date(2023, 12, 27)

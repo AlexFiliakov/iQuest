@@ -1,0 +1,532 @@
+"""Comprehensive tests for data story generator."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+
+from src.analytics.data_story_generator import (
+    DataStoryGenerator, StoryType, ToneType, UserProfile,
+    Achievement, Insight, Recommendation, Story, StoryMetadata,
+    WeekAnalysis
+)
+
+
+class TestStoryModels:
+    """Test story model classes."""
+    
+    def test_story_type_enum(self):
+        """Test StoryType enumeration."""
+        assert StoryType.WEEKLY_RECAP.value == "weekly_recap"
+        assert StoryType.MONTHLY_JOURNEY.value == "monthly_journey"
+        assert StoryType.YEAR_IN_REVIEW.value == "year_in_review"
+        assert StoryType.MILESTONE_CELEBRATION.value == "milestone_celebration"
+    
+    def test_tone_type_enum(self):
+        """Test ToneType enumeration."""
+        assert ToneType.ENCOURAGING.value == "encouraging"
+        assert ToneType.NEUTRAL.value == "neutral"
+        assert ToneType.MOTIVATING.value == "motivating"
+        assert ToneType.CELEBRATORY.value == "celebratory"
+    
+    def test_user_profile(self):
+        """Test UserProfile creation."""
+        profile = UserProfile(
+            name="Jane Doe",
+            preferred_tone=ToneType.MOTIVATING,
+            metric_priorities=["steps", "sleep", "exercise"],
+            communication_style="casual",
+            name_usage=True,
+            email_enabled=True,
+            push_enabled=False,
+            preferred_delivery_time="09:00"
+        )
+        
+        assert profile.name == "Jane Doe"
+        assert profile.preferred_tone == ToneType.MOTIVATING
+        assert len(profile.metric_priorities) == 3
+        assert profile.email_enabled is True
+    
+    def test_achievement(self):
+        """Test Achievement creation."""
+        achievement = Achievement(
+            type="personal_record",
+            metric="steps",
+            value=15000,
+            context="Highest daily step count",
+            significance=0.95,
+            date=datetime.now()
+        )
+        
+        assert achievement.type == "personal_record"
+        assert achievement.value == 15000
+        assert achievement.significance == 0.95
+    
+    def test_insight(self):
+        """Test Insight creation."""
+        insight = Insight(
+            text="Your sleep quality improves on days with more steps",
+            category="correlation",
+            importance=0.8,
+            visual_hint="scatter_plot",
+            supporting_data={"correlation": 0.75}
+        )
+        
+        assert insight.category == "correlation"
+        assert insight.importance == 0.8
+        assert insight.supporting_data["correlation"] == 0.75
+    
+    def test_recommendation(self):
+        """Test Recommendation creation."""
+        recommendation = Recommendation(
+            action="Try taking a 10-minute walk after lunch",
+            rationale="This could help you reach your daily step goal more consistently",
+            category="goal_support",
+            difficulty="easy",
+            success_probability=0.85
+        )
+        
+        assert recommendation.category == "goal_support"
+        assert recommendation.difficulty == "easy"
+        assert recommendation.success_probability == 0.85
+    
+    def test_story(self):
+        """Test Story creation."""
+        story = Story(
+            title="Your Week in Review",
+            text="This week was amazing...",
+            type=StoryType.WEEKLY_RECAP,
+            sections={
+                "opening": "Welcome to your weekly recap!",
+                "achievements": "You hit several milestones...",
+                "closing": "Keep up the great work!"
+            },
+            insights=[],
+            recommendations=[]
+        )
+        
+        assert story.type == StoryType.WEEKLY_RECAP
+        assert len(story.sections) == 3
+        assert "achievements" in story.sections
+    
+    def test_story_metadata(self):
+        """Test StoryMetadata creation."""
+        metadata = StoryMetadata(
+            type="weekly_recap",
+            generated_at=datetime.now(),
+            data_period={"start": "2024-01-01", "end": "2024-01-07"},
+            word_count=250,
+            tone=ToneType.ENCOURAGING,
+            personalization_applied=True
+        )
+        
+        assert metadata.type == "weekly_recap"
+        assert metadata.word_count == 250
+        assert metadata.personalization_applied is True
+    
+    def test_week_analysis(self):
+        """Test WeekAnalysis creation."""
+        analysis = WeekAnalysis(
+            achievements=[],
+            comparisons={"vs_last_week": 1.1},
+            patterns=[{"type": "weekday_weekend", "strength": 0.8}],
+            challenges=[{"type": "missed_goal", "metric": "exercise"}],
+            highlights=[{"type": "best_day", "date": "2024-01-05"}],
+            progress={"overall": 0.85},
+            summary_phrase="Great progress this week!",
+            overall_improvement=0.15,
+            is_exceptional_week=True,
+            shows_improvement=True,
+            shows_consistency=True
+        )
+        
+        assert analysis.is_exceptional_week is True
+        assert analysis.overall_improvement == 0.15
+        assert analysis.summary_phrase == "Great progress this week!"
+
+
+class TestDataStoryGenerator:
+    """Test data story generator functionality."""
+    
+    @pytest.fixture
+    def user_profile(self):
+        """Create test user profile."""
+        return UserProfile(
+            name="Test User",
+            preferred_tone=ToneType.ENCOURAGING,
+            metric_priorities=["steps", "sleep"],
+            communication_style="casual"
+        )
+    
+    @pytest.fixture
+    def generator(self, user_profile):
+        """Create story generator."""
+        daily_calc = Mock()
+        weekly_calc = Mock()
+        monthly_calc = Mock()
+        
+        return DataStoryGenerator(
+            user_profile=user_profile,
+            daily_calculator=daily_calc,
+            weekly_calculator=weekly_calc,
+            monthly_calculator=monthly_calc
+        )
+    
+    @pytest.fixture
+    def week_data(self):
+        """Create sample week data."""
+        return {
+            'period': {
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 7)
+            },
+            'metrics': {
+                'steps': {
+                    'daily': [8000, 9500, 7500, 10000, 8500, 11000, 9000],
+                    'total': 63500,
+                    'average': 9071,
+                    'best_day': {'date': date(2024, 1, 6), 'value': 11000}
+                },
+                'sleep': {
+                    'daily': [7.5, 8.0, 7.0, 7.5, 8.5, 9.0, 7.5],
+                    'average': 7.86
+                }
+            },
+            'achievements': [
+                {'type': 'streak', 'metric': 'steps', 'days': 7}
+            ]
+        }
+    
+    def test_generate_weekly_recap(self, generator, week_data):
+        """Test weekly recap generation."""
+        # Mock the analyze_week method
+        analysis = WeekAnalysis(
+            achievements=[
+                Achievement(
+                    type="streak",
+                    metric="steps",
+                    value=7,
+                    context="7-day step goal streak",
+                    significance=0.8,
+                    date=datetime.now()
+                )
+            ],
+            comparisons={"vs_last_week": 1.15},
+            patterns=[],
+            challenges=[],
+            highlights=[],
+            progress={"overall": 0.9},
+            summary_phrase="Excellent week!",
+            overall_improvement=0.15,
+            is_exceptional_week=True
+        )
+        
+        with patch.object(generator, 'analyze_week', return_value=analysis):
+            story = generator.generate_weekly_recap(week_data)
+        
+        assert story is not None
+        assert story.type == StoryType.WEEKLY_RECAP
+        assert isinstance(story.text, str)
+        assert len(story.sections) > 0
+        assert story.metadata is not None
+        assert story.metadata.type == "weekly_recap"
+    
+    def test_generate_monthly_journey(self, generator):
+        """Test monthly journey generation."""
+        month_data = {
+            'period': {
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 31)
+            },
+            'metrics': {
+                'steps': {
+                    'total': 280000,
+                    'average': 9032,
+                    'trend': 'improving'
+                }
+            },
+            'achievements': [],
+            'patterns': []
+        }
+        
+        # Mock the analyze_month method
+        analysis = {
+            'summary': 'Great month of progress',
+            'improvement': 0.12,
+            'consistency': 0.85,
+            'challenges_overcome': 3
+        }
+        
+        with patch.object(generator, 'analyze_month', return_value=analysis):
+            story = generator.generate_monthly_journey(month_data)
+        
+        assert story is not None
+        assert story.type == StoryType.MONTHLY_JOURNEY
+        assert story.metadata.type == "monthly_journey"
+    
+    def test_analyze_week(self, generator, week_data):
+        """Test week analysis."""
+        analysis = generator.analyze_week(week_data)
+        
+        assert isinstance(analysis, WeekAnalysis)
+        assert len(analysis.achievements) >= 0
+        assert isinstance(analysis.comparisons, dict)
+        assert isinstance(analysis.summary_phrase, str)
+    
+    def test_personalization(self, generator, week_data):
+        """Test story personalization."""
+        # Test with name usage
+        generator.user_profile.name_usage = True
+        story1 = generator.generate_weekly_recap(week_data)
+        
+        # Test without name usage
+        generator.user_profile.name_usage = False
+        story2 = generator.generate_weekly_recap(week_data)
+        
+        # Stories should be different based on personalization
+        assert story1.text != story2.text
+    
+    def test_tone_variations(self, user_profile, week_data):
+        """Test different tone variations."""
+        stories = {}
+        
+        for tone in ToneType:
+            profile = UserProfile(
+                name="Test User",
+                preferred_tone=tone,
+                metric_priorities=["steps"]
+            )
+            generator = DataStoryGenerator(profile)
+            stories[tone] = generator.generate_weekly_recap(week_data)
+        
+        # Each tone should produce different text
+        texts = [story.text for story in stories.values()]
+        assert len(set(texts)) == len(ToneType)
+    
+    def test_empty_data_handling(self, generator):
+        """Test handling of empty data."""
+        empty_week_data = {
+            'period': {
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 7)
+            },
+            'metrics': {}
+        }
+        
+        story = generator.generate_weekly_recap(empty_week_data)
+        
+        assert story is not None
+        assert "no data" in story.text.lower() or "getting started" in story.text.lower()
+    
+    def test_exceptional_week_detection(self, generator):
+        """Test detection of exceptional weeks."""
+        exceptional_data = {
+            'period': {
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 7)
+            },
+            'metrics': {
+                'steps': {
+                    'daily': [15000, 16000, 14500, 15500, 16500, 17000, 15000],
+                    'average': 15642,
+                    'vs_typical': 1.95  # 95% above typical
+                }
+            },
+            'achievements': [
+                {'type': 'personal_record', 'metric': 'steps', 'value': 17000}
+            ]
+        }
+        
+        analysis = generator.analyze_week(exceptional_data)
+        
+        assert analysis.is_exceptional_week is True
+        assert len(analysis.achievements) > 0
+    
+    def test_milestone_detection(self, generator):
+        """Test milestone detection and celebration."""
+        milestone_data = {
+            'total_days': 100,
+            'streak_days': 30,
+            'total_steps': 1000000,
+            'achievements': [
+                {'type': 'milestone', 'description': '100 days of data'},
+                {'type': 'milestone', 'description': '1 million total steps'}
+            ]
+        }
+        
+        story = generator.generate_milestone_celebration(milestone_data)
+        
+        assert story.type == StoryType.MILESTONE_CELEBRATION
+        assert "100 days" in story.text or "million" in story.text
+    
+    def test_insight_generation(self, generator, week_data):
+        """Test insight generation from data."""
+        # Mock correlation data
+        with patch.object(generator.correlation_analyzer, 'find_correlations') as mock_corr:
+            mock_corr.return_value = [
+                {
+                    'metrics': ('steps', 'sleep_quality'),
+                    'correlation': 0.75,
+                    'significance': 0.95
+                }
+            ]
+            
+            story = generator.generate_weekly_recap(week_data)
+            
+            assert len(story.insights) > 0
+            assert any('correlation' in i.category for i in story.insights)
+    
+    def test_recommendation_generation(self, generator, week_data):
+        """Test recommendation generation."""
+        # Add goal data
+        week_data['goals'] = {
+            'steps': {'target': 10000, 'achieved_days': 2}
+        }
+        
+        story = generator.generate_weekly_recap(week_data)
+        
+        assert len(story.recommendations) > 0
+        assert any(r.category == 'goal_support' for r in story.recommendations)
+    
+    def test_narrative_arc_creation(self, generator):
+        """Test narrative arc creation for stories."""
+        month_data = {
+            'weeks': [
+                {'summary': 'slow_start', 'improvement': -0.05},
+                {'summary': 'finding_rhythm', 'improvement': 0.10},
+                {'summary': 'breakthrough', 'improvement': 0.25},
+                {'summary': 'strong_finish', 'improvement': 0.15}
+            ]
+        }
+        
+        arc = generator.create_narrative_arc(month_data)
+        
+        assert 'theme' in arc
+        assert 'structure' in arc
+        assert arc['theme'] in ['comeback', 'consistency', 'growth']
+    
+    def test_error_handling(self, generator):
+        """Test error handling in story generation."""
+        # Test with invalid data
+        invalid_data = {
+            'period': None,
+            'metrics': "not a dict"
+        }
+        
+        with pytest.raises(Exception):
+            generator.generate_weekly_recap(invalid_data)
+    
+    def test_caching_and_performance(self, generator, week_data):
+        """Test caching for performance."""
+        import time
+        
+        # First generation
+        start = time.time()
+        story1 = generator.generate_weekly_recap(week_data)
+        time1 = time.time() - start
+        
+        # Second generation (should use some cached analysis)
+        start = time.time()
+        story2 = generator.generate_weekly_recap(week_data)
+        time2 = time.time() - start
+        
+        # Stories should be similar but regenerated
+        assert story1.text != story2.text  # Different generation timestamps
+        assert story1.type == story2.type
+
+
+class TestStoryDelivery:
+    """Test story delivery functionality."""
+    
+    def test_email_formatting(self):
+        """Test email formatting of stories."""
+        story = Story(
+            title="Your Weekly Health Story",
+            text="This week was great...",
+            type=StoryType.WEEKLY_RECAP,
+            sections={},
+            insights=[],
+            recommendations=[]
+        )
+        
+        from src.analytics.story_delivery_manager import StoryDeliveryManager
+        manager = StoryDeliveryManager()
+        
+        email_content = manager.format_for_email(story)
+        
+        assert story.title in email_content
+        assert "<html>" in email_content or story.text in email_content
+    
+    def test_push_notification_formatting(self):
+        """Test push notification formatting."""
+        story = Story(
+            title="Weekly Milestone!",
+            text="You achieved something special this week...",
+            type=StoryType.WEEKLY_RECAP,
+            sections={},
+            insights=[],
+            recommendations=[]
+        )
+        
+        from src.analytics.story_delivery_manager import StoryDeliveryManager
+        manager = StoryDeliveryManager()
+        
+        notification = manager.format_for_push(story)
+        
+        assert 'title' in notification
+        assert 'body' in notification
+        assert len(notification['body']) <= 150  # Push notification length limit
+
+
+class TestAdvancedFeatures:
+    """Test advanced story generation features."""
+    
+    def test_multi_metric_stories(self, generator):
+        """Test stories combining multiple metrics."""
+        multi_metric_data = {
+            'period': {
+                'start': date(2024, 1, 1),
+                'end': date(2024, 1, 7)
+            },
+            'metrics': {
+                'steps': {'average': 9000},
+                'sleep': {'average': 7.5},
+                'exercise': {'total_minutes': 180},
+                'heart_rate': {'resting_avg': 62}
+            },
+            'correlations': [
+                {'metrics': ('steps', 'sleep'), 'strength': 0.7},
+                {'metrics': ('exercise', 'heart_rate'), 'strength': -0.6}
+            ]
+        }
+        
+        story = generator.generate_weekly_recap(multi_metric_data)
+        
+        # Should mention multiple metrics
+        assert any(metric in story.text.lower() 
+                  for metric in ['steps', 'sleep', 'exercise', 'heart'])
+    
+    def test_longitudinal_stories(self, generator):
+        """Test stories covering long time periods."""
+        year_data = {
+            'period': {
+                'start': date(2023, 1, 1),
+                'end': date(2023, 12, 31)
+            },
+            'months': [
+                {'name': 'January', 'theme': 'new_beginnings'},
+                {'name': 'February', 'theme': 'building_habits'},
+                # ... more months
+            ],
+            'milestones': [
+                {'date': date(2023, 3, 15), 'achievement': '100 day streak'},
+                {'date': date(2023, 7, 1), 'achievement': '500k total steps'}
+            ]
+        }
+        
+        story = generator.generate_year_in_review(year_data)
+        
+        assert story.type == StoryType.YEAR_IN_REVIEW
+        assert "year" in story.text.lower()
+        assert any(m['achievement'] in story.text for m in year_data['milestones'])

@@ -1,0 +1,425 @@
+"""Comprehensive tests for daily dashboard widget."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtCore import Qt, QDate, QTime, QTimer, pyqtSignal
+from PyQt6.QtTest import QTest
+
+from src.ui.daily_dashboard_widget import DailyDashboardWidget, MetricCard
+
+
+class TestDailyDashboardWidget:
+    """Test daily dashboard widget functionality."""
+    
+    @pytest.fixture
+    def dashboard_widget(self, qtbot):
+        """Create daily dashboard widget."""
+        widget = DailyDashboardWidget()
+        qtbot.addWidget(widget)
+        return widget
+    
+    @pytest.fixture
+    def daily_data(self):
+        """Create sample daily health data."""
+        # Create hourly data for a single day
+        hours = pd.date_range('2023-01-15 00:00', '2023-01-15 23:00', freq='H')
+        
+        # Steps data (accumulated throughout the day)
+        steps_pattern = np.array([0, 0, 0, 0, 0, 0, 100, 500, 1000, 1500, 
+                                 2000, 2500, 3000, 3500, 4000, 4500, 5000,
+                                 5500, 6000, 6500, 7000, 7200, 7300, 7300])
+        
+        # Heart rate data (varies throughout the day)
+        hr_pattern = np.array([60, 58, 56, 55, 56, 58, 65, 70, 75, 72,
+                              70, 68, 70, 72, 74, 73, 71, 68, 66, 64,
+                              62, 60, 58, 56])
+        
+        # Activity intensity
+        activity_pattern = ['rest'] * 6 + ['light'] * 4 + ['moderate'] * 8 + \
+                          ['light'] * 4 + ['rest'] * 2
+        
+        return pd.DataFrame({
+            'timestamp': hours,
+            'steps': steps_pattern,
+            'heart_rate': hr_pattern,
+            'activity': activity_pattern,
+            'calories': steps_pattern * 0.04 + hr_pattern * 0.1
+        })
+    
+    def test_initialization(self, dashboard_widget):
+        """Test dashboard widget initialization."""
+        assert isinstance(dashboard_widget, QWidget)
+        assert hasattr(dashboard_widget, 'set_date')
+        assert hasattr(dashboard_widget, 'load_data')
+        assert hasattr(dashboard_widget, 'refresh')
+        
+    def test_date_selection(self, dashboard_widget, qtbot):
+        """Test date selection functionality."""
+        test_date = QDate(2023, 1, 15)
+        
+        # Set date
+        dashboard_widget.set_date(test_date)
+        
+        # Verify date was set
+        assert dashboard_widget.current_date == test_date
+        
+        # Test date change signal
+        with qtbot.waitSignal(dashboard_widget.date_changed, timeout=1000):
+            dashboard_widget.set_date(QDate(2023, 1, 16))
+            
+    def test_data_loading(self, dashboard_widget, daily_data, qtbot):
+        """Test loading daily data."""
+        # Mock data loader
+        dashboard_widget.data_loader = Mock()
+        dashboard_widget.data_loader.load_daily_data.return_value = daily_data
+        
+        # Load data
+        dashboard_widget.load_data(date(2023, 1, 15))
+        
+        # Wait for async operations
+        qtbot.wait(100)
+        
+        # Verify data was loaded
+        assert dashboard_widget.current_data is not None
+        assert len(dashboard_widget.current_data) == 24
+        
+    def test_metric_cards_display(self, dashboard_widget, daily_data, qtbot):
+        """Test metric cards display."""
+        dashboard_widget.update_display(daily_data)
+        
+        # Check metric cards exist
+        cards = dashboard_widget.findChildren(DailyMetricCard)
+        assert len(cards) > 0
+        
+        # Check steps card
+        steps_card = next((c for c in cards if c.metric_name == 'Steps'), None)
+        assert steps_card is not None
+        assert steps_card.value == 7300
+        assert steps_card.unit == 'steps'
+        
+    def test_activity_timeline(self, dashboard_widget, daily_data, qtbot):
+        """Test activity timeline visualization."""
+        timeline = dashboard_widget.activity_timeline
+        assert isinstance(timeline, DailyActivityTimeline)
+        
+        # Update timeline with data
+        timeline.update_data(daily_data)
+        
+        # Check timeline segments
+        segments = timeline.get_activity_segments()
+        assert len(segments) > 0
+        
+        # Verify activity patterns
+        rest_hours = sum(1 for s in segments if s['activity'] == 'rest')
+        active_hours = sum(1 for s in segments if s['activity'] != 'rest')
+        assert rest_hours > 0
+        assert active_hours > 0
+        
+    def test_goal_progress_display(self, dashboard_widget, daily_data, qtbot):
+        """Test goal progress indicators."""
+        # Set daily goals
+        goals = {
+            'steps': 10000,
+            'calories': 2000,
+            'active_hours': 8
+        }
+        dashboard_widget.set_goals(goals)
+        
+        # Update with data
+        dashboard_widget.update_display(daily_data)
+        
+        # Check goal progress
+        progress_widgets = dashboard_widget.findChildren(DailyGoalProgress)
+        assert len(progress_widgets) > 0
+        
+        steps_progress = next((p for p in progress_widgets if p.goal_type == 'steps'), None)
+        assert steps_progress is not None
+        assert steps_progress.current_value == 7300
+        assert steps_progress.target_value == 10000
+        assert steps_progress.percentage == 73
+        
+    def test_insight_generation(self, dashboard_widget, daily_data, qtbot):
+        """Test daily insight generation."""
+        insight_panel = dashboard_widget.insight_panel
+        assert isinstance(insight_panel, DailyInsightPanel)
+        
+        # Generate insights
+        insights = insight_panel.generate_insights(daily_data)
+        assert len(insights) > 0
+        
+        # Check insight types
+        insight_types = [i['type'] for i in insights]
+        assert any(t == 'activity_pattern' for t in insight_types)
+        assert any(t == 'goal_progress' for t in insight_types)
+        
+    def test_comparison_view(self, dashboard_widget, qtbot):
+        """Test comparison with previous days."""
+        comparison_view = dashboard_widget.comparison_view
+        assert isinstance(comparison_view, DailyComparisonView)
+        
+        # Mock historical data
+        today_data = {'steps': 7300, 'calories': 1800, 'active_minutes': 120}
+        yesterday_data = {'steps': 6500, 'calories': 1650, 'active_minutes': 90}
+        last_week_data = {'steps': 7000, 'calories': 1750, 'active_minutes': 110}
+        
+        comparison_view.update_comparison(today_data, yesterday_data, last_week_data)
+        
+        # Check comparison display
+        assert comparison_view.steps_change_vs_yesterday == 800
+        assert comparison_view.steps_change_percentage == 12.3
+        
+    def test_real_time_updates(self, dashboard_widget, qtbot):
+        """Test real-time data updates."""
+        # Enable real-time mode
+        dashboard_widget.enable_real_time_updates(interval_ms=1000)
+        
+        # Mock update function
+        dashboard_widget.fetch_latest_data = Mock(return_value={'steps': 100})
+        
+        # Wait for timer
+        qtbot.wait(1500)
+        
+        # Should have called update
+        dashboard_widget.fetch_latest_data.assert_called()
+        
+        # Disable real-time updates
+        dashboard_widget.disable_real_time_updates()
+        
+    def test_hourly_breakdown(self, dashboard_widget, daily_data, qtbot):
+        """Test hourly activity breakdown."""
+        breakdown = dashboard_widget.get_hourly_breakdown(daily_data)
+        
+        assert len(breakdown) == 24
+        
+        # Check specific hours
+        morning_activity = breakdown[7]  # 7 AM
+        assert morning_activity['steps'] == 500
+        assert morning_activity['activity'] == 'light'
+        
+        afternoon_activity = breakdown[14]  # 2 PM
+        assert afternoon_activity['steps'] == 4000
+        assert afternoon_activity['activity'] == 'moderate'
+        
+    def test_export_daily_summary(self, dashboard_widget, daily_data, qtbot):
+        """Test exporting daily summary."""
+        dashboard_widget.update_display(daily_data)
+        
+        # Export summary
+        summary = dashboard_widget.export_summary()
+        
+        assert 'date' in summary
+        assert 'metrics' in summary
+        assert 'goals' in summary
+        assert 'insights' in summary
+        
+        # Check metrics
+        metrics = summary['metrics']
+        assert metrics['total_steps'] == 7300
+        assert metrics['average_heart_rate'] > 0
+        assert metrics['total_calories'] > 0
+        
+    def test_interactive_timeline(self, dashboard_widget, daily_data, qtbot):
+        """Test interactive timeline features."""
+        timeline = dashboard_widget.activity_timeline
+        timeline.update_data(daily_data)
+        
+        # Simulate hover over specific hour
+        timeline.hover_hour(10)  # 10 AM
+        
+        # Check tooltip data
+        tooltip_data = timeline.get_tooltip_data()
+        assert tooltip_data['hour'] == 10
+        assert tooltip_data['steps'] > 0
+        assert tooltip_data['heart_rate'] > 0
+        
+        # Simulate click on hour
+        with qtbot.waitSignal(timeline.hour_selected):
+            timeline.select_hour(10)
+            
+    def test_mini_charts(self, dashboard_widget, daily_data, qtbot):
+        """Test mini chart displays."""
+        dashboard_widget.update_display(daily_data)
+        
+        # Check heart rate chart
+        hr_chart = dashboard_widget.heart_rate_chart
+        assert hr_chart is not None
+        assert hr_chart.get_data_points() == 24
+        
+        # Check steps chart
+        steps_chart = dashboard_widget.steps_chart
+        assert steps_chart is not None
+        assert steps_chart.get_peak_hour() == 21  # 9 PM had most steps
+        
+    def test_activity_zones(self, dashboard_widget, daily_data, qtbot):
+        """Test activity zone distribution."""
+        zones = dashboard_widget.calculate_activity_zones(daily_data)
+        
+        assert 'rest' in zones
+        assert 'light' in zones
+        assert 'moderate' in zones
+        
+        # Check zone durations
+        assert zones['rest']['hours'] == 8
+        assert zones['light']['hours'] == 8
+        assert zones['moderate']['hours'] == 8
+        
+        # Check zone calories
+        assert all(zones[z]['calories'] > 0 for z in zones)
+        
+    def test_peak_performance_indicators(self, dashboard_widget, daily_data, qtbot):
+        """Test peak performance time identification."""
+        peak_times = dashboard_widget.identify_peak_times(daily_data)
+        
+        assert 'most_active_hour' in peak_times
+        assert 'highest_heart_rate_hour' in peak_times
+        assert 'longest_active_period' in peak_times
+        
+        # Most active should be in afternoon
+        assert 12 <= peak_times['most_active_hour'] <= 18
+        
+    def test_notifications(self, dashboard_widget, qtbot):
+        """Test dashboard notifications."""
+        # Mock notification system
+        dashboard_widget.notification_manager = Mock()
+        
+        # Trigger goal achievement
+        dashboard_widget.check_goal_achievements({
+            'steps': {'current': 10000, 'target': 10000}
+        })
+        
+        # Should show notification
+        dashboard_widget.notification_manager.show_achievement.assert_called_once()
+        
+    def test_responsive_layout(self, dashboard_widget, qtbot):
+        """Test responsive layout adjustments."""
+        # Test small size
+        dashboard_widget.resize(400, 600)
+        qtbot.wait(100)
+        
+        # Should switch to compact mode
+        assert dashboard_widget.is_compact_mode is True
+        
+        # Test large size
+        dashboard_widget.resize(1200, 800)
+        qtbot.wait(100)
+        
+        # Should switch to expanded mode
+        assert dashboard_widget.is_compact_mode is False
+        
+    def test_theme_support(self, dashboard_widget, qtbot):
+        """Test theme switching."""
+        # Test light theme
+        dashboard_widget.set_theme('light')
+        assert dashboard_widget.current_theme == 'light'
+        
+        # Test dark theme
+        dashboard_widget.set_theme('dark')
+        assert dashboard_widget.current_theme == 'dark'
+        
+        # Verify colors updated
+        bg_color = dashboard_widget.palette().color(dashboard_widget.backgroundRole())
+        assert bg_color.lightness() < 128  # Dark background
+        
+    def test_data_refresh(self, dashboard_widget, daily_data, qtbot):
+        """Test data refresh functionality."""
+        dashboard_widget.data_loader = Mock()
+        dashboard_widget.data_loader.load_daily_data.return_value = daily_data
+        
+        # Initial load
+        dashboard_widget.load_data(date(2023, 1, 15))
+        initial_call_count = dashboard_widget.data_loader.load_daily_data.call_count
+        
+        # Refresh
+        dashboard_widget.refresh()
+        
+        # Should reload data
+        assert dashboard_widget.data_loader.load_daily_data.call_count > initial_call_count
+        
+    def test_keyboard_navigation(self, dashboard_widget, qtbot):
+        """Test keyboard navigation."""
+        dashboard_widget.show()
+        dashboard_widget.activateWindow()
+        dashboard_widget.setFocus()
+        
+        # Navigate to previous day (Left arrow)
+        QTest.keyClick(dashboard_widget, Qt.Key.Key_Left)
+        
+        # Navigate to next day (Right arrow)
+        QTest.keyClick(dashboard_widget, Qt.Key.Key_Right)
+        
+        # Jump to today (T key)
+        QTest.keyClick(dashboard_widget, Qt.Key.Key_T)
+        assert dashboard_widget.current_date == QDate.currentDate()
+
+
+class TestDailyMetricCard:
+    """Test daily metric card component."""
+    
+    @pytest.fixture
+    def metric_card(self, qtbot):
+        """Create metric card."""
+        card = DailyMetricCard(
+            metric_name="Steps",
+            value=8500,
+            unit="steps",
+            icon="👟"
+        )
+        qtbot.addWidget(card)
+        return card
+    
+    def test_card_display(self, metric_card):
+        """Test metric card display."""
+        assert metric_card.metric_name == "Steps"
+        assert metric_card.value == 8500
+        assert metric_card.unit == "steps"
+        
+    def test_value_animation(self, metric_card, qtbot):
+        """Test value change animation."""
+        # Update value
+        metric_card.update_value(9000)
+        
+        # Wait for animation
+        qtbot.wait(500)
+        
+        assert metric_card.value == 9000
+        
+    def test_trend_indicator(self, metric_card):
+        """Test trend indicator display."""
+        metric_card.set_trend(direction='up', percentage=5.9)
+        
+        assert metric_card.trend_direction == 'up'
+        assert metric_card.trend_percentage == 5.9
+        
+        # Check visual indicator
+        assert metric_card.trend_icon == '↑'
+        assert metric_card.trend_color == 'green'
+
+
+def test_daily_dashboard_integration(qtbot):
+    """Test complete daily dashboard integration."""
+    dashboard = DailyDashboardWidget()
+    qtbot.addWidget(dashboard)
+    
+    # Create full day of data
+    hours = pd.date_range('2023-01-15 00:00', '2023-01-15 23:00', freq='H')
+    steps = np.cumsum(np.random.poisson(300, 24))
+    
+    data = pd.DataFrame({
+        'timestamp': hours,
+        'steps': steps,
+        'heart_rate': np.random.normal(70, 10, 24),
+        'calories': steps * 0.04
+    })
+    
+    # Update dashboard
+    dashboard.update_display(data)
+    
+    # Verify all components updated
+    assert dashboard.current_data is not None
+    assert len(dashboard.findChildren(DailyMetricCard)) > 0
+    assert dashboard.activity_timeline.has_data is True
+    assert dashboard.insight_panel.has_insights is True

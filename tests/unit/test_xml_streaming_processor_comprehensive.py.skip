@@ -1,0 +1,470 @@
+"""Comprehensive tests for XML streaming processor."""
+
+import pytest
+from datetime import date, datetime
+from unittest.mock import Mock, patch, MagicMock, mock_open
+import xml.etree.ElementTree as ET
+from io import StringIO
+
+from src.xml_streaming_processor import (
+    XMLStreamingProcessor, HealthDataProcessor, 
+    XMLParseError, DataValidationError
+)
+
+
+class TestXMLStreamingProcessor:
+    """Test XML streaming processor functionality."""
+    
+    @pytest.fixture
+    def processor(self):
+        """Create XML streaming processor."""
+        return XMLStreamingProcessor()
+    
+    @pytest.fixture
+    def sample_xml(self):
+        """Create sample health XML data."""
+        return """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            unit="count" 
+            creationDate="2023-01-01 10:00:00 +0000" 
+            startDate="2023-01-01 08:00:00 +0000" 
+            endDate="2023-01-01 09:00:00 +0000" 
+            value="1000">
+    </Record>
+    <Record type="HKQuantityTypeIdentifierHeartRate" 
+            sourceName="Apple Watch" 
+            unit="count/min" 
+            creationDate="2023-01-01 10:00:00 +0000" 
+            startDate="2023-01-01 08:30:00 +0000" 
+            endDate="2023-01-01 08:30:00 +0000" 
+            value="75">
+    </Record>
+</HealthData>"""
+    
+    def test_initialization(self, processor):
+        """Test processor initialization."""
+        assert processor is not None
+        assert hasattr(processor, 'parse')
+        assert hasattr(processor, 'process_chunk')
+        
+    def test_parse_health_record(self, processor, sample_xml):
+        """Test parsing health records from XML."""
+        records = []
+        
+        # Mock callback
+        def record_callback(record):
+            records.append(record)
+            
+        processor.parse(sample_xml, callback=record_callback)
+        
+        assert len(records) == 2
+        assert records[0]['type'] == 'HKQuantityTypeIdentifierStepCount'
+        assert records[0]['value'] == '1000'
+        assert records[1]['type'] == 'HKQuantityTypeIdentifierHeartRate'
+        assert records[1]['value'] == '75'
+        
+    def test_streaming_parse(self, processor):
+        """Test streaming parse of large XML."""
+        # Create large XML with many records
+        xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>\n<HealthData locale="en_US">\n']
+        
+        for i in range(1000):
+            xml_parts.append(f'''
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            unit="count" 
+            startDate="2023-01-{(i % 30) + 1:02d} 08:00:00 +0000" 
+            endDate="2023-01-{(i % 30) + 1:02d} 09:00:00 +0000" 
+            value="{1000 + i}">
+    </Record>
+''')
+        
+        xml_parts.append('</HealthData>')
+        large_xml = ''.join(xml_parts)
+        
+        records_count = 0
+        
+        def count_callback(record):
+            nonlocal records_count
+            records_count += 1
+            
+        # Process in chunks
+        chunk_size = 1024 * 10  # 10KB chunks
+        for i in range(0, len(large_xml), chunk_size):
+            chunk = large_xml[i:i + chunk_size]
+            processor.process_chunk(chunk, callback=count_callback)
+            
+        processor.finalize()
+        assert records_count == 1000
+        
+    def test_error_handling(self, processor):
+        """Test error handling for invalid XML."""
+        invalid_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            value="not_a_number">
+    </Record>
+</HealthData>"""
+        
+        with pytest.raises(XMLParseError):
+            processor.parse(invalid_xml, strict=True)
+            
+    def test_data_validation(self, processor):
+        """Test data validation during parsing."""
+        xml_with_invalid_data = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            value="-100">
+    </Record>
+</HealthData>"""
+        
+        records = []
+        errors = []
+        
+        def record_callback(record):
+            records.append(record)
+            
+        def error_callback(error):
+            errors.append(error)
+            
+        processor.parse(
+            xml_with_invalid_data,
+            callback=record_callback,
+            error_callback=error_callback,
+            validate=True
+        )
+        
+        # Should have validation errors for negative steps
+        assert len(errors) > 0
+        
+    @patch('builtins.open', new_callable=mock_open)
+    def test_file_processing(self, mock_file, processor):
+        """Test processing XML from file."""
+        mock_file.return_value.read.return_value = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+    <Record type="HKQuantityTypeIdentifierStepCount" value="1000"/>
+</HealthData>"""
+        
+        records = []
+        processor.parse_file('export.xml', lambda r: records.append(r))
+        
+        assert len(records) == 1
+        mock_file.assert_called_once_with('export.xml', 'r', encoding='utf-8')
+        
+    def test_memory_efficient_parsing(self, processor):
+        """Test memory-efficient parsing of large files."""
+        # Create a mock file-like object
+        xml_content = StringIO("""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+""" + '\n'.join(f'<Record type="HKQuantityTypeIdentifierStepCount" value="{i}"/>' 
+                for i in range(10000)) + """
+</HealthData>""")
+        
+        record_count = 0
+        
+        def count_callback(record):
+            nonlocal record_count
+            record_count += 1
+            
+        # Should process without loading entire file into memory
+        processor.parse_stream(xml_content, count_callback)
+        assert record_count == 10000
+        
+    def test_metadata_extraction(self, processor):
+        """Test extraction of metadata from XML."""
+        xml_with_metadata = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <ExportDate value="2023-12-01 10:00:00 +0000"/>
+    <Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexMale"
+        HKCharacteristicTypeIdentifierDateOfBirth="1990-01-01"
+        HKCharacteristicTypeIdentifierBloodType="HKBloodTypeAPositive"/>
+    <Record type="HKQuantityTypeIdentifierStepCount" value="1000"/>
+</HealthData>"""
+        
+        metadata = {}
+        records = []
+        
+        def metadata_callback(meta):
+            metadata.update(meta)
+            
+        def record_callback(record):
+            records.append(record)
+            
+        processor.parse(
+            xml_with_metadata,
+            callback=record_callback,
+            metadata_callback=metadata_callback
+        )
+        
+        assert 'export_date' in metadata
+        assert 'biological_sex' in metadata
+        assert len(records) == 1
+        
+    def test_workout_parsing(self, processor):
+        """Test parsing workout records."""
+        workout_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+    <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+             duration="30.5"
+             durationUnit="min"
+             totalDistance="5.2"
+             totalDistanceUnit="km"
+             totalEnergyBurned="350"
+             totalEnergyBurnedUnit="kcal"
+             sourceName="Apple Watch"
+             startDate="2023-01-01 08:00:00 +0000"
+             endDate="2023-01-01 08:30:30 +0000">
+        <WorkoutEvent type="HKWorkoutEventTypePause"
+                     date="2023-01-01 08:15:00 +0000"/>
+        <WorkoutEvent type="HKWorkoutEventTypeResume"
+                     date="2023-01-01 08:16:00 +0000"/>
+    </Workout>
+</HealthData>"""
+        
+        workouts = []
+        
+        def workout_callback(workout):
+            workouts.append(workout)
+            
+        processor.parse(workout_xml, workout_callback=workout_callback)
+        
+        assert len(workouts) == 1
+        assert workouts[0]['activity_type'] == 'HKWorkoutActivityTypeRunning'
+        assert float(workouts[0]['duration']) == 30.5
+        assert len(workouts[0]['events']) == 2
+        
+    def test_progress_tracking(self, processor):
+        """Test progress tracking during parsing."""
+        large_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+""" + '\n'.join(f'<Record type="HKQuantityTypeIdentifierStepCount" value="{i}"/>' 
+                for i in range(100)) + """
+</HealthData>"""
+        
+        progress_updates = []
+        
+        def progress_callback(progress):
+            progress_updates.append(progress)
+            
+        processor.parse(
+            large_xml,
+            callback=lambda r: None,
+            progress_callback=progress_callback
+        )
+        
+        assert len(progress_updates) > 0
+        assert progress_updates[-1]['percent'] == 100
+        
+    def test_concurrent_parsing(self, processor):
+        """Test concurrent parsing of multiple XML files."""
+        import threading
+        import queue
+        
+        results = queue.Queue()
+        
+        def parse_xml(xml_content, result_queue):
+            records = []
+            processor = XMLStreamingProcessor()
+            processor.parse(xml_content, callback=lambda r: records.append(r))
+            result_queue.put(len(records))
+            
+        # Create multiple threads
+        threads = []
+        for i in range(5):
+            xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+    <Record type="HKQuantityTypeIdentifierStepCount" value="{i * 100}"/>
+</HealthData>"""
+            t = threading.Thread(target=parse_xml, args=(xml, results))
+            threads.append(t)
+            t.start()
+            
+        # Wait for all threads
+        for t in threads:
+            t.join()
+            
+        # Check results
+        total_records = 0
+        while not results.empty():
+            total_records += results.get()
+            
+        assert total_records == 5
+
+
+class TestHealthDataProcessor:
+    """Test health data processor functionality."""
+    
+    @pytest.fixture
+    def processor(self):
+        """Create health data processor."""
+        return HealthDataProcessor()
+    
+    def test_process_step_count(self, processor):
+        """Test processing step count records."""
+        record = {
+            'type': 'HKQuantityTypeIdentifierStepCount',
+            'value': '10000',
+            'startDate': '2023-01-01 08:00:00 +0000',
+            'endDate': '2023-01-01 20:00:00 +0000',
+            'unit': 'count'
+        }
+        
+        processed = processor.process_record(record)
+        
+        assert processed['metric_type'] == 'steps'
+        assert processed['value'] == 10000
+        assert isinstance(processed['start_date'], datetime)
+        
+    def test_process_heart_rate(self, processor):
+        """Test processing heart rate records."""
+        record = {
+            'type': 'HKQuantityTypeIdentifierHeartRate',
+            'value': '75',
+            'startDate': '2023-01-01 08:00:00 +0000',
+            'endDate': '2023-01-01 08:00:00 +0000',
+            'unit': 'count/min'
+        }
+        
+        processed = processor.process_record(record)
+        
+        assert processed['metric_type'] == 'heart_rate'
+        assert processed['value'] == 75
+        assert processed['unit'] == 'bpm'
+        
+    def test_unit_conversion(self, processor):
+        """Test unit conversion during processing."""
+        # Distance in miles
+        record = {
+            'type': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+            'value': '3.1',
+            'unit': 'mi',
+            'startDate': '2023-01-01 08:00:00 +0000',
+            'endDate': '2023-01-01 09:00:00 +0000'
+        }
+        
+        processed = processor.process_record(record)
+        
+        assert processed['unit'] == 'km'
+        assert abs(processed['value'] - 4.989) < 0.01  # 3.1 miles ≈ 4.989 km
+        
+    def test_batch_processing(self, processor):
+        """Test batch processing of records."""
+        records = [
+            {
+                'type': 'HKQuantityTypeIdentifierStepCount',
+                'value': str(1000 + i),
+                'startDate': f'2023-01-01 {8+i:02d}:00:00 +0000',
+                'endDate': f'2023-01-01 {9+i:02d}:00:00 +0000'
+            }
+            for i in range(10)
+        ]
+        
+        processed = processor.process_batch(records)
+        
+        assert len(processed) == 10
+        assert all(r['metric_type'] == 'steps' for r in processed)
+        assert sum(r['value'] for r in processed) == sum(range(1000, 1010))
+        
+    def test_data_aggregation(self, processor):
+        """Test data aggregation by time period."""
+        records = [
+            {
+                'type': 'HKQuantityTypeIdentifierStepCount',
+                'value': '100',
+                'startDate': f'2023-01-01 {hour:02d}:00:00 +0000',
+                'endDate': f'2023-01-01 {hour:02d}:30:00 +0000'
+            }
+            for hour in range(8, 20)
+        ]
+        
+        daily_aggregates = processor.aggregate_by_day(records)
+        
+        assert len(daily_aggregates) == 1
+        assert daily_aggregates[date(2023, 1, 1)] == 1200  # 12 hours * 100 steps
+
+
+def test_xml_streaming_integration():
+    """Test complete XML streaming integration."""
+    # Create a realistic health export XML
+    xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <ExportDate value="2023-12-01 10:00:00 +0000"/>
+    <Me HKCharacteristicTypeIdentifierDateOfBirth="1990-01-01"/>
+    
+    <!-- Step count records -->
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            unit="count" 
+            creationDate="2023-01-01 20:00:00 +0000" 
+            startDate="2023-01-01 08:00:00 +0000" 
+            endDate="2023-01-01 20:00:00 +0000" 
+            value="8523">
+    </Record>
+    
+    <!-- Heart rate records -->
+    <Record type="HKQuantityTypeIdentifierHeartRate" 
+            sourceName="Apple Watch" 
+            unit="count/min" 
+            creationDate="2023-01-01 08:30:00 +0000" 
+            startDate="2023-01-01 08:30:00 +0000" 
+            endDate="2023-01-01 08:30:00 +0000" 
+            value="72">
+    </Record>
+    
+    <!-- Workout -->
+    <Workout workoutActivityType="HKWorkoutActivityTypeWalking"
+             duration="45"
+             durationUnit="min"
+             totalDistance="3.2"
+             totalDistanceUnit="km"
+             totalEnergyBurned="250"
+             totalEnergyBurnedUnit="kcal"
+             sourceName="Apple Watch"
+             startDate="2023-01-01 09:00:00 +0000"
+             endDate="2023-01-01 09:45:00 +0000">
+    </Workout>
+</HealthData>"""
+    
+    # Process the XML
+    processor = XMLStreamingProcessor()
+    health_processor = HealthDataProcessor()
+    
+    all_records = []
+    all_workouts = []
+    metadata = {}
+    
+    def handle_record(record):
+        processed = health_processor.process_record(record)
+        all_records.append(processed)
+        
+    def handle_workout(workout):
+        all_workouts.append(workout)
+        
+    def handle_metadata(meta):
+        metadata.update(meta)
+        
+    processor.parse(
+        xml_content,
+        callback=handle_record,
+        workout_callback=handle_workout,
+        metadata_callback=handle_metadata
+    )
+    
+    # Verify results
+    assert len(all_records) == 2
+    assert len(all_workouts) == 1
+    assert 'export_date' in metadata
+    
+    # Check step count
+    steps_record = next(r for r in all_records if r['metric_type'] == 'steps')
+    assert steps_record['value'] == 8523
+    
+    # Check heart rate
+    hr_record = next(r for r in all_records if r['metric_type'] == 'heart_rate')
+    assert hr_record['value'] == 72
+    
+    # Check workout
+    assert all_workouts[0]['activity_type'] == 'HKWorkoutActivityTypeWalking'
+    assert float(all_workouts[0]['duration']) == 45

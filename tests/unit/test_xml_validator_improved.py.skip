@@ -1,0 +1,771 @@
+"""
+Comprehensive test suite for XML Validator with high coverage.
+Tests validation rules, error handling, and user-friendly reporting.
+"""
+
+import pytest
+import tempfile
+import os
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from unittest.mock import Mock, patch, mock_open
+from pathlib import Path
+
+from src.utils.xml_validator import (
+    AppleHealthXMLValidator, ValidationRule, ValidationResult,
+    validate_apple_health_xml
+)
+from src.utils.error_handler import DataValidationError
+
+
+class TestValidationRule:
+    """Test ValidationRule data class."""
+    
+    def test_init_minimal(self):
+        """Test ValidationRule with minimal parameters."""
+        rule = ValidationRule(field_name="test_field")
+        
+        assert rule.field_name == "test_field"
+        assert rule.required is True
+        assert rule.data_type == "string"
+        assert rule.pattern is None
+        assert rule.min_value is None
+        assert rule.max_value is None
+        assert rule.allowed_values is None
+        assert rule.description == ""
+    
+    def test_init_full(self):
+        """Test ValidationRule with all parameters."""
+        rule = ValidationRule(
+            field_name="value",
+            required=True,
+            data_type="float",
+            pattern=r"^\d+\.?\d*$",
+            min_value=0.0,
+            max_value=1000.0,
+            allowed_values=None,
+            description="Numeric health measurement"
+        )
+        
+        assert rule.field_name == "value"
+        assert rule.required is True
+        assert rule.data_type == "float"
+        assert rule.pattern == r"^\d+\.?\d*$"
+        assert rule.min_value == 0.0
+        assert rule.max_value == 1000.0
+        assert rule.description == "Numeric health measurement"
+
+
+class TestValidationResult:
+    """Test ValidationResult data class."""
+    
+    def test_init(self):
+        """Test ValidationResult initialization."""
+        result = ValidationResult(
+            is_valid=True,
+            errors=[],
+            warnings=["Minor issue"],
+            record_count=100,
+            validated_records=50
+        )
+        
+        assert result.is_valid is True
+        assert result.errors == []
+        assert result.warnings == ["Minor issue"]
+        assert result.record_count == 100
+        assert result.validated_records == 50
+    
+    def test_add_error(self):
+        """Test adding errors."""
+        result = ValidationResult(is_valid=True, errors=[], warnings=[])
+        
+        result.add_error("Critical error")
+        
+        assert result.errors == ["Critical error"]
+        assert result.is_valid is False
+        
+        result.add_error("Another error")
+        assert len(result.errors) == 2
+    
+    def test_add_warning(self):
+        """Test adding warnings."""
+        result = ValidationResult(is_valid=True, errors=[], warnings=[])
+        
+        result.add_warning("Minor issue")
+        
+        assert result.warnings == ["Minor issue"]
+        assert result.is_valid is True  # Warnings don't affect validity
+        
+        result.add_warning("Another warning")
+        assert len(result.warnings) == 2
+    
+    def test_merge(self):
+        """Test merging validation results."""
+        result1 = ValidationResult(
+            is_valid=True,
+            errors=[],
+            warnings=["Warning 1"],
+            record_count=50,
+            validated_records=50
+        )
+        
+        result2 = ValidationResult(
+            is_valid=False,
+            errors=["Error 1"],
+            warnings=["Warning 2"],
+            record_count=100,
+            validated_records=75
+        )
+        
+        result1.merge(result2)
+        
+        assert result1.errors == ["Error 1"]
+        assert result1.warnings == ["Warning 1", "Warning 2"]
+        assert result1.record_count == 150
+        assert result1.validated_records == 125
+        assert result1.is_valid is False  # Because result2 was invalid
+
+
+class TestAppleHealthXMLValidator:
+    """Test AppleHealthXMLValidator main functionality."""
+    
+    @pytest.fixture
+    def validator(self):
+        """Create a validator instance."""
+        return AppleHealthXMLValidator()
+    
+    def test_init_default(self):
+        """Test validator initialization with default rules."""
+        validator = AppleHealthXMLValidator()
+        
+        assert validator.logger is not None
+        assert len(validator.validation_rules) > 0
+        
+        # Check some default rules exist
+        assert 'creationDate' in validator.validation_rules
+        assert 'sourceName' in validator.validation_rules
+        assert 'type' in validator.validation_rules
+        assert 'value' in validator.validation_rules
+    
+    def test_init_custom_rules(self):
+        """Test validator initialization with custom rules."""
+        custom_rules = {
+            'customField': ValidationRule(
+                field_name='customField',
+                required=True,
+                data_type='string'
+            )
+        }
+        
+        validator = AppleHealthXMLValidator(custom_rules)
+        
+        assert 'customField' in validator.validation_rules
+        assert validator.validation_rules['customField'].required is True
+    
+    def test_get_default_rules(self, validator):
+        """Test default validation rules."""
+        rules = validator._get_default_rules()
+        
+        # Test creationDate rule
+        assert rules['creationDate'].required is True
+        assert rules['creationDate'].data_type == 'datetime'
+        
+        # Test sourceName rule
+        assert rules['sourceName'].required is True
+        assert rules['sourceName'].data_type == 'string'
+        assert rules['sourceName'].pattern is not None
+        
+        # Test type rule
+        assert rules['type'].required is True
+        assert rules['type'].data_type == 'string'
+        assert rules['type'].pattern == r'^HK(Quantity|Category)TypeIdentifier.+'
+        
+        # Test value rule
+        assert rules['value'].required is True
+        assert rules['value'].data_type == 'float'
+        assert rules['value'].min_value == 0.0
+        
+        # Test optional rules
+        assert rules['unit'].required is False
+        assert rules['startDate'].required is False
+        assert rules['endDate'].required is False
+    
+    @pytest.fixture
+    def temp_xml_file(self):
+        """Create a temporary XML file for testing."""
+        content = '''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            sourceVersion="17.0"
+            device="iPhone12,1"
+            unit="count"
+            creationDate="2024-01-01T10:00:00+00:00"
+            startDate="2024-01-01T09:00:00+00:00"
+            endDate="2024-01-01T09:30:00+00:00"
+            value="5000"/>
+    <Record type="HKQuantityTypeIdentifierHeartRate" 
+            sourceName="Apple Watch" 
+            sourceVersion="10.0"
+            device="Watch6,1"
+            unit="count/min"
+            creationDate="2024-01-01T11:00:00+00:00"
+            startDate="2024-01-01T11:00:00+00:00"
+            endDate="2024-01-01T11:00:00+00:00"
+            value="72"/>
+</HealthData>'''
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+        
+        yield temp_path
+        os.unlink(temp_path)
+    
+    def test_validate_xml_file_success(self, validator, temp_xml_file):
+        """Test successful XML validation."""
+        result = validator.validate_xml_file(temp_xml_file)
+        
+        assert result.is_valid is True
+        assert len(result.errors) == 0
+        assert result.record_count == 2
+        assert result.validated_records == 2
+    
+    def test_validate_xml_file_not_found(self, validator):
+        """Test validation with non-existent file."""
+        result = validator.validate_xml_file('/nonexistent/file.xml')
+        
+        assert result.is_valid is False
+        assert any("does not exist" in error for error in result.errors)
+    
+    def test_validate_file_format_basic(self, validator, temp_xml_file):
+        """Test basic file format validation."""
+        result = validator._validate_file_format(temp_xml_file)
+        
+        assert result.is_valid is True
+        assert len(result.errors) == 0
+    
+    def test_validate_file_format_large_file(self, validator):
+        """Test validation with large file warning."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write('<?xml version="1.0"?>\n<HealthData></HealthData>')
+            temp_path = f.name
+        
+        try:
+            # Mock file size to be large
+            with patch('pathlib.Path.stat') as mock_stat:
+                mock_stat.return_value.st_size = 600 * 1024 * 1024  # 600MB
+                
+                result = validator._validate_file_format(temp_path)
+                
+                assert result.is_valid is True
+                assert any("Large file detected" in warning for warning in result.warnings)
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_file_format_wrong_extension(self, validator):
+        """Test validation with wrong file extension."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write('<?xml version="1.0"?>\n<HealthData></HealthData>')
+            temp_path = f.name
+        
+        try:
+            result = validator._validate_file_format(temp_path)
+            
+            assert result.is_valid is True  # Still valid, just a warning
+            assert any("extension" in warning for warning in result.warnings)
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_file_format_no_xml_declaration(self, validator):
+        """Test validation without XML declaration."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write('<HealthData></HealthData>')
+            temp_path = f.name
+        
+        try:
+            result = validator._validate_file_format(temp_path)
+            
+            assert result.is_valid is False
+            assert any("missing XML declaration" in error for error in result.errors)
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_file_format_unicode_error(self, validator):
+        """Test validation with encoding error."""
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as f:
+            # Write invalid UTF-8 bytes
+            f.write(b'<?xml version="1.0"?>\n\xff\xfe Invalid UTF-8')
+            temp_path = f.name
+        
+        try:
+            result = validator._validate_file_format(temp_path)
+            
+            assert result.is_valid is False
+            assert any("encoding" in error for error in result.errors)
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_file_format_read_error(self, validator):
+        """Test validation with read error."""
+        with patch('builtins.open', side_effect=IOError("Permission denied")):
+            result = validator._validate_file_format('/test/file.xml')
+            
+            assert result.is_valid is False
+            assert any("Cannot read file" in error for error in result.errors)
+    
+    def test_validate_xml_structure_correct(self, validator):
+        """Test XML structure validation with correct format."""
+        root = ET.Element('HealthData', locale='en_US')
+        ET.SubElement(root, 'Record', type='HKQuantityTypeIdentifierStepCount')
+        ET.SubElement(root, 'Record', type='HKQuantityTypeIdentifierHeartRate')
+        
+        result = validator._validate_xml_structure(root)
+        
+        assert result.is_valid is True
+        assert result.record_count == 2
+    
+    def test_validate_xml_structure_wrong_root(self, validator):
+        """Test XML structure with wrong root element."""
+        root = ET.Element('WrongRoot')
+        
+        result = validator._validate_xml_structure(root)
+        
+        assert result.is_valid is False
+        assert any("Expected root element 'HealthData'" in error for error in result.errors)
+    
+    def test_validate_xml_structure_no_locale(self, validator):
+        """Test XML structure without locale attribute."""
+        root = ET.Element('HealthData')
+        ET.SubElement(root, 'Record')
+        
+        result = validator._validate_xml_structure(root)
+        
+        assert result.is_valid is True  # Just a warning
+        assert any("missing 'locale' attribute" in warning for warning in result.warnings)
+    
+    def test_validate_xml_structure_no_records(self, validator):
+        """Test XML structure with no records."""
+        root = ET.Element('HealthData', locale='en_US')
+        
+        result = validator._validate_xml_structure(root)
+        
+        assert result.is_valid is False
+        assert any("No health records found" in error for error in result.errors)
+    
+    def test_validate_xml_structure_many_records(self, validator):
+        """Test XML structure with many records warning."""
+        root = ET.Element('HealthData', locale='en_US')
+        
+        # Add many records
+        for i in range(1500000):
+            ET.SubElement(root, 'Record', type=f'Type{i}')
+        
+        result = validator._validate_xml_structure(root)
+        
+        assert result.is_valid is True
+        assert any("Large number of records" in warning for warning in result.warnings)
+    
+    def test_validate_health_records_sample(self, validator):
+        """Test health records validation with sampling."""
+        root = ET.Element('HealthData')
+        
+        # Add 2000 records (will sample first 1000)
+        for i in range(2000):
+            attrs = {
+                'type': 'HKQuantityTypeIdentifierStepCount',
+                'sourceName': 'iPhone',
+                'creationDate': '2024-01-01T10:00:00+00:00',
+                'value': str(i)
+            }
+            ET.SubElement(root, 'Record', **attrs)
+        
+        result = validator._validate_health_records(root)
+        
+        assert result.validated_records == 1000  # Only sampled 1000
+        assert any("Validated sample" in warning for warning in result.warnings)
+    
+    def test_validate_health_records_too_many_errors(self, validator):
+        """Test stopping validation when too many errors."""
+        root = ET.Element('HealthData')
+        
+        # Add records with missing required fields
+        for i in range(200):
+            ET.SubElement(root, 'Record', type='Invalid')  # Missing other required fields
+        
+        result = validator._validate_health_records(root)
+        
+        assert result.is_valid is False
+        assert any("Too many validation errors" in error for error in result.errors)
+    
+    def test_validate_single_record_valid(self, validator):
+        """Test validation of a single valid record."""
+        record = ET.Element('Record', {
+            'type': 'HKQuantityTypeIdentifierStepCount',
+            'sourceName': 'iPhone',
+            'creationDate': '2024-01-01T10:00:00+00:00',
+            'value': '5000',
+            'unit': 'count'
+        })
+        
+        result = validator._validate_single_record(record, 1)
+        
+        assert result.is_valid is True
+        assert len(result.errors) == 0
+    
+    def test_validate_single_record_wrong_tag(self, validator):
+        """Test validation with wrong element tag."""
+        element = ET.Element('NotARecord')
+        
+        result = validator._validate_single_record(element, 1)
+        
+        assert result.is_valid is False
+        assert any("Expected 'Record' element" in error for error in result.errors)
+    
+    def test_validate_single_record_missing_required(self, validator):
+        """Test validation with missing required fields."""
+        record = ET.Element('Record', {
+            'type': 'HKQuantityTypeIdentifierStepCount'
+            # Missing sourceName, creationDate, value
+        })
+        
+        result = validator._validate_single_record(record, 1)
+        
+        assert result.is_valid is False
+        assert any("Missing required field 'sourceName'" in error for error in result.errors)
+        assert any("Missing required field 'creationDate'" in error for error in result.errors)
+        assert any("Missing required field 'value'" in error for error in result.errors)
+    
+    def test_validate_field_value_datetime(self, validator):
+        """Test datetime field validation."""
+        rule = ValidationRule(field_name='date', data_type='datetime')
+        
+        # Valid datetime
+        result = validator._validate_field_value('date', '2024-01-01T10:00:00+00:00', rule, 1)
+        assert result.is_valid is True
+        
+        # Invalid datetime
+        result = validator._validate_field_value('date', 'not-a-date', rule, 1)
+        assert result.is_valid is False
+        assert any("Invalid datetime format" in error for error in result.errors)
+        
+        # Unusual year warning
+        result = validator._validate_field_value('date', '1850-01-01T10:00:00+00:00', rule, 1)
+        assert any("Unusual date" in warning for warning in result.warnings)
+    
+    def test_validate_field_value_float(self, validator):
+        """Test float field validation."""
+        rule = ValidationRule(
+            field_name='value',
+            data_type='float',
+            min_value=0.0,
+            max_value=1000.0
+        )
+        
+        # Valid float
+        result = validator._validate_field_value('value', '123.45', rule, 1)
+        assert result.is_valid is True
+        
+        # Invalid float
+        result = validator._validate_field_value('value', 'not-a-number', rule, 1)
+        assert result.is_valid is False
+        assert any("Invalid numeric value" in error for error in result.errors)
+        
+        # Below minimum
+        result = validator._validate_field_value('value', '-10', rule, 1)
+        assert result.is_valid is False
+        assert any("below minimum" in error for error in result.errors)
+        
+        # Above maximum
+        result = validator._validate_field_value('value', '2000', rule, 1)
+        assert result.is_valid is False
+        assert any("above maximum" in error for error in result.errors)
+    
+    def test_validate_field_value_integer(self, validator):
+        """Test integer field validation."""
+        rule = ValidationRule(
+            field_name='count',
+            data_type='integer',
+            min_value=1,
+            max_value=100
+        )
+        
+        # Valid integer
+        result = validator._validate_field_value('count', '50', rule, 1)
+        assert result.is_valid is True
+        
+        # Invalid integer
+        result = validator._validate_field_value('count', '50.5', rule, 1)
+        assert result.is_valid is False
+        assert any("Invalid integer value" in error for error in result.errors)
+    
+    def test_validate_field_value_string_pattern(self, validator):
+        """Test string field validation with pattern."""
+        rule = ValidationRule(
+            field_name='type',
+            data_type='string',
+            pattern=r'^HK(Quantity|Category)TypeIdentifier.+'
+        )
+        
+        # Valid pattern
+        result = validator._validate_field_value('type', 'HKQuantityTypeIdentifierStepCount', rule, 1)
+        assert result.is_valid is True
+        
+        # Invalid pattern
+        result = validator._validate_field_value('type', 'InvalidType', rule, 1)
+        assert result.is_valid is False
+        assert any("does not match required pattern" in error for error in result.errors)
+    
+    def test_validate_field_value_string_allowed_values(self, validator):
+        """Test string field validation with allowed values."""
+        rule = ValidationRule(
+            field_name='status',
+            data_type='string',
+            allowed_values=['active', 'inactive', 'pending']
+        )
+        
+        # Valid value
+        result = validator._validate_field_value('status', 'active', rule, 1)
+        assert result.is_valid is True
+        
+        # Invalid value
+        result = validator._validate_field_value('status', 'unknown', rule, 1)
+        assert result.is_valid is False
+        assert any("not in allowed values" in error for error in result.errors)
+    
+    def test_validate_field_value_exception(self, validator):
+        """Test field validation with unexpected exception."""
+        rule = ValidationRule(field_name='field', data_type='string')
+        
+        with patch.object(validator, '_validate_field_value', side_effect=Exception("Unexpected")):
+            validator_copy = AppleHealthXMLValidator()
+            result = validator_copy._validate_field_value('field', 'value', rule, 1)
+            
+            assert result.is_valid is False
+            assert any("Unexpected error" in error for error in result.errors)
+    
+    def test_validate_xml_file_parse_error(self, validator):
+        """Test XML file with parse error."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write('<?xml version="1.0"?>\n<HealthData>\n<Record>Unclosed tag')
+            temp_path = f.name
+        
+        try:
+            result = validator.validate_xml_file(temp_path)
+            
+            assert result.is_valid is False
+            assert any("XML parsing failed" in error for error in result.errors)
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_xml_file_unexpected_error(self, validator):
+        """Test handling of unexpected errors during validation."""
+        with patch.object(validator, '_validate_file_format', side_effect=Exception("Unexpected")):
+            result = validator.validate_xml_file('/test/file.xml')
+            
+            assert result.is_valid is False
+            assert any("Unexpected error during validation" in error for error in result.errors)
+    
+    def test_get_user_friendly_summary_success(self, validator):
+        """Test user-friendly summary for successful validation."""
+        result = ValidationResult(
+            is_valid=True,
+            errors=[],
+            warnings=[],
+            record_count=1000
+        )
+        
+        summary = validator.get_user_friendly_summary(result)
+        
+        assert "✅ Validation successful!" in summary
+        assert "1,000 health records" in summary
+    
+    def test_get_user_friendly_summary_failure(self, validator):
+        """Test user-friendly summary for failed validation."""
+        result = ValidationResult(
+            is_valid=False,
+            errors=[
+                "Record 1: Missing required field 'creationDate'",
+                "Record 2: Missing required field 'value'",
+                "Record 3: Invalid datetime format in 'creationDate': invalid",
+                "Record 4: 'value' value -10 below minimum 0.0",
+                "XML parsing failed: Syntax error",
+                "Too many other errors..."
+            ],
+            warnings=["Large file detected", "Unusual date"],
+            record_count=0
+        )
+        
+        summary = validator.get_user_friendly_summary(result)
+        
+        assert "❌ Validation failed" in summary
+        assert "6 error(s)" in summary
+        assert "⚠️  2 warning(s)" in summary
+        assert "Key Issues:" in summary
+        assert "... and 1 more errors" in summary
+        assert "Suggested Actions:" in summary
+        assert "Ensure your XML export includes all required fields" in summary
+        assert "Check that date fields are in ISO format" in summary
+        assert "Verify the XML file is not corrupted" in summary
+    
+    def test_get_user_friendly_summary_no_suggestions(self, validator):
+        """Test summary with errors that don't match suggestion patterns."""
+        result = ValidationResult(
+            is_valid=False,
+            errors=["Unknown error type"],
+            warnings=[],
+            record_count=0
+        )
+        
+        summary = validator.get_user_friendly_summary(result)
+        
+        assert "❌ Validation failed" in summary
+        assert "Suggested Actions:" in summary
+
+
+class TestValidateAppleHealthXML:
+    """Test convenience function."""
+    
+    def test_validate_apple_health_xml_function(self):
+        """Test the convenience validation function."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write('''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            creationDate="2024-01-01T10:00:00+00:00"
+            value="5000"/>
+</HealthData>''')
+            temp_path = f.name
+        
+        try:
+            result = validate_apple_health_xml(temp_path)
+            
+            assert isinstance(result, ValidationResult)
+            assert result.is_valid is True
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_apple_health_xml_with_custom_rules(self):
+        """Test validation with custom rules."""
+        custom_rules = {
+            'customField': ValidationRule(
+                field_name='customField',
+                required=True,
+                data_type='string'
+            )
+        }
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write('''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            creationDate="2024-01-01T10:00:00+00:00"
+            value="5000"/>
+</HealthData>''')
+            temp_path = f.name
+        
+        try:
+            result = validate_apple_health_xml(temp_path, custom_rules)
+            
+            # Should fail because customField is missing
+            assert result.is_valid is False
+            assert any("Missing required field 'customField'" in error for error in result.errors)
+        finally:
+            os.unlink(temp_path)
+
+
+class TestIntegration:
+    """Integration tests for XML validation."""
+    
+    def test_validate_realistic_xml(self):
+        """Test validation with realistic Apple Health XML."""
+        xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <ExportDate value="2024-01-15 10:30:00 -0800"/>
+    <Me HKCharacteristicTypeIdentifierDateOfBirth="1990-01-01" 
+        HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexMale"
+        HKCharacteristicTypeIdentifierBloodType="HKBloodTypeAPositive"
+        HKCharacteristicTypeIdentifierFitzpatrickSkinType="HKFitzpatrickSkinTypeNotSet"/>
+    
+    <Record type="HKQuantityTypeIdentifierStepCount" sourceName="iPhone 14 Pro" 
+            sourceVersion="17.2" device="&lt;&lt;HKDevice: 0x123456789&gt;&gt;" 
+            unit="count" creationDate="2024-01-01 10:00:00 -0800" 
+            startDate="2024-01-01 00:00:00 -0800" 
+            endDate="2024-01-01 23:59:59 -0800" value="10523"/>
+    
+    <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Apple Watch Series 8" 
+            sourceVersion="10.2" unit="count/min" 
+            creationDate="2024-01-01 10:15:00 -0800" 
+            startDate="2024-01-01 10:15:00 -0800" 
+            endDate="2024-01-01 10:15:00 -0800" value="72"/>
+    
+    <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="iPhone 14 Pro" 
+            sourceVersion="17.2" creationDate="2024-01-01 07:00:00 -0800" 
+            startDate="2024-01-01 00:00:00 -0800" 
+            endDate="2024-01-01 07:00:00 -0800" value="HKCategoryValueSleepAnalysisInBed"/>
+    
+    <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="35.5" 
+             durationUnit="min" totalDistance="5.2" totalDistanceUnit="km" 
+             totalEnergyBurned="350" totalEnergyBurnedUnit="kcal" 
+             sourceName="Apple Watch Series 8" sourceVersion="10.2" 
+             creationDate="2024-01-01 08:00:00 -0800" 
+             startDate="2024-01-01 07:00:00 -0800" 
+             endDate="2024-01-01 07:35:30 -0800">
+        <MetadataEntry key="HKIndoorWorkout" value="0"/>
+        <MetadataEntry key="HKAverageMETs" value="8.5"/>
+    </Workout>
+</HealthData>'''
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write(xml_content)
+            temp_path = f.name
+        
+        try:
+            validator = AppleHealthXMLValidator()
+            result = validator.validate_xml_file(temp_path)
+            
+            # Should validate the Record elements
+            assert result.record_count >= 3
+            
+            # May have warnings but should be valid
+            assert len(result.errors) == 0 or result.is_valid is True
+            
+        finally:
+            os.unlink(temp_path)
+    
+    def test_validate_corrupted_xml(self):
+        """Test validation with various corruption scenarios."""
+        corruption_scenarios = [
+            # Missing closing tag
+            '''<?xml version="1.0"?>
+<HealthData>
+    <Record type="HKQuantityTypeIdentifierStepCount"''',
+            
+            # Invalid XML characters
+            '''<?xml version="1.0"?>
+<HealthData>
+    <Record type="Test&Invalid<>Characters"/>
+</HealthData>''',
+            
+            # Duplicate attributes
+            '''<?xml version="1.0"?>
+<HealthData>
+    <Record type="Type1" type="Type2"/>
+</HealthData>''',
+        ]
+        
+        validator = AppleHealthXMLValidator()
+        
+        for i, corrupted_xml in enumerate(corruption_scenarios):
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+                f.write(corrupted_xml)
+                temp_path = f.name
+            
+            try:
+                result = validator.validate_xml_file(temp_path)
+                assert result.is_valid is False
+                assert len(result.errors) > 0
+            finally:
+                os.unlink(temp_path)

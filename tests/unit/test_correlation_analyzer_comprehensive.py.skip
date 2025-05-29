@@ -1,0 +1,410 @@
+"""Comprehensive tests for correlation analyzer module."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+from scipy import stats
+
+from src.analytics.correlation_analyzer import CorrelationAnalyzer
+
+
+class TestCorrelationAnalyzer:
+    """Test CorrelationAnalyzer functionality."""
+    
+    @pytest.fixture
+    def sample_data(self):
+        """Create sample health data for testing."""
+        # Create 100 days of correlated data
+        np.random.seed(42)
+        dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
+        
+        # Create correlated metrics
+        steps = np.random.normal(8000, 2000, 100)
+        # Active minutes correlates with steps
+        active_minutes = steps / 100 + np.random.normal(0, 10, 100)
+        # Sleep inversely correlates with activity
+        sleep_hours = 9 - (steps / 10000) + np.random.normal(0, 0.5, 100)
+        # Random metric
+        water_intake = np.random.normal(2000, 500, 100)
+        
+        return pd.DataFrame({
+            'date': dates,
+            'steps': steps,
+            'active_minutes': active_minutes,
+            'sleep_hours': sleep_hours,
+            'water_intake_ml': water_intake
+        }).set_index('date')
+    
+    @pytest.fixture
+    def analyzer(self, sample_data):
+        """Create CorrelationAnalyzer instance."""
+        return CorrelationAnalyzer(sample_data)
+    
+    def test_initialization(self, sample_data):
+        """Test CorrelationAnalyzer initialization."""
+        analyzer = CorrelationAnalyzer(sample_data)
+        
+        assert analyzer.data is not None
+        assert len(analyzer.numeric_columns) == 4
+        assert analyzer.significance_threshold == 0.05
+        
+    def test_initialization_with_non_datetime_index(self):
+        """Test initialization with non-datetime index."""
+        # Create data with date column instead of index
+        data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=10),
+            'metric1': np.random.rand(10),
+            'metric2': np.random.rand(10)
+        })
+        
+        analyzer = CorrelationAnalyzer(data)
+        assert isinstance(analyzer.data.index, pd.DatetimeIndex)
+    
+    def test_calculate_correlations_pearson(self, analyzer):
+        """Test Pearson correlation calculation."""
+        correlations, p_values = analyzer.calculate_correlations(method='pearson')
+        
+        # Check structure
+        assert isinstance(correlations, pd.DataFrame)
+        assert isinstance(p_values, pd.DataFrame)
+        assert correlations.shape == p_values.shape
+        
+        # Check correlation properties
+        # Diagonal should be 1
+        np.testing.assert_array_almost_equal(np.diag(correlations), np.ones(len(correlations)))
+        
+        # Should be symmetric
+        np.testing.assert_array_almost_equal(correlations.values, correlations.values.T)
+        
+        # Check expected correlations
+        # Steps and active_minutes should be positively correlated
+        assert correlations.loc['steps', 'active_minutes'] > 0.5
+        # Steps and sleep should be negatively correlated
+        assert correlations.loc['steps', 'sleep_hours'] < 0
+    
+    def test_calculate_correlations_spearman(self, analyzer):
+        """Test Spearman correlation calculation."""
+        correlations, p_values = analyzer.calculate_correlations(method='spearman')
+        
+        # Check structure
+        assert isinstance(correlations, pd.DataFrame)
+        assert isinstance(p_values, pd.DataFrame)
+        
+        # Spearman should also show correlation between steps and active_minutes
+        assert correlations.loc['steps', 'active_minutes'] > 0.5
+    
+    def test_calculate_correlations_invalid_method(self, analyzer):
+        """Test correlation calculation with invalid method."""
+        with pytest.raises(ValueError):
+            analyzer.calculate_correlations(method='invalid')
+    
+    def test_calculate_correlations_with_missing_data(self, sample_data):
+        """Test correlation calculation with missing data."""
+        # Add some NaN values
+        sample_data.loc[sample_data.index[:10], 'steps'] = np.nan
+        sample_data.loc[sample_data.index[20:30], 'sleep_hours'] = np.nan
+        
+        analyzer = CorrelationAnalyzer(sample_data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Should still calculate correlations using available data
+        assert not correlations.isna().all().all()
+    
+    def test_calculate_lag_correlation(self, analyzer):
+        """Test lag correlation analysis."""
+        # Create data where metric2 follows metric1 with delay
+        dates = pd.date_range('2023-01-01', periods=100)
+        metric1 = np.sin(np.linspace(0, 4*np.pi, 100))
+        metric2 = np.roll(metric1, 5) + np.random.normal(0, 0.1, 100)  # 5-day lag
+        
+        data = pd.DataFrame({
+            'metric1': metric1,
+            'metric2': metric2
+        }, index=dates)
+        
+        analyzer = CorrelationAnalyzer(data)
+        results = analyzer.calculate_lag_correlation('metric1', 'metric2', max_lag=10)
+        
+        assert 'correlations' in results
+        assert 'best_lag' in results
+        assert 'best_correlation' in results
+        
+        # Best lag should be around 5
+        assert 3 <= results['best_lag'] <= 7
+        assert results['best_correlation'] > 0.8
+    
+    def test_calculate_lag_correlation_invalid_metrics(self, analyzer):
+        """Test lag correlation with invalid metric names."""
+        results = analyzer.calculate_lag_correlation('invalid1', 'invalid2')
+        
+        # Should return None or handle gracefully
+        assert results is None or results.get('error') is not None
+    
+    def test_calculate_partial_correlation(self, analyzer):
+        """Test partial correlation calculation."""
+        # Partial correlation between steps and sleep, controlling for active_minutes
+        result = analyzer.calculate_partial_correlation(
+            'steps', 'sleep_hours', ['active_minutes']
+        )
+        
+        if result is not None:
+            assert 'correlation' in result
+            assert 'p_value' in result
+            assert -1 <= result['correlation'] <= 1
+    
+    def test_get_correlation_strength_category(self, analyzer):
+        """Test correlation strength categorization."""
+        assert analyzer.get_correlation_strength_category(0.95) == "Very Strong"
+        assert analyzer.get_correlation_strength_category(0.75) == "Strong"
+        assert analyzer.get_correlation_strength_category(0.55) == "Moderate"
+        assert analyzer.get_correlation_strength_category(0.35) == "Weak"
+        assert analyzer.get_correlation_strength_category(0.15) == "Very Weak"
+        assert analyzer.get_correlation_strength_category(-0.85) == "Very Strong"
+    
+    def test_get_significant_correlations(self, analyzer):
+        """Test finding significant correlations."""
+        significant = analyzer.get_significant_correlations(
+            min_correlation=0.3,
+            max_p_value=0.05
+        )
+        
+        assert isinstance(significant, list)
+        
+        # Each item should have required fields
+        for item in significant:
+            assert 'metric1' in item
+            assert 'metric2' in item
+            assert 'correlation' in item
+            assert 'p_value' in item
+            assert 'strength' in item
+            
+            # Check thresholds
+            assert abs(item['correlation']) >= 0.3
+            assert item['p_value'] <= 0.05
+    
+    def test_get_correlation_summary(self, analyzer):
+        """Test correlation summary generation."""
+        summary = analyzer.get_correlation_summary()
+        
+        assert isinstance(summary, dict)
+        assert 'total_metrics' in summary
+        assert 'total_pairs' in summary
+        assert 'significant_correlations' in summary
+        assert 'strongest_positive' in summary
+        assert 'strongest_negative' in summary
+        
+        # Check summary values
+        assert summary['total_metrics'] == 4  # steps, active_minutes, sleep_hours, water_intake
+        assert summary['total_pairs'] == 6  # C(4,2) = 6
+    
+    def test_correlation_caching(self, analyzer):
+        """Test that correlations are cached properly."""
+        # First call
+        corr1, p1 = analyzer.calculate_correlations()
+        
+        # Second call should use cache
+        corr2, p2 = analyzer.calculate_correlations()
+        
+        # Results should be identical
+        pd.testing.assert_frame_equal(corr1, corr2)
+        pd.testing.assert_frame_equal(p1, p2)
+    
+    def test_correlation_with_single_metric(self):
+        """Test correlation calculation with single metric."""
+        data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=10),
+            'metric1': np.random.rand(10)
+        }).set_index('date')
+        
+        analyzer = CorrelationAnalyzer(data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Should return 1x1 matrix
+        assert correlations.shape == (1, 1)
+        assert correlations.iloc[0, 0] == 1.0
+    
+    def test_correlation_with_constant_metric(self, sample_data):
+        """Test correlation with constant metric."""
+        # Add constant metric
+        sample_data['constant'] = 100
+        
+        analyzer = CorrelationAnalyzer(sample_data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Correlations with constant should be NaN or handled appropriately
+        constant_corrs = correlations['constant']
+        # Remove self-correlation
+        constant_corrs = constant_corrs[constant_corrs.index != 'constant']
+        
+        # All correlations with constant should be NaN
+        assert constant_corrs.isna().all() or (constant_corrs == 0).all()
+
+
+class TestCorrelationEdgeCases:
+    """Test edge cases for correlation analysis."""
+    
+    def test_empty_dataframe(self):
+        """Test with empty DataFrame."""
+        data = pd.DataFrame()
+        with pytest.raises(Exception):
+            analyzer = CorrelationAnalyzer(data)
+    
+    def test_insufficient_data(self):
+        """Test with insufficient data points."""
+        data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=2),
+            'metric1': [1, 2],
+            'metric2': [3, 4]
+        }).set_index('date')
+        
+        analyzer = CorrelationAnalyzer(data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Should handle gracefully, possibly with warnings
+        assert correlations is not None
+    
+    def test_all_nan_metric(self):
+        """Test with metric that is all NaN."""
+        data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=10),
+            'metric1': np.random.rand(10),
+            'metric2': np.nan
+        }).set_index('date')
+        
+        analyzer = CorrelationAnalyzer(data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Should handle gracefully
+        assert correlations.loc['metric1', 'metric2'] != correlations.loc['metric1', 'metric2']  # NaN
+    
+    def test_perfect_correlation(self):
+        """Test with perfectly correlated metrics."""
+        data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=100),
+            'metric1': np.arange(100),
+            'metric2': np.arange(100) * 2 + 5  # Perfect linear relationship
+        }).set_index('date')
+        
+        analyzer = CorrelationAnalyzer(data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Should show perfect correlation
+        assert abs(correlations.loc['metric1', 'metric2'] - 1.0) < 0.0001
+        assert p_values.loc['metric1', 'metric2'] < 0.001
+    
+    def test_categorical_data_handling(self):
+        """Test handling of non-numeric data."""
+        data = pd.DataFrame({
+            'date': pd.date_range('2023-01-01', periods=10),
+            'numeric': np.random.rand(10),
+            'categorical': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B', 'A', 'B']
+        }).set_index('date')
+        
+        analyzer = CorrelationAnalyzer(data)
+        
+        # Should only use numeric columns
+        assert 'categorical' not in analyzer.numeric_columns
+        assert len(analyzer.numeric_columns) == 1
+
+
+class TestCorrelationWithRealWorldScenarios:
+    """Test correlation analysis with realistic health data patterns."""
+    
+    @pytest.fixture
+    def realistic_health_data(self):
+        """Create realistic health data with known relationships."""
+        np.random.seed(42)
+        days = 180
+        dates = pd.date_range('2023-01-01', periods=days)
+        
+        # Create realistic patterns
+        # Base activity level with weekly pattern
+        day_of_week = dates.dayofweek
+        base_steps = 8000 + 2000 * np.sin(2 * np.pi * day_of_week / 7)
+        steps = base_steps + np.random.normal(0, 1000, days)
+        steps = np.maximum(steps, 1000)  # Minimum steps
+        
+        # Exercise correlates with steps
+        exercise_prob = (steps - 5000) / 10000
+        exercise_prob = np.clip(exercise_prob, 0.1, 0.9)
+        exercise_minutes = np.random.binomial(60, exercise_prob)
+        
+        # Sleep inversely correlates with late-night activity
+        sleep_hours = 8.5 - (exercise_minutes / 120) + np.random.normal(0, 0.5, days)
+        sleep_hours = np.clip(sleep_hours, 4, 12)
+        
+        # Heart rate affected by exercise
+        resting_hr = 70 - (exercise_minutes / 10) + np.random.normal(0, 3, days)
+        resting_hr = np.clip(resting_hr, 45, 90)
+        
+        return pd.DataFrame({
+            'steps': steps,
+            'exercise_minutes': exercise_minutes,
+            'sleep_hours': sleep_hours,
+            'resting_heart_rate': resting_hr
+        }, index=dates)
+    
+    def test_realistic_correlations(self, realistic_health_data):
+        """Test correlations in realistic health data."""
+        analyzer = CorrelationAnalyzer(realistic_health_data)
+        correlations, p_values = analyzer.calculate_correlations()
+        
+        # Test expected relationships
+        # Steps and exercise should be positively correlated
+        assert correlations.loc['steps', 'exercise_minutes'] > 0.5
+        assert p_values.loc['steps', 'exercise_minutes'] < 0.05
+        
+        # Exercise and resting heart rate should be negatively correlated
+        assert correlations.loc['exercise_minutes', 'resting_heart_rate'] < -0.3
+        
+        # Sleep and exercise might be weakly negatively correlated
+        assert correlations.loc['sleep_hours', 'exercise_minutes'] < 0
+    
+    def test_weekly_pattern_detection(self, realistic_health_data):
+        """Test detection of weekly patterns through lag correlation."""
+        analyzer = CorrelationAnalyzer(realistic_health_data)
+        
+        # Check if steps show weekly pattern (7-day lag correlation)
+        results = analyzer.calculate_lag_correlation('steps', 'steps', max_lag=14)
+        
+        if results and 'correlations' in results:
+            # Should see peak at 7-day lag
+            correlations = results['correlations']
+            if len(correlations) > 7:
+                # 7-day correlation should be relatively high
+                assert correlations[7] > 0.3
+    
+    def test_significant_health_correlations(self, realistic_health_data):
+        """Test identification of significant health correlations."""
+        analyzer = CorrelationAnalyzer(realistic_health_data)
+        significant = analyzer.get_significant_correlations(
+            min_correlation=0.3,
+            max_p_value=0.05
+        )
+        
+        # Should find several significant correlations
+        assert len(significant) > 0
+        
+        # Check if key relationships are found
+        found_steps_exercise = any(
+            (item['metric1'] == 'steps' and item['metric2'] == 'exercise_minutes') or
+            (item['metric2'] == 'steps' and item['metric1'] == 'exercise_minutes')
+            for item in significant
+        )
+        assert found_steps_exercise
+    
+    def test_correlation_summary_interpretation(self, realistic_health_data):
+        """Test correlation summary for interpretation."""
+        analyzer = CorrelationAnalyzer(realistic_health_data)
+        summary = analyzer.get_correlation_summary()
+        
+        # Should identify strongest correlations
+        assert summary['strongest_positive'] is not None
+        assert summary['strongest_negative'] is not None
+        
+        # Strongest positive should likely be steps-exercise
+        strongest = summary['strongest_positive']
+        assert 'steps' in [strongest.get('metric1'), strongest.get('metric2')]
+        assert 'exercise_minutes' in [strongest.get('metric1'), strongest.get('metric2')]

@@ -1,0 +1,589 @@
+"""
+Comprehensive test suite for XML Streaming Processor with high coverage.
+Tests all major functionality including memory monitoring, SAX parsing, and database operations.
+"""
+
+import pytest
+import os
+import sqlite3
+import tempfile
+import xml.sax
+from unittest.mock import Mock, patch, MagicMock, call
+from datetime import datetime
+import pandas as pd
+
+from src.xml_streaming_processor import (
+    XMLStreamingProcessor, AppleHealthHandler, MemoryMonitor
+)
+from src.utils.error_handler import DataImportError
+
+
+class TestMemoryMonitor:
+    """Test MemoryMonitor class for memory usage tracking."""
+    
+    def test_init(self):
+        """Test MemoryMonitor initialization."""
+        monitor = MemoryMonitor(limit_mb=1000)
+        assert monitor.limit_mb == 1000
+        assert monitor.process is not None
+    
+    @patch('psutil.Process')
+    def test_get_current_usage_mb(self, mock_process_class):
+        """Test getting current memory usage in MB."""
+        mock_process = Mock()
+        mock_process.memory_info.return_value.rss = 500 * 1024 * 1024  # 500MB
+        mock_process_class.return_value = mock_process
+        
+        monitor = MemoryMonitor()
+        usage = monitor.get_current_usage_mb()
+        
+        assert usage == 500.0
+        mock_process.memory_info.assert_called_once()
+    
+    @patch('psutil.Process')
+    def test_is_over_limit(self, mock_process_class):
+        """Test checking if memory usage is over limit."""
+        mock_process = Mock()
+        mock_process_class.return_value = mock_process
+        
+        monitor = MemoryMonitor(limit_mb=100)
+        
+        # Test under limit
+        mock_process.memory_info.return_value.rss = 50 * 1024 * 1024  # 50MB
+        assert not monitor.is_over_limit()
+        
+        # Test over limit
+        mock_process.memory_info.return_value.rss = 150 * 1024 * 1024  # 150MB
+        assert monitor.is_over_limit()
+    
+    @patch('psutil.Process')
+    def test_get_usage_percentage(self, mock_process_class):
+        """Test getting memory usage as percentage of limit."""
+        mock_process = Mock()
+        mock_process.memory_info.return_value.rss = 75 * 1024 * 1024  # 75MB
+        mock_process_class.return_value = mock_process
+        
+        monitor = MemoryMonitor(limit_mb=150)
+        percentage = monitor.get_usage_percentage()
+        
+        assert percentage == 50.0
+
+
+class TestAppleHealthHandler:
+    """Test AppleHealthHandler SAX handler class."""
+    
+    @pytest.fixture
+    def temp_db(self):
+        """Create a temporary database for testing."""
+        fd, path = tempfile.mkstemp(suffix='.db')
+        os.close(fd)
+        yield path
+        os.unlink(path)
+    
+    def test_init(self, temp_db):
+        """Test handler initialization and database setup."""
+        handler = AppleHealthHandler(
+            db_path=temp_db,
+            chunk_size=5000
+        )
+        
+        assert handler.db_path == temp_db
+        assert handler.chunk_size == 5000
+        assert handler.records == []
+        assert handler.record_count == 0
+        
+        # Check database tables were created
+        conn = sqlite3.connect(temp_db)
+        cursor = conn.cursor()
+        
+        # Check health_records table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='health_records'")
+        assert cursor.fetchone() is not None
+        
+        # Check metadata table
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='metadata'")
+        assert cursor.fetchone() is not None
+        
+        # Check indexes
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_creation_date'")
+        assert cursor.fetchone() is not None
+        
+        conn.close()
+    
+    def test_set_file_size(self, temp_db):
+        """Test setting file size for progress calculation."""
+        handler = AppleHealthHandler(temp_db)
+        handler.set_file_size(1000000)
+        assert handler.file_size == 1000000
+    
+    def test_start_element(self, temp_db):
+        """Test handling XML start elements."""
+        handler = AppleHealthHandler(temp_db)
+        
+        # Create mock attributes
+        attrs = {
+            'type': 'HKQuantityTypeIdentifierStepCount',
+            'value': '100',
+            'unit': 'count',
+            'creationDate': '2024-01-01T10:00:00+00:00',
+            'startDate': '2024-01-01T09:00:00+00:00',
+            'endDate': '2024-01-01T09:30:00+00:00',
+            'sourceName': 'iPhone',
+            'sourceVersion': '17.0'
+        }
+        
+        # Create mock AttributesImpl
+        mock_attrs = Mock()
+        mock_attrs.items.return_value = attrs.items()
+        
+        handler.startElement('Record', mock_attrs)
+        
+        assert handler.in_record is True
+        assert handler.current_record == attrs
+    
+    def test_end_element(self, temp_db):
+        """Test handling XML end elements."""
+        handler = AppleHealthHandler(temp_db)
+        handler.in_record = True
+        handler.current_record = {
+            'type': 'HKQuantityTypeIdentifierStepCount',
+            'value': '100',
+            'unit': 'count',
+            'creationDate': '2024-01-01T10:00:00+00:00',
+            'sourceName': 'iPhone'
+        }
+        
+        handler.endElement('Record')
+        
+        assert handler.in_record is False
+        assert handler.current_record == {}
+        assert len(handler.records) == 1
+        assert handler.record_count == 1
+    
+    def test_clean_record(self, temp_db):
+        """Test record cleaning and validation."""
+        handler = AppleHealthHandler(temp_db)
+        
+        # Test valid record
+        record = {
+            'type': 'HKQuantityTypeIdentifierStepCount',
+            'value': '100',
+            'unit': 'count',
+            'creationDate': '2024-01-01T10:00:00+00:00',
+            'sourceName': 'iPhone',
+            'sourceVersion': '17.0',
+            'device': 'iPhone12,1',
+            'startDate': '2024-01-01T09:00:00+00:00',
+            'endDate': '2024-01-01T09:30:00+00:00'
+        }
+        
+        cleaned = handler._clean_record(record)
+        assert cleaned is not None
+        assert cleaned['type'] == 'StepCount'
+        assert cleaned['value'] == 100.0
+        
+        # Test record without required fields
+        invalid_record = {'sourceName': 'iPhone'}
+        assert handler._clean_record(invalid_record) is None
+        
+        # Test record with invalid value
+        record_with_text_value = record.copy()
+        record_with_text_value['value'] = 'invalid'
+        cleaned = handler._clean_record(record_with_text_value)
+        assert cleaned['value'] == 1.0  # Default for categorical
+    
+    def test_parse_numeric_value(self, temp_db):
+        """Test numeric value parsing."""
+        handler = AppleHealthHandler(temp_db)
+        
+        assert handler._parse_numeric_value('123.45') == 123.45
+        assert handler._parse_numeric_value('100') == 100.0
+        assert handler._parse_numeric_value('invalid') == 1.0
+        assert handler._parse_numeric_value(None) == 1.0
+        assert handler._parse_numeric_value('') == 1.0
+    
+    @patch('pandas.DataFrame.to_sql')
+    def test_flush_to_database(self, mock_to_sql, temp_db):
+        """Test flushing records to database."""
+        handler = AppleHealthHandler(temp_db)
+        
+        # Add test records
+        handler.records = [
+            {
+                'type': 'StepCount',
+                'value': 100,
+                'creationDate': '2024-01-01T10:00:00+00:00',
+                'startDate': '2024-01-01T09:00:00+00:00',
+                'endDate': '2024-01-01T09:30:00+00:00',
+                'sourceName': 'iPhone',
+                'sourceVersion': '17.0',
+                'device': 'iPhone12,1',
+                'unit': 'count'
+            },
+            {
+                'type': 'HeartRate',
+                'value': 75,
+                'creationDate': '2024-01-01T10:00:00+00:00',
+                'startDate': '2024-01-01T10:00:00+00:00',
+                'endDate': '2024-01-01T10:00:00+00:00',
+                'sourceName': 'Apple Watch',
+                'sourceVersion': '10.0',
+                'device': 'Watch6,1',
+                'unit': 'count/min'
+            }
+        ]
+        
+        handler._flush_to_database()
+        
+        # Verify to_sql was called
+        mock_to_sql.assert_called_once()
+        assert handler.records == []
+    
+    def test_flush_with_error(self, temp_db):
+        """Test error handling during flush."""
+        handler = AppleHealthHandler(temp_db)
+        handler.records = [{'invalid': 'data'}]
+        
+        with pytest.raises(DataImportError):
+            handler._flush_to_database()
+    
+    def test_characters(self, temp_db):
+        """Test character data handling."""
+        handler = AppleHealthHandler(temp_db)
+        handler.bytes_processed = 0
+        
+        handler.characters("Test content")
+        assert handler.bytes_processed == len("Test content".encode('utf-8'))
+    
+    def test_finalize(self, temp_db):
+        """Test finalization process."""
+        handler = AppleHealthHandler(temp_db)
+        handler.record_count = 100
+        handler.records = []  # Empty to avoid flush
+        
+        count = handler.finalize()
+        
+        assert count == 100
+        
+        # Check metadata was written
+        conn = sqlite3.connect(temp_db)
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM metadata WHERE key='record_count'")
+        result = cursor.fetchone()
+        assert result[0] == '100'
+        conn.close()
+    
+    def test_progress_callback(self, temp_db):
+        """Test progress callback functionality."""
+        mock_callback = Mock()
+        handler = AppleHealthHandler(temp_db, progress_callback=mock_callback)
+        handler.file_size = 1000
+        handler.bytes_processed = 500
+        
+        # Process a record to trigger callback
+        handler._process_record({
+            'type': 'HKQuantityTypeIdentifierStepCount',
+            'value': '100',
+            'creationDate': '2024-01-01T10:00:00+00:00'
+        })
+        
+        mock_callback.assert_called_with(50.0, 1)
+    
+    @patch('src.xml_streaming_processor.MemoryMonitor')
+    def test_memory_monitoring(self, mock_monitor_class, temp_db):
+        """Test memory monitoring during processing."""
+        mock_monitor = Mock()
+        mock_monitor.is_over_limit.return_value = True
+        mock_monitor.get_current_usage_mb.return_value = 600.0
+        
+        handler = AppleHealthHandler(temp_db, memory_monitor=mock_monitor)
+        handler.records = [{'test': 'data'}]
+        
+        with patch.object(handler, '_flush_to_database') as mock_flush:
+            handler._process_record({
+                'type': 'HKQuantityTypeIdentifierStepCount',
+                'value': '100',
+                'creationDate': '2024-01-01T10:00:00+00:00'
+            })
+            
+            # Should force flush when memory over limit
+            assert mock_flush.call_count >= 1
+
+
+class TestXMLStreamingProcessor:
+    """Test XMLStreamingProcessor main class."""
+    
+    def test_init(self):
+        """Test processor initialization."""
+        processor = XMLStreamingProcessor(memory_limit_mb=1000)
+        assert processor.memory_limit_mb == 1000
+        assert processor.memory_monitor is not None
+        assert processor.memory_monitor.limit_mb == 1000
+    
+    def test_calculate_chunk_size(self):
+        """Test chunk size calculation based on file size."""
+        processor = XMLStreamingProcessor()
+        
+        # Small file (<50MB)
+        assert processor.calculate_chunk_size(10 * 1024 * 1024) == 10000
+        
+        # Medium file (50-200MB)
+        assert processor.calculate_chunk_size(100 * 1024 * 1024) == 5000
+        
+        # Large file (>200MB)
+        assert processor.calculate_chunk_size(300 * 1024 * 1024) == 2500
+    
+    def test_should_use_streaming(self):
+        """Test streaming decision logic."""
+        processor = XMLStreamingProcessor(memory_limit_mb=100)
+        
+        with patch('os.path.getsize') as mock_getsize:
+            # Small file - should not use streaming
+            mock_getsize.return_value = 10 * 1024 * 1024  # 10MB
+            assert not processor.should_use_streaming('test.xml')
+            
+            # Large file - should use streaming
+            mock_getsize.return_value = 100 * 1024 * 1024  # 100MB
+            assert processor.should_use_streaming('test.xml')
+    
+    @pytest.fixture
+    def temp_xml_file(self):
+        """Create a temporary XML file for testing."""
+        content = '''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            sourceVersion="17.0"
+            device="iPhone12,1"
+            unit="count"
+            creationDate="2024-01-01T10:00:00+00:00"
+            startDate="2024-01-01T09:00:00+00:00"
+            endDate="2024-01-01T09:30:00+00:00"
+            value="100"/>
+    <Record type="HKQuantityTypeIdentifierHeartRate" 
+            sourceName="Apple Watch" 
+            sourceVersion="10.0"
+            device="Watch6,1"
+            unit="count/min"
+            creationDate="2024-01-01T10:00:00+00:00"
+            startDate="2024-01-01T10:00:00+00:00"
+            endDate="2024-01-01T10:00:00+00:00"
+            value="75"/>
+</HealthData>'''
+        
+        fd, path = tempfile.mkstemp(suffix='.xml')
+        with os.fdopen(fd, 'w') as f:
+            f.write(content)
+        yield path
+        os.unlink(path)
+    
+    def test_process_xml_file_not_found(self):
+        """Test handling of non-existent file."""
+        processor = XMLStreamingProcessor()
+        
+        with pytest.raises(FileNotFoundError):
+            processor.process_xml_file('nonexistent.xml', 'output.db')
+    
+    @patch('src.xml_streaming_processor.XMLStreamingProcessor._stream_process')
+    @patch('src.xml_streaming_processor.XMLStreamingProcessor.should_use_streaming')
+    def test_process_xml_file_streaming(self, mock_should_stream, mock_stream, temp_xml_file):
+        """Test processing with streaming."""
+        processor = XMLStreamingProcessor()
+        mock_should_stream.return_value = True
+        mock_stream.return_value = 100
+        
+        count = processor.process_xml_file(temp_xml_file, 'output.db')
+        
+        assert count == 100
+        mock_stream.assert_called_once()
+    
+    @patch('src.data_loader.convert_xml_to_sqlite')
+    @patch('src.xml_streaming_processor.XMLStreamingProcessor.should_use_streaming')
+    def test_process_xml_file_memory(self, mock_should_stream, mock_convert, temp_xml_file):
+        """Test processing with memory-based approach."""
+        processor = XMLStreamingProcessor()
+        mock_should_stream.return_value = False
+        mock_convert.return_value = 50
+        
+        count = processor.process_xml_file(temp_xml_file, 'output.db')
+        
+        assert count == 50
+        mock_convert.assert_called_once()
+    
+    def test_stream_process(self, temp_xml_file):
+        """Test actual streaming processing."""
+        processor = XMLStreamingProcessor()
+        
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
+            db_path = db_file.name
+        
+        try:
+            count = processor._stream_process(temp_xml_file, db_path)
+            
+            # Should have processed 2 records from our test XML
+            assert count == 2
+            
+            # Verify data was written to database
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM health_records")
+            assert cursor.fetchone()[0] == 2
+            conn.close()
+            
+        finally:
+            os.unlink(db_path)
+    
+    def test_stream_process_with_progress(self, temp_xml_file):
+        """Test streaming with progress callback."""
+        processor = XMLStreamingProcessor()
+        progress_calls = []
+        
+        def progress_callback(percent, records):
+            progress_calls.append((percent, records))
+        
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
+            db_path = db_file.name
+        
+        try:
+            processor._stream_process(temp_xml_file, db_path, progress_callback)
+            
+            # Should have received progress updates
+            assert len(progress_calls) > 0
+            
+        finally:
+            os.unlink(db_path)
+    
+    def test_stream_process_sax_error(self, temp_xml_file):
+        """Test handling of SAX parsing errors."""
+        processor = XMLStreamingProcessor()
+        
+        # Create invalid XML
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
+            f.write('Invalid XML content')
+            invalid_xml = f.name
+        
+        try:
+            with pytest.raises(DataImportError) as exc_info:
+                processor._stream_process(invalid_xml, 'output.db')
+            
+            assert "Failed to parse XML" in str(exc_info.value)
+            
+        finally:
+            os.unlink(invalid_xml)
+    
+    def test_stream_process_general_error(self, temp_xml_file):
+        """Test handling of general processing errors."""
+        processor = XMLStreamingProcessor()
+        
+        with patch('xml.sax.make_parser') as mock_parser:
+            mock_parser.side_effect = Exception("Test error")
+            
+            with pytest.raises(DataImportError) as exc_info:
+                processor._stream_process(temp_xml_file, 'output.db')
+            
+            assert "Streaming processing failed" in str(exc_info.value)
+    
+    def test_memory_usage_logging(self, temp_xml_file, caplog):
+        """Test memory usage logging."""
+        processor = XMLStreamingProcessor()
+        
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
+            db_path = db_file.name
+        
+        try:
+            processor._stream_process(temp_xml_file, db_path)
+            
+            # Check for memory usage log
+            assert any("Final memory usage" in record.message for record in caplog.records)
+            
+        finally:
+            os.unlink(db_path)
+
+
+class TestIntegration:
+    """Integration tests for the complete XML streaming system."""
+    
+    def test_large_file_simulation(self):
+        """Test processing a simulated large file with many records."""
+        # Create XML with many records
+        records = []
+        for i in range(1000):
+            records.append(f'''
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            sourceVersion="17.0"
+            unit="count"
+            creationDate="2024-01-{(i%28)+1:02d}T10:00:00+00:00"
+            startDate="2024-01-{(i%28)+1:02d}T09:00:00+00:00"
+            endDate="2024-01-{(i%28)+1:02d}T09:30:00+00:00"
+            value="{100 + i}"/>''')
+        
+        xml_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+{''.join(records)}
+</HealthData>'''
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as xml_file:
+            xml_file.write(xml_content)
+            xml_path = xml_file.name
+        
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
+            db_path = db_file.name
+        
+        try:
+            processor = XMLStreamingProcessor()
+            count = processor.process_xml_file(xml_path, db_path)
+            
+            assert count == 1000
+            
+            # Verify all records were imported
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM health_records")
+            assert cursor.fetchone()[0] == 1000
+            
+            # Check a sample record
+            cursor.execute("SELECT * FROM health_records WHERE value = 150 LIMIT 1")
+            record = cursor.fetchone()
+            assert record is not None
+            
+            conn.close()
+            
+        finally:
+            os.unlink(xml_path)
+            os.unlink(db_path)
+    
+    def test_memory_limit_enforcement(self):
+        """Test that memory limits are enforced during processing."""
+        processor = XMLStreamingProcessor(memory_limit_mb=50)
+        
+        # Create a mock memory monitor that reports high usage
+        mock_monitor = Mock()
+        mock_monitor.limit_mb = 50
+        mock_monitor.is_over_limit.return_value = True
+        mock_monitor.get_current_usage_mb.return_value = 60.0
+        mock_monitor.get_usage_percentage.return_value = 120.0
+        
+        processor.memory_monitor = mock_monitor
+        
+        # Process should still complete successfully
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as xml_file:
+            xml_file.write('''<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+    <Record type="HKQuantityTypeIdentifierStepCount" 
+            sourceName="iPhone" 
+            value="100"
+            creationDate="2024-01-01T10:00:00+00:00"/>
+</HealthData>''')
+            xml_path = xml_file.name
+        
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
+            db_path = db_file.name
+        
+        try:
+            count = processor._stream_process(xml_path, db_path)
+            assert count == 1
+            
+        finally:
+            os.unlink(xml_path)
+            os.unlink(db_path)

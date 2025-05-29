@@ -1,0 +1,261 @@
+/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 11 items
+
+tests/unit/test_main.py::TestMain::test_setup_logging FAILED             [  9%]
+tests/unit/test_main.py::TestMain::test_exception_hook_installed FAILED  [ 18%]
+tests/unit/test_main.py::TestMain::test_main_application_creation FAILED [ 27%]
+tests/unit/test_main.py::TestMain::test_main_with_arguments FAILED       [ 36%]
+tests/unit/test_main.py::TestMain::test_main_exception_handling FAILED   [ 45%]
+tests/unit/test_main.py::TestMain::test_qapplication_singleton FAILED    [ 54%]
+tests/unit/test_main.py::TestMain::test_logging_configuration FAILED     [ 63%]
+tests/unit/test_main.py::TestMain::test_high_dpi_scaling FAILED          [ 72%]
+tests/unit/test_main.py::TestMain::test_application_metadata FAILED      [ 81%]
+tests/unit/test_main.py::TestErrorHandling::test_custom_exception_handler PASSED [ 90%]
+tests/unit/test_main.py::TestErrorHandling::test_unhandled_exception_logging FAILED [100%]
+tests/unit/test_main.py::TestErrorHandling::test_unhandled_exception_logging ERROR [100%]
+
+==================================== ERRORS ====================================
+___ ERROR at teardown of TestErrorHandling.test_unhandled_exception_logging ____
+TEARDOWN ERROR: Exceptions caught in Qt event loop:
+________________________________________________________________________________
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/unit/test_main.py", line 173, in test_unhandled_exception_logging
+    raise RuntimeError("Unhandled error")
+RuntimeError: Unhandled error
+________________________________________________________________________________
+
+----------------------------- Captured stderr call -----------------------------
+Exceptions caught in Qt event loop:
+________________________________________________________________________________
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/unit/test_main.py", line 173, in test_unhandled_exception_logging
+    raise RuntimeError("Unhandled error")
+RuntimeError: Unhandled error
+________________________________________________________________________________
+=================================== FAILURES ===================================
+_________________________ TestMain.test_setup_logging __________________________
+tests/unit/test_main.py:33: in test_setup_logging
+    with patch('src.main.logging.basicConfig') as mock_config:
+/usr/lib/python3.12/unittest/mock.py:1442: in __enter__
+    self.target = self.getter()
+/usr/lib/python3.12/pkgutil.py:528: in resolve_name
+    result = getattr(result, p)
+E   AttributeError: module 'src.main' has no attribute 'logging'
+____________________ TestMain.test_exception_hook_installed ____________________
+tests/unit/test_main.py:45: in test_exception_hook_installed
+    assert sys.excepthook == exception_hook
+E   assert functools.partial(<function _except_hook at 0x7f5e2d3c4a40>, exceptions=[]) == exception_hook
+E    +  where functools.partial(<function _except_hook at 0x7f5e2d3c4a40>, exceptions=[]) = sys.excepthook
+___________________ TestMain.test_main_application_creation ____________________
+tests/unit/test_main.py:62: in test_main_application_creation
+    mock_app.__class__.assert_called_once_with(['test_app'])
+/usr/lib/python3.12/unittest/mock.py:950: in assert_called_once_with
+    if not self.call_count == 1:
+E   AttributeError: 'list' object has no attribute 'call_count'
+----------------------------- Captured stderr call -----------------------------
+2025-05-29 16:33:44 - INFO - Starting Apple Health Monitor Dashboard
+2025-05-29 16:33:44 - CRITICAL - Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+------------------------------ Captured log call -------------------------------
+INFO     apple_health_monitor.src.main:main.py:90 Starting Apple Health Monitor Dashboard
+CRITICAL apple_health_monitor.src.main:main.py:129 Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+______________________ TestMain.test_main_with_arguments _______________________
+tests/unit/test_main.py:80: in test_main_with_arguments
+    mock_app.__class__.assert_called_once_with(test_args)
+/usr/lib/python3.12/unittest/mock.py:950: in assert_called_once_with
+    if not self.call_count == 1:
+E   AttributeError: 'list' object has no attribute 'call_count'
+----------------------------- Captured stderr call -----------------------------
+2025-05-29 16:33:44 - INFO - Starting Apple Health Monitor Dashboard
+2025-05-29 16:33:44 - CRITICAL - Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+------------------------------ Captured log call -------------------------------
+INFO     apple_health_monitor.src.main:main.py:90 Starting Apple Health Monitor Dashboard
+CRITICAL apple_health_monitor.src.main:main.py:129 Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+____________________ TestMain.test_main_exception_handling _____________________
+/usr/lib/python3.12/unittest/mock.py:913: in assert_called
+    raise AssertionError(msg)
+E   AssertionError: Expected 'error' to have been called.
+
+During handling of the above exception, another exception occurred:
+tests/unit/test_main.py:94: in test_main_exception_handling
+    mock_logger.error.assert_called()
+E   AssertionError: Expected 'error' to have been called.
+_____________________ TestMain.test_qapplication_singleton _____________________
+tests/unit/test_main.py:109: in test_qapplication_singleton
+    mock_app.__class__.assert_not_called()
+E   TypeError: NonCallableMock.assert_not_called() missing 1 required positional argument: 'self'
+----------------------------- Captured stderr call -----------------------------
+2025-05-29 16:33:44 - INFO - Starting Apple Health Monitor Dashboard
+2025-05-29 16:33:44 - CRITICAL - Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+------------------------------ Captured log call -------------------------------
+INFO     apple_health_monitor.src.main:main.py:90 Starting Apple Health Monitor Dashboard
+CRITICAL apple_health_monitor.src.main:main.py:129 Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+_____________________ TestMain.test_logging_configuration ______________________
+tests/unit/test_main.py:113: in test_logging_configuration
+    with patch('src.main.logging') as mock_logging:
+/usr/lib/python3.12/unittest/mock.py:1458: in __enter__
+    original, local = self.get_original()
+/usr/lib/python3.12/unittest/mock.py:1431: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'src.main' from '/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py'> does not have the attribute 'logging'
+________________________ TestMain.test_high_dpi_scaling ________________________
+tests/unit/test_main.py:133: in test_high_dpi_scaling
+    assert mock_set_attr.called
+E   AssertionError: assert False
+E    +  where False = <MagicMock name='setAttribute' id='140040803055616'>.called
+----------------------------- Captured stderr call -----------------------------
+2025-05-29 16:33:44 - INFO - Starting Apple Health Monitor Dashboard
+2025-05-29 16:33:44 - CRITICAL - Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+------------------------------ Captured log call -------------------------------
+INFO     apple_health_monitor.src.main:main.py:90 Starting Apple Health Monitor Dashboard
+CRITICAL apple_health_monitor.src.main:main.py:129 Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+______________________ TestMain.test_application_metadata ______________________
+/usr/lib/python3.12/unittest/mock.py:913: in assert_called
+    raise AssertionError(msg)
+E   AssertionError: Expected 'setApplicationName' to have been called.
+
+During handling of the above exception, another exception occurred:
+tests/unit/test_main.py:141: in test_application_metadata
+    mock_app.setApplicationName.assert_called()
+E   AssertionError: Expected 'setApplicationName' to have been called.
+----------------------------- Captured stderr call -----------------------------
+2025-05-29 16:33:44 - INFO - Starting Apple Health Monitor Dashboard
+2025-05-29 16:33:44 - CRITICAL - Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+------------------------------ Captured log call -------------------------------
+INFO     apple_health_monitor.src.main:main.py:90 Starting Apple Health Monitor Dashboard
+CRITICAL apple_health_monitor.src.main:main.py:129 Failed to start application: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/main.py", line 109, in main
+    app.setStyle(TooltipDelayStyle(app.style()))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: arguments did not match any overloaded call:
+  QProxyStyle(style: Optional[QStyle] = None): argument 1 has unexpected type 'Mock'
+  QProxyStyle(key: Optional[str]): argument 1 has unexpected type 'Mock'
+______________ TestErrorHandling.test_unhandled_exception_logging ______________
+/usr/lib/python3.12/unittest/mock.py:913: in assert_called
+    raise AssertionError(msg)
+E   AssertionError: Expected 'critical' to have been called.
+
+During handling of the above exception, another exception occurred:
+tests/unit/test_main.py:178: in test_unhandled_exception_logging
+    mock_logger.critical.assert_called()
+E   AssertionError: Expected 'critical' to have been called.
+----------------------------- Captured stderr call -----------------------------
+Exceptions caught in Qt event loop:
+________________________________________________________________________________
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/unit/test_main.py", line 173, in test_unhandled_exception_logging
+    raise RuntimeError("Unhandled error")
+RuntimeError: Unhandled error
+________________________________________________________________________________
+=========================== short test summary info ============================
+FAILED tests/unit/test_main.py::TestMain::test_setup_logging - AttributeError...
+FAILED tests/unit/test_main.py::TestMain::test_exception_hook_installed - ass...
+FAILED tests/unit/test_main.py::TestMain::test_main_application_creation - At...
+FAILED tests/unit/test_main.py::TestMain::test_main_with_arguments - Attribut...
+FAILED tests/unit/test_main.py::TestMain::test_main_exception_handling - Asse...
+FAILED tests/unit/test_main.py::TestMain::test_qapplication_singleton - TypeE...
+FAILED tests/unit/test_main.py::TestMain::test_logging_configuration - Attrib...
+FAILED tests/unit/test_main.py::TestMain::test_high_dpi_scaling - AssertionEr...
+FAILED tests/unit/test_main.py::TestMain::test_application_metadata - Asserti...
+FAILED tests/unit/test_main.py::TestErrorHandling::test_unhandled_exception_logging
+ERROR tests/unit/test_main.py::TestErrorHandling::test_unhandled_exception_logging
+==================== 10 failed, 1 passed, 1 error in 8.48s =====================

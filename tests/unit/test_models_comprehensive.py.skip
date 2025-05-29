@@ -1,0 +1,560 @@
+"""Comprehensive tests for models module."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch
+import pandas as pd
+import numpy as np
+
+from src.models import (
+    HealthData, HealthRecord, MetricType, DataSource,
+    DataQuality, ValidationResult, MetricMetadata,
+    TimeRange, DataFilter, AggregationType
+)
+
+
+class TestMetricTypeEnum:
+    """Test MetricType enumeration."""
+    
+    def test_metric_type_values(self):
+        """Test metric type enum values."""
+        assert MetricType.STEPS.value == "HKQuantityTypeIdentifierStepCount"
+        assert MetricType.HEART_RATE.value == "HKQuantityTypeIdentifierHeartRate"
+        assert MetricType.SLEEP.value == "HKCategoryTypeIdentifierSleepAnalysis"
+        assert MetricType.EXERCISE.value == "HKQuantityTypeIdentifierActiveEnergyBurned"
+        assert MetricType.DISTANCE.value == "HKQuantityTypeIdentifierDistanceWalkingRunning"
+        
+    def test_metric_type_display_names(self):
+        """Test metric type display names."""
+        assert MetricType.STEPS.display_name == "Steps"
+        assert MetricType.HEART_RATE.display_name == "Heart Rate"
+        assert MetricType.SLEEP.display_name == "Sleep Analysis"
+        
+    def test_metric_type_units(self):
+        """Test metric type units."""
+        assert MetricType.STEPS.unit == "count"
+        assert MetricType.HEART_RATE.unit == "bpm"
+        assert MetricType.DISTANCE.unit == "km"
+        
+    def test_metric_type_from_string(self):
+        """Test creating metric type from string."""
+        assert MetricType.from_string("steps") == MetricType.STEPS
+        assert MetricType.from_string("HKQuantityTypeIdentifierHeartRate") == MetricType.HEART_RATE
+        assert MetricType.from_string("unknown") is None
+
+
+class TestHealthRecord:
+    """Test HealthRecord model."""
+    
+    def test_health_record_creation(self):
+        """Test creating health record."""
+        record = HealthRecord(
+            id="rec_123",
+            type=MetricType.STEPS,
+            value=10500.0,
+            unit="count",
+            start_date=datetime(2023, 1, 1, 8, 0),
+            end_date=datetime(2023, 1, 1, 20, 0),
+            source=DataSource(
+                name="iPhone",
+                bundle_id="com.apple.health",
+                version="14.0"
+            ),
+            metadata={
+                "was_user_entered": False,
+                "device_model": "iPhone 13"
+            }
+        )
+        
+        assert record.id == "rec_123"
+        assert record.type == MetricType.STEPS
+        assert record.value == 10500.0
+        assert record.duration.total_seconds() == 12 * 3600  # 12 hours
+        
+    def test_health_record_validation(self):
+        """Test health record validation."""
+        # Valid record
+        record = HealthRecord(
+            type=MetricType.HEART_RATE,
+            value=75,
+            unit="bpm",
+            start_date=datetime.now(),
+            end_date=datetime.now()
+        )
+        
+        assert record.is_valid() is True
+        
+        # Invalid record (negative heart rate)
+        invalid_record = HealthRecord(
+            type=MetricType.HEART_RATE,
+            value=-10,
+            unit="bpm",
+            start_date=datetime.now(),
+            end_date=datetime.now()
+        )
+        
+        assert invalid_record.is_valid() is False
+        
+    def test_health_record_date_validation(self):
+        """Test date validation in health records."""
+        # End date before start date
+        with pytest.raises(ValueError):
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=1000,
+                start_date=datetime(2023, 1, 2),
+                end_date=datetime(2023, 1, 1)
+            )
+        
+    def test_health_record_aggregation(self):
+        """Test health record aggregation methods."""
+        records = [
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=5000,
+                start_date=datetime(2023, 1, 1, 8, 0),
+                end_date=datetime(2023, 1, 1, 12, 0)
+            ),
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=3000,
+                start_date=datetime(2023, 1, 1, 14, 0),
+                end_date=datetime(2023, 1, 1, 18, 0)
+            )
+        ]
+        
+        # Sum aggregation
+        total = HealthRecord.aggregate(records, AggregationType.SUM)
+        assert total == 8000
+        
+        # Average aggregation
+        avg = HealthRecord.aggregate(records, AggregationType.AVERAGE)
+        assert avg == 4000
+        
+        # Max aggregation
+        max_val = HealthRecord.aggregate(records, AggregationType.MAX)
+        assert max_val == 5000
+
+
+class TestDataSource:
+    """Test DataSource model."""
+    
+    def test_data_source_creation(self):
+        """Test creating data source."""
+        source = DataSource(
+            name="Apple Watch",
+            bundle_id="com.apple.health.watchapp",
+            version="7.0",
+            device_model="Watch6,1",
+            device_name="John's Apple Watch"
+        )
+        
+        assert source.name == "Apple Watch"
+        assert source.is_apple_device() is True
+        assert source.is_third_party() is False
+        
+    def test_data_source_comparison(self):
+        """Test data source comparison."""
+        source1 = DataSource(name="iPhone", bundle_id="com.apple.health")
+        source2 = DataSource(name="iPhone", bundle_id="com.apple.health")
+        source3 = DataSource(name="Fitbit", bundle_id="com.fitbit.app")
+        
+        assert source1 == source2
+        assert source1 != source3
+        
+    def test_data_source_trust_level(self):
+        """Test data source trust level."""
+        apple_source = DataSource(
+            name="iPhone",
+            bundle_id="com.apple.health"
+        )
+        assert apple_source.trust_level == "high"
+        
+        third_party = DataSource(
+            name="Random App",
+            bundle_id="com.unknown.app"
+        )
+        assert third_party.trust_level == "medium"
+
+
+class TestHealthData:
+    """Test HealthData container model."""
+    
+    @pytest.fixture
+    def sample_records(self):
+        """Create sample health records."""
+        records = []
+        base_date = datetime(2023, 1, 1)
+        
+        for i in range(10):
+            records.append(HealthRecord(
+                type=MetricType.STEPS,
+                value=8000 + i * 100,
+                start_date=base_date + timedelta(days=i),
+                end_date=base_date + timedelta(days=i, hours=1),
+                source=DataSource(name="iPhone")
+            ))
+            
+        return records
+    
+    def test_health_data_creation(self, sample_records):
+        """Test creating health data container."""
+        health_data = HealthData(records=sample_records)
+        
+        assert len(health_data) == 10
+        assert health_data.start_date == sample_records[0].start_date
+        assert health_data.end_date == sample_records[-1].end_date
+        
+    def test_health_data_filtering(self, sample_records):
+        """Test filtering health data."""
+        health_data = HealthData(records=sample_records)
+        
+        # Filter by date range
+        filtered = health_data.filter_by_date(
+            start=datetime(2023, 1, 3),
+            end=datetime(2023, 1, 5)
+        )
+        assert len(filtered) == 3
+        
+        # Filter by metric type
+        filtered = health_data.filter_by_type(MetricType.STEPS)
+        assert len(filtered) == 10
+        
+        # Filter by value range
+        filtered = health_data.filter_by_value(min_value=8300, max_value=8700)
+        assert len(filtered) == 5
+        
+    def test_health_data_grouping(self, sample_records):
+        """Test grouping health data."""
+        health_data = HealthData(records=sample_records)
+        
+        # Group by day
+        daily_groups = health_data.group_by_period('day')
+        assert len(daily_groups) == 10
+        
+        # Group by metric type
+        type_groups = health_data.group_by_type()
+        assert len(type_groups) == 1
+        assert MetricType.STEPS in type_groups
+        
+    def test_health_data_aggregation(self, sample_records):
+        """Test aggregating health data."""
+        health_data = HealthData(records=sample_records)
+        
+        # Daily aggregation
+        daily_stats = health_data.aggregate_daily(
+            metric_type=MetricType.STEPS,
+            aggregation=AggregationType.SUM
+        )
+        
+        assert len(daily_stats) == 10
+        assert all(isinstance(v, (int, float)) for v in daily_stats.values())
+        
+    def test_health_data_to_dataframe(self, sample_records):
+        """Test converting to pandas DataFrame."""
+        health_data = HealthData(records=sample_records)
+        
+        df = health_data.to_dataframe()
+        
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 10
+        assert 'type' in df.columns
+        assert 'value' in df.columns
+        assert 'start_date' in df.columns
+
+
+class TestDataQuality:
+    """Test data quality assessment."""
+    
+    def test_data_quality_metrics(self):
+        """Test data quality metrics."""
+        quality = DataQuality(
+            completeness=0.95,
+            consistency=0.88,
+            accuracy=0.92,
+            timeliness=0.98
+        )
+        
+        assert quality.overall_score > 0.9
+        assert quality.is_high_quality() is True
+        
+    def test_data_quality_issues(self):
+        """Test identifying data quality issues."""
+        records = [
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=8000,
+                start_date=datetime(2023, 1, 1),
+                end_date=datetime(2023, 1, 1, hours=1)
+            ),
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=-100,  # Invalid
+                start_date=datetime(2023, 1, 2),
+                end_date=datetime(2023, 1, 2, hours=1)
+            ),
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=50000,  # Suspicious
+                start_date=datetime(2023, 1, 3),
+                end_date=datetime(2023, 1, 3, hours=1)
+            )
+        ]
+        
+        quality = DataQuality.assess(records)
+        
+        assert quality.completeness < 1.0  # Has invalid records
+        assert len(quality.issues) > 0
+        assert any('invalid' in issue.lower() for issue in quality.issues)
+
+
+class TestTimeRange:
+    """Test TimeRange model."""
+    
+    def test_time_range_creation(self):
+        """Test creating time range."""
+        range = TimeRange(
+            start=datetime(2023, 1, 1),
+            end=datetime(2023, 1, 31)
+        )
+        
+        assert range.duration.days == 30
+        assert range.contains(datetime(2023, 1, 15)) is True
+        assert range.contains(datetime(2023, 2, 1)) is False
+        
+    def test_time_range_overlap(self):
+        """Test time range overlap."""
+        range1 = TimeRange(
+            start=datetime(2023, 1, 1),
+            end=datetime(2023, 1, 15)
+        )
+        range2 = TimeRange(
+            start=datetime(2023, 1, 10),
+            end=datetime(2023, 1, 20)
+        )
+        range3 = TimeRange(
+            start=datetime(2023, 1, 20),
+            end=datetime(2023, 1, 31)
+        )
+        
+        assert range1.overlaps(range2) is True
+        assert range1.overlaps(range3) is False
+        
+    def test_time_range_merge(self):
+        """Test merging time ranges."""
+        range1 = TimeRange(
+            start=datetime(2023, 1, 1),
+            end=datetime(2023, 1, 15)
+        )
+        range2 = TimeRange(
+            start=datetime(2023, 1, 10),
+            end=datetime(2023, 1, 20)
+        )
+        
+        merged = range1.merge(range2)
+        assert merged.start == datetime(2023, 1, 1)
+        assert merged.end == datetime(2023, 1, 20)
+
+
+class TestDataFilter:
+    """Test DataFilter model."""
+    
+    def test_data_filter_creation(self):
+        """Test creating data filter."""
+        filter = DataFilter(
+            metric_types=[MetricType.STEPS, MetricType.HEART_RATE],
+            date_range=TimeRange(
+                start=datetime(2023, 1, 1),
+                end=datetime(2023, 1, 31)
+            ),
+            sources=["iPhone", "Apple Watch"],
+            value_range=(0, 50000),
+            exclude_manual_entries=True
+        )
+        
+        assert len(filter.metric_types) == 2
+        assert filter.exclude_manual_entries is True
+        
+    def test_data_filter_apply(self):
+        """Test applying data filter."""
+        records = [
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=8000,
+                start_date=datetime(2023, 1, 15),
+                source=DataSource(name="iPhone"),
+                metadata={"was_user_entered": False}
+            ),
+            HealthRecord(
+                type=MetricType.HEART_RATE,
+                value=75,
+                start_date=datetime(2023, 1, 15),
+                source=DataSource(name="Apple Watch"),
+                metadata={"was_user_entered": False}
+            ),
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=10000,
+                start_date=datetime(2023, 2, 1),  # Outside range
+                source=DataSource(name="iPhone"),
+                metadata={"was_user_entered": False}
+            ),
+            HealthRecord(
+                type=MetricType.STEPS,
+                value=5000,
+                start_date=datetime(2023, 1, 20),
+                source=DataSource(name="iPhone"),
+                metadata={"was_user_entered": True}  # Manual entry
+            )
+        ]
+        
+        filter = DataFilter(
+            metric_types=[MetricType.STEPS],
+            date_range=TimeRange(
+                start=datetime(2023, 1, 1),
+                end=datetime(2023, 1, 31)
+            ),
+            exclude_manual_entries=True
+        )
+        
+        filtered = filter.apply(records)
+        assert len(filtered) == 1
+        assert filtered[0].value == 8000
+
+
+class TestMetricMetadata:
+    """Test MetricMetadata model."""
+    
+    def test_metric_metadata_creation(self):
+        """Test creating metric metadata."""
+        metadata = MetricMetadata(
+            metric_type=MetricType.STEPS,
+            display_name="Daily Steps",
+            unit="count",
+            category="Activity",
+            description="Number of steps taken",
+            healthy_range=(7000, 10000),
+            aggregation_method=AggregationType.SUM,
+            visualization_type="bar_chart"
+        )
+        
+        assert metadata.display_name == "Daily Steps"
+        assert metadata.is_healthy(8000) is True
+        assert metadata.is_healthy(5000) is False
+        
+    def test_metric_metadata_defaults(self):
+        """Test default metric metadata."""
+        defaults = MetricMetadata.get_defaults()
+        
+        assert MetricType.STEPS in defaults
+        assert MetricType.HEART_RATE in defaults
+        
+        steps_meta = defaults[MetricType.STEPS]
+        assert steps_meta.unit == "count"
+        assert steps_meta.aggregation_method == AggregationType.SUM
+
+
+class TestValidationResult:
+    """Test ValidationResult model."""
+    
+    def test_validation_result_creation(self):
+        """Test creating validation result."""
+        result = ValidationResult(
+            is_valid=False,
+            errors=["Value out of range", "Missing required field"],
+            warnings=["Unusual pattern detected"],
+            data_quality=DataQuality(
+                completeness=0.85,
+                consistency=0.90,
+                accuracy=0.88,
+                timeliness=0.95
+            )
+        )
+        
+        assert result.is_valid is False
+        assert len(result.errors) == 2
+        assert len(result.warnings) == 1
+        assert result.has_issues() is True
+        
+    def test_validation_result_merge(self):
+        """Test merging validation results."""
+        result1 = ValidationResult(
+            is_valid=True,
+            warnings=["Minor issue"]
+        )
+        result2 = ValidationResult(
+            is_valid=False,
+            errors=["Critical error"]
+        )
+        
+        merged = ValidationResult.merge([result1, result2])
+        
+        assert merged.is_valid is False
+        assert len(merged.errors) == 1
+        assert len(merged.warnings) == 1
+
+
+def test_models_integration():
+    """Test integration of model classes."""
+    # Create a complete health data scenario
+    source = DataSource(
+        name="iPhone",
+        bundle_id="com.apple.health",
+        version="14.0"
+    )
+    
+    # Create records for a week
+    records = []
+    base_date = datetime(2023, 1, 1)
+    
+    for day in range(7):
+        # Steps throughout the day
+        for hour in range(8, 20):  # 8 AM to 8 PM
+            records.append(HealthRecord(
+                type=MetricType.STEPS,
+                value=np.random.randint(200, 800),
+                start_date=base_date + timedelta(days=day, hours=hour),
+                end_date=base_date + timedelta(days=day, hours=hour+1),
+                source=source
+            ))
+        
+        # Heart rate measurements
+        for hour in range(24):
+            if np.random.random() > 0.3:  # 70% chance of measurement
+                records.append(HealthRecord(
+                    type=MetricType.HEART_RATE,
+                    value=np.random.randint(55, 85),
+                    start_date=base_date + timedelta(days=day, hours=hour, minutes=30),
+                    end_date=base_date + timedelta(days=day, hours=hour, minutes=30),
+                    source=source,
+                    unit="bpm"
+                ))
+    
+    # Create health data container
+    health_data = HealthData(records=records)
+    
+    # Test various operations
+    # 1. Filter by type
+    steps_data = health_data.filter_by_type(MetricType.STEPS)
+    assert len(steps_data) == 7 * 12  # 7 days * 12 hours
+    
+    # 2. Daily aggregation
+    daily_steps = health_data.aggregate_daily(
+        metric_type=MetricType.STEPS,
+        aggregation=AggregationType.SUM
+    )
+    assert len(daily_steps) == 7
+    assert all(v > 2000 for v in daily_steps.values())  # Reasonable daily totals
+    
+    # 3. Data quality assessment
+    quality = DataQuality.assess(health_data.records)
+    assert quality.completeness > 0.9  # Good data coverage
+    
+    # 4. Convert to DataFrame for analysis
+    df = health_data.to_dataframe()
+    assert len(df) > 0
+    assert df['type'].nunique() == 2  # Steps and heart rate
+    
+    # 5. Validate data
+    validation = health_data.validate()
+    assert validation.is_valid is True  # All data should be valid

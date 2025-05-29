@@ -1,0 +1,541 @@
+"""Comprehensive tests for export reporting system."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+import tempfile
+import os
+from pathlib import Path
+
+from src.analytics.export_reporting_system import (
+    ExportReportingSystem, ReportGenerator, ReportTemplate,
+    ExportFormat, ReportConfig, ReportSection, ChartConfig
+)
+
+
+class TestExportReportingSystem:
+    """Test export reporting system functionality."""
+    
+    @pytest.fixture
+    def reporting_system(self):
+        """Create export reporting system."""
+        return ExportReportingSystem()
+    
+    @pytest.fixture
+    def sample_health_data(self):
+        """Create sample health data for reporting."""
+        dates = pd.date_range('2023-01-01', periods=90, freq='D')
+        data = pd.DataFrame({
+            'date': dates,
+            'steps': np.random.randint(5000, 15000, size=90),
+            'heart_rate': np.random.randint(60, 80, size=90),
+            'sleep_hours': np.random.uniform(6, 9, size=90),
+            'calories': np.random.randint(1800, 2500, size=90),
+            'exercise_minutes': np.random.randint(0, 120, size=90)
+        })
+        return data
+    
+    def test_initialization(self, reporting_system):
+        """Test reporting system initialization."""
+        assert reporting_system is not None
+        assert hasattr(reporting_system, 'generate_report')
+        assert hasattr(reporting_system, 'export_report')
+        
+    def test_report_configuration(self):
+        """Test report configuration."""
+        config = ReportConfig(
+            title="Health Report Q1 2023",
+            author="Test User",
+            date_range=(date(2023, 1, 1), date(2023, 3, 31)),
+            metrics=['steps', 'heart_rate', 'sleep_hours'],
+            include_charts=True,
+            include_statistics=True,
+            include_recommendations=True
+        )
+        
+        assert config.title == "Health Report Q1 2023"
+        assert len(config.metrics) == 3
+        assert config.include_charts is True
+        
+    def test_report_template_creation(self):
+        """Test report template creation."""
+        template = ReportTemplate(
+            name="Monthly Health Summary",
+            sections=[
+                ReportSection(
+                    title="Overview",
+                    content_type="summary",
+                    metrics=['steps', 'heart_rate']
+                ),
+                ReportSection(
+                    title="Detailed Analysis",
+                    content_type="detailed",
+                    metrics=['all']
+                )
+            ]
+        )
+        
+        assert template.name == "Monthly Health Summary"
+        assert len(template.sections) == 2
+        assert template.sections[0].title == "Overview"
+        
+    def test_generate_pdf_report(self, reporting_system, sample_health_data):
+        """Test PDF report generation."""
+        config = ReportConfig(
+            title="Test Health Report",
+            metrics=['steps', 'heart_rate'],
+            date_range=(date(2023, 1, 1), date(2023, 3, 31))
+        )
+        
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as f:
+            pdf_path = f.name
+            
+        try:
+            reporting_system.generate_report(
+                data=sample_health_data,
+                config=config,
+                format=ExportFormat.PDF,
+                output_path=pdf_path
+            )
+            
+            # Verify PDF was created
+            assert os.path.exists(pdf_path)
+            assert os.path.getsize(pdf_path) > 0
+            
+        finally:
+            if os.path.exists(pdf_path):
+                os.unlink(pdf_path)
+                
+    def test_generate_html_report(self, reporting_system, sample_health_data):
+        """Test HTML report generation."""
+        config = ReportConfig(
+            title="Test Health Report",
+            metrics=['steps', 'sleep_hours'],
+            include_charts=True
+        )
+        
+        with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as f:
+            html_path = f.name
+            
+        try:
+            reporting_system.generate_report(
+                data=sample_health_data,
+                config=config,
+                format=ExportFormat.HTML,
+                output_path=html_path
+            )
+            
+            # Verify HTML was created
+            assert os.path.exists(html_path)
+            
+            # Check content
+            with open(html_path, 'r') as f:
+                content = f.read()
+                assert config.title in content
+                assert 'steps' in content.lower()
+                
+        finally:
+            if os.path.exists(html_path):
+                os.unlink(html_path)
+                
+    def test_generate_csv_export(self, reporting_system, sample_health_data):
+        """Test CSV export generation."""
+        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+            csv_path = f.name
+            
+        try:
+            reporting_system.export_data(
+                data=sample_health_data,
+                format=ExportFormat.CSV,
+                output_path=csv_path
+            )
+            
+            # Verify CSV
+            df = pd.read_csv(csv_path)
+            assert len(df) == len(sample_health_data)
+            assert list(df.columns) == list(sample_health_data.columns)
+            
+        finally:
+            if os.path.exists(csv_path):
+                os.unlink(csv_path)
+                
+    def test_generate_excel_report(self, reporting_system, sample_health_data):
+        """Test Excel report generation with multiple sheets."""
+        config = ReportConfig(
+            title="Comprehensive Health Report",
+            metrics=['steps', 'heart_rate', 'sleep_hours']
+        )
+        
+        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
+            excel_path = f.name
+            
+        try:
+            reporting_system.generate_report(
+                data=sample_health_data,
+                config=config,
+                format=ExportFormat.EXCEL,
+                output_path=excel_path
+            )
+            
+            # Verify Excel file
+            assert os.path.exists(excel_path)
+            
+            # Check sheets
+            with pd.ExcelFile(excel_path) as xls:
+                sheets = xls.sheet_names
+                assert 'Summary' in sheets
+                assert 'Raw Data' in sheets
+                
+        finally:
+            if os.path.exists(excel_path):
+                os.unlink(excel_path)
+                
+    def test_chart_generation(self, reporting_system, sample_health_data):
+        """Test chart generation for reports."""
+        chart_config = ChartConfig(
+            type='line',
+            title='Daily Steps Trend',
+            x_axis='date',
+            y_axis='steps',
+            style='seaborn'
+        )
+        
+        # Generate chart
+        chart_path = reporting_system.generate_chart(
+            data=sample_health_data,
+            config=chart_config
+        )
+        
+        assert chart_path is not None
+        assert os.path.exists(chart_path)
+        
+        # Cleanup
+        os.unlink(chart_path)
+        
+    def test_multi_metric_chart(self, reporting_system, sample_health_data):
+        """Test multi-metric chart generation."""
+        chart_config = ChartConfig(
+            type='multi_line',
+            title='Health Metrics Overview',
+            metrics=['steps', 'heart_rate', 'calories'],
+            normalize=True
+        )
+        
+        chart_path = reporting_system.generate_chart(
+            data=sample_health_data,
+            config=chart_config
+        )
+        
+        assert os.path.exists(chart_path)
+        os.unlink(chart_path)
+        
+    def test_statistics_calculation(self, reporting_system, sample_health_data):
+        """Test statistics calculation for reports."""
+        stats = reporting_system.calculate_statistics(
+            data=sample_health_data,
+            metrics=['steps', 'heart_rate']
+        )
+        
+        assert 'steps' in stats
+        assert 'heart_rate' in stats
+        
+        # Check statistics
+        steps_stats = stats['steps']
+        assert 'mean' in steps_stats
+        assert 'median' in steps_stats
+        assert 'std' in steps_stats
+        assert 'min' in steps_stats
+        assert 'max' in steps_stats
+        
+    def test_recommendations_generation(self, reporting_system, sample_health_data):
+        """Test health recommendations generation."""
+        recommendations = reporting_system.generate_recommendations(
+            data=sample_health_data,
+            metrics=['steps', 'sleep_hours']
+        )
+        
+        assert isinstance(recommendations, list)
+        assert len(recommendations) > 0
+        
+        # Check recommendation structure
+        for rec in recommendations:
+            assert 'metric' in rec
+            assert 'message' in rec
+            assert 'priority' in rec
+            
+    def test_template_based_report(self, reporting_system, sample_health_data):
+        """Test template-based report generation."""
+        # Use predefined template
+        template = reporting_system.get_template('monthly_summary')
+        
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as f:
+            pdf_path = f.name
+            
+        try:
+            reporting_system.generate_from_template(
+                template=template,
+                data=sample_health_data,
+                output_path=pdf_path
+            )
+            
+            assert os.path.exists(pdf_path)
+            
+        finally:
+            if os.path.exists(pdf_path):
+                os.unlink(pdf_path)
+                
+    def test_batch_export(self, reporting_system, sample_health_data):
+        """Test batch export to multiple formats."""
+        formats = [ExportFormat.PDF, ExportFormat.HTML, ExportFormat.CSV]
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_files = reporting_system.batch_export(
+                data=sample_health_data,
+                formats=formats,
+                output_dir=temp_dir,
+                base_name="health_report"
+            )
+            
+            assert len(output_files) == 3
+            
+            # Verify all files created
+            for file_path in output_files:
+                assert os.path.exists(file_path)
+                
+    def test_scheduled_report_generation(self, reporting_system):
+        """Test scheduled report generation."""
+        schedule_config = {
+            'frequency': 'monthly',
+            'day_of_month': 1,
+            'metrics': ['steps', 'heart_rate'],
+            'recipients': ['test@example.com']
+        }
+        
+        # Create schedule
+        schedule_id = reporting_system.create_schedule(schedule_config)
+        assert schedule_id is not None
+        
+        # List schedules
+        schedules = reporting_system.list_schedules()
+        assert len(schedules) > 0
+        
+        # Remove schedule
+        reporting_system.remove_schedule(schedule_id)
+        
+    def test_report_compression(self, reporting_system, sample_health_data):
+        """Test report compression for email/storage."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Generate reports
+            pdf_path = os.path.join(temp_dir, 'report.pdf')
+            csv_path = os.path.join(temp_dir, 'data.csv')
+            
+            reporting_system.generate_report(
+                data=sample_health_data,
+                format=ExportFormat.PDF,
+                output_path=pdf_path
+            )
+            
+            reporting_system.export_data(
+                data=sample_health_data,
+                format=ExportFormat.CSV,
+                output_path=csv_path
+            )
+            
+            # Compress
+            archive_path = reporting_system.compress_reports(
+                file_paths=[pdf_path, csv_path],
+                output_path=os.path.join(temp_dir, 'reports.zip')
+            )
+            
+            assert os.path.exists(archive_path)
+            assert archive_path.endswith('.zip')
+            
+    def test_custom_styling(self, reporting_system, sample_health_data):
+        """Test custom styling for reports."""
+        style_config = {
+            'theme': 'dark',
+            'colors': {
+                'primary': '#007bff',
+                'secondary': '#6c757d',
+                'success': '#28a745'
+            },
+            'fonts': {
+                'heading': 'Arial',
+                'body': 'Times New Roman'
+            }
+        }
+        
+        config = ReportConfig(
+            title="Styled Report",
+            style=style_config
+        )
+        
+        with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as f:
+            html_path = f.name
+            
+        try:
+            reporting_system.generate_report(
+                data=sample_health_data,
+                config=config,
+                format=ExportFormat.HTML,
+                output_path=html_path
+            )
+            
+            # Check styling applied
+            with open(html_path, 'r') as f:
+                content = f.read()
+                assert style_config['colors']['primary'] in content
+                
+        finally:
+            if os.path.exists(html_path):
+                os.unlink(html_path)
+                
+    def test_interactive_html_report(self, reporting_system, sample_health_data):
+        """Test interactive HTML report with JavaScript charts."""
+        config = ReportConfig(
+            title="Interactive Health Dashboard",
+            interactive=True,
+            chart_library='plotly'
+        )
+        
+        with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as f:
+            html_path = f.name
+            
+        try:
+            reporting_system.generate_report(
+                data=sample_health_data,
+                config=config,
+                format=ExportFormat.HTML,
+                output_path=html_path
+            )
+            
+            with open(html_path, 'r') as f:
+                content = f.read()
+                assert 'plotly' in content.lower()
+                assert '<script' in content
+                
+        finally:
+            if os.path.exists(html_path):
+                os.unlink(html_path)
+
+
+class TestReportGenerator:
+    """Test report generator component."""
+    
+    @pytest.fixture
+    def generator(self):
+        """Create report generator."""
+        return ReportGenerator()
+    
+    def test_section_generation(self, generator, sample_health_data):
+        """Test individual section generation."""
+        section = ReportSection(
+            title="Activity Summary",
+            content_type="summary",
+            metrics=['steps', 'exercise_minutes']
+        )
+        
+        content = generator.generate_section(
+            section=section,
+            data=sample_health_data
+        )
+        
+        assert content is not None
+        assert section.title in content
+        
+    def test_table_generation(self, generator, sample_health_data):
+        """Test table generation for reports."""
+        table_html = generator.generate_table(
+            data=sample_health_data.head(10),
+            title="Recent Activity",
+            highlight_columns=['steps']
+        )
+        
+        assert '<table' in table_html
+        assert 'Recent Activity' in table_html
+        assert 'steps' in table_html
+        
+    def test_summary_generation(self, generator, sample_health_data):
+        """Test executive summary generation."""
+        summary = generator.generate_executive_summary(
+            data=sample_health_data,
+            metrics=['steps', 'heart_rate', 'sleep_hours']
+        )
+        
+        assert isinstance(summary, str)
+        assert len(summary) > 100  # Should be substantial
+        
+    def test_trend_analysis_section(self, generator, sample_health_data):
+        """Test trend analysis section generation."""
+        trends = generator.analyze_trends(
+            data=sample_health_data,
+            metrics=['steps', 'sleep_hours']
+        )
+        
+        assert 'steps' in trends
+        assert 'sleep_hours' in trends
+        
+        # Check trend info
+        steps_trend = trends['steps']
+        assert 'direction' in steps_trend
+        assert 'change_percent' in steps_trend
+        assert 'significance' in steps_trend
+
+
+def test_export_reporting_integration():
+    """Test complete export reporting workflow."""
+    system = ExportReportingSystem()
+    
+    # Create sample data
+    dates = pd.date_range('2023-01-01', periods=30, freq='D')
+    data = pd.DataFrame({
+        'date': dates,
+        'steps': np.random.randint(5000, 15000, size=30),
+        'heart_rate': np.random.randint(60, 80, size=30),
+        'sleep_hours': np.random.uniform(6, 9, size=30)
+    })
+    
+    # Configure report
+    config = ReportConfig(
+        title="January 2023 Health Report",
+        author="Test User",
+        date_range=(date(2023, 1, 1), date(2023, 1, 31)),
+        metrics=['steps', 'heart_rate', 'sleep_hours'],
+        include_charts=True,
+        include_statistics=True,
+        include_recommendations=True
+    )
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Generate multiple format reports
+        pdf_path = os.path.join(temp_dir, 'report.pdf')
+        html_path = os.path.join(temp_dir, 'report.html')
+        
+        system.generate_report(
+            data=data,
+            config=config,
+            format=ExportFormat.PDF,
+            output_path=pdf_path
+        )
+        
+        system.generate_report(
+            data=data,
+            config=config,
+            format=ExportFormat.HTML,
+            output_path=html_path
+        )
+        
+        # Verify both generated
+        assert os.path.exists(pdf_path)
+        assert os.path.exists(html_path)
+        
+        # Test email preparation
+        email_package = system.prepare_for_email(
+            report_paths=[pdf_path, html_path],
+            compress=True
+        )
+        
+        assert 'archive_path' in email_package
+        assert os.path.exists(email_package['archive_path'])

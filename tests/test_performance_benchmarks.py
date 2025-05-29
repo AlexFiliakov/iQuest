@@ -15,7 +15,8 @@ from typing import List, Dict, Any
 
 # Import performance testing infrastructure
 from tests.performance import PerformanceBenchmark, AdaptiveThresholds
-from tests.generators.health_data import HealthMetricGenerator
+from tests.test_data_generator import HealthDataGenerator
+from tests.mocks.data_sources import MockDataSource
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -37,7 +38,7 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
     @pytest.fixture
     def data_generator(self):
         """Create test data generator."""
-        return HealthMetricGenerator(seed=42)
+        return HealthDataGenerator(seed=42)
     
     @pytest.fixture
     def small_dataset(self, data_generator):
@@ -63,7 +64,8 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_small(self, benchmark, small_dataset):
         """Benchmark daily calculator with small dataset."""
-        calculator = DailyMetricsCalculator(small_dataset)
+        data_source = MockDataSource(small_dataset)
+        calculator = DailyMetricsCalculator(data_source)
         
         result = benchmark.pedantic(
             calculator.calculate_all_metrics,

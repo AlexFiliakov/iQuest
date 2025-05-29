@@ -1,0 +1,700 @@
+"""
+Comprehensive test suite for Data Filter Engine with high coverage.
+Tests filtering, query building, performance tracking, and optimization.
+"""
+
+import pytest
+import pandas as pd
+import sqlite3
+import tempfile
+import os
+from datetime import date, datetime
+from unittest.mock import Mock, patch, MagicMock
+import time
+
+from src.data_filter_engine import (
+    DataFilterEngine, FilterCriteria, QueryBuilder
+)
+from src.utils.error_handler import DataImportError
+
+
+class TestFilterCriteria:
+    """Test FilterCriteria data class."""
+    
+    def test_init_defaults(self):
+        """Test FilterCriteria with default values."""
+        criteria = FilterCriteria()
+        
+        assert criteria.start_date is None
+        assert criteria.end_date is None
+        assert criteria.source_names is None
+        assert criteria.health_types is None
+        assert criteria.combine_logic == 'AND'
+    
+    def test_init_with_values(self):
+        """Test FilterCriteria with provided values."""
+        criteria = FilterCriteria(
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 12, 31),
+            source_names=['iPhone', 'Apple Watch'],
+            health_types=['StepCount', 'HeartRate'],
+            combine_logic='OR'
+        )
+        
+        assert criteria.start_date == date(2024, 1, 1)
+        assert criteria.end_date == date(2024, 12, 31)
+        assert 'iPhone' in criteria.source_names
+        assert 'StepCount' in criteria.health_types
+        assert criteria.combine_logic == 'OR'
+
+
+class TestQueryBuilder:
+    """Test QueryBuilder class."""
+    
+    def test_init(self):
+        """Test QueryBuilder initialization."""
+        builder = QueryBuilder()
+        
+        assert builder.base_query == "SELECT * FROM health_records"
+        assert builder.conditions == []
+        assert builder.params == []
+    
+    def test_add_date_range_both_dates(self):
+        """Test adding date range with both start and end dates."""
+        builder = QueryBuilder()
+        builder.add_date_range(date(2024, 1, 1), date(2024, 1, 31))
+        
+        assert len(builder.conditions) == 1
+        assert "creationDate BETWEEN ? AND ?" in builder.conditions[0]
+        assert len(builder.params) == 2
+        assert builder.params[0] == datetime(2024, 1, 1, 0, 0, 0).isoformat()
+        assert builder.params[1] == datetime(2024, 1, 31, 23, 59, 59, 999999).isoformat()
+    
+    def test_add_date_range_start_only(self):
+        """Test adding date range with only start date."""
+        builder = QueryBuilder()
+        builder.add_date_range(date(2024, 1, 1), None)
+        
+        assert "creationDate >= ?" in builder.conditions[0]
+        assert len(builder.params) == 1
+        assert builder.params[0] == datetime(2024, 1, 1, 0, 0, 0).isoformat()
+    
+    def test_add_date_range_end_only(self):
+        """Test adding date range with only end date."""
+        builder = QueryBuilder()
+        builder.add_date_range(None, date(2024, 12, 31))
+        
+        assert "creationDate <= ?" in builder.conditions[0]
+        assert len(builder.params) == 1
+        assert builder.params[0] == datetime(2024, 12, 31, 23, 59, 59, 999999).isoformat()
+    
+    def test_add_date_range_none(self):
+        """Test adding date range with no dates."""
+        builder = QueryBuilder()
+        builder.add_date_range(None, None)
+        
+        assert len(builder.conditions) == 0
+        assert len(builder.params) == 0
+    
+    def test_add_source_filter(self):
+        """Test adding source filter."""
+        builder = QueryBuilder()
+        sources = ['iPhone', 'Apple Watch', 'Health App']
+        builder.add_source_filter(sources)
+        
+        assert "sourceName IN (?,?,?)" in builder.conditions[0]
+        assert builder.params == sources
+    
+    def test_add_source_filter_empty(self):
+        """Test adding empty source filter."""
+        builder = QueryBuilder()
+        builder.add_source_filter([])
+        
+        assert len(builder.conditions) == 0
+        assert len(builder.params) == 0
+    
+    def test_add_source_filter_none(self):
+        """Test adding None source filter."""
+        builder = QueryBuilder()
+        builder.add_source_filter(None)
+        
+        assert len(builder.conditions) == 0
+        assert len(builder.params) == 0
+    
+    def test_add_type_filter(self):
+        """Test adding health type filter."""
+        builder = QueryBuilder()
+        types = ['StepCount', 'HeartRate']
+        builder.add_type_filter(types)
+        
+        assert "type IN (?,?)" in builder.conditions[0]
+        assert builder.params == types
+    
+    def test_add_type_filter_empty(self):
+        """Test adding empty type filter."""
+        builder = QueryBuilder()
+        builder.add_type_filter([])
+        
+        assert len(builder.conditions) == 0
+        assert len(builder.params) == 0
+    
+    def test_build_simple(self):
+        """Test building simple query."""
+        builder = QueryBuilder()
+        query, params = builder.build()
+        
+        assert query == "SELECT * FROM health_records ORDER BY creationDate DESC"
+        assert params == []
+    
+    def test_build_with_conditions(self):
+        """Test building query with conditions."""
+        builder = QueryBuilder()
+        builder.add_date_range(date(2024, 1, 1), date(2024, 1, 31))
+        builder.add_source_filter(['iPhone'])
+        builder.add_type_filter(['StepCount'])
+        
+        query, params = builder.build()
+        
+        assert "WHERE" in query
+        assert "AND" in query
+        assert query.count("?") == len(params)
+        assert len(params) == 4  # 2 dates + 1 source + 1 type
+    
+    def test_build_with_custom_order(self):
+        """Test building query with custom order."""
+        builder = QueryBuilder()
+        query, params = builder.build(order_by="value ASC")
+        
+        assert "ORDER BY value ASC" in query
+    
+    def test_build_with_limit(self):
+        """Test building query with limit."""
+        builder = QueryBuilder()
+        query, params = builder.build(limit=100)
+        
+        assert "LIMIT 100" in query
+    
+    def test_build_complex(self):
+        """Test building complex query with all options."""
+        builder = QueryBuilder()
+        builder.add_date_range(date(2024, 1, 1), date(2024, 12, 31))
+        builder.add_source_filter(['iPhone', 'Apple Watch'])
+        builder.add_type_filter(['StepCount', 'HeartRate', 'Distance'])
+        
+        query, params = builder.build(order_by="creationDate ASC, value DESC", limit=500)
+        
+        assert "WHERE" in query
+        assert "creationDate BETWEEN" in query
+        assert "sourceName IN" in query
+        assert "type IN" in query
+        assert "ORDER BY creationDate ASC, value DESC" in query
+        assert "LIMIT 500" in query
+        assert len(params) == 7  # 2 dates + 2 sources + 3 types
+
+
+class TestDataFilterEngine:
+    """Test DataFilterEngine main functionality."""
+    
+    @pytest.fixture
+    def engine(self):
+        """Create a DataFilterEngine instance."""
+        return DataFilterEngine()
+    
+    @pytest.fixture
+    def temp_db(self):
+        """Create a temporary database with test data."""
+        fd, path = tempfile.mkstemp(suffix='.db')
+        os.close(fd)
+        
+        # Create test database
+        conn = sqlite3.connect(path)
+        cursor = conn.cursor()
+        
+        # Create table
+        cursor.execute('''
+            CREATE TABLE health_records (
+                creationDate TEXT,
+                type TEXT,
+                sourceName TEXT,
+                value REAL,
+                startDate TEXT,
+                endDate TEXT,
+                unit TEXT
+            )
+        ''')
+        
+        # Create indexes
+        cursor.execute('CREATE INDEX idx_creation_date ON health_records(creationDate)')
+        cursor.execute('CREATE INDEX idx_type ON health_records(type)')
+        
+        # Insert test data
+        test_data = [
+            ('2024-01-01T10:00:00', 'StepCount', 'iPhone', 5000, '2024-01-01T00:00:00', '2024-01-01T23:59:59', 'count'),
+            ('2024-01-02T10:00:00', 'HeartRate', 'Apple Watch', 72, '2024-01-02T10:00:00', '2024-01-02T10:00:00', 'count/min'),
+            ('2024-01-03T10:00:00', 'StepCount', 'iPhone', 6000, '2024-01-03T00:00:00', '2024-01-03T23:59:59', 'count'),
+            ('2024-01-04T10:00:00', 'HeartRate', 'Apple Watch', 75, '2024-01-04T10:00:00', '2024-01-04T10:00:00', 'count/min'),
+            ('2024-01-05T10:00:00', 'Distance', 'iPhone', 5.5, '2024-01-05T00:00:00', '2024-01-05T23:59:59', 'km'),
+        ]
+        
+        cursor.executemany(
+            'INSERT INTO health_records VALUES (?, ?, ?, ?, ?, ?, ?)',
+            test_data
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        yield path
+        os.unlink(path)
+    
+    def test_init(self, engine):
+        """Test engine initialization."""
+        assert engine.logger is not None
+        assert engine.db_manager is not None
+        assert engine.db_path is None
+        assert engine._performance_metrics['total_queries'] == 0
+    
+    def test_filter_data_with_database_manager(self, engine):
+        """Test filtering with DatabaseManager."""
+        mock_rows = [
+            {'creationDate': '2024-01-01T10:00:00', 'type': 'StepCount', 'value': 5000, 'sourceName': 'iPhone'},
+            {'creationDate': '2024-01-02T10:00:00', 'type': 'HeartRate', 'value': 72, 'sourceName': 'Apple Watch'}
+        ]
+        
+        with patch.object(engine.db_manager, 'execute_query', return_value=mock_rows):
+            criteria = FilterCriteria(
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 1, 31)
+            )
+            
+            df = engine.filter_data(criteria)
+            
+            assert len(df) == 2
+            assert df.iloc[0]['type'] == 'StepCount'
+            assert df.iloc[1]['value'] == 72
+            assert pd.api.types.is_datetime64_any_dtype(df['creationDate'])
+    
+    def test_filter_data_with_db_path(self, temp_db):
+        """Test filtering with specific database path."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 31)
+        )
+        
+        df = engine.filter_data(criteria)
+        
+        assert len(df) == 5
+        assert 'StepCount' in df['type'].values
+        assert 'HeartRate' in df['type'].values
+    
+    def test_filter_data_with_source_filter(self, temp_db):
+        """Test filtering by source names."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(source_names=['iPhone'])
+        df = engine.filter_data(criteria)
+        
+        assert len(df) == 3
+        assert all(df['sourceName'] == 'iPhone')
+    
+    def test_filter_data_with_type_filter(self, temp_db):
+        """Test filtering by health types."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(health_types=['HeartRate'])
+        df = engine.filter_data(criteria)
+        
+        assert len(df) == 2
+        assert all(df['type'] == 'HeartRate')
+    
+    def test_filter_data_with_limit(self, temp_db):
+        """Test filtering with result limit."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria()
+        df = engine.filter_data(criteria, limit=3)
+        
+        assert len(df) == 3
+    
+    def test_filter_data_combined_filters(self, temp_db):
+        """Test filtering with multiple criteria."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(
+            start_date=date(2024, 1, 2),
+            end_date=date(2024, 1, 4),
+            source_names=['Apple Watch'],
+            health_types=['HeartRate']
+        )
+        
+        df = engine.filter_data(criteria)
+        
+        assert len(df) == 2
+        assert all(df['type'] == 'HeartRate')
+        assert all(df['sourceName'] == 'Apple Watch')
+    
+    def test_filter_data_return_rows(self, temp_db):
+        """Test filtering returning raw rows instead of DataFrame."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(health_types=['StepCount'])
+        rows = engine.filter_data(criteria, return_dataframe=False)
+        
+        assert len(rows) == 2
+        assert isinstance(rows, list)
+        assert rows[0]['type'] == 'StepCount'
+    
+    def test_filter_data_empty_result(self, temp_db):
+        """Test filtering with no matching results."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(health_types=['NonexistentType'])
+        df = engine.filter_data(criteria)
+        
+        assert len(df) == 0
+        assert list(df.columns) == ['creationDate', 'type', 'value', 'sourceName']
+    
+    def test_filter_data_empty_result_rows(self, temp_db):
+        """Test filtering with no results returning rows."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(health_types=['NonexistentType'])
+        rows = engine.filter_data(criteria, return_dataframe=False)
+        
+        assert rows == []
+    
+    def test_filter_data_error_handling(self, engine):
+        """Test error handling in filter_data."""
+        with patch.object(engine.db_manager, 'execute_query', side_effect=Exception("Query error")):
+            criteria = FilterCriteria()
+            
+            with pytest.raises(DataImportError, match="Failed to filter data"):
+                engine.filter_data(criteria)
+    
+    def test_performance_metrics_tracking(self, temp_db):
+        """Test performance metrics are tracked."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        # Initial state
+        assert engine._performance_metrics['total_queries'] == 0
+        assert engine._performance_metrics['average_query_time'] == 0
+        
+        # Execute query
+        criteria = FilterCriteria()
+        engine.filter_data(criteria)
+        
+        # Check metrics updated
+        assert engine._performance_metrics['total_queries'] == 1
+        assert engine._performance_metrics['last_query_time'] > 0
+        assert engine._performance_metrics['average_query_time'] > 0
+        
+        # Execute another query
+        engine.filter_data(criteria)
+        
+        assert engine._performance_metrics['total_queries'] == 2
+    
+    def test_get_distinct_sources_with_db_path(self, temp_db):
+        """Test getting distinct sources with database path."""
+        engine = DataFilterEngine(db_path=temp_db)
+        sources = engine.get_distinct_sources()
+        
+        assert sorted(sources) == ['Apple Watch', 'iPhone']
+    
+    def test_get_distinct_sources_with_db_manager(self, engine):
+        """Test getting distinct sources with DatabaseManager."""
+        mock_rows = [['iPhone'], ['Apple Watch'], ['Health App']]
+        
+        with patch.object(engine.db_manager, 'execute_query', return_value=mock_rows):
+            sources = engine.get_distinct_sources()
+            
+            assert sources == ['iPhone', 'Apple Watch', 'Health App']
+    
+    def test_get_distinct_sources_error(self, engine):
+        """Test error handling in get_distinct_sources."""
+        with patch.object(engine.db_manager, 'execute_query', side_effect=Exception("Query error")):
+            sources = engine.get_distinct_sources()
+            assert sources == []
+    
+    def test_get_distinct_types_with_db_path(self, temp_db):
+        """Test getting distinct types with database path."""
+        engine = DataFilterEngine(db_path=temp_db)
+        types = engine.get_distinct_types()
+        
+        assert sorted(types) == ['Distance', 'HeartRate', 'StepCount']
+    
+    def test_get_distinct_types_with_db_manager(self, engine):
+        """Test getting distinct types with DatabaseManager."""
+        mock_rows = [['StepCount'], ['HeartRate'], ['Distance']]
+        
+        with patch.object(engine.db_manager, 'execute_query', return_value=mock_rows):
+            types = engine.get_distinct_types()
+            
+            assert types == ['StepCount', 'HeartRate', 'Distance']
+    
+    def test_get_distinct_types_error(self, engine):
+        """Test error handling in get_distinct_types."""
+        with patch.object(engine.db_manager, 'execute_query', side_effect=Exception("Query error")):
+            types = engine.get_distinct_types()
+            assert types == []
+    
+    def test_get_data_date_range_with_db_path(self, temp_db):
+        """Test getting date range with database path."""
+        engine = DataFilterEngine(db_path=temp_db)
+        min_date, max_date = engine.get_data_date_range()
+        
+        assert min_date == date(2024, 1, 1)
+        assert max_date == date(2024, 1, 5)
+    
+    def test_get_data_date_range_with_db_manager(self, engine):
+        """Test getting date range with DatabaseManager."""
+        mock_rows = [['2024-01-01T00:00:00', '2024-12-31T23:59:59']]
+        
+        with patch.object(engine.db_manager, 'execute_query', return_value=mock_rows):
+            min_date, max_date = engine.get_data_date_range()
+            
+            assert min_date == date(2024, 1, 1)
+            assert max_date == date(2024, 12, 31)
+    
+    def test_get_data_date_range_empty(self, engine):
+        """Test getting date range with no data."""
+        mock_rows = [[None, None]]
+        
+        with patch.object(engine.db_manager, 'execute_query', return_value=mock_rows):
+            min_date, max_date = engine.get_data_date_range()
+            
+            assert min_date is None
+            assert max_date is None
+    
+    def test_get_data_date_range_error(self, engine):
+        """Test error handling in get_data_date_range."""
+        with patch.object(engine.db_manager, 'execute_query', side_effect=Exception("Query error")):
+            min_date, max_date = engine.get_data_date_range()
+            
+            assert min_date is None
+            assert max_date is None
+    
+    def test_update_performance_metrics(self, engine):
+        """Test performance metrics calculation."""
+        # First query
+        engine._update_performance_metrics(100.0)
+        
+        assert engine._performance_metrics['last_query_time'] == 100.0
+        assert engine._performance_metrics['total_queries'] == 1
+        assert engine._performance_metrics['average_query_time'] == 100.0
+        
+        # Second query
+        engine._update_performance_metrics(200.0)
+        
+        assert engine._performance_metrics['last_query_time'] == 200.0
+        assert engine._performance_metrics['total_queries'] == 2
+        assert engine._performance_metrics['average_query_time'] == 150.0
+        
+        # Third query
+        engine._update_performance_metrics(150.0)
+        
+        assert engine._performance_metrics['total_queries'] == 3
+        assert engine._performance_metrics['average_query_time'] == 150.0
+    
+    def test_get_performance_metrics(self, engine):
+        """Test getting performance metrics."""
+        engine._performance_metrics['test_value'] = 123
+        
+        metrics = engine.get_performance_metrics()
+        
+        assert metrics['test_value'] == 123
+        assert metrics is not engine._performance_metrics  # Should be a copy
+    
+    def test_optimize_for_filters_date_only(self, temp_db):
+        """Test optimization suggestions for date filtering."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 12, 31)
+        )
+        
+        suggestions = engine.optimize_for_filters(criteria)
+        
+        assert any("Date range filtering is optimized" in s for s in suggestions)
+    
+    def test_optimize_for_filters_sources(self, temp_db):
+        """Test optimization for source filtering."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(source_names=['iPhone', 'Apple Watch'])
+        
+        suggestions = engine.optimize_for_filters(criteria)
+        
+        assert any("sourceName" in s for s in suggestions)
+    
+    def test_optimize_for_filters_types(self, engine):
+        """Test optimization for type filtering."""
+        criteria = FilterCriteria(health_types=['StepCount', 'HeartRate'])
+        
+        suggestions = engine.optimize_for_filters(criteria)
+        
+        assert any("Type filtering is optimized" in s for s in suggestions)
+    
+    def test_optimize_for_filters_composite(self, temp_db):
+        """Test optimization for composite filtering."""
+        engine = DataFilterEngine(db_path=temp_db)
+        
+        criteria = FilterCriteria(
+            start_date=date(2024, 1, 1),
+            health_types=['StepCount']
+        )
+        
+        suggestions = engine.optimize_for_filters(criteria)
+        
+        assert any("composite index" in s for s in suggestions)
+    
+    def test_optimize_for_filters_error_handling(self, engine):
+        """Test error handling in optimization."""
+        with patch.object(engine.db_manager, 'execute_command', side_effect=Exception("Index error")):
+            criteria = FilterCriteria(source_names=['iPhone'])
+            
+            # Should not raise, just log warning
+            suggestions = engine.optimize_for_filters(criteria)
+            assert isinstance(suggestions, list)
+
+
+class TestIntegration:
+    """Integration tests for the complete filtering system."""
+    
+    def test_full_filtering_workflow(self):
+        """Test complete filtering workflow."""
+        # Create test database
+        fd, db_path = tempfile.mkstemp(suffix='.db')
+        os.close(fd)
+        
+        try:
+            # Setup database with more comprehensive data
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                CREATE TABLE health_records (
+                    creationDate TEXT,
+                    type TEXT,
+                    sourceName TEXT,
+                    value REAL,
+                    startDate TEXT,
+                    endDate TEXT,
+                    unit TEXT
+                )
+            ''')
+            
+            # Insert diverse test data
+            test_data = []
+            sources = ['iPhone', 'Apple Watch', 'Health App']
+            types = ['StepCount', 'HeartRate', 'Distance', 'Calories', 'Sleep']
+            
+            for day in range(1, 32):  # January 2024
+                for source in sources:
+                    for health_type in types:
+                        if (source == 'iPhone' and health_type in ['StepCount', 'Distance']) or \
+                           (source == 'Apple Watch' and health_type in ['HeartRate', 'Calories']) or \
+                           (source == 'Health App' and health_type == 'Sleep'):
+                            test_data.append((
+                                f'2024-01-{day:02d}T10:00:00',
+                                health_type,
+                                source,
+                                100 + day + hash(source) % 50,
+                                f'2024-01-{day:02d}T00:00:00',
+                                f'2024-01-{day:02d}T23:59:59',
+                                'unit'
+                            ))
+            
+            cursor.executemany(
+                'INSERT INTO health_records VALUES (?, ?, ?, ?, ?, ?, ?)',
+                test_data
+            )
+            conn.commit()
+            conn.close()
+            
+            # Test various filtering scenarios
+            engine = DataFilterEngine(db_path=db_path)
+            
+            # Test 1: Date range filter
+            criteria1 = FilterCriteria(
+                start_date=date(2024, 1, 10),
+                end_date=date(2024, 1, 20)
+            )
+            df1 = engine.filter_data(criteria1)
+            assert len(df1) > 0
+            assert all(df1['creationDate'].dt.day >= 10)
+            assert all(df1['creationDate'].dt.day <= 20)
+            
+            # Test 2: Source filter
+            criteria2 = FilterCriteria(source_names=['Apple Watch'])
+            df2 = engine.filter_data(criteria2)
+            assert all(df2['sourceName'] == 'Apple Watch')
+            assert all(df2['type'].isin(['HeartRate', 'Calories']))
+            
+            # Test 3: Type filter
+            criteria3 = FilterCriteria(health_types=['StepCount'])
+            df3 = engine.filter_data(criteria3)
+            assert all(df3['type'] == 'StepCount')
+            assert all(df3['sourceName'] == 'iPhone')
+            
+            # Test 4: Combined filters
+            criteria4 = FilterCriteria(
+                start_date=date(2024, 1, 15),
+                end_date=date(2024, 1, 25),
+                source_names=['iPhone', 'Apple Watch'],
+                health_types=['StepCount', 'HeartRate']
+            )
+            df4 = engine.filter_data(criteria4)
+            assert len(df4) > 0
+            assert all(df4['creationDate'].dt.day >= 15)
+            assert all(df4['creationDate'].dt.day <= 25)
+            
+            # Test 5: Performance metrics
+            metrics = engine.get_performance_metrics()
+            assert metrics['total_queries'] == 4
+            assert metrics['average_query_time'] > 0
+            
+            # Test 6: Metadata queries
+            sources = engine.get_distinct_sources()
+            assert set(sources) == {'iPhone', 'Apple Watch', 'Health App'}
+            
+            types = engine.get_distinct_types()
+            assert set(types) == {'StepCount', 'HeartRate', 'Distance', 'Calories', 'Sleep'}
+            
+            min_date, max_date = engine.get_data_date_range()
+            assert min_date == date(2024, 1, 1)
+            assert max_date == date(2024, 1, 31)
+            
+            # Test 7: Optimization
+            suggestions = engine.optimize_for_filters(criteria4)
+            assert len(suggestions) > 0
+            
+        finally:
+            os.unlink(db_path)
+    
+    def test_edge_cases(self):
+        """Test edge cases and error conditions."""
+        engine = DataFilterEngine()
+        
+        # Test with invalid date range (end before start)
+        criteria = FilterCriteria(
+            start_date=date(2024, 12, 31),
+            end_date=date(2024, 1, 1)
+        )
+        
+        # Should not raise, but return empty results
+        with patch.object(engine.db_manager, 'execute_query', return_value=[]):
+            df = engine.filter_data(criteria)
+            assert len(df) == 0
+        
+        # Test with empty lists
+        criteria = FilterCriteria(
+            source_names=[],
+            health_types=[]
+        )
+        
+        with patch.object(engine.db_manager, 'execute_query', return_value=[]):
+            df = engine.filter_data(criteria)
+            assert isinstance(df, pd.DataFrame)

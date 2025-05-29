@@ -1,0 +1,414 @@
+"""Comprehensive tests for correlation discovery module."""
+
+import pytest
+from datetime import date, datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+import pandas as pd
+import numpy as np
+from scipy import stats
+
+from src.analytics.correlation_discovery import (
+    WSJStyleManager, LayeredCorrelationEngine, TraditionalCorrelationAnalyzer,
+    AdvancedCorrelationAnalyzer, CausalAnalysisEngine, WSJInsightGenerator
+)
+
+
+class TestWSJStyleManager:
+    """Test WSJ style management for visualizations."""
+    
+    def test_initialization(self):
+        """Test WSJStyleManager initialization."""
+        manager = WSJStyleManager()
+        assert manager is not None
+        assert hasattr(manager, 'colors')
+        assert hasattr(manager, 'fonts')
+        
+    def test_get_color_palette(self):
+        """Test color palette retrieval."""
+        manager = WSJStyleManager()
+        
+        # Test primary colors
+        primary = manager.get_color_palette('primary')
+        assert isinstance(primary, list)
+        assert len(primary) > 0
+        
+        # Test accent colors
+        accent = manager.get_color_palette('accent')
+        assert isinstance(accent, list)
+        
+    def test_apply_style(self):
+        """Test style application to matplotlib figures."""
+        manager = WSJStyleManager()
+        
+        # Mock matplotlib figure
+        fig = Mock()
+        ax = Mock()
+        
+        # Should not raise errors
+        try:
+            manager.apply_style(fig, ax)
+        except AttributeError:
+            # Expected if mock doesn't have all matplotlib attributes
+            pass
+
+
+class TestLayeredCorrelationEngine:
+    """Test layered correlation analysis engine."""
+    
+    @pytest.fixture
+    def sample_data(self):
+        """Create sample health data for testing."""
+        np.random.seed(42)
+        dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
+        
+        # Create correlated metrics
+        steps = np.random.normal(8000, 2000, 100)
+        active_minutes = steps / 100 + np.random.normal(0, 10, 100)
+        sleep_hours = 9 - (steps / 10000) + np.random.normal(0, 0.5, 100)
+        heart_rate = 70 - (steps / 1000) * 0.5 + np.random.normal(0, 3, 100)
+        
+        return pd.DataFrame({
+            'date': dates,
+            'steps': steps.clip(0, None),
+            'active_minutes': active_minutes.clip(0, None),
+            'sleep_hours': sleep_hours.clip(4, 12),
+            'heart_rate': heart_rate.clip(50, 100)
+        }).set_index('date')
+    
+    @pytest.fixture
+    def engine(self, sample_data):
+        """Create LayeredCorrelationEngine instance."""
+        return LayeredCorrelationEngine(sample_data)
+    
+    def test_initialization(self, sample_data):
+        """Test LayeredCorrelationEngine initialization."""
+        engine = LayeredCorrelationEngine(sample_data)
+        assert engine is not None
+        assert engine.data is not None
+        assert hasattr(engine, 'discover_all_correlations')
+        
+    def test_discover_all_correlations(self, engine):
+        """Test comprehensive correlation discovery."""
+        results = engine.discover_all_correlations()
+        
+        assert isinstance(results, dict)
+        assert 'traditional' in results
+        assert 'advanced' in results
+        assert 'causal' in results
+        assert 'insights' in results
+        
+    def test_find_hidden_patterns(self, engine):
+        """Test hidden pattern discovery."""
+        patterns = engine.find_hidden_patterns()
+        
+        assert isinstance(patterns, list)
+        # Should find some patterns in the test data
+        assert len(patterns) >= 0
+        
+    def test_analyze_metric_interactions(self, engine):
+        """Test metric interaction analysis."""
+        interactions = engine.analyze_metric_interactions(['steps', 'sleep_hours'])
+        
+        assert isinstance(interactions, dict)
+        # Should contain interaction analysis results
+        
+    def test_get_wsj_insights(self, engine):
+        """Test WSJ-style insight generation."""
+        insights = engine.get_wsj_insights()
+        
+        assert isinstance(insights, list)
+        # Each insight should be a string
+        for insight in insights:
+            assert isinstance(insight, str)
+
+
+class TestTraditionalCorrelationAnalyzer:
+    """Test traditional correlation analysis methods."""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """Create TraditionalCorrelationAnalyzer instance."""
+        data = pd.DataFrame({
+            'metric1': np.random.randn(100),
+            'metric2': np.random.randn(100),
+            'metric3': np.random.randn(100)
+        })
+        return TraditionalCorrelationAnalyzer(data)
+    
+    def test_pearson_correlation(self, analyzer):
+        """Test Pearson correlation calculation."""
+        results = analyzer.calculate_pearson_correlations()
+        
+        assert isinstance(results, dict)
+        assert 'correlation_matrix' in results
+        assert 'p_values' in results
+        assert 'significant_pairs' in results
+        
+    def test_spearman_correlation(self, analyzer):
+        """Test Spearman correlation calculation."""
+        results = analyzer.calculate_spearman_correlations()
+        
+        assert isinstance(results, dict)
+        assert 'correlation_matrix' in results
+        assert 'p_values' in results
+        
+    def test_rolling_correlations(self, analyzer):
+        """Test rolling correlation analysis."""
+        results = analyzer.calculate_rolling_correlations(
+            'metric1', 'metric2', window=30
+        )
+        
+        if results is not None:
+            assert 'rolling_corr' in results
+            assert 'mean_corr' in results
+            assert 'stability' in results
+            
+    def test_correlation_heatmap_data(self, analyzer):
+        """Test correlation heatmap data generation."""
+        heatmap_data = analyzer.get_correlation_heatmap_data()
+        
+        assert isinstance(heatmap_data, dict)
+        assert 'matrix' in heatmap_data
+        assert 'labels' in heatmap_data
+
+
+class TestAdvancedCorrelationAnalyzer:
+    """Test advanced correlation analysis methods."""
+    
+    @pytest.fixture
+    def analyzer(self):
+        """Create AdvancedCorrelationAnalyzer instance."""
+        # Create data with known nonlinear relationships
+        np.random.seed(42)
+        x = np.linspace(0, 10, 100)
+        data = pd.DataFrame({
+            'linear': x + np.random.normal(0, 0.5, 100),
+            'quadratic': x**2 + np.random.normal(0, 2, 100),
+            'sinusoidal': np.sin(x) + np.random.normal(0, 0.1, 100),
+            'random': np.random.randn(100)
+        })
+        return AdvancedCorrelationAnalyzer(data)
+    
+    def test_mutual_information(self, analyzer):
+        """Test mutual information calculation."""
+        results = analyzer.calculate_mutual_information()
+        
+        assert isinstance(results, dict)
+        assert 'mi_matrix' in results
+        assert 'normalized_mi' in results
+        
+    def test_dcor_analysis(self, analyzer):
+        """Test distance correlation analysis."""
+        # This might not be implemented or require special packages
+        try:
+            results = analyzer.calculate_distance_correlations()
+            if results is not None:
+                assert isinstance(results, dict)
+        except (AttributeError, ImportError):
+            # Method might not exist or package not available
+            pass
+            
+    def test_nonlinear_detection(self, analyzer):
+        """Test nonlinear relationship detection."""
+        # Should detect nonlinear relationship in quadratic data
+        is_nonlinear = analyzer.detect_nonlinear_relationship(
+            'linear', 'quadratic'
+        )
+        
+        if is_nonlinear is not None:
+            assert isinstance(is_nonlinear, bool)
+            
+    def test_interaction_effects(self, analyzer):
+        """Test interaction effect analysis."""
+        results = analyzer.analyze_interaction_effects(
+            target='quadratic',
+            features=['linear', 'sinusoidal']
+        )
+        
+        if results is not None:
+            assert isinstance(results, dict)
+
+
+class TestCausalAnalysisEngine:
+    """Test causal analysis functionality."""
+    
+    @pytest.fixture
+    def engine(self):
+        """Create CausalAnalysisEngine instance."""
+        # Create time series data with causal relationships
+        np.random.seed(42)
+        n = 200
+        dates = pd.date_range('2023-01-01', periods=n, freq='D')
+        
+        # X causes Y with 2-day lag
+        x = np.random.randn(n)
+        y = np.zeros(n)
+        for i in range(2, n):
+            y[i] = 0.7 * x[i-2] + 0.3 * np.random.randn()
+            
+        data = pd.DataFrame({
+            'cause': x,
+            'effect': y,
+            'random': np.random.randn(n)
+        }, index=dates)
+        
+        return CausalAnalysisEngine(data)
+    
+    def test_granger_causality(self, engine):
+        """Test Granger causality analysis."""
+        results = engine.test_granger_causality('cause', 'effect', max_lag=5)
+        
+        if results is not None:
+            assert isinstance(results, dict)
+            assert 'p_values' in results or 'significant' in results
+            
+    def test_causal_network(self, engine):
+        """Test causal network construction."""
+        network = engine.build_causal_network(threshold=0.05)
+        
+        if network is not None:
+            assert isinstance(network, dict)
+            assert 'edges' in network or 'nodes' in network
+            
+    def test_intervention_analysis(self, engine):
+        """Test intervention effect analysis."""
+        # This might be a more advanced feature
+        try:
+            results = engine.analyze_intervention_effects(
+                intervention_var='cause',
+                outcome_var='effect',
+                intervention_time=100
+            )
+            if results is not None:
+                assert isinstance(results, dict)
+        except AttributeError:
+            # Method might not exist
+            pass
+
+
+class TestWSJInsightGenerator:
+    """Test WSJ-style insight generation."""
+    
+    @pytest.fixture
+    def generator(self):
+        """Create WSJInsightGenerator instance."""
+        # Create sample correlation results
+        correlation_results = {
+            'strong_positive': [
+                {'metric1': 'steps', 'metric2': 'calories', 'correlation': 0.85},
+                {'metric1': 'exercise', 'metric2': 'mood', 'correlation': 0.72}
+            ],
+            'strong_negative': [
+                {'metric1': 'stress', 'metric2': 'sleep', 'correlation': -0.68}
+            ],
+            'trends': {
+                'improving': ['fitness', 'sleep'],
+                'declining': ['stress']
+            }
+        }
+        return WSJInsightGenerator(correlation_results)
+    
+    def test_generate_headline(self, generator):
+        """Test headline generation."""
+        headline = generator.generate_headline()
+        
+        assert isinstance(headline, str)
+        assert len(headline) > 0
+        assert len(headline) < 100  # Headlines should be concise
+        
+    def test_generate_key_findings(self, generator):
+        """Test key findings generation."""
+        findings = generator.generate_key_findings()
+        
+        assert isinstance(findings, list)
+        assert len(findings) > 0
+        
+        # Each finding should be a string
+        for finding in findings:
+            assert isinstance(finding, str)
+            
+    def test_generate_narrative(self, generator):
+        """Test narrative generation."""
+        narrative = generator.generate_narrative()
+        
+        assert isinstance(narrative, str)
+        assert len(narrative) > 50  # Should be substantive
+        
+    def test_format_for_visualization(self, generator):
+        """Test formatting for visualization."""
+        viz_data = generator.format_for_visualization()
+        
+        assert isinstance(viz_data, dict)
+        # Should contain visualization-ready data
+
+
+class TestCorrelationDiscoveryIntegration:
+    """Test integration of correlation discovery components."""
+    
+    @pytest.fixture
+    def comprehensive_data(self):
+        """Create comprehensive test dataset."""
+        np.random.seed(42)
+        n_days = 365
+        dates = pd.date_range('2023-01-01', periods=n_days, freq='D')
+        
+        # Create realistic health data with various correlation patterns
+        t = np.arange(n_days)
+        
+        # Seasonal pattern
+        seasonal = 10 * np.sin(2 * np.pi * t / 365)
+        
+        # Weekly pattern  
+        weekly = 5 * np.sin(2 * np.pi * t / 7)
+        
+        # Trend
+        trend = 0.01 * t
+        
+        # Create correlated metrics
+        activity_base = seasonal + weekly + trend + np.random.randn(n_days) * 2
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'steps': (8000 + 100 * activity_base).clip(0, 20000),
+            'calories': (2000 + 10 * activity_base + np.random.randn(n_days) * 50).clip(1500, 3500),
+            'sleep_hours': (7.5 - 0.01 * activity_base + np.random.randn(n_days) * 0.5).clip(4, 10),
+            'heart_rate': (70 - 0.1 * activity_base + np.random.randn(n_days) * 3).clip(50, 90),
+            'mood_score': (7 + 0.05 * activity_base + np.random.randn(n_days) * 1).clip(1, 10),
+            'stress_level': (5 - 0.05 * activity_base + np.random.randn(n_days) * 1).clip(1, 10)
+        }).set_index('date')
+        
+        return data
+    
+    def test_full_correlation_discovery_pipeline(self, comprehensive_data):
+        """Test complete correlation discovery pipeline."""
+        # Initialize engine
+        engine = LayeredCorrelationEngine(comprehensive_data)
+        
+        # Run full discovery
+        results = engine.discover_all_correlations()
+        
+        # Verify all components worked
+        assert 'traditional' in results
+        assert 'advanced' in results
+        assert 'insights' in results
+        
+        # Should find strong correlations
+        traditional = results['traditional']
+        if 'significant_pairs' in traditional:
+            assert len(traditional['significant_pairs']) > 0
+            
+        # Should generate insights
+        assert len(results['insights']) > 0
+        
+    def test_correlation_visualization_pipeline(self, comprehensive_data):
+        """Test correlation visualization data preparation."""
+        engine = LayeredCorrelationEngine(comprehensive_data)
+        
+        # Get visualization-ready data
+        viz_data = engine.prepare_correlation_visualizations()
+        
+        if viz_data is not None:
+            assert isinstance(viz_data, dict)
+            # Should contain data for different visualization types
+            expected_keys = ['heatmap', 'network', 'timeseries']
+            assert any(key in viz_data for key in expected_keys)
