@@ -33,24 +33,25 @@ class RecordCardWidget(QFrame):
         
     def setup_ui(self):
         """Setup the record card UI."""
-        self.setFrameStyle(QFrame.Shape.Box)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setStyleSheet("""
             QFrame {
                 background-color: #F5E6D3;
-                border: 1px solid #FF8C42;
+                border: none;
                 border-radius: 8px;
-                padding: 4px;
+                padding: 12px;
             }
             QLabel {
                 background: transparent;
                 color: #2D3142;
+                border: none;
             }
         """)
-        self.setFixedHeight(90)
+        self.setFixedHeight(100)
         
         layout = QVBoxLayout()
-        layout.setSpacing(2)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+        layout.setContentsMargins(0, 0, 0, 0)
         
         # Header with record type and date
         header_layout = QHBoxLayout()
@@ -59,8 +60,10 @@ class RecordCardWidget(QFrame):
         type_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         
         date_label = QLabel(self.record.date.strftime("%b %d, %Y"))
-        date_label.setFont(QFont("Arial", 8))
+        date_label.setFont(QFont("Arial", 9))
         date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        date_label.setWordWrap(False)
+        date_label.setMinimumWidth(80)
         
         header_layout.addWidget(type_label)
         header_layout.addWidget(date_label)
@@ -96,7 +99,7 @@ class AchievementBadgeWidget(QFrame):
         
     def setup_ui(self):
         """Setup the achievement badge UI."""
-        self.setFrameStyle(QFrame.Shape.Box)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         
         # Rarity-based styling
         rarity_colors = {
@@ -110,20 +113,22 @@ class AchievementBadgeWidget(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #F5F5F5;
-                border: 2px solid {border_color};
+                border: none;
                 border-radius: 10px;
-                padding: 4px;
+                padding: 12px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }}
             QLabel {{
                 background: transparent;
                 color: #2D3142;
+                border: none;
             }}
         """)
-        self.setFixedSize(110, 120)
+        self.setFixedSize(120, 130)
         
         layout = QVBoxLayout()
-        layout.setSpacing(2)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Icon (emoji placeholder)

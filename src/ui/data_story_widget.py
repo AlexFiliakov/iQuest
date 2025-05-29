@@ -203,7 +203,9 @@ class DataStoryWidget(QWidget):
             #storySection {
                 background-color: white;
                 border-radius: 8px;
-                padding: 16px;
+                padding: 20px;
+                border: none;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
         """)
         
@@ -283,9 +285,11 @@ class DataStoryWidget(QWidget):
             insight_frame.setStyleSheet("""
                 QFrame {
                     background-color: #FFF8F0;
+                    border: none;
                     border-left: 4px solid #FFD166;
-                    padding: 12px;
+                    padding: 16px;
                     border-radius: 4px;
+                    margin: 4px 0;
                 }
             """)
             
@@ -335,9 +339,11 @@ class DataStoryWidget(QWidget):
             rec_frame.setStyleSheet("""
                 QFrame {
                     background-color: #F5E6D3;
+                    border: none;
                     border-left: 4px solid #FF8C42;
-                    padding: 12px;
+                    padding: 16px;
                     border-radius: 4px;
+                    margin: 4px 0;
                 }
             """)
             

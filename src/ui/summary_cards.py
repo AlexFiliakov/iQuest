@@ -110,13 +110,14 @@ class SummaryCard(QWidget):
             QFrame#summaryCard {{
                 background-color: {self.style_manager.SECONDARY_BG};
                 border-radius: 12px;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                padding: {self.SIZE_CONFIGS[self.size]['padding']}px;
+                border: none;
+                padding: {self.SIZE_CONFIGS[self.size]['padding'] + 4}px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }}
             
             QFrame#summaryCard:hover {{
-                border: 1px solid rgba(139, 115, 85, 0.2);
                 background-color: {self.style_manager.TERTIARY_BG};
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }}
         """
         self.setStyleSheet(style)

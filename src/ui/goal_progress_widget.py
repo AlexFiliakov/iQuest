@@ -175,17 +175,18 @@ class GoalCard(QFrame):
     
     def setup_ui(self):
         """Set up the goal card UI."""
-        self.setFrameStyle(QFrame.Shape.Box)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setStyleSheet("""
             GoalCard {
-                border: 1px solid #ddd;
+                border: none;
                 border-radius: 8px;
                 background-color: #ffffff;
-                padding: 12px;
+                padding: 16px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
             GoalCard:hover {
-                border-color: #4CAF50;
                 background-color: #f5f5f5;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }
         """)
         

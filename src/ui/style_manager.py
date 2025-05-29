@@ -212,12 +212,66 @@ class StyleManager:
             QWidget {{
                 background-color: {self.SECONDARY_BG};
                 border-radius: 12px;
-                padding: 12px;
-                border: 1px solid rgba(139, 115, 85, 0.1);
+                padding: 16px;
+                border: none;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }}
             
             QWidget:hover {{
-                border: 1px solid rgba(139, 115, 85, 0.2);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }}
+        """
+    
+    def get_borderless_card_style(self, padding: int = 16, radius: int = 12):
+        """Get borderless card widget stylesheet with subtle shadow."""
+        return f"""
+            QFrame {{
+                background-color: {self.SECONDARY_BG};
+                border-radius: {radius}px;
+                padding: {padding}px;
+                border: none;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }}
+            
+            QFrame:hover {{
+                background-color: {self.TERTIARY_BG};
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }}
+            
+            QLabel {{
+                background: transparent;
+                border: none;
+                color: {self.TEXT_PRIMARY};
+            }}
+        """
+    
+    def get_accent_card_style(self, accent_color: str = None, padding: int = 16, radius: int = 8):
+        """Get accent-colored card widget stylesheet (for records, achievements, etc.)."""
+        if accent_color is None:
+            accent_color = self.ACCENT_PRIMARY
+        
+        return f"""
+            QFrame {{
+                background-color: {self.PRIMARY_BG};
+                border-radius: {radius}px;
+                padding: {padding}px;
+                border: none;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }}
+            
+            QFrame:hover {{
+                background-color: {self.TERTIARY_BG};
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }}
+            
+            QLabel {{
+                background: transparent;
+                border: none;
+                color: {self.TEXT_PRIMARY};
+            }}
+            
+            QLabel[class="value"] {{
+                color: {accent_color};
             }}
         """
     

@@ -135,13 +135,14 @@ class ComponentScoreCard(QFrame):
         self.component = component
         self.score = score
         
-        self.setFrameStyle(QFrame.Shape.Box)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setStyleSheet("""
             QFrame {
-                border: 1px solid #E0E0E0;
+                border: none;
                 border-radius: 8px;
                 background-color: white;
-                padding: 10px;
+                padding: 16px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
         """)
         
@@ -169,7 +170,8 @@ class ComponentScoreCard(QFrame):
         progress.setTextVisible(False)
         progress.setStyleSheet(f"""
             QProgressBar {{
-                border: 1px solid #E0E0E0;
+                border: none;
+                background-color: #F0F0F0;
                 border-radius: 5px;
                 text-align: center;
             }}
@@ -521,11 +523,12 @@ class HealthScoreDashboard(QWidget):
             
             insight_frame.setStyleSheet(f"""
                 QFrame {{
-                    border: 1px solid {color};
+                    border: none;
+                    border-left: 4px solid {color};
                     border-radius: 5px;
                     background-color: {color}20;
-                    padding: 10px;
-                    margin: 5px;
+                    padding: 16px;
+                    margin: 8px 0;
                 }}
             """)
             
