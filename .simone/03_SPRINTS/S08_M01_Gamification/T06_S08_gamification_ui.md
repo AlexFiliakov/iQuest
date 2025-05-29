@@ -18,7 +18,7 @@ Create a new main tab for gamification features with sub-tabs for Character Shee
 - Maintain consistent styling with existing UI
 
 ## Acceptance Criteria
-- [ ] Gamification tab added to main navigation, tab name is "iQuest"
+- [ ] Gamification tab added to main navigation, tab name is "iQuest", which is located in between tabs "Journal" and "Help"
 - [ ] Sub-tabs: Character, Inventory, Skills, Achievements, World
 - [ ] Character sheet displays all stats and equipment
 - [ ] Inventory grid shows items with filtering
@@ -35,7 +35,7 @@ Create a new main tab for gamification features with sub-tabs for Character Shee
 - UI Specs: `.simone/02_REQUIREMENTS/M01/SPECS_UI.md`
 
 ## Subtasks
-- [ ] Extend main window tab widget for gamification, tab name "iQuest"
+- [ ] Extend main window tab widget for gamification, tab name "iQuest" located in between tabs "Journal" and "Help"
 - [ ] Create GamificationTab main container
 - [ ] Implement sub-tab navigation widget
 - [ ] Design CharacterSheetWidget layout, with character images corresponding to the current class sourced from PNGs in `assets/characters/`
