@@ -138,11 +138,10 @@ class ComponentScoreCard(QFrame):
         self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setStyleSheet("""
             QFrame {
-                border: none;
+                border: 1px solid rgba(0, 0, 0, 0.05);
                 border-radius: 8px;
                 background-color: white;
                 padding: 16px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
         """)
         

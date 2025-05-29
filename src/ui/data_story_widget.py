@@ -204,8 +204,7 @@ class DataStoryWidget(QWidget):
                 background-color: white;
                 border-radius: 8px;
                 padding: 20px;
-                border: none;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                border: 1px solid rgba(0, 0, 0, 0.05);
             }
         """)
         

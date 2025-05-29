@@ -203,6 +203,10 @@ class MonthlyDashboardWidget(QWidget):
         # Calendar heatmap
         self.calendar_heatmap = CalendarHeatmapComponent()
         self.calendar_heatmap.setMinimumHeight(400)
+        # Set to Month Grid view by default for monthly dashboard
+        self.calendar_heatmap._view_mode = "month_grid"
+        # Hide view mode controls since we want Month Grid only
+        self.calendar_heatmap.set_show_controls(False)
         layout.addWidget(self.calendar_heatmap)
         
         return section
