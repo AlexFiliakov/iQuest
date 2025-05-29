@@ -1,6 +1,6 @@
 ---
 task_id: G064
-status: in_progress
+status: canceled
 created: 2025-05-28
 updated: 2025-05-28 11:11
 complexity: high

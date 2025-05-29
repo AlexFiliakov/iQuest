@@ -49,7 +49,7 @@ class VisualTestConfig:
         """Load consistent fonts for testing."""
         # Try to load system fonts consistently
         # This helps ensure text rendering is similar across platforms
-        font_db = QFontDatabase()
+        # In PyQt6, QFontDatabase is used directly as a namespace
         
         # Add system fonts that are commonly available
         font_families = [
@@ -57,7 +57,7 @@ class VisualTestConfig:
         ]
         
         for family in font_families:
-            if font_db.hasFamily(family):
+            if family in QFontDatabase.families():
                 break
         
         # Set default font properties for consistency
