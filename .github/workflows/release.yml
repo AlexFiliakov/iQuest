@@ -4,57 +4,115 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
-    
+  build-binaries:
+    name: Build ${{ matrix.os }} Binary
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            artifact_name: Apple-Health-Monitor-Windows.exe
+            build_cmd: pyinstaller --name "Apple Health Monitor" --windowed --onefile --icon assets/icon.ico src/main.py
+          - os: macos-latest
+            name: macos
+            artifact_name: Apple-Health-Monitor-macOS
+            build_cmd: pyinstaller --name "Apple Health Monitor" --windowed --onefile --icon assets/icon.icns src/main.py
+          - os: ubuntu-latest
+            name: linux
+            artifact_name: Apple-Health-Monitor-Linux
+            build_cmd: pyinstaller --name "Apple Health Monitor" --windowed --onefile src/main.py
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
-    
+
     - name: Build executable
+      run: ${{ matrix.build_cmd }}
+
+    - name: Rename artifact
+      shell: bash
       run: |
-        pyinstaller --name "AppleHealthMonitor" --windowed --onefile --icon=assets/icon.ico src/main.py
-    
-    - name: Create installer
-      run: |
-        # Add NSIS installer creation here in the future
-        echo "Installer creation pending"
-    
-    - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          mv "dist/Apple Health Monitor.exe" "dist/${{ matrix.artifact_name }}"
+        else
+          mv "dist/Apple Health Monitor" "dist/${{ matrix.artifact_name }}"
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: AppleHealthMonitor-Windows-${{ github.ref_name }}
-        path: dist/AppleHealthMonitor.exe
+        name: ${{ matrix.name }}-binary
+        path: dist/${{ matrix.artifact_name }}
 
   create-release:
-    needs: [build-windows]
+    name: Create Release
+    needs: build-binaries
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Download artifacts
-      uses: actions/download-artifact@v3
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
-    
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Generate changelog from commits since last tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -z "$PREV_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s" --no-merges)
+        else
+          CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+        fi
+        
+        # Write to file with proper formatting
+        echo "## What's Changed" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "$CHANGELOG" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${{ github.ref_name }}" >> CHANGELOG.md
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
+        body_path: CHANGELOG.md
         files: |
-          artifacts/AppleHealthMonitor-Windows-*/AppleHealthMonitor.exe
+          artifacts/windows-binary/Apple-Health-Monitor-Windows.exe
+          artifacts/macos-binary/Apple-Health-Monitor-macOS
+          artifacts/linux-binary/Apple-Health-Monitor-Linux
         draft: false
-        prerelease: false
+        prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
         generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update Docker tags
+      run: |
+        echo "Release ${{ github.ref_name }} has been created"
+        echo "Docker images will be tagged automatically by the Docker workflow"

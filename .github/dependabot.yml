@@ -1,0 +1,71 @@
+version: 2
+updates:
+  # Enable version updates for Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "alexf"  # Update with actual GitHub username
+    assignees:
+      - "alexf"  # Update with actual GitHub username
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      development:
+        patterns:
+          - "pytest*"
+          - "flake8*"
+          - "black"
+          - "mypy"
+          - "isort"
+          - "coverage*"
+      production:
+        patterns:
+          - "PyQt6*"
+          - "numpy"
+          - "pandas"
+          - "matplotlib"
+          - "scipy"
+    ignore:
+      # Ignore major version updates for critical dependencies
+      - dependency-name: "PyQt6"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pandas"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "alexf"  # Update with actual GitHub username
+    assignees:
+      - "alexf"  # Update with actual GitHub username
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "alexf"  # Update with actual GitHub username
+    assignees:
+      - "alexf"  # Update with actual GitHub username
+    labels:
+      - "dependencies"
+      - "docker"

@@ -1,0 +1,65 @@
+# Add labels to PRs based on file changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - docs/**
+      - README.md
+      - '**/*.md'
+
+ui:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/ui/**
+      - tests/ui/**
+
+analytics:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/analytics/**
+      - tests/unit/test_*analytics*.py
+
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/database.py
+      - src/health_database.py
+      - src/data_*.py
+      - tests/unit/test_database*.py
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - tests/**
+      - conftest.py
+      - pytest.ini
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**
+      - .pre-commit-config.yaml
+      - Dockerfile
+      - docker-compose.yml
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - requirements*.txt
+      - pyproject.toml
+      - setup.py
+      - setup.cfg
+
+performance:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*benchmark*.py'
+      - '**/*performance*.py'
+      - '**/*cache*.py'
+      - tests/performance/**
+
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*auth*.py'
+      - '**/*security*.py'
+      - .github/workflows/security.yml

@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: apple-health-monitor:latest
+    container_name: apple-health-monitor
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QT_QPA_PLATFORM=offscreen
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./src:/app/src:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"  # If web interface is added
+    networks:
+      - health-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: apple-health-monitor:test
+    container_name: apple-health-monitor-test
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QT_QPA_PLATFORM=offscreen
+    volumes:
+      - .:/app
+    command: pytest tests/ -v --cov=src --cov-report=html
+    networks:
+      - health-network
+
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: apple-health-monitor:dev
+    container_name: apple-health-monitor-dev
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QT_QPA_PLATFORM=offscreen
+      - FLASK_ENV=development  # If web interface is added
+    volumes:
+      - .:/app
+    command: python -m src.main
+    networks:
+      - health-network
+    stdin_open: true
+    tty: true
+
+networks:
+  health-network:
+    driver: bridge
