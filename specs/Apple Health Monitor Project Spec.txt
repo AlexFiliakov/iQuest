@@ -393,8 +393,8 @@ Review the following documents and create tasks in `.simone/04_GENERAL_TASKS` co
 Please help me evaluate and improve my PyQt6 application's UI design:
 
 1. Evaluate the following screenshot:
-   - `ad hoc\import_windows.png`
-     - It represents two popup windows: import on the left, and a success message on the right.
+   - `ad hoc\monthly_summary_tab.png`
+     - It represents the Monthly tab on the “Monthly Summary” section
 
 2. Analyze the screenshot for:
    - Overall aesthetic quality and modern design principles
@@ -412,6 +412,7 @@ Please help me evaluate and improve my PyQt6 application's UI design:
    - Modern UI element suggestions (rounded corners, shadows, etc.)
    - Accessibility improvements (contrast ratios, etc.)
    - Any outdated UI patterns that could be modernized
+   - Tightening up the layout so it doesn’t have so much white space with empty borders
 
 5. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
 
@@ -419,4 +420,17 @@ Please help me evaluate and improve my PyQt6 application's UI design:
 
 
 ------
+
+Create a UI Spec in file `.simone/01_SPECS/UI_SPECS.md` detailing your approach to UI/UX. Be thorough and detailed to clarify future development. Then update other documents to refer to `.simone/01_SPECS/UI_SPECS.md` for UI/UX specifications and details. Review `.simone/01_SPECS/UI_SPECS.md` when you’re done and add more clarity and detail as needed.
+
+
+Create a list of all the advanced statistical capabilities implemented in the project. Make a detailed list in file `.simone/01_SPECS/STATS.md` and how they can be used in the application. Then review your list in `.simone/01_SPECS/STATS.md` and add more clarity and detail as needed.
+
+
+
+--------
+
+### Bugs ###
+
+
 
