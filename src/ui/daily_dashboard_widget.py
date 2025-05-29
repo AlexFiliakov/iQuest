@@ -16,7 +16,7 @@ import pandas as pd
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
     QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
-    QProgressBar, QGroupBox, QApplication
+    QProgressBar, QGroupBox, QApplication, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDateTime
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
@@ -58,15 +58,22 @@ class MetricCard(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {style_manager.PRIMARY_BG};
-                border: {shadow['border']};
-                border-radius: 8px;
+                border: none;
+                border-radius: 12px;
                 padding: 16px;
             }}
             QFrame:hover {{
-                border: {shadow['hover_border']};
-                background-color: {style_manager.PRIMARY_BG};
+                background-color: {style_manager.TERTIARY_BG};
             }}
         """)
+        
+        # Add shadow effect
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(15)
+        shadow_effect.setXOffset(0)
+        shadow_effect.setYOffset(2)
+        shadow_effect.setColor(QColor(0, 0, 0, 30))
+        self.setGraphicsEffect(shadow_effect)
         
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
@@ -833,40 +840,56 @@ class DailyDashboardWidget(QWidget):
         try:
             # Activity Score (based on steps and active calories)
             activity_score = self._calculate_activity_score()
-            self.activity_score.update_value(
-                f"{activity_score}%",
-                f"{activity_score}",
-                "good" if activity_score >= 70 else "warning" if activity_score >= 40 else "critical"
-            )
+            self.activity_score.update_content({
+                'title': 'Activity Score',
+                'value': f"{activity_score}%",
+                'subtitle': 'Steps & Calories',
+                'status': "good" if activity_score >= 70 else "warning" if activity_score >= 40 else "critical"
+            })
             
             # Goals Progress
             goals_progress = self._calculate_goals_progress()
-            self.goals_progress.update_value(
-                f"{goals_progress}%",
-                f"{goals_progress}",
-                "good" if goals_progress >= 80 else "warning" if goals_progress >= 50 else "critical"
-            )
+            self.goals_progress.update_content({
+                'title': 'Goals Progress',
+                'value': f"{goals_progress}%",
+                'subtitle': 'Daily targets',
+                'status': "good" if goals_progress >= 80 else "warning" if goals_progress >= 50 else "critical"
+            })
             
             # Personal Best check
             if self.personal_records:
                 records_today = self._check_personal_records()
                 if records_today:
-                    self.personal_best.update_value(
-                        f"{len(records_today)} New!",
-                        str(len(records_today)),
-                        "good"
-                    )
+                    self.personal_best.update_content({
+                        'title': 'Personal Bests',
+                        'value': f"{len(records_today)} New!",
+                        'subtitle': 'Records today',
+                        'status': "good"
+                    })
                 else:
-                    self.personal_best.update_value("None", "0", "neutral")
+                    self.personal_best.update_content({
+                        'title': 'Personal Bests',
+                        'value': "None",
+                        'subtitle': 'No records yet',
+                        'status': "neutral"
+                    })
+            else:
+                self.personal_best.update_content({
+                    'title': 'Personal Bests',
+                    'value': "--",
+                    'subtitle': 'Loading...',
+                    'status': "neutral"
+                })
             
             # Health Status (simplified)
             health_score = self._calculate_health_status()
             status_text = "Excellent" if health_score >= 80 else "Good" if health_score >= 60 else "Fair"
-            self.health_status.update_value(
-                status_text,
-                str(health_score),
-                "good" if health_score >= 80 else "warning" if health_score >= 60 else "critical"
-            )
+            self.health_status.update_content({
+                'title': 'Health Status',
+                'value': status_text,
+                'subtitle': f"Score: {health_score}",
+                'status': "good" if health_score >= 80 else "warning" if health_score >= 60 else "critical"
+            })
             
         except Exception as e:
             logger.error(f"Error updating summary cards: {e}")
@@ -1364,5 +1387,17 @@ class DailyDashboardWidget(QWidget):
             self._load_daily_data()
             self.update()
             QApplication.processEvents()
+            # Schedule another update after a short delay to ensure complete rendering
+            QTimer.singleShot(100, self._delayed_refresh)
         else:
             self._show_no_data_message()
+    
+    def _delayed_refresh(self):
+        """Delayed refresh to ensure complete rendering."""
+        if hasattr(self, 'timeline'):
+            self.timeline.update()
+        if hasattr(self, 'detail_chart'):
+            self.detail_chart.update()
+        for card in self._metric_cards.values():
+            card.update()
+        self.update()

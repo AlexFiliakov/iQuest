@@ -627,6 +627,77 @@ class StyleManager:
             }}
         """
     
+    def get_modern_card_style(self, padding: int = 12, radius: int = 12, with_hover: bool = True):
+        """Get modern card style without borders, using shadows."""
+        hover_style = f"""
+            QFrame:hover {{
+                background-color: {self.TERTIARY_BG};
+            }}
+        """ if with_hover else ""
+        
+        return f"""
+            QFrame {{
+                background-color: {self.PRIMARY_BG};
+                border-radius: {radius}px;
+                border: none;
+                padding: {padding}px;
+            }}
+            {hover_style}
+        """
+    
+    def get_modern_group_style(self, title_size: int = 14, padding: int = 12):
+        """Get modern group/section style without QGroupBox borders."""
+        return f"""
+            QWidget {{
+                background-color: transparent;
+            }}
+            QLabel[class="section-title"] {{
+                font-size: {title_size}px;
+                font-weight: 600;
+                color: {self.TEXT_PRIMARY};
+                padding-bottom: 8px;
+            }}
+        """
+    
+    def get_modern_metric_card_style(self, accent_color: str = None):
+        """Get modern metric card style for dashboard metrics."""
+        if accent_color is None:
+            accent_color = self.ACCENT_PRIMARY
+            
+        return f"""
+            QFrame {{
+                background-color: {self.PRIMARY_BG};
+                border-radius: 10px;
+                border: none;
+                padding: 16px;
+                min-height: 100px;
+            }}
+            QFrame:hover {{
+                background-color: {self.TERTIARY_BG};
+            }}
+            QLabel[class="metric-value"] {{
+                color: {accent_color};
+                font-size: 24px;
+                font-weight: bold;
+            }}
+            QLabel[class="metric-label"] {{
+                color: {self.TEXT_SECONDARY};
+                font-size: 12px;
+            }}
+        """
+    
+    def create_shadow_effect(self, blur_radius: int = 15, y_offset: int = 2, opacity: int = 30):
+        """Create a QGraphicsDropShadowEffect for modern depth."""
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+        from PyQt6.QtGui import QColor
+        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(blur_radius)
+        shadow.setXOffset(0)
+        shadow.setYOffset(y_offset)
+        shadow.setColor(QColor(0, 0, 0, opacity))
+        return shadow
+    
     def get_table_style(self):
         """Get table widget stylesheet with subtle borders."""
         return f"""

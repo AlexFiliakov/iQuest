@@ -62,7 +62,6 @@ class WSJTooltip(QWidget):
                 font-weight: 600;
                 font-family: Arial, sans-serif;
                 letter-spacing: 0.5px;
-                text-transform: uppercase;
             }}
         """)
         

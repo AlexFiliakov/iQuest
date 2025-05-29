@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QProgressBar, QTextEdit, QFrame, QMessageBox, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QPixmap
+from PyQt6.QtGui import QFont, QPixmap, QColor
 
 from src.utils.logging_config import get_logger
 from .style_manager import StyleManager
@@ -73,7 +73,7 @@ class ImportProgressDialog(QDialog):
         # Add drop shadow effect for elevation
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(30)
-        shadow.setColor(Qt.GlobalColor.black)
+        shadow.setColor(QColor(Qt.GlobalColor.black))
         shadow.setOffset(0, 10)
         self.setGraphicsEffect(shadow)
     
@@ -427,7 +427,7 @@ class ImportSummaryDialog(QDialog):
         # Add drop shadow effect for elevation
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(30)
-        shadow.setColor(Qt.GlobalColor.black)
+        shadow.setColor(QColor(Qt.GlobalColor.black))
         shadow.setOffset(0, 10)
         self.setGraphicsEffect(shadow)
     

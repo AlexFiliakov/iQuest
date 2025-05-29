@@ -119,7 +119,6 @@ class SummaryCard(QWidget):
             
             QFrame#summaryCard:hover {{
                 background-color: {self.style_manager.TERTIARY_BG};
-                transform: translateY(-2px);
             }}
         """
         self.setStyleSheet(style)

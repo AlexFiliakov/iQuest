@@ -6,6 +6,16 @@ This document describes the centralized development workflow using the `run_dev.
 
 The `run_dev.py` script provides a unified entry point for all development activities, replacing the need to remember multiple script locations and commands.
 
+## UI/UX Development
+
+When working on user interface components, please refer to the comprehensive [UI Specifications](../.simone/01_SPECS/UI_SPECS.md) which provides detailed guidelines for:
+- Modern Wall Street Journal-inspired design aesthetic
+- Component specifications and patterns
+- Color palette and typography
+- Spacing and layout principles
+- Accessibility requirements
+- Implementation best practices
+
 ## Quick Start
 
 ```bash

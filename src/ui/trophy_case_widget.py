@@ -37,19 +37,29 @@ class RecordCardWidget(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
-                border: 1px solid rgba(0, 0, 0, 0.05);
-                border-radius: 8px;
+                border: none;
+                border-radius: 12px;
                 padding: 16px;
             }
             QFrame:hover {
-                border: 1px solid rgba(0, 0, 0, 0.08);
+                background-color: #F3F4F6;
             }
             QLabel {
                 background: transparent;
-                color: #2D3142;
+                color: #0F172A;
                 border: none;
             }
         """)
+        
+        # Add shadow effect
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+        from PyQt6.QtGui import QColor
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(12)
+        shadow.setXOffset(0)
+        shadow.setYOffset(2)
+        shadow.setColor(QColor(0, 0, 0, 25))
+        self.setGraphicsEffect(shadow)
         self.setFixedHeight(100)
         
         layout = QVBoxLayout()
@@ -116,19 +126,30 @@ class AchievementBadgeWidget(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFFFFF;
-                border: 1px solid rgba(0, 0, 0, 0.05);
-                border-radius: 8px;
+                border: none;
+                border-radius: 12px;
                 padding: 16px;
+                border-left: 3px solid {border_color};
             }}
             QFrame:hover {{
-                border: 1px solid rgba(0, 0, 0, 0.08);
+                background-color: #F3F4F6;
             }}
             QLabel {{
                 background: transparent;
-                color: #2D3142;
+                color: #0F172A;
                 border: none;
             }}
         """)
+        
+        # Add shadow effect
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+        from PyQt6.QtGui import QColor
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(12)
+        shadow.setXOffset(0)
+        shadow.setYOffset(2)
+        shadow.setColor(QColor(0, 0, 0, 25))
+        self.setGraphicsEffect(shadow)
         self.setFixedSize(120, 130)
         
         layout = QVBoxLayout()

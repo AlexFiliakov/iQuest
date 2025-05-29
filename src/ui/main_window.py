@@ -322,12 +322,21 @@ class MainWindow(QMainWindow):
         tab's signals to main window handlers for data loading and
         filter changes.
         """
+        # Try to import modern version first, fallback to original
+        try:
+            from .configuration_tab_modern import ModernConfigurationTab
+            ConfigTab = ModernConfigurationTab
+            logger.info("Using ModernConfigurationTab")
+        except ImportError:
+            ConfigTab = ConfigurationTab
+            logger.info("Using standard ConfigurationTab")
+        
         # Create configuration tab with scroll area
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        self.config_tab = ConfigurationTab()
+        self.config_tab = ConfigTab()
         scroll_area.setWidget(self.config_tab)
         
         # Connect signals
@@ -398,10 +407,15 @@ class MainWindow(QMainWindow):
     def _create_weekly_dashboard_tab(self):
         """Create the weekly dashboard tab."""
         try:
-            from .weekly_dashboard_widget import WeeklyDashboardWidget
-            
-            # Create the weekly dashboard widget
-            self.weekly_dashboard = WeeklyDashboardWidget()
+            # Try modern version first
+            try:
+                from .weekly_dashboard_widget_modern import ModernWeeklyDashboardWidget
+                self.weekly_dashboard = ModernWeeklyDashboardWidget()
+                logger.info("Using ModernWeeklyDashboardWidget")
+            except ImportError:
+                from .weekly_dashboard_widget import WeeklyDashboardWidget
+                self.weekly_dashboard = WeeklyDashboardWidget()
+                logger.info("Using standard WeeklyDashboardWidget")
             
             # Connect signals
             self.weekly_dashboard.week_changed.connect(self._on_week_changed)
@@ -452,10 +466,17 @@ class MainWindow(QMainWindow):
     def _create_monthly_dashboard_tab(self):
         """Create the monthly dashboard tab with calendar heatmap."""
         try:
-            from .monthly_dashboard_widget_modern import ModernMonthlyDashboardWidget
-            
-            # Create the monthly dashboard widget
-            self.monthly_dashboard = ModernMonthlyDashboardWidget()
+            # Try the modern version first
+            try:
+                from .monthly_dashboard_widget import MonthlyDashboardWidget
+                # Create the monthly dashboard widget
+                self.monthly_dashboard = MonthlyDashboardWidget()
+                logger.info("Using MonthlyDashboardWidget")
+            except ImportError:
+                # If modern version not available, create placeholder
+                logger.warning("MonthlyDashboardWidget not available, using placeholder")
+                self._create_monthly_dashboard_placeholder()
+                return
             
             # Connect signals if needed
             self.monthly_dashboard.month_changed.connect(self._on_month_changed)
@@ -464,9 +485,9 @@ class MainWindow(QMainWindow):
             self.tab_widget.addTab(self.monthly_dashboard, "Monthly")
             self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and calendar heatmap")
             
-        except ImportError as e:
+        except Exception as e:
             # Fallback to placeholder if import fails
-            logger.warning(f"Could not import MonthlyDashboardWidget: {e}")
+            logger.warning(f"Could not create MonthlyDashboardWidget: {e}")
             self._create_monthly_dashboard_placeholder()
             
     def _create_monthly_dashboard_placeholder(self):
@@ -1101,7 +1122,10 @@ class MainWindow(QMainWindow):
         # Switch to configuration tab and trigger import
         self.tab_widget.setCurrentIndex(0)  # Configuration tab is index 0
         if hasattr(self.config_tab, '_on_browse_clicked'):
+            logger.info("Calling config_tab._on_browse_clicked()")
             self.config_tab._on_browse_clicked()
+        else:
+            logger.error("config_tab does not have _on_browse_clicked method")
     
     def _on_save_configuration(self):
         """Handle save configuration action."""
@@ -1250,8 +1274,13 @@ class MainWindow(QMainWindow):
         logger.debug("Refreshing daily dashboard data")
         if hasattr(self, 'daily_dashboard'):
             # Get current data from configuration tab
-            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
-                data = self.config_tab.filtered_data
+            data = None
+            if hasattr(self, 'config_tab'):
+                if hasattr(self.config_tab, 'get_filtered_data'):
+                    data = self.config_tab.get_filtered_data()
+                elif hasattr(self.config_tab, 'filtered_data'):
+                    data = self.config_tab.filtered_data
+                    
                 if data is not None and not data.empty:
                     # Create daily calculator with the data
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
@@ -1262,36 +1291,41 @@ class MainWindow(QMainWindow):
                     
                     # Create and set personal records tracker
                     if not hasattr(self, 'personal_records_tracker'):
-                        self.personal_records_tracker = PersonalRecordsTracker(db_manager.get_connection())
+                        self.personal_records_tracker = PersonalRecordsTracker(db_manager)
                     self.daily_dashboard.set_personal_records(self.personal_records_tracker)
                     
                     logger.info(f"Set daily calculator with {len(data)} records")
                 else:
                     logger.warning("No data available to refresh daily dashboard")
         
-        # Enable other tabs when data is loaded
-        for i in range(1, self.tab_widget.count()):
-            self.tab_widget.setTabEnabled(i, True)
-        
-        # Get current data from configuration tab
-        data = None
-        if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'get_filtered_data'):
-            data = self.config_tab.get_filtered_data()
-        
         # Trigger background trend calculation for all metrics
-        if self.background_trend_processor and data is not None:
-            logger.info("Triggering background trend calculation for all metrics")
-            # Get unique metrics from the data
-            if hasattr(data, 'columns') and 'type' in data.columns:
-                unique_metrics = data['type'].unique().tolist()
-                for metric in unique_metrics:
-                    if metric in self.background_trend_processor.VALID_METRICS:
-                        self.background_trend_processor.queue_trend_calculation(
-                            metric, priority=5, force_refresh=True
-                        )
-            else:
-                # Queue all known metrics
-                self.background_trend_processor.queue_all_metrics(priority=5)
+        if self.background_trend_processor and hasattr(self, 'config_tab'):
+            data = None
+            if hasattr(self.config_tab, 'get_filtered_data'):
+                data = self.config_tab.get_filtered_data()
+            elif hasattr(self.config_tab, 'filtered_data'):
+                data = self.config_tab.filtered_data
+                
+            if data is not None:
+                logger.info("Triggering background trend calculation for all metrics")
+                # Get unique metrics from the data
+                if hasattr(data, 'columns') and 'type' in data.columns:
+                    unique_metrics = data['type'].unique().tolist()
+                    for metric in unique_metrics:
+                        if hasattr(self.background_trend_processor, 'VALID_METRICS'):
+                            if metric in self.background_trend_processor.VALID_METRICS:
+                                self.background_trend_processor.queue_trend_calculation(
+                                    metric, priority=5, force_refresh=True
+                                )
+                        else:
+                            # Queue without validation if VALID_METRICS not available
+                            self.background_trend_processor.queue_trend_calculation(
+                                metric, priority=5, force_refresh=True
+                            )
+                else:
+                    # Queue all known metrics
+                    if hasattr(self.background_trend_processor, 'queue_all_metrics'):
+                        self.background_trend_processor.queue_all_metrics(priority=5)
         
         # Trigger health insights generation if available
         if hasattr(self, 'health_insights_widget') and data is not None:
@@ -1305,9 +1339,14 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
                 data = self.config_tab.filtered_data
                 if data is not None and not data.empty:
-                    # Create weekly calculator with the data
+                    # Create daily calculator first
+                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
-                    weekly_calculator = WeeklyMetricsCalculator(data)
+                    
+                    daily_calculator = DailyMetricsCalculator(data)
+                    
+                    # Create weekly calculator with the daily calculator
+                    weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
                     
                     # Set the calculator in the weekly dashboard
                     if hasattr(self.weekly_dashboard, 'set_weekly_calculator'):
@@ -1354,6 +1393,16 @@ class MainWindow(QMainWindow):
         """Handle metric change signal from monthly dashboard."""
         logger.info(f"Metric changed to: {metric}")
         self.status_bar.showMessage(f"Displaying {metric} data")
+    
+    def _on_week_changed(self, start_date: date, end_date: date):
+        """Handle week change signal from weekly dashboard."""
+        logger.info(f"Week changed to: {start_date} - {end_date}")
+        self.status_bar.showMessage(f"Viewing week of {start_date.strftime('%B %d')}")
+    
+    def _on_metric_selected(self, metric: str):
+        """Handle metric selection signal from weekly dashboard."""
+        logger.info(f"Weekly metric selected: {metric}")
+        self.status_bar.showMessage(f"Weekly view: {metric}")
     
     def _refresh_health_insights(self):
         """Refresh health insights based on current data."""

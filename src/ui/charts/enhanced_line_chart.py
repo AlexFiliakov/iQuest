@@ -463,7 +463,7 @@ class EnhancedLineChart(QWidget):
             
             label = f"{value:.1f}" if value != int(value) else f"{int(value)}"
             label_rect = QRectF(0, y - 10, self.config.margins['left'] - 10, 20)
-            painter.drawText(label_rect, Qt.AlignRight | Qt.AlignVCenter, label)
+            painter.drawText(label_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, label)
             
         # X-axis labels
         x_steps = min(8, len(self.series) * 10) if self.series else 8
@@ -473,7 +473,7 @@ class EnhancedLineChart(QWidget):
             
             label = f"{value:.1f}" if value != int(value) else f"{int(value)}"
             label_rect = QRectF(x - 50, chart_rect.bottom() + 5, 100, 20)
-            painter.drawText(label_rect, Qt.AlignCenter, label)
+            painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, label)
             
         # Axis labels
         if self.x_label:

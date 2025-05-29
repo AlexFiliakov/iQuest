@@ -620,17 +620,3 @@ class MonthlyDashboardWidget(QWidget):
             # Force a refresh when the widget is shown
             self._load_month_data()
             self._update_month_label()
-            self.update()
-        
-        # Import QApplication for event processing
-        from PyQt6.QtWidgets import QApplication
-        QApplication.processEvents()
-        
-        # Schedule another update after a short delay to ensure complete rendering
-        from PyQt6.QtCore import QTimer
-        QTimer.singleShot(100, self._delayed_refresh)
-    
-    def _delayed_refresh(self):
-        """Delayed refresh to ensure complete rendering."""
-        self.calendar_heatmap.update()
-        self.update()

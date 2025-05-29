@@ -406,29 +406,33 @@ class CalendarHeatmapComponent(QWidget):
     def paintEvent(self, event):
         """Paint the calendar heatmap."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # Draw background
-        painter.fillRect(self.rect(), self._colors['background'])
-        
-        # Get chart area (excluding margins)
-        margins = {'top': 80, 'right': 20, 'bottom': 60, 'left': 20}
-        chart_rect = self.rect().adjusted(
-            margins['left'], margins['top'],
-            -margins['right'], -margins['bottom']
-        )
-        
-        # Draw based on view mode
-        if self._view_mode == ViewMode.MONTH_GRID:
-            self._draw_month_grid(painter, chart_rect)
-        elif self._view_mode == ViewMode.GITHUB_STYLE:
-            self._draw_github_style(painter, chart_rect)
-        elif self._view_mode == ViewMode.CIRCULAR:
-            self._draw_circular_view(painter, chart_rect)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             
-        # Draw title if set
-        title = f"{self._metric_type.title()} Calendar Heatmap"
-        self._draw_title(painter, title)
+            # Draw background
+            painter.fillRect(self.rect(), self._colors['background'])
+            
+            # Get chart area (excluding margins)
+            margins = {'top': 80, 'right': 20, 'bottom': 60, 'left': 20}
+            chart_rect = self.rect().adjusted(
+                margins['left'], margins['top'],
+                -margins['right'], -margins['bottom']
+            )
+            
+            # Draw based on view mode
+            if self._view_mode == ViewMode.MONTH_GRID:
+                self._draw_month_grid(painter, chart_rect)
+            elif self._view_mode == ViewMode.GITHUB_STYLE:
+                self._draw_github_style(painter, chart_rect)
+            elif self._view_mode == ViewMode.CIRCULAR:
+                self._draw_circular_view(painter, chart_rect)
+                
+            # Draw title if set
+            title = f"{self._metric_type.title()} Calendar Heatmap"
+            self._draw_title(painter, title)
+        finally:
+            # Always end the painter to prevent crashes
+            painter.end()
         
     def _draw_month_grid(self, painter: QPainter, rect: QRect):
         """Draw traditional month grid calendar view."""

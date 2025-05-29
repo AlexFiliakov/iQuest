@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QScrollArea, QFrame, QMenu, QDialog, QTextEdit,
-    QProgressBar, QGridLayout, QSizePolicy
+    QProgressBar, QGridLayout, QSizePolicy, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QRect
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPalette

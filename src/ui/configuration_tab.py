@@ -191,12 +191,33 @@ class ConfigurationTab(QWidget):
     
     def _create_import_section(self):
         """Create the data import section."""
-        group = QGroupBox("Import Data")
-        group.setStyleSheet(f"""
-            QGroupBox {{
+        section = QFrame()
+        section.setObjectName("importSection")
+        section.setStyleSheet(self.style_manager.get_modern_card_style(padding=16))
+        
+        # Add shadow effect
+        section.setGraphicsEffect(self.style_manager.create_shadow_effect())
+        
+        layout = QVBoxLayout(section)
+        layout.setSpacing(12)
+        
+        # Section title
+        title = QLabel("Import Data")
+        title.setObjectName("sectionTitle")
+        title.setStyleSheet(f"""
+            QLabel#sectionTitle {{
                 font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
+                margin-bottom: 8px;
+            }}
+        """)
+        layout.addWidget(title)
+        
+        # Create group box for file import
+        group = QGroupBox()
+        group.setStyleSheet(f"""
+            QGroupBox {{
                 background-color: {self.style_manager.SECONDARY_BG};
                 border: 1px solid rgba(139, 115, 85, 0.1);
                 border-radius: 6px;
@@ -212,14 +233,14 @@ class ConfigurationTab(QWidget):
             }}
         """)
         
-        layout = QVBoxLayout(group)
-        layout.setSpacing(8)
-        layout.setContentsMargins(4, 4, 4, 4)
+        group_layout = QVBoxLayout(group)
+        group_layout.setSpacing(8)
+        group_layout.setContentsMargins(4, 4, 4, 4)
         
         # File input in a more compact vertical layout
         file_label = QLabel("Data File:")
         file_label.setStyleSheet("font-weight: 500; font-size: 12px;")
-        layout.addWidget(file_label)
+        group_layout.addWidget(file_label)
         
         # File selection row
         file_row = QHBoxLayout()
@@ -243,7 +264,7 @@ class ConfigurationTab(QWidget):
         browse_button.setFixedWidth(30)
         file_row.addWidget(browse_button)
         
-        layout.addLayout(file_row)
+        group_layout.addLayout(file_row)
         
         # Import button row - more compact
         import_row = QHBoxLayout()
@@ -264,7 +285,7 @@ class ConfigurationTab(QWidget):
         import_row.addWidget(import_button)
         
         import_row.addStretch()
-        layout.addLayout(import_row)
+        group_layout.addLayout(import_row)
         
         # Progress section
         progress_row = QVBoxLayout()
@@ -292,9 +313,10 @@ class ConfigurationTab(QWidget):
         self.progress_bar.setToolTip("Shows import progress - XML imports may take several minutes")
         progress_row.addWidget(self.progress_bar)
         
-        layout.addLayout(progress_row)
+        group_layout.addLayout(progress_row)
         
-        return group
+        layout.addWidget(group)
+        return section
     
     def _create_filter_section(self):
         """Create the data filtering section."""

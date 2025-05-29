@@ -1,12 +1,11 @@
 """
-Weekly dashboard widget for viewing weekly health metrics and trends.
+Modern weekly dashboard widget with updated UI design.
 
-This widget provides comprehensive weekly health data analysis including:
-- 7-day rolling statistics
-- Week-over-week comparisons
-- Weekly patterns and trends
-- Day-of-week analysis
-- Volatility scoring
+Features the modern Wall Street Journal-inspired aesthetic with:
+- Borderless cards with shadow effects
+- Vibrant color palette
+- Improved spacing and typography
+- Modern navigation controls
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -17,7 +16,8 @@ import numpy as np
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
     QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
-    QProgressBar, QGroupBox, QButtonGroup, QRadioButton
+    QProgressBar, QGroupBox, QButtonGroup, QRadioButton,
+    QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
@@ -34,8 +34,8 @@ from ..utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-class WeeklyStatCard(QFrame):
-    """Statistical card for weekly metrics."""
+class ModernWeeklyStatCard(QFrame):
+    """Modern statistical card for weekly metrics."""
     
     def __init__(self, title: str, icon: str = "", parent=None):
         super().__init__(parent)
@@ -45,23 +45,30 @@ class WeeklyStatCard(QFrame):
         self._setup_ui()
         
     def _setup_ui(self):
-        """Set up the card UI."""
-        self.setFixedHeight(100)
+        """Set up the modern card UI."""
+        self.setFixedHeight(120)
         from .style_manager import StyleManager
         style_manager = StyleManager()
-        shadow = style_manager.get_shadow_style('md')
         
+        # Modern card style without borders
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {style_manager.PRIMARY_BG};
-                border: {shadow['border']};
-                border-radius: 8px;
-                padding: 16px;
+                border-radius: 12px;
+                padding: 20px;
             }}
         """)
         
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 30))
+        self.setGraphicsEffect(shadow)
+        
         layout = QVBoxLayout(self)
-        layout.setSpacing(4)
+        layout.setSpacing(8)
         
         # Title with icon
         title_layout = QHBoxLayout()
@@ -69,46 +76,48 @@ class WeeklyStatCard(QFrame):
         
         if self.icon:
             icon_label = QLabel(self.icon)
-            icon_label.setFont(QFont('Segoe UI Emoji', 14))
+            icon_label.setFont(QFont('Segoe UI Emoji', 16))
             title_layout.addWidget(icon_label)
         
         title_label = QLabel(self.title)
-        title_label.setFont(QFont('Inter', 11))
+        title_label.setFont(QFont('Inter', 12, QFont.Weight.Medium))
         title_label.setStyleSheet(f"color: {style_manager.TEXT_SECONDARY};")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
         layout.addLayout(title_layout)
         
-        # Main value
+        # Main value with larger font
         self.value_label = QLabel("--")
-        self.value_label.setFont(QFont('Inter', 20, QFont.Weight.Bold))
+        self.value_label.setFont(QFont('Inter', 24, QFont.Weight.Bold))
         self.value_label.setStyleSheet(f"color: {style_manager.ACCENT_PRIMARY};")
         layout.addWidget(self.value_label)
         
         # Sub-label
         self.sub_label = QLabel("")
-        self.sub_label.setFont(QFont('Inter', 10))
+        self.sub_label.setFont(QFont('Inter', 11))
         self.sub_label.setStyleSheet(f"color: {style_manager.TEXT_MUTED};")
         layout.addWidget(self.sub_label)
         
-    def update_value(self, value: str, sub_label: str = ""):
-        """Update the displayed values."""
+    def update_value(self, value: str, sub_label: str = "", trend_color: str = None):
+        """Update the displayed values with optional trend coloring."""
         self.value_label.setText(value)
         self.sub_label.setText(sub_label)
+        
+        if trend_color:
+            self.value_label.setStyleSheet(f"color: {trend_color};")
 
 
-class WeeklyDashboardWidget(QWidget):
+class ModernWeeklyDashboardWidget(QWidget):
     """
-    Weekly dashboard widget showing 7-day rolling statistics and trends.
+    Modern weekly dashboard widget with updated UI design.
     
     Features:
-    - Week-at-a-glance summary
+    - Week-at-a-glance summary with modern cards
+    - Smooth navigation between weeks
+    - Interactive charts with modern styling
     - Week-over-week comparisons
     - Day-of-week patterns
-    - Trend analysis
-    - Best/worst day tracking
-    - Volatility scoring
     """
     
     # Signals
@@ -116,13 +125,15 @@ class WeeklyDashboardWidget(QWidget):
     metric_selected = pyqtSignal(str)
     
     def __init__(self, weekly_calculator=None, daily_calculator=None, parent=None):
-        """Initialize the weekly dashboard widget."""
+        """Initialize the modern weekly dashboard widget."""
         super().__init__(parent)
         
         self.weekly_calculator = weekly_calculator
         self.daily_calculator = daily_calculator
         self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
-        self.dow_analyzer = DayOfWeekAnalyzer(daily_calculator.data if hasattr(daily_calculator, 'data') else daily_calculator) if daily_calculator else None
+        self.dow_analyzer = DayOfWeekAnalyzer(
+            daily_calculator.data if hasattr(daily_calculator, 'data') else daily_calculator
+        ) if daily_calculator else None
         
         # Calculate current week boundaries
         today = date.today()
@@ -131,6 +142,10 @@ class WeeklyDashboardWidget(QWidget):
         
         self._available_metrics = []
         self._selected_metric = "steps"
+        
+        # Get style manager
+        from .style_manager import StyleManager
+        self.style_manager = StyleManager()
         
         self._setup_ui()
         self._setup_connections()
@@ -141,14 +156,17 @@ class WeeklyDashboardWidget(QWidget):
             self._load_weekly_data()
     
     def _setup_ui(self):
-        """Set up the user interface."""
-        # Main layout
+        """Set up the modern user interface."""
+        # Main layout with modern spacing
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(16)
+        
+        # Set background color
+        self.setStyleSheet(f"background-color: {self.style_manager.SECONDARY_BG};")
         
         # Header section
-        header = self._create_header()
+        header = self._create_modern_header()
         main_layout.addWidget(header)
         
         # Content area with scroll
@@ -156,45 +174,46 @@ class WeeklyDashboardWidget(QWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background-color: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: #F5E6D3;
+            }}
+            QScrollBar:vertical {{
+                background-color: {self.style_manager.TERTIARY_BG};
                 width: 12px;
                 border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #FF8C42;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {self.style_manager.ACCENT_SECONDARY};
                 border-radius: 6px;
                 min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #E67A35;
-            }
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: #1D4ED8;
+            }}
         """)
         
         # Content widget
         content_widget = QWidget(self)
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(20)
+        content_layout.setSpacing(16)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         
         # Weekly summary section
-        summary_section = self._create_summary_section()
+        summary_section = self._create_modern_summary_section()
         content_layout.addWidget(summary_section)
         
         # Week-over-week comparison
-        wow_section = self._create_wow_section()
+        wow_section = self._create_modern_wow_section()
         content_layout.addWidget(wow_section)
         
         # Day patterns section
-        patterns_section = self._create_patterns_section()
+        patterns_section = self._create_modern_patterns_section()
         content_layout.addWidget(patterns_section)
         
         # Detailed charts section
-        charts_section = self._create_charts_section()
+        charts_section = self._create_modern_charts_section()
         content_layout.addWidget(charts_section)
         
         content_layout.addStretch()
@@ -202,57 +221,63 @@ class WeeklyDashboardWidget(QWidget):
         scroll_area.setWidget(content_widget)
         main_layout.addWidget(scroll_area)
     
-    def _create_header(self) -> QWidget:
-        """Create the dashboard header with week navigation."""
+    def _create_modern_header(self) -> QWidget:
+        """Create the modern dashboard header with week navigation."""
         header = QFrame(self)
-        header.setStyleSheet("""
-            QFrame {
-                background-color: #FFF8F0;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 16px;
-            }
-        """)
+        header.setStyleSheet(self.style_manager.get_modern_card_style(padding=16))
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setXOffset(0)
+        shadow.setYOffset(2)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        header.setGraphicsEffect(shadow)
         
         layout = QHBoxLayout(header)
         layout.setSpacing(20)
         
         # Week navigation
         nav_layout = QHBoxLayout()
+        nav_layout.setSpacing(12)
         
         # Previous week button
         self.prev_week_btn = QPushButton("◀")
         self.prev_week_btn.setFixedSize(40, 40)
-        self.prev_week_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                border: 2px solid #E8DCC8;
+        self.prev_week_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border: none;
                 border-radius: 20px;
-                color: #5D4E37;
+                color: {self.style_manager.TEXT_PRIMARY};
                 font-size: 16px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #FFF8F0;
-                border-color: #FF8C42;
-                color: #FF8C42;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.style_manager.TERTIARY_BG};
+                color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.style_manager.ACCENT_LIGHT};
+            }}
         """)
         self.prev_week_btn.setToolTip("Previous week")
+        self.prev_week_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         nav_layout.addWidget(self.prev_week_btn)
         
         # Week label
         week_layout = QVBoxLayout()
+        week_layout.setSpacing(4)
         
         self.week_label = QLabel()
-        self.week_label.setFont(QFont('Poppins', 18, QFont.Weight.Bold))
-        self.week_label.setStyleSheet("color: #5D4E37;")
+        self.week_label.setFont(QFont('Inter', 20, QFont.Weight.Bold))
+        self.week_label.setStyleSheet(f"color: {self.style_manager.TEXT_PRIMARY};")
         self.week_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         week_layout.addWidget(self.week_label)
         
         self.date_range_label = QLabel()
-        self.date_range_label.setFont(QFont('Inter', 12))
-        self.date_range_label.setStyleSheet("color: #8B7355;")
+        self.date_range_label.setFont(QFont('Inter', 13))
+        self.date_range_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
         self.date_range_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         week_layout.addWidget(self.date_range_label)
         
@@ -261,22 +286,25 @@ class WeeklyDashboardWidget(QWidget):
         # Next week button
         self.next_week_btn = QPushButton("▶")
         self.next_week_btn.setFixedSize(40, 40)
-        self.next_week_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                border: 2px solid #E8DCC8;
+        self.next_week_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border: none;
                 border-radius: 20px;
-                color: #5D4E37;
+                color: {self.style_manager.TEXT_PRIMARY};
                 font-size: 16px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #FFF8F0;
-                border-color: #FF8C42;
-                color: #FF8C42;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {self.style_manager.TERTIARY_BG};
+                color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.style_manager.ACCENT_LIGHT};
+            }}
         """)
         self.next_week_btn.setToolTip("Next week")
+        self.next_week_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         nav_layout.addWidget(self.next_week_btn)
         
         layout.addLayout(nav_layout)
@@ -285,94 +313,107 @@ class WeeklyDashboardWidget(QWidget):
         # This week button
         self.this_week_btn = QPushButton("This Week")
         self.this_week_btn.setFixedSize(100, 40)
-        self.this_week_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #FF8C42;
+        self.this_week_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.style_manager.ACCENT_SECONDARY};
                 color: white;
+                border: none;
                 border-radius: 20px;
-                font-family: Poppins;
+                font-family: Inter;
                 font-size: 14px;
                 font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #E67A35;
-            }
-            QPushButton:disabled {
-                background-color: rgba(255, 140, 66, 0.5);
-            }
+            }}
+            QPushButton:hover {{
+                background-color: #1D4ED8;
+            }}
+            QPushButton:pressed {{
+                background-color: #1E40AF;
+            }}
+            QPushButton:disabled {{
+                background-color: {self.style_manager.TEXT_MUTED};
+            }}
         """)
+        self.this_week_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         layout.addWidget(self.this_week_btn)
         
         self._update_week_labels()
         
         return header
     
-    def _create_summary_section(self) -> QWidget:
-        """Create the weekly summary section."""
-        section = QGroupBox("Week at a Glance")
-        section.setStyleSheet("""
-            QGroupBox {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                margin-top: 10px;
-                font-family: Poppins;
-                font-size: 16px;
-                font-weight: 600;
-                color: #5D4E37;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px;
-                background-color: white;
-            }
-        """)
+    def _create_modern_summary_section(self) -> QWidget:
+        """Create the modern weekly summary section."""
+        section = QFrame()
+        section.setStyleSheet("background-color: transparent;")
         
         layout = QVBoxLayout(section)
         layout.setSpacing(16)
+        layout.setContentsMargins(0, 0, 0, 0)
         
-        # Metric selector
-        selector_layout = QHBoxLayout()
+        # Section title
+        title = QLabel("Week at a Glance")
+        title.setFont(QFont('Inter', 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {self.style_manager.TEXT_PRIMARY};")
+        layout.addWidget(title)
+        
+        # Metric selector card
+        selector_card = QFrame()
+        selector_card.setStyleSheet(self.style_manager.get_modern_card_style(padding=16))
+        selector_card.setGraphicsEffect(self.style_manager.create_shadow_effect())
+        
+        selector_layout = QHBoxLayout(selector_card)
         
         metric_label = QLabel("Metric:")
-        metric_label.setFont(QFont('Inter', 12))
-        metric_label.setStyleSheet("color: #5D4E37;")
+        metric_label.setFont(QFont('Inter', 13, QFont.Weight.Medium))
+        metric_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
         selector_layout.addWidget(metric_label)
         
         self.metric_selector = QComboBox()
         self.metric_selector.setMinimumWidth(200)
-        self.metric_selector.setStyleSheet("""
-            QComboBox {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.2);
+        self.metric_selector.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {self.style_manager.TERTIARY_BG};
+                border: 1px solid {self.style_manager.ACCENT_LIGHT};
                 border-radius: 8px;
                 padding: 8px 12px;
-                font-family: Poppins;
-                color: #5D4E37;
-            }
+                font-family: Inter;
+                font-size: 13px;
+                color: {self.style_manager.TEXT_PRIMARY};
+            }}
+            QComboBox:hover {{
+                border-color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid {self.style_manager.TEXT_SECONDARY};
+                margin-right: 8px;
+            }}
         """)
         selector_layout.addWidget(self.metric_selector)
         
         selector_layout.addStretch()
-        layout.addLayout(selector_layout)
+        layout.addWidget(selector_card)
         
         # Statistics cards grid
         stats_grid = QGridLayout()
-        stats_grid.setSpacing(16)
+        stats_grid.setSpacing(12)
         
-        # Create stat cards
+        # Create modern stat cards
         self.stat_cards = {
-            'average': WeeklyStatCard("Weekly Average", "📊"),
-            'total': WeeklyStatCard("Weekly Total", "Σ"),
-            'best': WeeklyStatCard("Best Day", "🏆"),
-            'worst': WeeklyStatCard("Worst Day", "📉"),
-            'trend': WeeklyStatCard("Trend", "📈"),
-            'volatility': WeeklyStatCard("Volatility", "📊")
+            'average': ModernWeeklyStatCard("Weekly Average", "📊"),
+            'total': ModernWeeklyStatCard("Weekly Total", "Σ"),
+            'best': ModernWeeklyStatCard("Best Day", "🏆"),
+            'worst': ModernWeeklyStatCard("Worst Day", "📉"),
+            'trend': ModernWeeklyStatCard("Trend", "📈"),
+            'volatility': ModernWeeklyStatCard("Volatility", "📊")
         }
         
-        # Arrange cards in grid
+        # Arrange cards in grid (2x3)
         positions = [
             ('average', 0, 0), ('total', 0, 1), ('best', 0, 2),
             ('worst', 1, 0), ('trend', 1, 1), ('volatility', 1, 2)
@@ -385,143 +426,169 @@ class WeeklyDashboardWidget(QWidget):
         
         return section
     
-    def _create_wow_section(self) -> QWidget:
-        """Create the week-over-week comparison section."""
-        section = QGroupBox("Week-over-Week Comparison")
-        section.setStyleSheet("""
-            QGroupBox {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                margin-top: 10px;
-                font-family: Poppins;
-                font-size: 16px;
-                font-weight: 600;
-                color: #5D4E37;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px;
-                background-color: white;
-            }
-        """)
+    def _create_modern_wow_section(self) -> QWidget:
+        """Create the modern week-over-week comparison section."""
+        section = QFrame()
+        section.setStyleSheet("background-color: transparent;")
         
         layout = QVBoxLayout(section)
+        layout.setSpacing(16)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Section title
+        title = QLabel("Week-over-Week Comparison")
+        title.setFont(QFont('Inter', 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {self.style_manager.TEXT_PRIMARY};")
+        layout.addWidget(title)
+        
+        # WoW card
+        wow_card = QFrame()
+        wow_card.setStyleSheet(self.style_manager.get_modern_card_style(padding=20))
+        wow_card.setGraphicsEffect(self.style_manager.create_shadow_effect())
+        
+        wow_layout = QVBoxLayout(wow_card)
         
         # WoW widget
         self.wow_widget = WeekOverWeekWidget()
         self.wow_widget.setMinimumHeight(300)
-        layout.addWidget(self.wow_widget)
+        wow_layout.addWidget(self.wow_widget)
+        
+        layout.addWidget(wow_card)
         
         return section
     
-    def _create_patterns_section(self) -> QWidget:
-        """Create the day-of-week patterns section."""
-        section = QGroupBox("Weekly Patterns")
-        section.setStyleSheet("""
-            QGroupBox {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                margin-top: 10px;
-                font-family: Poppins;
-                font-size: 16px;
-                font-weight: 600;
-                color: #5D4E37;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px;
-                background-color: white;
-            }
-        """)
+    def _create_modern_patterns_section(self) -> QWidget:
+        """Create the modern day-of-week patterns section."""
+        section = QFrame()
+        section.setStyleSheet("background-color: transparent;")
         
         layout = QVBoxLayout(section)
         layout.setSpacing(16)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Section title
+        title = QLabel("Weekly Patterns")
+        title.setFont(QFont('Inter', 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {self.style_manager.TEXT_PRIMARY};")
+        layout.addWidget(title)
+        
+        # Patterns card
+        patterns_card = QFrame()
+        patterns_card.setStyleSheet(self.style_manager.get_modern_card_style(padding=20))
+        patterns_card.setGraphicsEffect(self.style_manager.create_shadow_effect())
+        
+        patterns_layout = QVBoxLayout(patterns_card)
+        patterns_layout.setSpacing(16)
         
         # Day-of-week chart
         self.dow_chart = BarChartComponent()
         self.dow_chart.setMinimumHeight(250)
-        
-        # Configure chart styling will be done when plotting
-        
-        layout.addWidget(self.dow_chart)
+        patterns_layout.addWidget(self.dow_chart)
         
         # Pattern insights
         self.pattern_label = QLabel("Loading patterns...")
         self.pattern_label.setFont(QFont('Inter', 12))
-        self.pattern_label.setStyleSheet("color: #8B7355; padding: 10px;")
+        self.pattern_label.setStyleSheet(f"""
+            color: {self.style_manager.TEXT_SECONDARY};
+            padding: 12px;
+            background-color: {self.style_manager.TERTIARY_BG};
+            border-radius: 8px;
+        """)
         self.pattern_label.setWordWrap(True)
-        layout.addWidget(self.pattern_label)
+        patterns_layout.addWidget(self.pattern_label)
+        
+        layout.addWidget(patterns_card)
         
         return section
     
-    def _create_charts_section(self) -> QWidget:
-        """Create the detailed charts section."""
-        section = QGroupBox("Weekly Trend")
-        section.setStyleSheet("""
-            QGroupBox {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                margin-top: 10px;
-                font-family: Poppins;
-                font-size: 16px;
-                font-weight: 600;
-                color: #5D4E37;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px;
-                background-color: white;
-            }
-        """)
+    def _create_modern_charts_section(self) -> QWidget:
+        """Create the modern detailed charts section."""
+        section = QFrame()
+        section.setStyleSheet("background-color: transparent;")
         
         layout = QVBoxLayout(section)
         layout.setSpacing(16)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Section title
+        title = QLabel("Weekly Trend")
+        title.setFont(QFont('Inter', 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {self.style_manager.TEXT_PRIMARY};")
+        layout.addWidget(title)
+        
+        # Chart card
+        chart_card = QFrame()
+        chart_card.setStyleSheet(self.style_manager.get_modern_card_style(padding=20))
+        chart_card.setGraphicsEffect(self.style_manager.create_shadow_effect())
+        
+        chart_layout = QVBoxLayout(chart_card)
+        chart_layout.setSpacing(16)
         
         # View options
         view_layout = QHBoxLayout()
+        view_layout.setSpacing(16)
         
         view_label = QLabel("View:")
-        view_label.setFont(QFont('Inter', 12))
-        view_label.setStyleSheet("color: #5D4E37;")
+        view_label.setFont(QFont('Inter', 13, QFont.Weight.Medium))
+        view_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
         view_layout.addWidget(view_label)
         
         # Radio buttons for view selection
         self.view_group = QButtonGroup(self)
         
+        radio_style = f"""
+            QRadioButton {{
+                color: {self.style_manager.TEXT_PRIMARY};
+                font-family: Inter;
+                font-size: 13px;
+                spacing: 8px;
+            }}
+            QRadioButton::indicator {{
+                width: 16px;
+                height: 16px;
+                border-radius: 8px;
+                border: 2px solid {self.style_manager.ACCENT_LIGHT};
+                background-color: {self.style_manager.PRIMARY_BG};
+            }}
+            QRadioButton::indicator:checked {{
+                background-color: {self.style_manager.ACCENT_SECONDARY};
+                border-color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QRadioButton::indicator:hover {{
+                border-color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+        """
+        
         self.daily_view_rb = QRadioButton("Daily Values")
         self.daily_view_rb.setChecked(True)
+        self.daily_view_rb.setStyleSheet(radio_style)
         self.view_group.addButton(self.daily_view_rb, 0)
         view_layout.addWidget(self.daily_view_rb)
         
         self.cumulative_view_rb = QRadioButton("Cumulative")
+        self.cumulative_view_rb.setStyleSheet(radio_style)
         self.view_group.addButton(self.cumulative_view_rb, 1)
         view_layout.addWidget(self.cumulative_view_rb)
         
         self.rolling_view_rb = QRadioButton("7-Day Average")
+        self.rolling_view_rb.setStyleSheet(radio_style)
         self.view_group.addButton(self.rolling_view_rb, 2)
         view_layout.addWidget(self.rolling_view_rb)
         
         view_layout.addStretch()
-        layout.addLayout(view_layout)
+        chart_layout.addLayout(view_layout)
         
         # Trend chart
         self.trend_chart = LineChart()
         self.trend_chart.setMinimumHeight(300)
         
-        # Configure chart
+        # Configure chart with modern styling
         self.trend_chart.set_labels(title="", x_label="Date", y_label="Value")
         self.trend_chart.show_grid = True
         
-        layout.addWidget(self.trend_chart)
+        chart_layout.addWidget(self.trend_chart)
+        
+        layout.addWidget(chart_card)
         
         return section
     
@@ -660,19 +727,27 @@ class WeeklyDashboardWidget(QWidget):
                 
                 self.stat_cards['best'].update_value(
                     f"{weekly_data.daily_values[best_date]:,.0f}",
-                    best_date.strftime("%a")
+                    best_date.strftime("%A"),
+                    self.style_manager.ACCENT_SUCCESS
                 )
                 
                 self.stat_cards['worst'].update_value(
                     f"{weekly_data.daily_values[worst_date]:,.0f}",
-                    worst_date.strftime("%a")
+                    worst_date.strftime("%A"),
+                    self.style_manager.ACCENT_WARNING
                 )
             
-            # Update trend
+            # Update trend with color coding
             trend_symbol = "↑" if weekly_data.trend_direction == "up" else "↓" if weekly_data.trend_direction == "down" else "→"
+            trend_color = (
+                self.style_manager.ACCENT_SUCCESS if weekly_data.trend_direction == "up" 
+                else self.style_manager.ACCENT_ERROR if weekly_data.trend_direction == "down"
+                else self.style_manager.TEXT_SECONDARY
+            )
             self.stat_cards['trend'].update_value(
                 trend_symbol,
-                weekly_data.trend_direction
+                weekly_data.trend_direction,
+                trend_color
             )
             
             # Calculate volatility
@@ -680,9 +755,15 @@ class WeeklyDashboardWidget(QWidget):
                 values = list(weekly_data.daily_values.values())
                 if len(values) > 1:
                     volatility = np.std(values) / np.mean(values) * 100 if np.mean(values) > 0 else 0
+                    volatility_color = (
+                        self.style_manager.ACCENT_SUCCESS if volatility < 20
+                        else self.style_manager.ACCENT_WARNING if volatility < 40
+                        else self.style_manager.ACCENT_ERROR
+                    )
                     self.stat_cards['volatility'].update_value(
                         f"{volatility:.1f}%",
-                        "coefficient of variation"
+                        "coefficient of variation",
+                        volatility_color
                     )
                     
         except Exception as e:
@@ -726,7 +807,12 @@ class WeeklyDashboardWidget(QWidget):
                     'Day': days,
                     'Value': values
                 })
-                df['Color'] = ['#FF8C42' if i < 5 else '#FFD166' for i in range(7)]  # Weekday vs weekend colors
+                # Use modern colors - weekdays vs weekends
+                df['Color'] = [
+                    self.style_manager.ACCENT_SECONDARY if i < 5 
+                    else self.style_manager.ACCENT_WARNING 
+                    for i in range(7)
+                ]
                 
                 self.dow_chart.plot(df, chart_type='simple', x='Day', y='Value', color_column='Color')
                 
@@ -869,13 +955,12 @@ class WeeklyDashboardWidget(QWidget):
             from PyQt6.QtCore import Qt
             
             self.no_data_overlay = QWidget(self)
-            self.no_data_overlay.setStyleSheet("""
-                QWidget {
-                    background-color: rgba(255, 255, 255, 0.95);
-                    border-radius: 12px;
-                    border: 1px solid rgba(139, 115, 85, 0.1);
-                    margin: 10px;
-                }
+            self.no_data_overlay.setStyleSheet(f"""
+                QWidget {{
+                    background-color: rgba(255, 255, 255, 0.98);
+                    border-radius: 16px;
+                    margin: 20px;
+                }}
             """)
             
             overlay_layout = QVBoxLayout(self.no_data_overlay)
@@ -884,17 +969,17 @@ class WeeklyDashboardWidget(QWidget):
             # Icon
             icon_label = QLabel("📅")
             icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            icon_label.setStyleSheet("font-size: 64px;")
+            icon_label.setStyleSheet("font-size: 72px;")
             overlay_layout.addWidget(icon_label)
             
             # Message
             message_label = QLabel("No Data Loaded")
             message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            message_label.setStyleSheet("""
-                font-family: Poppins;
-                font-size: 24px;
-                font-weight: 600;
-                color: #5D4E37;
+            message_label.setStyleSheet(f"""
+                font-family: Inter;
+                font-size: 28px;
+                font-weight: 700;
+                color: {self.style_manager.TEXT_PRIMARY};
                 margin: 20px 0;
             """)
             overlay_layout.addWidget(message_label)
@@ -903,10 +988,10 @@ class WeeklyDashboardWidget(QWidget):
             instructions = QLabel("Please go to the Configuration tab and import your Apple Health data.")
             instructions.setAlignment(Qt.AlignmentFlag.AlignCenter)
             instructions.setWordWrap(True)
-            instructions.setStyleSheet("""
-                font-family: Poppins;
-                font-size: 14px;
-                color: #8B7355;
+            instructions.setStyleSheet(f"""
+                font-family: Inter;
+                font-size: 16px;
+                color: {self.style_manager.TEXT_SECONDARY};
                 max-width: 400px;
             """)
             overlay_layout.addWidget(instructions)
@@ -979,7 +1064,9 @@ class WeeklyDashboardWidget(QWidget):
         )
         
         self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
-        self.dow_analyzer = DayOfWeekAnalyzer(self.daily_calculator.data if hasattr(self.daily_calculator, 'data') else self.daily_calculator) if self.daily_calculator else None
+        self.dow_analyzer = DayOfWeekAnalyzer(
+            self.daily_calculator.data if hasattr(self.daily_calculator, 'data') else self.daily_calculator
+        ) if self.daily_calculator else None
         
         self._detect_available_metrics()
         self._load_weekly_data()
@@ -994,7 +1081,9 @@ class WeeklyDashboardWidget(QWidget):
         self.daily_calculator = weekly_calculator.daily_calculator if weekly_calculator else None
         
         self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
-        self.dow_analyzer = DayOfWeekAnalyzer(self.daily_calculator.data if hasattr(self.daily_calculator, 'data') else self.daily_calculator) if self.daily_calculator else None
+        self.dow_analyzer = DayOfWeekAnalyzer(
+            self.daily_calculator.data if hasattr(self.daily_calculator, 'data') else self.daily_calculator
+        ) if self.daily_calculator else None
         
         self._detect_available_metrics()
         self._hide_no_data_message()  # Hide no data message when calculator is set
