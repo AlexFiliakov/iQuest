@@ -114,30 +114,30 @@ class CalendarHeatmapComponent(QWidget):
         return {
             # Background colors
             'background': QColor('#FFFFFF'),
-            'background_alt': QColor('#FFF8F0'),
-            'tertiary_bg': QColor('#FFF8F0'),
+            'background_alt': QColor('#F8F9FA'),
+            'tertiary_bg': QColor('#F8F9FA'),
             
             # Grid and axes
-            'grid': QColor('#E8DCC8'),
-            'axis': QColor('#8B7355'),
+            'grid': QColor('#E9ECEF'),
+            'axis': QColor('#6C757D'),
             
             # Data colors
-            'primary': QColor('#FF8C42'),
-            'secondary': QColor('#FFD166'),
-            'success': QColor('#95C17B'),
-            'warning': QColor('#F4A261'),
-            'error': QColor('#E76F51'),
+            'primary': QColor('#5B6770'),
+            'secondary': QColor('#ADB5BD'),
+            'success': QColor('#28A745'),
+            'warning': QColor('#FFC107'),
+            'error': QColor('#DC3545'),
             
             # Text colors
-            'text': QColor('#5D4E37'),
-            'text_secondary': QColor('#8B7355'),
-            'text_muted': QColor('#A69583'),
+            'text': QColor('#212529'),
+            'text_secondary': QColor('#6C757D'),
+            'text_muted': QColor('#ADB5BD'),
             'text_inverse': QColor('#FFFFFF'),
             
             # Interactive states
-            'hover': QColor('#E67A35'),
-            'active': QColor('#D56F2B'),
-            'disabled': QColor('#E8DCC8')
+            'hover': QColor('#4A5560'),
+            'active': QColor('#3A4550'),
+            'disabled': QColor('#E9ECEF')
         }
         
     def _get_default_fonts(self) -> Dict[str, QFont]:
@@ -155,14 +155,14 @@ class CalendarHeatmapComponent(QWidget):
         """Initialize perceptually uniform color scales."""
         return {
             ColorScale.WARM_ORANGE: [
-                QColor("#FFF8F0"),  # Very light cream
-                QColor("#FFE8D1"),  # Light cream
-                QColor("#FFD4B3"),  # Light peach
-                QColor("#FFB584"),  # Medium peach
-                QColor("#FF8C42"),  # Main orange
-                QColor("#E67A35"),  # Dark orange
-                QColor("#CC6B2E"),  # Darker orange
-                QColor("#B85C27")   # Darkest orange
+                QColor("#F8F9FA"),  # Very light gray
+                QColor("#E9ECEF"),  # Light gray
+                QColor("#DEE2E6"),  # Light-medium gray
+                QColor("#CED4DA"),  # Medium gray
+                QColor("#ADB5BD"),  # Gray
+                QColor("#6C757D"),  # Dark gray
+                QColor("#495057"),  # Darker gray
+                QColor("#343A40")   # Darkest gray
             ],
             ColorScale.VIRIDIS: [
                 QColor("#440154"),

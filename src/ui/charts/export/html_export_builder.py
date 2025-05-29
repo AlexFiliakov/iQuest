@@ -627,7 +627,7 @@ window.addEventListener('afterprint', function() {
 if (typeof Chart !== 'undefined') {
     // Chart.js tooltip configuration
     Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-    Chart.defaults.plugins.tooltip.borderColor = '#E8DCC8';
+    Chart.defaults.plugins.tooltip.borderColor = '#E9ECEF';
     Chart.defaults.plugins.tooltip.borderWidth = 1;
     Chart.defaults.plugins.tooltip.titleColor = '#2C2C2C';
     Chart.defaults.plugins.tooltip.bodyColor = '#666666';

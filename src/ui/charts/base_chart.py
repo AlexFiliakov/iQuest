@@ -66,22 +66,22 @@ class BaseChart(QWidget):
         return {
             # Background colors
             'background': QColor('#FFFFFF'),
-            'background_alt': QColor('#FFF8F0'),
+            'background_alt': QColor('#F8F9FA'),
             
             # Grid and axes
-            'grid': QColor('#E8DCC8'),
+            'grid': QColor('#E9ECEF'),
             'axis': QColor('#8B7355'),
             
             # Data colors
             'primary': QColor('#FF8C42'),
-            'secondary': QColor('#FFD166'),
+            'secondary': QColor('#ADB5BD'),
             'success': QColor('#95C17B'),
             'warning': QColor('#F4A261'),
             'error': QColor('#E76F51'),
             
             # Chart-specific colors
             'chart_1': QColor('#FF8C42'),
-            'chart_2': QColor('#FFD166'),
+            'chart_2': QColor('#ADB5BD'),
             'chart_3': QColor('#95C17B'),
             'chart_4': QColor('#6C9BD1'),
             'chart_5': QColor('#B79FCB'),
@@ -95,7 +95,7 @@ class BaseChart(QWidget):
             # Interactive states
             'hover': QColor('#E67A35'),
             'active': QColor('#D56F2B'),
-            'disabled': QColor('#E8DCC8')
+            'disabled': QColor('#E9ECEF')
         }
         
     def _get_default_fonts(self) -> Dict[str, QFont]:

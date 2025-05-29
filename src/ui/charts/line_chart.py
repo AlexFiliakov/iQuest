@@ -50,16 +50,16 @@ class LineChart(QWidget):
         self.show_dots = True
         self.animate = True
         
-        # Colors from design system
+        # Colors from design system - WSJ-inspired professional palette
         self.colors = {
             'background': QColor('#FFFFFF'),
-            'grid': QColor('#E8DCC8'),
-            'axis': QColor('#8B7355'),
-            'line': QColor('#FF8C42'),  # Primary orange
-            'dot': QColor('#FF8C42'),
-            'hover': QColor('#E67A35'),
-            'text': QColor('#5D4E37'),
-            'text_muted': QColor('#A69583')
+            'grid': QColor('#E9ECEF'),
+            'axis': QColor('#6C757D'),
+            'line': QColor('#5B6770'),  # Primary slate
+            'dot': QColor('#5B6770'),
+            'hover': QColor('#4A5560'),
+            'text': QColor('#212529'),
+            'text_muted': QColor('#ADB5BD')
         }
         
         # Layout configuration

@@ -19,16 +19,16 @@ class ChartConfig:
     Wall Street Journal-inspired minimalist design.
     """
     
-    # Colors - WSJ-inspired with warm theme
-    primary_color: str = '#FF8C42'      # Orange for primary data
-    secondary_color: str = '#FFD166'    # Yellow for secondary data
-    tertiary_color: str = '#06D6A0'    # Teal for tertiary data
+    # Colors - WSJ-inspired professional palette
+    primary_color: str = '#5B6770'      # Sophisticated slate for primary data
+    secondary_color: str = '#ADB5BD'    # Medium gray for secondary data
+    tertiary_color: str = '#495057'     # Dark gray for tertiary data
     background_color: str = '#FFFFFF'   # White background
-    plot_background: str = '#FAF8F5'    # Light tan/beige like WSJ
-    grid_color: str = '#E8DCC8'         # Subtle tan grid
-    axis_color: str = '#8B7355'         # Darker tan for axes
-    text_color: str = '#2C2C2C'         # Near-black for text
-    text_muted: str = '#6B6B6B'         # Muted gray for labels
+    plot_background: str = '#F8F9FA'    # Light gray like WSJ
+    grid_color: str = '#E9ECEF'         # Light gray grid
+    axis_color: str = '#6C757D'         # Medium gray for axes
+    text_color: str = '#212529'         # Near-black for text
+    text_muted: str = '#6C757D'         # Medium gray for labels
     
     # Typography - Clean, professional fonts
     title_font_size: int = 18
@@ -96,9 +96,9 @@ class LineChartConfig(ChartConfig):
     
     # Multiple series
     series_colors: List[str] = field(default_factory=lambda: [
-        '#FF8C42',  # Orange
-        '#4ECDC4',  # Teal
-        '#FFD166',  # Yellow
+        '#5B6770',  # Slate
+        '#6C757D',  # Dark gray
+        '#ADB5BD',  # Medium gray
         '#FF6B6B',  # Red
         '#95E1D3',  # Mint
         '#AA96DA',  # Purple
@@ -215,13 +215,13 @@ class LineChartBuilder:
         self.config.minimalist = True
         self.config.subtle_colors = True
         
-        # WSJ color palette
+        # WSJ color palette - professional grays
         self.config.background_color = '#FFFFFF'
-        self.config.plot_background = '#F8F6F1'  # Light beige
-        self.config.grid_color = '#E5E2DC'       # Subtle gray-beige
-        self.config.axis_color = '#666666'       # Medium gray
-        self.config.text_color = '#333333'       # Dark gray
-        self.config.text_muted = '#999999'       # Light gray
+        self.config.plot_background = '#F8F9FA'  # Light gray
+        self.config.grid_color = '#E9ECEF'       # Light gray
+        self.config.axis_color = '#6C757D'       # Medium gray
+        self.config.text_color = '#212529'       # Near black
+        self.config.text_muted = '#6C757D'       # Medium gray
         
         # Clean typography
         self.config.font_family = 'Arial'
@@ -242,12 +242,12 @@ class LineChartBuilder:
         """Apply the warm color theme from the design system."""
         self.config.wsj_mode = False
         
-        # Warm colors
-        self.config.primary_color = '#FF8C42'
-        self.config.secondary_color = '#FFD166' 
+        # Professional colors
+        self.config.primary_color = '#5B6770'
+        self.config.secondary_color = '#ADB5BD' 
         self.config.background_color = '#FFFFFF'
-        self.config.plot_background = '#FAF8F5'
-        self.config.grid_color = '#E8DCC8'
+        self.config.plot_background = '#F8F9FA'
+        self.config.grid_color = '#E9ECEF'
         
         return self
         

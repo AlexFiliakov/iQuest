@@ -8,29 +8,29 @@ logger = get_logger(__name__)
 class StyleManager:
     """Manages application styling and themes."""
     
-    # Color palette constants
-    PRIMARY_BG = "#F5E6D3"      # Warm tan background
-    SECONDARY_BG = "#FFFFFF"    # White for cards
-    TERTIARY_BG = "#FFF8F0"     # Light cream for sections
+    # Color palette constants - WSJ-inspired professional palette
+    PRIMARY_BG = "#FFFFFF"       # Clean white background
+    SECONDARY_BG = "#F8F9FA"     # Light gray for cards
+    TERTIARY_BG = "#F8F9FA"      # Light gray for sections
     
-    ACCENT_PRIMARY = "#FF8C42"   # Warm orange - CTAs
-    ACCENT_SECONDARY = "#FFD166" # Soft yellow - highlights
-    ACCENT_SUCCESS = "#95C17B"   # Soft green - positive
-    ACCENT_WARNING = "#F4A261"   # Amber - caution
-    ACCENT_ERROR = "#E76F51"     # Coral - errors
-    ACCENT_LIGHT = "#FFE5CC"     # Light orange - selections
+    ACCENT_PRIMARY = "#5B6770"   # Sophisticated slate - CTAs
+    ACCENT_SECONDARY = "#ADB5BD" # Medium gray - highlights
+    ACCENT_SUCCESS = "#28A745"   # Professional green - positive
+    ACCENT_WARNING = "#FFC107"   # Standard amber - caution
+    ACCENT_ERROR = "#DC3545"     # Standard red - errors
+    ACCENT_LIGHT = "#E9ECEF"     # Light gray - selections
     
-    TEXT_PRIMARY = "#5D4E37"     # Dark brown
-    TEXT_SECONDARY = "#8B7355"   # Medium brown
-    TEXT_MUTED = "#A69583"       # Light brown
+    TEXT_PRIMARY = "#212529"     # Near black
+    TEXT_SECONDARY = "#6C757D"   # Medium gray
+    TEXT_MUTED = "#ADB5BD"       # Light gray
     TEXT_INVERSE = "#FFFFFF"     # White on dark
     
     # Focus indicator color
-    FOCUS_COLOR = "#FF8C42"      # Orange for focus indicators
-    FOCUS_SHADOW = "rgba(255, 140, 66, 0.3)"  # Orange shadow for focus
+    FOCUS_COLOR = "#5B6770"      # Slate for focus indicators
+    FOCUS_SHADOW = "rgba(91, 103, 112, 0.3)"  # Slate shadow for focus
     
-    # Chart colors
-    CHART_COLORS = ["#FF8C42", "#FFD166", "#95C17B", "#6C9BD1", "#B79FCB"]
+    # Chart colors - Professional palette
+    CHART_COLORS = ["#5B6770", "#6C757D", "#ADB5BD", "#495057", "#868E96"]
     
     def __init__(self):
         """Initialize the style manager."""
@@ -157,11 +157,11 @@ class StyleManager:
                 }}
                 
                 QPushButton:hover {{
-                    background-color: #E67A35;
+                    background-color: #4A5560;
                 }}
                 
                 QPushButton:pressed {{
-                    background-color: #D06928;
+                    background-color: #3A4550;
                 }}
                 
                 QPushButton:disabled {{
@@ -188,7 +188,7 @@ class StyleManager:
                 
                 QPushButton:hover {{
                     background-color: {self.TERTIARY_BG};
-                    border-color: #E67A35;
+                    border-color: #4A5560;
                 }}
                 
                 QPushButton:pressed {{
@@ -278,7 +278,7 @@ class StyleManager:
         return f"""
             QLineEdit, QTextEdit, QSpinBox, QComboBox {{
                 background-color: {self.SECONDARY_BG};
-                border: 2px solid #E8DCC8;
+                border: 2px solid #E9ECEF;
                 border-radius: 6px;
                 padding: 4px 6px;
                 font-size: 13px;

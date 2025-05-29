@@ -219,15 +219,15 @@ class WSJExportConfig:
     # Color profiles for different media
     color_profiles = {
         'screen': {
-            'background': '#F5E6D3',
-            'primary': '#FF8C42',
-            'secondary': '#FFD166',
-            'text': '#6B4226'
+            'background': '#FFFFFF',
+            'primary': '#5B6770',
+            'secondary': '#ADB5BD',
+            'text': '#212529'
         },
         'print': {
             'background': 'white',
-            'primary': '#FF8C42',
-            'secondary': '#FFD166',
+            'primary': '#5B6770',
+            'secondary': '#ADB5BD',
             'text': '#000000'
         }
     }

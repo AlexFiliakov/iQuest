@@ -134,10 +134,10 @@ class AnnotationGraphicsItem(QGraphicsItem):
             AnnotationType.MILESTONE: AnnotationStyle(
                 marker_symbol='trophy',
                 marker_size=12,
-                marker_color='#FFD166',  # Yellow
-                text_color='#6B4226',
-                background_color='#FFFCF0',
-                border_color='#FFD166',
+                marker_color='#ADB5BD',  # Medium gray
+                text_color='#212529',
+                background_color='#F8F9FA',
+                border_color='#ADB5BD',
                 font_weight='bold'
             ),
             AnnotationType.COMPARISON: AnnotationStyle(

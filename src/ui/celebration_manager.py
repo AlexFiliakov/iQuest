@@ -39,7 +39,7 @@ class ConfettiConfig:
     
     def __post_init__(self):
         if self.colors is None:
-            self.colors = ["#FF8C42", "#FFD166", "#F5E6D3", "#06FFA5", "#118AB2"]
+            self.colors = ["#5B6770", "#6C757D", "#ADB5BD", "#28A745", "#495057"]
 
 
 @dataclass
@@ -367,7 +367,7 @@ class CelebrationManager(QObject):
             "steps": ["#4ECDC4", "#45B7D1", "#96CEB4"],
             "weight": ["#DDA0DD", "#98D8C8", "#F7DC6F"],
             "sleep": ["#6C5CE7", "#A29BFE", "#FD79A8"],
-            "default": ["#FF8C42", "#FFD166", "#F5E6D3", "#06FFA5", "#118AB2"]
+            "default": ["#5B6770", "#6C757D", "#ADB5BD", "#28A745", "#495057"]
         }
         
         # Try to match metric to color scheme
