@@ -210,3 +210,4 @@ logs/
 installer/*.exe
 /ad hoc
 /cache
+/data
