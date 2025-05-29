@@ -1,10 +1,17 @@
 # Apple Health Monitor Dashboard
 
-![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+[![CI](https://github.com/alexf/Apple-Health-Exports/actions/workflows/ci.yml/badge.svg)](https://github.com/alexf/Apple-Health-Exports/actions/workflows/ci.yml)
+[![Security](https://github.com/alexf/Apple-Health-Exports/actions/workflows/security.yml/badge.svg)](https://github.com/alexf/Apple-Health-Exports/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/alexf/Apple-Health-Exports/branch/main/graph/badge.svg)](https://codecov.io/gh/alexf/Apple-Health-Exports)
+[![CodeQL](https://github.com/alexf/Apple-Health-Exports/workflows/CodeQL/badge.svg)](https://github.com/alexf/Apple-Health-Exports/security/code-scanning)
+[![Docker](https://github.com/alexf/Apple-Health-Exports/actions/workflows/docker.yml/badge.svg)](https://github.com/alexf/Apple-Health-Exports/actions/workflows/docker.yml)
+
+![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.0+-green.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-Active-success.svg)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot)](https://github.com/dependabot)
 
 A powerful Windows desktop application for analyzing and visualizing Apple Health data. Transform your health exports into beautiful, actionable insights with our warm, intuitive interface.
 

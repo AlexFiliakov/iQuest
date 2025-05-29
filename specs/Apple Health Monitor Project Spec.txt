@@ -94,16 +94,20 @@ run below command at the project root and fix errors until the command passes al
 Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
 
 
-run below command at the project root and create tests until there is 90% coverage across the application.
+Look for test status in file `tests\pytest_failure_summaries_cov.txt`, fix broken tests, and implement new tests until 90% of the code is covered. Then, run below command at the project root and create tests until there is 90% coverage across the application.
 `pytest --tb=long -v --cov > tests\pytest_failure_summaries_cov.txt 2>&1`
-Look for test status in file `tests\pytest_failure_summaries_cov.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
+Look for test status in file `tests\pytest_failure_summaries_cov.txt` and tests take some time to run. Keep creating tests until 90%+ of code is covered.
 
 
 ## ENHANCEMENTS ##
 
-Remove borders around text in Records tab of the program, and make sure the text doesn’t get cut off like I marked in blue in this image: `ad hoc/records_window_screenshot.png`. Make similar UI enhancements in other parts of the program.
+Improve the UI of the Config Data Statistics and Data Preview sections, see in this image: `ad hoc/config_window_data_preview.png`. Right now everything is very small in the Data Preview, and Record Types is a scrollable sub-section rather than being incorporated in the main window scrollbar.
 
-The main application right now takes a while to cache ???Patterns???. Please begin detecting patterns in the background as soon as new data is added and cache the patterns until further refresh.
+#### TODO ####
+Fix Monthly tab > Month Grid to show individual months with left and right buttons, rather than squishing all the data into a 31-day view as it seems to do now.
+
+Implement Daily tab, Weekly tab, and Insights tab in the main application.
+
 
 
 
