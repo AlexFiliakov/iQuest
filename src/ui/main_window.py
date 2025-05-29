@@ -17,6 +17,7 @@ from .configuration_tab import ConfigurationTab
 from .trophy_case_widget import TrophyCaseWidget
 from .view_transitions import ViewTransitionManager, ViewType
 from ..analytics.personal_records_tracker import PersonalRecordsTracker
+# from ..analytics.background_trend_processor import BackgroundTrendProcessor
 from ..database import db_manager
 from ..config import (
     WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
@@ -78,6 +79,10 @@ class MainWindow(QMainWindow):
         
         # Initialize personal records tracker
         self.personal_records_tracker = PersonalRecordsTracker(db_manager)
+        
+        # Initialize background trend processor
+        # self.background_trend_processor = BackgroundTrendProcessor(db_manager)
+        logger.info("Background trend processor initialized")
         
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
@@ -455,7 +460,8 @@ class MainWindow(QMainWindow):
             self.comparative_engine = ComparativeAnalyticsEngine(
                 daily_calculator=self.config_tab.daily_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'daily_calculator') else None,
                 weekly_calculator=self.config_tab.weekly_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'weekly_calculator') else None,
-                monthly_calculator=self.config_tab.monthly_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'monthly_calculator') else None
+                monthly_calculator=self.config_tab.monthly_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'monthly_calculator') else None,
+                background_processor=self.background_trend_processor if hasattr(self, 'background_trend_processor') else None
             )
             
             # Create peer group manager

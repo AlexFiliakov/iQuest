@@ -73,7 +73,7 @@ from .optimized_calculator_integration import (
 )
 
 # Background trend processing
-from .background_trend_processor import BackgroundTrendProcessor
+# from .background_trend_processor import BackgroundTrendProcessor
 
 __all__ = [
     # Data source abstractions

@@ -20,9 +20,20 @@ from .advanced_trend_engine import AdvancedTrendAnalysisEngine
 from .advanced_trend_models import TrendAnalysis as TrendResult
 from .comparative_analytics import ComparativeAnalyticsEngine
 from .cache_manager import AnalyticsCacheManager as CacheManager
-from ..models import Metric
+# from ..models import Metric  # TODO: Define Metric enum
 
 logger = logging.getLogger(__name__)
+
+# Temporary metric list until proper enum is defined
+VALID_METRICS = {
+    'HKQuantityTypeIdentifierStepCount',
+    'HKQuantityTypeIdentifierDistanceWalkingRunning', 
+    'HKQuantityTypeIdentifierActiveEnergyBurned',
+    'HKQuantityTypeIdentifierHeartRate',
+    'HKCategoryTypeIdentifierSleepAnalysis',
+    'HKQuantityTypeIdentifierBodyMass',
+    'HKQuantityTypeIdentifierHeight'
+}
 
 
 class TrendProcessingTask:
@@ -249,7 +260,7 @@ class BackgroundTrendProcessor:
     
     def queue_trend_calculation(self, metric: str, priority: int = 0, force_refresh: bool = False):
         """Queue a metric for trend calculation."""
-        if metric not in Metric.__members__:
+        if metric not in VALID_METRICS:
             logger.warning(f"Invalid metric: {metric}")
             return
         
@@ -259,7 +270,7 @@ class BackgroundTrendProcessor:
     
     def queue_all_metrics(self, priority: int = 0):
         """Queue all available metrics for trend calculation."""
-        for metric in Metric.__members__:
+        for metric in VALID_METRICS:
             self.queue_trend_calculation(metric, priority)
     
     def get_trend(self, metric: str, wait: bool = False) -> Optional[TrendResult]:
