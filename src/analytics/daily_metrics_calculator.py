@@ -161,7 +161,25 @@ class DailyMetricsCalculator:
                 insufficient_data=True
             )
         
+        # Check if all values are null/NaN
+        if metric_data['value'].isna().all():
+            return MetricStatistics(
+                metric_name=metric,
+                count=0,
+                mean=None,
+                median=None,
+                std=None,
+                min=None,
+                max=None,
+                percentile_25=None,
+                percentile_75=None,
+                percentile_95=None,
+                missing_data_count=len(metric_data),
+                insufficient_data=True
+            )
+        
         # Group by date and aggregate (handle multiple readings per day)
+        # Use skipna=False to preserve NaN values when all values in a group are NaN
         daily_data = metric_data.groupby('date')['value'].agg(['mean', 'count'])
         values = daily_data['mean'].values
         
@@ -450,3 +468,42 @@ class DailyMetricsCalculator:
         daily_data = metric_data.groupby('date')['value'].agg(aggregation)
         
         return daily_data
+    
+    def calculate_daily_statistics(self, metric: str, date: date) -> Optional[MetricStatistics]:
+        """Calculate statistics for a specific metric on a specific date.
+        
+        Args:
+            metric: The metric type to analyze
+            date: The specific date to analyze
+            
+        Returns:
+            MetricStatistics object with calculated values for that date
+        """
+        # Filter data for the specific metric and date
+        metric_data = self._filter_metric_data(metric, date, date)
+        
+        if metric_data.empty:
+            return None
+        
+        # Calculate statistics for this single day
+        values = metric_data['value'].values
+        valid_values = values[~np.isnan(values)]
+        
+        if len(valid_values) == 0:
+            return None
+        
+        # For a single day, some statistics don't make sense (like std)
+        # But we'll calculate what we can
+        return MetricStatistics(
+            metric_name=metric,
+            count=len(valid_values),
+            mean=float(np.mean(valid_values)),
+            median=float(np.median(valid_values)),
+            std=float(np.std(valid_values)) if len(valid_values) > 1 else 0.0,
+            min=float(np.min(valid_values)),
+            max=float(np.max(valid_values)),
+            percentile_25=float(np.percentile(valid_values, 25)),
+            percentile_75=float(np.percentile(valid_values, 75)),
+            percentile_95=float(np.percentile(valid_values, 95)),
+            insufficient_data=False
+        )
