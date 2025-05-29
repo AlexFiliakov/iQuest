@@ -78,18 +78,6 @@ Create tasks to repair the remaining test errors in file `tests/pytest_failure_s
 ## S05 ##
 #### current: ####
 Fix the following errors:
-When trying to import XML, logger says:
-```
-2025-05-29 01:29:54 - ERROR - Import failed with exception: attempted relative import with no known parent package
-2025-05-29 01:29:54 - ERROR - Import error: Import Error - An unexpected error occurred during import:
-attempted relative import with no known parent package
-```
-Importing CSV is successful, but immediately gives an error:
-```
-ERROR - Failed to finalize import: 'SimpleMetricCard' object has no attribute 'update_value'
-```
-
-tighten up the UI because right now the default window size opens to unreadable UI elements. See the screenshot, where a lot of textboxes, buttons, and text is unreadable: `ad hoc/main_window_screenshot.png`
 
 
 run below command at the project root and fix errors until the command passes all tests.
@@ -111,6 +99,11 @@ run below command at the project root and create tests until there is 90% covera
 Look for test status in file `tests\pytest_failure_summaries_cov.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
 
 
+## ENHANCEMENTS ##
+
+Remove borders around text in Records tab of the program, and make sure the text doesn’t get cut off like I marked in blue in this image: `ad hoc/records_window_screenshot.png`. Make similar UI enhancements in other parts of the program.
+
+The main application right now takes a while to cache ???Patterns???. Please begin detecting patterns in the background as soon as new data is added and cache the patterns until further refresh.
 
 
 
