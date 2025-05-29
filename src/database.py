@@ -127,6 +127,7 @@ class DatabaseManager:
             - data_sources: Track data sources and their activity
             - import_history: Log data import operations
             - filter_configs: Store filter presets and configurations
+            - health_records: Store imported health data records
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -285,6 +286,26 @@ class DatabaseManager:
             """)
             
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_import_date ON import_history(import_date DESC)")
+            
+            # Create health_records table for imported health data
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS health_records (
+                    type TEXT,
+                    sourceName TEXT,
+                    sourceVersion TEXT,
+                    device TEXT,
+                    unit TEXT,
+                    creationDate TEXT,
+                    startDate TEXT,
+                    endDate TEXT,
+                    value REAL
+                )
+            """)
+            
+            # Create indexes for health_records performance
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
             
             # Add trigger to update timestamp on journal_entries
             cursor.execute("""

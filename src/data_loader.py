@@ -652,6 +652,24 @@ class DataLoader:
             self.logger.info(f"Loading all records from database: {self.db_path}")
             
             conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check if health_records table exists
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='health_records'
+            """)
+            table_exists = cursor.fetchone() is not None
+            
+            if not table_exists:
+                self.logger.warning("health_records table does not exist. Creating empty DataFrame.")
+                conn.close()
+                # Return empty DataFrame with expected columns
+                return pd.DataFrame(columns=[
+                    'type', 'sourceName', 'sourceVersion', 'device', 'unit',
+                    'creationDate', 'startDate', 'endDate', 'value'
+                ])
+            
             df = pd.read_sql(
                 "SELECT * FROM health_records",
                 conn,
