@@ -79,17 +79,17 @@ class MonthlyDashboardWidget(QWidget):
                 background-color: transparent;
             }
             QScrollBar:vertical {
-                background-color: #F5E6D3;
+                background-color: #F8F9FA;
                 width: 12px;
                 border-radius: 6px;
             }
             QScrollBar::handle:vertical {
-                background-color: #FF8C42;
+                background-color: #ADB5BD;
                 border-radius: 6px;
                 min-height: 20px;
             }
             QScrollBar::handle:vertical:hover {
-                background-color: #E67A35;
+                background-color: #6C757D;
             }
         """)
         

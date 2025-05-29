@@ -373,11 +373,8 @@ class ConfigurationTab(QWidget):
         date_row.addStretch()
         layout.addLayout(date_row)
         
-        # Separator
-        separator1 = QFrame(self)
-        separator1.setFrameShape(QFrame.Shape.HLine)
-        separator1.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
-        layout.addWidget(separator1)
+        # Add spacing instead of separator
+        layout.addSpacing(16)
         
         # Devices and metrics sections - stacked vertically for better space usage
         devices_section = self._create_devices_section()
@@ -387,11 +384,8 @@ class ConfigurationTab(QWidget):
         metrics_section = self._create_metrics_section()
         layout.addWidget(metrics_section)
         
-        # Separator
-        separator2 = QFrame(self)
-        separator2.setFrameShape(QFrame.Shape.HLine)
-        separator2.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
-        layout.addWidget(separator2)
+        # Add spacing instead of separator
+        layout.addSpacing(16)
         
         # Filter presets section
         presets_section = QVBoxLayout()
@@ -445,11 +439,8 @@ class ConfigurationTab(QWidget):
         presets_section.addLayout(presets_row)
         layout.addLayout(presets_section)
         
-        # Separator
-        separator3 = QFrame(self)
-        separator3.setFrameShape(QFrame.Shape.HLine)
-        separator3.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
-        layout.addWidget(separator3)
+        # Add spacing instead of separator
+        layout.addSpacing(16)
         
         # Action buttons - compact
         button_row = QHBoxLayout()

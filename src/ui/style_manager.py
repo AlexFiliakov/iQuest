@@ -32,6 +32,15 @@ class StyleManager:
     # Chart colors - Professional palette
     CHART_COLORS = ["#5B6770", "#6C757D", "#ADB5BD", "#495057", "#868E96"]
     
+    # Shadow system - Note: Qt doesn't support CSS box-shadow directly
+    # These are for reference, actual implementation uses borders and effects
+    SHADOWS = {
+        'sm': '0 1px 3px rgba(0,0,0,0.06)',
+        'md': '0 2px 4px rgba(0,0,0,0.08)', 
+        'lg': '0 4px 12px rgba(0,0,0,0.10)',
+        'xl': '0 8px 24px rgba(0,0,0,0.12)'
+    }
+    
     def __init__(self):
         """Initialize the style manager."""
         logger.debug("Initializing StyleManager")
@@ -52,10 +61,11 @@ class StyleManager:
     
     def get_menu_bar_style(self):
         """Get the menu bar stylesheet."""
+        shadow = self.get_shadow_style('sm')
         return f"""
             QMenuBar {{
-                background-color: {self.SECONDARY_BG};
-                border-bottom: 1px solid rgba(139, 115, 85, 0.1);
+                background-color: {self.PRIMARY_BG};
+                border-bottom: {shadow['border']};
                 padding: 4px;
             }}
             
@@ -76,8 +86,8 @@ class StyleManager:
             }}
             
             QMenu {{
-                background-color: {self.SECONDARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.2);
+                background-color: {self.PRIMARY_BG};
+                border: {shadow['border']};
                 border-radius: 8px;
                 padding: 4px;
             }}
@@ -94,7 +104,7 @@ class StyleManager:
             
             QMenu::separator {{
                 height: 1px;
-                background-color: rgba(139, 115, 85, 0.2);
+                background-color: rgba(0, 0, 0, 0.05);
                 margin: 4px 0;
             }}
         """
@@ -242,34 +252,81 @@ class StyleManager:
                 }}
             """
     
-    def get_card_style(self):
-        """Get card widget stylesheet."""
+    def get_shadow_style(self, level: str = 'md'):
+        """Get shadow style reference for a given level.
+        
+        Note: Since Qt doesn't support CSS box-shadow directly, this returns
+        border and effect recommendations for implementing shadows.
+        
+        Args:
+            level: Shadow level ('sm', 'md', 'lg', 'xl')
+            
+        Returns:
+            dict: Shadow implementation details
+        """
+        shadow_configs = {
+            'sm': {
+                'border': '1px solid rgba(0, 0, 0, 0.05)',
+                'hover_border': '1px solid rgba(0, 0, 0, 0.08)',
+                'offset': 1,
+                'blur': 3,
+                'color': 'rgba(0, 0, 0, 0.06)'
+            },
+            'md': {
+                'border': '1px solid rgba(0, 0, 0, 0.05)',
+                'hover_border': '1px solid rgba(0, 0, 0, 0.08)',
+                'offset': 2,
+                'blur': 4,
+                'color': 'rgba(0, 0, 0, 0.08)'
+            },
+            'lg': {
+                'border': '1px solid rgba(0, 0, 0, 0.05)',
+                'hover_border': '1px solid rgba(0, 0, 0, 0.1)',
+                'offset': 4,
+                'blur': 12,
+                'color': 'rgba(0, 0, 0, 0.10)'
+            },
+            'xl': {
+                'border': '1px solid rgba(0, 0, 0, 0.05)',
+                'hover_border': '1px solid rgba(0, 0, 0, 0.12)',
+                'offset': 8,
+                'blur': 24,
+                'color': 'rgba(0, 0, 0, 0.12)'
+            }
+        }
+        return shadow_configs.get(level, shadow_configs['md'])
+    
+    def get_card_style(self, shadow_level: str = 'md', padding: int = 16, radius: int = 8):
+        """Get card widget stylesheet with shadow system."""
+        shadow = self.get_shadow_style(shadow_level)
         return f"""
             QWidget {{
-                background-color: {self.SECONDARY_BG};
-                border-radius: 12px;
-                padding: 16px;
-                border: 1px solid rgba(0, 0, 0, 0.05);
+                background-color: {self.PRIMARY_BG};
+                border-radius: {radius}px;
+                padding: {padding}px;
+                border: {shadow['border']};
             }}
             
             QWidget:hover {{
-                border: 1px solid rgba(0, 0, 0, 0.1);
+                border: {shadow['hover_border']};
+                background-color: {self.PRIMARY_BG};
             }}
         """
     
-    def get_borderless_card_style(self, padding: int = 16, radius: int = 12):
+    def get_borderless_card_style(self, padding: int = 16, radius: int = 8, shadow_level: str = 'sm'):
         """Get borderless card widget stylesheet with subtle shadow."""
+        shadow = self.get_shadow_style(shadow_level)
         return f"""
             QFrame {{
-                background-color: {self.SECONDARY_BG};
+                background-color: {self.PRIMARY_BG};
                 border-radius: {radius}px;
                 padding: {padding}px;
-                border: 1px solid rgba(0, 0, 0, 0.05);
+                border: {shadow['border']};
             }}
             
             QFrame:hover {{
-                background-color: {self.TERTIARY_BG};
-                border: 1px solid rgba(0, 0, 0, 0.1);
+                background-color: {self.PRIMARY_BG};
+                border: {shadow['hover_border']};
             }}
             
             QLabel {{
@@ -279,22 +336,24 @@ class StyleManager:
             }}
         """
     
-    def get_accent_card_style(self, accent_color: str = None, padding: int = 16, radius: int = 8):
+    def get_accent_card_style(self, accent_color: str = None, padding: int = 16, radius: int = 8, shadow_level: str = 'md'):
         """Get accent-colored card widget stylesheet (for records, achievements, etc.)."""
         if accent_color is None:
             accent_color = self.ACCENT_PRIMARY
+        
+        shadow = self.get_shadow_style(shadow_level)
         
         return f"""
             QFrame {{
                 background-color: {self.PRIMARY_BG};
                 border-radius: {radius}px;
                 padding: {padding}px;
-                border: 1px solid rgba(0, 0, 0, 0.05);
+                border: {shadow['border']};
             }}
             
             QFrame:hover {{
-                background-color: {self.TERTIARY_BG};
-                border: 1px solid rgba(0, 0, 0, 0.1);
+                background-color: {self.PRIMARY_BG};
+                border: {shadow['hover_border']};
             }}
             
             QLabel {{
@@ -408,10 +467,11 @@ class StyleManager:
     
     def get_status_bar_style(self):
         """Get status bar stylesheet."""
+        shadow = self.get_shadow_style('sm')
         return f"""
             QStatusBar {{
-                background-color: {self.SECONDARY_BG};
-                border-top: 1px solid rgba(139, 115, 85, 0.1);
+                background-color: {self.PRIMARY_BG};
+                border-top: {shadow['border']};
                 color: {self.TEXT_SECONDARY};
                 padding: 4px;
             }}
@@ -540,3 +600,48 @@ class StyleManager:
         """
         
         app.setStyleSheet(global_style)
+    
+    def get_section_card_style(self, padding: int = 20, radius: int = 8, shadow_level: str = 'sm'):
+        """Get section card style for dashboard widgets and form groups."""
+        shadow = self.get_shadow_style(shadow_level)
+        return f"""
+            QFrame {{
+                background-color: {self.PRIMARY_BG};
+                border-radius: {radius}px;
+                padding: {padding}px;
+                border: {shadow['border']};
+            }}
+            
+            QFrame:hover {{
+                border: {shadow['hover_border']};
+            }}
+        """
+    
+    def get_table_style(self):
+        """Get table widget stylesheet with subtle borders."""
+        return f"""
+            QTableWidget {{
+                background-color: {self.PRIMARY_BG};
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                border-radius: 8px;
+                gridline-color: rgba(0, 0, 0, 0.03);
+            }}
+            
+            QTableWidget::item {{
+                padding: 8px;
+                border: none;
+            }}
+            
+            QTableWidget::item:selected {{
+                background-color: {self.TERTIARY_BG};
+                color: {self.ACCENT_PRIMARY};
+            }}
+            
+            QHeaderView::section {{
+                background-color: {self.SECONDARY_BG};
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                font-weight: 600;
+            }}
+        """

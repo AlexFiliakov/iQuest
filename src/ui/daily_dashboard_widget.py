@@ -51,17 +51,21 @@ class MetricCard(QFrame):
     def _setup_ui(self):
         """Set up the card UI."""
         self.setFixedHeight(120)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
+        from .style_manager import StyleManager
+        style_manager = StyleManager()
+        shadow = style_manager.get_shadow_style('md')
+        
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {style_manager.PRIMARY_BG};
+                border: {shadow['border']};
+                border-radius: 8px;
                 padding: 16px;
-            }
-            QFrame:hover {
-                border: 2px solid #FF8C42;
-                background-color: #FFF8F0;
-            }
+            }}
+            QFrame:hover {{
+                border: {shadow['hover_border']};
+                background-color: {style_manager.PRIMARY_BG};
+            }}
         """)
         
         layout = QVBoxLayout(self)
@@ -69,8 +73,8 @@ class MetricCard(QFrame):
         
         # Metric name
         self.name_label = QLabel(self.display_name)
-        self.name_label.setFont(QFont('Poppins', 11))
-        self.name_label.setStyleSheet("color: #8B7355;")
+        self.name_label.setFont(QFont('Inter', 11))
+        self.name_label.setStyleSheet(f"color: {style_manager.TEXT_SECONDARY};")
         layout.addWidget(self.name_label)
         
         # Value and unit
@@ -78,14 +82,14 @@ class MetricCard(QFrame):
         value_layout.setSpacing(4)
         
         self.value_label = QLabel("--")
-        self.value_label.setFont(QFont('Poppins', 24, QFont.Weight.Bold))
-        self.value_label.setStyleSheet("color: #5D4E37;")
+        self.value_label.setFont(QFont('Inter', 24, QFont.Weight.Bold))
+        self.value_label.setStyleSheet(f"color: {style_manager.ACCENT_PRIMARY};")
         value_layout.addWidget(self.value_label)
         
         if self.unit:
             self.unit_label = QLabel(self.unit)
-            self.unit_label.setFont(QFont('Poppins', 12))
-            self.unit_label.setStyleSheet("color: #8B7355;")
+            self.unit_label.setFont(QFont('Inter', 12))
+            self.unit_label.setStyleSheet(f"color: {style_manager.TEXT_MUTED};")
             self.unit_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
             value_layout.addWidget(self.unit_label)
             

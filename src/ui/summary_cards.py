@@ -106,17 +106,20 @@ class SummaryCard(QWidget):
     
     def apply_card_style(self):
         """Apply card styling using StyleManager."""
+        shadow = self.style_manager.get_shadow_style('md')
+        padding = self.SIZE_CONFIGS[self.size]['padding']
+        
         style = f"""
             QFrame#summaryCard {{
-                background-color: {self.style_manager.SECONDARY_BG};
-                border-radius: 12px;
-                border: 1px solid rgba(0, 0, 0, 0.05);
-                padding: {self.SIZE_CONFIGS[self.size]['padding'] + 4}px;
+                background-color: {self.style_manager.PRIMARY_BG};
+                border-radius: 8px;
+                border: {shadow['border']};
+                padding: {padding}px;
             }}
             
             QFrame#summaryCard:hover {{
-                background-color: {self.style_manager.TERTIARY_BG};
-                border: 1px solid rgba(0, 0, 0, 0.1);
+                background-color: {self.style_manager.PRIMARY_BG};
+                border: {shadow['hover_border']};
             }}
         """
         self.setStyleSheet(style)
@@ -344,14 +347,14 @@ class GoalProgressCard(SummaryCard):
         self.progress_bar.setMaximum(100)
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
-                border: 2px solid {self.style_manager.TEXT_MUTED};
+                border: 1px solid rgba(0, 0, 0, 0.05);
                 border-radius: 8px;
                 background-color: {self.style_manager.TERTIARY_BG};
                 height: 20px;
             }}
             QProgressBar::chunk {{
                 background-color: {self.style_manager.ACCENT_SUCCESS};
-                border-radius: 6px;
+                border-radius: 7px;
             }}
         """)
         
@@ -553,7 +556,7 @@ class MiniChartCard(SummaryCard):
         self.chart_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.chart_placeholder.setStyleSheet(f"""
             background-color: {self.style_manager.TERTIARY_BG};
-            border: 1px dashed {self.style_manager.TEXT_MUTED};
+            border: 1px solid rgba(0, 0, 0, 0.05);
             border-radius: 4px;
             padding: 20px;
             color: {self.style_manager.TEXT_MUTED};

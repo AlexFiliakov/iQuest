@@ -36,10 +36,13 @@ class RecordCardWidget(QFrame):
         self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setStyleSheet("""
             QFrame {
-                background-color: #F5E6D3;
-                border: none;
+                background-color: #FFFFFF;
+                border: 1px solid rgba(0, 0, 0, 0.05);
                 border-radius: 8px;
-                padding: 12px;
+                padding: 16px;
+            }
+            QFrame:hover {
+                border: 1px solid rgba(0, 0, 0, 0.08);
             }
             QLabel {
                 background: transparent;
@@ -112,10 +115,13 @@ class AchievementBadgeWidget(QFrame):
         
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: #F5F5F5;
-                border: 1px solid rgba(0, 0, 0, 0.1);
-                border-radius: 10px;
-                padding: 12px;
+                background-color: #FFFFFF;
+                border: 1px solid rgba(0, 0, 0, 0.05);
+                border-radius: 8px;
+                padding: 16px;
+            }}
+            QFrame:hover {{
+                border: 1px solid rgba(0, 0, 0, 0.08);
             }}
             QLabel {{
                 background: transparent;

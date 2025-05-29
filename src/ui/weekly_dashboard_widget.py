@@ -47,13 +47,17 @@ class WeeklyStatCard(QFrame):
     def _setup_ui(self):
         """Set up the card UI."""
         self.setFixedHeight(100)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
+        from .style_manager import StyleManager
+        style_manager = StyleManager()
+        shadow = style_manager.get_shadow_style('md')
+        
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {style_manager.PRIMARY_BG};
+                border: {shadow['border']};
+                border-radius: 8px;
                 padding: 16px;
-            }
+            }}
         """)
         
         layout = QVBoxLayout(self)
@@ -69,8 +73,8 @@ class WeeklyStatCard(QFrame):
             title_layout.addWidget(icon_label)
         
         title_label = QLabel(self.title)
-        title_label.setFont(QFont('Poppins', 11))
-        title_label.setStyleSheet("color: #8B7355;")
+        title_label.setFont(QFont('Inter', 11))
+        title_label.setStyleSheet(f"color: {style_manager.TEXT_SECONDARY};")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -78,14 +82,14 @@ class WeeklyStatCard(QFrame):
         
         # Main value
         self.value_label = QLabel("--")
-        self.value_label.setFont(QFont('Poppins', 20, QFont.Weight.Bold))
-        self.value_label.setStyleSheet("color: #5D4E37;")
+        self.value_label.setFont(QFont('Inter', 20, QFont.Weight.Bold))
+        self.value_label.setStyleSheet(f"color: {style_manager.ACCENT_PRIMARY};")
         layout.addWidget(self.value_label)
         
         # Sub-label
         self.sub_label = QLabel("")
         self.sub_label.setFont(QFont('Inter', 10))
-        self.sub_label.setStyleSheet("color: #A69583;")
+        self.sub_label.setStyleSheet(f"color: {style_manager.TEXT_MUTED};")
         layout.addWidget(self.sub_label)
         
     def update_value(self, value: str, sub_label: str = ""):
