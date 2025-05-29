@@ -150,10 +150,11 @@ class StyleManager:
                     background-color: {self.ACCENT_PRIMARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    font-weight: 600;
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    font-weight: 500;
                     font-size: 13px;
+                    min-height: 44px;
                 }}
                 
                 QPushButton:hover {{
@@ -170,8 +171,8 @@ class StyleManager:
                 }}
                 
                 QPushButton:focus {{
-                    outline: 3px solid {self.FOCUS_COLOR};
-                    outline-offset: 2px;
+                    outline: none;
+                    border: 3px solid rgba(91,103,112,0.25);
                 }}
             """
         elif button_type == "secondary":
@@ -179,31 +180,64 @@ class StyleManager:
                 QPushButton {{
                     background-color: transparent;
                     color: {self.ACCENT_PRIMARY};
-                    border: 2px solid {self.ACCENT_PRIMARY};
-                    padding: 3px 9px;
-                    border-radius: 6px;
-                    font-weight: 600;
+                    border: 1px solid {self.ACCENT_LIGHT};
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    font-weight: 500;
                     font-size: 13px;
+                    min-height: 44px;
                 }}
                 
                 QPushButton:hover {{
                     background-color: {self.TERTIARY_BG};
-                    border-color: #4A5560;
+                    border-color: {self.ACCENT_PRIMARY};
                 }}
                 
                 QPushButton:pressed {{
-                    background-color: {self.ACCENT_PRIMARY};
-                    color: {self.TEXT_INVERSE};
+                    background-color: {self.ACCENT_LIGHT};
+                    border-color: {self.ACCENT_PRIMARY};
                 }}
                 
                 QPushButton:disabled {{
                     border-color: {self.TEXT_MUTED};
                     color: {self.TEXT_MUTED};
+                    background-color: transparent;
                 }}
                 
                 QPushButton:focus {{
-                    outline: 3px solid {self.FOCUS_COLOR};
-                    outline-offset: 2px;
+                    outline: none;
+                    border: 3px solid rgba(91,103,112,0.25);
+                }}
+            """
+        elif button_type == "ghost":
+            return f"""
+                QPushButton {{
+                    background-color: transparent;
+                    color: {self.ACCENT_PRIMARY};
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-weight: 500;
+                    font-size: 13px;
+                    min-height: 44px;
+                }}
+                
+                QPushButton:hover {{
+                    background-color: rgba(91,103,112,0.08);
+                }}
+                
+                QPushButton:pressed {{
+                    background-color: rgba(91,103,112,0.12);
+                }}
+                
+                QPushButton:disabled {{
+                    color: {self.TEXT_MUTED};
+                    background-color: transparent;
+                }}
+                
+                QPushButton:focus {{
+                    outline: none;
+                    border: 3px solid rgba(91,103,112,0.25);
                 }}
             """
     
@@ -276,24 +310,98 @@ class StyleManager:
     def get_input_style(self):
         """Get input field stylesheet."""
         return f"""
-            QLineEdit, QTextEdit, QSpinBox, QComboBox {{
-                background-color: {self.SECONDARY_BG};
-                border: 2px solid #E9ECEF;
-                border-radius: 6px;
-                padding: 4px 6px;
+            QLineEdit, QTextEdit, QSpinBox, QComboBox, QDateEdit {{
+                background-color: {self.PRIMARY_BG};
+                border: 1px solid {self.ACCENT_LIGHT};
+                border-radius: 4px;
+                padding: 0 16px;
+                height: 40px;
                 font-size: 13px;
                 color: {self.TEXT_PRIMARY};
             }}
             
-            QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {{
-                border: 2px solid {self.ACCENT_PRIMARY};
-                outline: none;
+            QTextEdit {{
+                padding: 12px 16px;
+                height: auto;
+                min-height: 80px;
             }}
             
-            QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled, QComboBox:disabled {{
+            QLineEdit:hover, QTextEdit:hover, QSpinBox:hover, QComboBox:hover, QDateEdit:hover {{
+                border-color: {self.ACCENT_SECONDARY};
+            }}
+            
+            QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {{
+                border-color: {self.ACCENT_PRIMARY};
+                outline: none;
+                border: 1px solid {self.ACCENT_PRIMARY};
+            }}
+            
+            QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {{
                 background-color: {self.TERTIARY_BG};
                 color: {self.TEXT_MUTED};
-                border-color: rgba(139, 115, 85, 0.1);
+                border-color: {self.ACCENT_LIGHT};
+            }}
+            
+            /* Combo box specific styles */
+            QComboBox::drop-down {{
+                border: none;
+                width: 30px;
+            }}
+            
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {self.TEXT_SECONDARY};
+                margin-right: 5px;
+            }}
+            
+            QComboBox:hover::down-arrow {{
+                border-top-color: {self.ACCENT_PRIMARY};
+            }}
+            
+            QComboBox QAbstractItemView {{
+                background-color: {self.PRIMARY_BG};
+                border: 1px solid {self.ACCENT_LIGHT};
+                border-radius: 4px;
+                padding: 4px;
+                selection-background-color: {self.TERTIARY_BG};
+                selection-color: {self.ACCENT_PRIMARY};
+            }}
+            
+            QComboBox QAbstractItemView::item {{
+                padding: 8px 16px;
+                min-height: 32px;
+            }}
+            
+            QComboBox QAbstractItemView::item:hover {{
+                background-color: {self.TERTIARY_BG};
+            }}
+            
+            /* Spin box specific styles */
+            QSpinBox::up-button, QSpinBox::down-button {{
+                background-color: transparent;
+                border: none;
+                width: 20px;
+            }}
+            
+            QSpinBox::up-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 4px solid {self.TEXT_SECONDARY};
+            }}
+            
+            QSpinBox::down-arrow {{
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid {self.TEXT_SECONDARY};
+            }}
+            
+            QSpinBox::up-arrow:hover, QSpinBox::down-arrow:hover {{
+                border-bottom-color: {self.ACCENT_PRIMARY};
+                border-top-color: {self.ACCENT_PRIMARY};
             }}
         """
     
@@ -393,21 +501,40 @@ class StyleManager:
             }}
             
             QPushButton:focus, QToolButton:focus {{
-                border: 2px solid {self.FOCUS_COLOR};
-                outline: 3px solid {self.FOCUS_SHADOW};
-                outline-offset: 1px;
+                outline: none;
+                border: 3px solid rgba(91,103,112,0.25);
             }}
             
             QTabBar::tab:focus {{
-                border: 2px solid {self.FOCUS_COLOR};
-                outline: 3px solid {self.FOCUS_SHADOW};
-                outline-offset: 1px;
+                outline: none;
+                border: 3px solid rgba(91,103,112,0.25);
             }}
             
             QCheckBox:focus, QRadioButton:focus {{
-                outline: 3px solid {self.FOCUS_COLOR};
-                outline-offset: 2px;
+                outline: none;
+                border: 3px solid rgba(91,103,112,0.25);
                 border-radius: 4px;
+            }}
+            
+            /* Ghost button style */
+            QPushButton[class="ghost"] {{
+                background-color: transparent;
+                color: {self.ACCENT_PRIMARY};
+                border: none;
+                padding: 8px 16px;
+                font-weight: 500;
+            }}
+            
+            QPushButton[class="ghost"]:hover {{
+                background-color: rgba(91,103,112,0.08);
+            }}
+            
+            QPushButton[class="ghost"]:pressed {{
+                background-color: rgba(91,103,112,0.12);
+            }}
+            
+            QPushButton[class="ghost"]:focus {{
+                border: 3px solid rgba(91,103,112,0.25);
             }}
         """
         

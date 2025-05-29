@@ -345,7 +345,7 @@ class AdaptiveMultiSelectCombo(CheckableComboBox):
         
         if not checked_texts:
             self.lineEdit().setText(self._placeholder)
-            self.lineEdit().setStyleSheet("color: #A69583;")
+            self.lineEdit().setStyleSheet("color: #ADB5BD;")
         else:
             count = len(checked_texts)
             total = self.model.rowCount()

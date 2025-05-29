@@ -384,3 +384,13 @@ Please help me evaluate and improve my PyQt6 application's UI design:
 5. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
 
 Please be thorough in your analysis and provide both high-level design feedback and specific technical implementation suggestions. Create tasks in `.simone/04_GENERAL_TASKS` folder with your recommendations.
+
+--------------
+
+Review the following documents and create tasks in `.simone/04_GENERAL_TASKS` conforming to our specs and PRD
+   - `.simone/04_GENERAL_TASKSUI_DESIGN_ANALYSIS_AND_RECOMMENDATIONS.md`
+   - `.simone/04_GENERAL_TASKSUI_IMPLEMENTATION_CODE_SAMPLES.md`
+   - `.simone/04_GENERAL_TASKSUI_QUICK_FIXES_PRIORITY.md`
+
+
+On the monthly tab, make the selector displaying the month the same width regardless of the month so it doesn’t shift the right button on scroll. Make it the width of the longest month (September) or slightly wider and center the month text in the textbox.

@@ -96,16 +96,16 @@ class AdaptiveDateEdit(EnhancedDateEdit):
         
         # Set up text formats for different availability levels
         available_format = QTextCharFormat()
-        available_format.setBackground(QColor(144, 238, 144))  # Light green
-        available_format.setForeground(QColor(0, 100, 0))     # Dark green text
+        available_format.setBackground(QColor(40, 167, 69, 20))   # Very light green
+        available_format.setForeground(QColor(40, 167, 69))       # Green text
         
         partial_format = QTextCharFormat()
-        partial_format.setBackground(QColor(255, 255, 153))    # Light yellow
-        partial_format.setForeground(QColor(153, 153, 0))     # Dark yellow text
+        partial_format.setBackground(QColor(255, 193, 7, 20))     # Very light yellow
+        partial_format.setForeground(QColor(255, 193, 7))        # Yellow text
         
         unavailable_format = QTextCharFormat()
-        unavailable_format.setBackground(QColor(255, 182, 193))  # Light red
-        unavailable_format.setForeground(QColor(139, 0, 0))     # Dark red text
+        unavailable_format.setBackground(QColor(220, 53, 69, 20))  # Very light red
+        unavailable_format.setForeground(QColor(220, 53, 69))      # Red text
         
         # Apply highlighting to dates
         for available_date in self.available_dates:
@@ -127,15 +127,15 @@ class AdaptiveDateEdit(EnhancedDateEdit):
             if current_py_date in self.partial_dates:
                 level = "partial"
                 tooltip = f"Partial data available for {self.current_metric_type} on {current_py_date}"
-                self.setStyleSheet("QDateEdit { background-color: #FFFF99; }")
+                self.setStyleSheet("QDateEdit { border: 1px solid #FFC107; background-color: rgba(255, 193, 7, 0.08); }")
             else:
                 level = "full" 
                 tooltip = f"Full data available for {self.current_metric_type} on {current_py_date}"
-                self.setStyleSheet("QDateEdit { background-color: #90EE90; }")
+                self.setStyleSheet("QDateEdit { border: 1px solid #28A745; background-color: rgba(40, 167, 69, 0.08); }")
         else:
             level = "none"
             tooltip = f"No data available for {self.current_metric_type} on {current_py_date}"
-            self.setStyleSheet("QDateEdit { background-color: #FFB6C1; }")
+            self.setStyleSheet("QDateEdit { border: 1px solid #DC3545; background-color: rgba(220, 53, 69, 0.08); }")
             
         # Add keyboard navigation hints
         enhanced_tooltip = f"{tooltip}\n\nKeyboard Navigation:\n" \

@@ -205,7 +205,7 @@ class CheckableComboBox(QComboBox):
         
         if not checked_texts:
             self.lineEdit().setText(self._placeholder)
-            self.lineEdit().setStyleSheet("color: #A69583;")  # Muted color for placeholder
+            self.lineEdit().setStyleSheet("color: #ADB5BD;")  # Muted color for placeholder
         else:
             count = len(checked_texts)
             total = self.model.rowCount()
