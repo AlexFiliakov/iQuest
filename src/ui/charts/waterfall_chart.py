@@ -79,7 +79,8 @@ class WaterfallChartWidget(QWidget):
         # Chart canvas
         self.figure = Figure(figsize=(12, 6), dpi=100, facecolor=self.wsj_colors['background'])
         self.canvas = FigureCanvas(self.figure)
-        self.canvas.setSizePolicy(self.canvas.sizePolicy().Expanding, self.canvas.sizePolicy().Expanding)
+        from PyQt6.QtWidgets import QSizePolicy
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.canvas)
         
         # Chart axis

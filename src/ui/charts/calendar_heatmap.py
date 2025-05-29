@@ -66,7 +66,7 @@ class CalendarHeatmapComponent(QWidget):
         self.monthly_calculator = monthly_calculator
         
         # View configuration
-        self._view_mode = ViewMode.MONTH_GRID
+        self._view_mode = ViewMode.GITHUB_STYLE
         self._color_scale = ColorScale.WARM_ORANGE
         self._metric_type = "steps"
         self._current_date = datetime.now().date()
@@ -233,7 +233,7 @@ class CalendarHeatmapComponent(QWidget):
         # Month grid button
         month_btn = QPushButton("Month Grid")
         month_btn.setCheckable(True)
-        month_btn.setChecked(True)
+        month_btn.setChecked(False)
         month_btn.clicked.connect(lambda: self._change_view_mode(ViewMode.MONTH_GRID))
         view_group.addButton(month_btn)
         layout.addWidget(month_btn)
@@ -241,6 +241,7 @@ class CalendarHeatmapComponent(QWidget):
         # GitHub style button
         github_btn = QPushButton("GitHub Style")
         github_btn.setCheckable(True)
+        github_btn.setChecked(True)
         github_btn.clicked.connect(lambda: self._change_view_mode(ViewMode.GITHUB_STYLE))
         view_group.addButton(github_btn)
         layout.addWidget(github_btn)
@@ -504,31 +505,41 @@ class CalendarHeatmapComponent(QWidget):
             self._draw_no_data_message(painter, rect)
             return
             
-        # Calculate 52 weeks x 7 days grid
-        cell_size = min((rect.width() - 100) // 53, (rect.height() - 80) // 8)
+        # Calculate 52 weeks x 7 days grid (showing last 52 weeks from today)
+        # Account for spacing between cells (2 pixels) in calculation
+        available_width = rect.width() - 120  # Leave margins for labels
+        available_height = rect.height() - 100  # Leave margins for labels
+        cell_size = min(available_width // 54, available_height // 9)  # 52 weeks + spacing, 7 days + spacing
         
         start_x = rect.x() + 50
         start_y = rect.y() + 60
         
-        # Draw month labels
-        painter.setFont(self._fonts['label'])
-        painter.setPen(self._colors['text_secondary'])
+        # Calculate the starting date (52 weeks ago from today, aligned to Sunday)
+        today = date.today()
+        days_since_sunday = (today.weekday() + 1) % 7
+        last_sunday = today - timedelta(days=days_since_sunday)
+        start_date = last_sunday - timedelta(weeks=51)
         
-        current_year = self._current_date.year
-        start_date = date(current_year, 1, 1)
+        # Track months for labels
+        month_positions = {}
         
         # Draw each week
         for week in range(52):
             for day in range(7):
                 target_date = start_date + timedelta(weeks=week, days=day)
                 
-                if target_date.year != current_year:
+                # Skip future dates
+                if target_date > today:
                     continue
                     
-                x = start_x + week * (cell_size + 1)
-                y = start_y + day * (cell_size + 1)
+                x = start_x + week * (cell_size + 2)  # Increased spacing between cells
+                y = start_y + day * (cell_size + 2)
                 
                 cell_rect = QRect(x, y, cell_size, cell_size)
+                
+                # Track month positions for labels
+                if target_date.day == 1 or (week == 0 and day == 0):
+                    month_positions[week] = target_date.strftime('%b')
                 
                 # Get value and color
                 value = self._metric_data.get(target_date)
@@ -544,8 +555,23 @@ class CalendarHeatmapComponent(QWidget):
                     self._draw_accessibility_pattern(painter, cell_rect, value)
                     
                 # Draw today marker
-                if target_date == date.today() and self._show_today_marker:
+                if target_date == today and self._show_today_marker:
                     self._draw_today_marker(painter, cell_rect)
+        
+        # Draw month labels
+        painter.setFont(self._fonts['label_small'])
+        painter.setPen(self._colors['text_secondary'])
+        for week, month_name in month_positions.items():
+            x = start_x + week * (cell_size + 2)
+            y = start_y - 10
+            painter.drawText(QPoint(x, y), month_name)
+        
+        # Draw day labels
+        day_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        for i, label in enumerate(day_labels):
+            x = start_x - 35
+            y = start_y + i * (cell_size + 2) + cell_size // 2 + 5
+            painter.drawText(QPoint(x, y), label)
                     
     def _draw_circular_view(self, painter: QPainter, rect: QRect):
         """Draw circular/spiral year view."""
@@ -625,13 +651,47 @@ class CalendarHeatmapComponent(QWidget):
         """Draw the today marker with pulse animation."""
         opacity = 0.5 + 0.5 * self._animation_progress  # Pulse between 0.5 and 1.0
         
+        # Save painter state
+        painter.save()
+        
+        # Create a clipping region slightly larger than the cell
+        clip_rect = rect.adjusted(-3, -3, 3, 3)
+        painter.setClipRect(clip_rect)
+        
+        # Draw solid background highlight first
+        highlight_color = QColor(self._colors['primary'])
+        highlight_color.setAlpha(int(30 * opacity))
+        painter.fillRect(rect, highlight_color)
+        
         # Draw pulsing border
-        pen = QPen(self._colors['primary'], 3)
-        pen.setStyle(Qt.PenStyle.DashLine)
+        pen = QPen(self._colors['primary'], 2)
+        pen.setStyle(Qt.PenStyle.SolidLine)
         painter.setPen(pen)
         painter.setOpacity(opacity)
-        painter.drawRect(rect.adjusted(-2, -2, 2, 2))
-        painter.setOpacity(1.0)
+        painter.drawRect(rect)
+        
+        # Draw corner accents for better visibility
+        corner_length = max(3, rect.width() // 4)
+        painter.setPen(QPen(self._colors['primary'], 3))
+        
+        # Top-left corner
+        painter.drawLine(rect.left(), rect.top(), rect.left() + corner_length, rect.top())
+        painter.drawLine(rect.left(), rect.top(), rect.left(), rect.top() + corner_length)
+        
+        # Top-right corner
+        painter.drawLine(rect.right() - corner_length, rect.top(), rect.right(), rect.top())
+        painter.drawLine(rect.right(), rect.top(), rect.right(), rect.top() + corner_length)
+        
+        # Bottom-left corner
+        painter.drawLine(rect.left(), rect.bottom() - corner_length, rect.left(), rect.bottom())
+        painter.drawLine(rect.left(), rect.bottom(), rect.left() + corner_length, rect.bottom())
+        
+        # Bottom-right corner
+        painter.drawLine(rect.right() - corner_length, rect.bottom(), rect.right(), rect.bottom())
+        painter.drawLine(rect.right(), rect.bottom() - corner_length, rect.right(), rect.bottom())
+        
+        # Restore painter state
+        painter.restore()
         
     def _draw_title(self, painter: QPainter, title: str):
         """Draw chart title."""
