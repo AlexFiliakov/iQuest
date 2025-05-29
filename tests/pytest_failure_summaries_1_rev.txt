@@ -1,22 +1,100 @@
-/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
-The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:140: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(large_data)
 
-  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
-============================= test session starts ==============================
-platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
-cachedir: .pytest_cache
-benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
-hypothesis profile 'default'
-Matplotlib: 3.10.3
-Freetype: 2.6.1
-PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
-metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
-rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
-configfile: pytest.ini
-plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
-asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collecting ... collected 1175 items
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_caching_performance
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:188: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(data)
 
-atlas/tests/test_expanse.py::test_example_function PASSED                [  0%]
-coverage_analysis/test_statistics_methods.py::test_statistics_methods PASSED [  0%]
-test_daily_tab_refresh.py::test_daily_tab_refresh 
+tests/performance/test_calculator_benchmarks.py: 16 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:219: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 16 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:222: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 16 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:226: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_stress_test
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:263: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily = DailyMetricsCalculator(extreme_data)
+
+tests/performance/test_memory_benchmarks.py: 10 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_memory_benchmarks.py:159: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[100]
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[1000]
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[10000]
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[50000]
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[100000]
+  tests/performance/test_visualization_benchmarks.py:127: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    @pytest.mark.parametrize("data_size", [100, 1000, 10000, 50000, 100000])
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[50000]
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_line_chart_performance[100000]
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_data_optimization_impact
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_data_optimization_impact
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_memory_efficiency
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_memory_efficiency
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_concurrent_charts
+  /usr/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=16931) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_data_optimization_impact
+  tests/performance/test_visualization_benchmarks.py:162: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    def test_data_optimization_impact(self, benchmark, viz_benchmark, test_widget):
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_animation_performance
+  tests/performance/test_visualization_benchmarks.py:193: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    def test_animation_performance(self, benchmark, viz_benchmark, test_widget):
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_memory_efficiency
+  tests/performance/test_visualization_benchmarks.py:224: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    def test_memory_efficiency(self, benchmark, viz_benchmark, test_widget):
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_zoom_pan_performance
+  tests/performance/test_visualization_benchmarks.py:248: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    def test_zoom_pan_performance(self, benchmark, viz_benchmark, test_widget):
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_chart_type_performance
+  tests/performance/test_visualization_benchmarks.py:273: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    def test_chart_type_performance(self, benchmark, viz_benchmark, test_widget):
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_concurrent_charts
+  tests/performance/test_visualization_benchmarks.py:329: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    def test_concurrent_charts(self, benchmark, viz_benchmark, test_widget):
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_real_world_scenario
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_visualization_benchmarks.py:369: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+    monthly_data = health_data.resample('M').sum()
+
+tests/performance/test_visualization_benchmarks.py::TestVisualizationPerformance::test_real_world_scenario
+  tests/performance/test_visualization_benchmarks.py:347: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    @pytest.mark.integration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+--------------------------------------------------------------------------------------------- benchmark: 9 tests ---------------------------------------------------------------------------------------------
+Name (time in ms)                               Min                Max               Mean             StdDev             Median                IQR            Outliers       OPS            Rounds  Iterations
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+test_statistics_calculator_performance       5.1089 (1.0)       6.5829 (1.0)       5.7159 (1.0)       0.5356 (1.0)       5.6272 (1.0)       0.4409 (1.0)           2;1  174.9499 (1.0)           5           1
+test_weekly_calculator_performance           6.4375 (1.26)     11.4892 (1.75)      8.4587 (1.48)      1.5350 (2.87)      7.9149 (1.41)      1.5375 (3.49)          3;1  118.2219 (0.68)         10           1
+test_monthly_calculator_performance         11.9636 (2.34)     64.8321 (9.85)     28.5039 (4.99)     13.6002 (25.39)    25.9367 (4.61)     16.9936 (38.54)        22;2   35.0829 (0.20)         68           1
+test_daily_calculator_scaling[90-0.3]       15.8856 (3.11)     25.3623 (3.85)     19.8080 (3.47)      4.5938 (8.58)     17.0110 (3.02)      8.1469 (18.48)         1;0   50.4847 (0.29)          5           1
+test_daily_calculator_scaling[365-1.0]      17.4211 (3.41)     23.2549 (3.53)     19.8160 (3.47)      2.2365 (4.18)     19.4011 (3.45)      2.9866 (6.77)          2;0   50.4642 (0.29)          5           1
+test_daily_calculator_scaling[30-0.1]       18.2529 (3.57)     27.5959 (4.19)     22.5405 (3.94)      3.7173 (6.94)     22.6922 (4.03)      5.8355 (13.24)         2;0   44.3647 (0.25)          5           1
+test_daily_calculator_scaling[1825-5.0]     21.4687 (4.20)     32.9805 (5.01)     27.7858 (4.86)      4.1307 (7.71)     28.5221 (5.07)      3.7926 (8.60)          2;0   35.9896 (0.21)          5           1
+test_daily_calculator_scaling[730-2.0]      32.3117 (6.32)     40.8821 (6.21)     36.7199 (6.42)      3.0457 (5.69)     37.0342 (6.58)      2.6709 (6.06)          2;0   27.2332 (0.16)          5           1
+test_concurrent_calculator_performance      52.1184 (10.20)    83.0616 (12.62)    67.8414 (11.87)     9.1235 (17.04)    70.2355 (12.48)    11.5533 (26.20)         5;0   14.7403 (0.08)         14           1
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Legend:
+  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.
+  OPS: Operations Per Second, computed as 1 / Mean
+=========================== short test summary info ============================
+ERROR tests/test_visual_regression.py::TestVisualRegression::test_framework_validation
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+=========== 121 passed, 17 skipped, 207 warnings, 1 error in 58.87s ============
