@@ -144,7 +144,7 @@ class LineChart(QWidget):
     def paintEvent(self, event):
         """Paint the chart."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         # Get drawing area
         chart_rect = self._get_chart_rect()
@@ -384,7 +384,7 @@ class LineChart(QWidget):
         old_hover = self.hover_index
         self.hover_index = -1
         
-        if chart_rect.contains(event.pos()) and self.data_points:
+        if chart_rect.contains(event.posF()) and self.data_points:
             min_distance = float('inf')
             
             for i in range(len(self.data_points)):
