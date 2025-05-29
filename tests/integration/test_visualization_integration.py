@@ -9,7 +9,7 @@ import tempfile
 
 from src.ui.charts.wsj_health_visualization_suite import WSJHealthVisualizationSuite
 from src.ui.charts.wsj_style_manager import WSJStyleManager
-from src.data_access import HealthDataAccess
+# from src.data_access import HealthDataAccess  # Class doesn't exist
 from src.health_database import HealthDatabase
 from src.analytics.dataframe_adapter import DataFrameAdapter
 from PyQt6.QtWidgets import QApplication

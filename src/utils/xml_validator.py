@@ -20,7 +20,21 @@ logger = get_logger(__name__)
 
 @dataclass
 class ValidationRule:
-    """Defines a validation rule for XML elements."""
+    """Defines a validation rule for XML elements.
+    
+    Encapsulates validation criteria for health data fields including
+    data type constraints, value ranges, and format requirements.
+    
+    Attributes:
+        field_name (str): Name of the field to validate.
+        required (bool): Whether the field is required. Defaults to True.
+        data_type (str): Expected data type ('string', 'datetime', 'float', 'integer').
+        pattern (Optional[str]): Regex pattern for string validation.
+        min_value (Optional[float]): Minimum allowed numeric value.
+        max_value (Optional[float]): Maximum allowed numeric value.
+        allowed_values (Optional[List[str]]): List of allowed string values.
+        description (str): Human-readable description of the rule.
+    """
     field_name: str
     required: bool = True
     data_type: str = "string"  # string, datetime, float, integer
@@ -33,7 +47,18 @@ class ValidationRule:
 
 @dataclass
 class ValidationResult:
-    """Result of validation operations."""
+    """Result of validation operations.
+    
+    Contains the outcome of XML validation including errors, warnings,
+    and statistics about the validation process.
+    
+    Attributes:
+        is_valid (bool): Whether validation passed overall.
+        errors (List[str]): List of validation error messages.
+        warnings (List[str]): List of non-fatal warning messages.
+        record_count (int): Total number of records processed.
+        validated_records (int): Number of successfully validated records.
+    """
     is_valid: bool
     errors: List[str]
     warnings: List[str]
@@ -41,12 +66,20 @@ class ValidationResult:
     validated_records: int = 0
     
     def add_error(self, message: str):
-        """Add an error message."""
+        """Add an error message.
+        
+        Args:
+            message (str): The error message to add.
+        """
         self.errors.append(message)
         self.is_valid = False
     
     def add_warning(self, message: str):
-        """Add a warning message."""
+        """Add a warning message.
+        
+        Args:
+            message (str): The warning message to add.
+        """
         self.warnings.append(message)
     
     def merge(self, other: 'ValidationResult'):

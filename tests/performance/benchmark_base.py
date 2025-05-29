@@ -19,7 +19,7 @@ from pathlib import Path
 class PerformanceBenchmark:
     """Base class for performance benchmarks with comprehensive measurement capabilities."""
     
-    def __init__(self):
+    def setup_method(self):
         """Initialize benchmark with process monitoring."""
         self.process = psutil.Process()
         self.baseline_memory = None
@@ -197,6 +197,7 @@ class BenchmarkFixture:
     
     def __init__(self):
         self.benchmark = PerformanceBenchmark()
+        self.benchmark.setup_method()
         
     def __call__(self, func: Callable, *args, **kwargs):
         """Run a function and benchmark it."""

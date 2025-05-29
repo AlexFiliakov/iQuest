@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 import threading
 from datetime import datetime
 
-import config
+from . import config
 
 logger = logging.getLogger(__name__)
 
