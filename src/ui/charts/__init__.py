@@ -16,6 +16,31 @@ from .progressive_drill_down import ProgressiveDrillDownWidget
 from .shareable_dashboard import (ShareableDashboardManager, ShareDashboardDialog,
                                 ShareLinkDisplay, SharedDashboardViewer)
 
+# Import interaction components
+from .interactions import (
+    ChartInteractionManager,
+    SmoothZoomController,
+    BrushRangeSelector,
+    WSJTooltip,
+    KeyboardNavigationHandler,
+    CrossfilterManager,
+    DrillDownNavigator
+)
+
+# Import accessibility components
+from ..accessibility import (
+    VisualizationAccessibilityManager,
+    AccessibleChart,
+    WCAGValidator
+)
+from ..accessibility.accessible_chart_mixin import AccessibleChartMixin
+
+# Import export components
+from .export import (
+    ExportFormat, WSJExportManager, VisualizationShareManager,
+    PrintLayoutManager, HTMLExportBuilder
+)
+
 __all__ = [
     'BaseChart', 
     'LineChart',
@@ -31,5 +56,24 @@ __all__ = [
     'ShareableDashboardManager',
     'ShareDashboardDialog',
     'ShareLinkDisplay',
-    'SharedDashboardViewer'
+    'SharedDashboardViewer',
+    # Accessibility exports
+    'VisualizationAccessibilityManager',
+    'AccessibleChart',
+    'WCAGValidator',
+    'AccessibleChartMixin',
+    # Interaction exports
+    'ChartInteractionManager',
+    'SmoothZoomController',
+    'BrushRangeSelector',
+    'WSJTooltip',
+    'KeyboardNavigationHandler',
+    'CrossfilterManager',
+    'DrillDownNavigator',
+    # Export system
+    'ExportFormat',
+    'WSJExportManager',
+    'VisualizationShareManager',
+    'PrintLayoutManager',
+    'HTMLExportBuilder'
 ]

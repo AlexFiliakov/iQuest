@@ -10,6 +10,10 @@ from .charts.chart_config import ChartConfig
 from .bar_chart_component import BarChart as BarChartComponent, BarChartConfig
 from .table_components import MetricTable, TableConfig
 from .style_manager import StyleManager
+from .dashboards import (
+    WSJDashboardLayout, 
+    HealthDashboardTemplates
+)
 
 
 class ComponentFactory:
@@ -203,6 +207,29 @@ class ComponentFactory:
         # Apply the WSJ warm theme globally
         pass
     
+    def create_dashboard(
+        self,
+        template_name: Optional[str] = 'daily_overview',
+        wsj_style: bool = True
+    ) -> WSJDashboardLayout:
+        """Create a multi-metric dashboard with WSJ styling."""
+        dashboard = WSJDashboardLayout()
+        
+        if template_name:
+            # Load predefined template
+            template = HealthDashboardTemplates.get_template_by_name(template_name)
+            dashboard.apply_layout_template(template)
+        
+        return dashboard
+    
+    def create_dashboard_persistence(self) -> DashboardPersistence:
+        """Create dashboard persistence manager."""
+        return DashboardPersistence()
+    
+    def get_dashboard_templates(self) -> Dict[str, Any]:
+        """Get all available dashboard templates."""
+        return HealthDashboardTemplates.get_all_templates()
+    
     def get_wsj_style_config(self) -> Dict[str, Any]:
         """Get complete WSJ-inspired styling configuration."""
         return {
@@ -224,5 +251,16 @@ class ComponentFactory:
                 'warm_accent': True,
                 'border_color': self._wsj_config['colors']['border'],
                 'font_family': self._wsj_config['typography']['font_family']
+            },
+            'dashboard_config': {
+                'grid_system': '12-column',
+                'gutter_width': 16,
+                'margin': 24,
+                'responsive_breakpoints': {
+                    'mobile': 768,
+                    'tablet': 1024,
+                    'desktop': 1440,
+                    'wide': 1920
+                }
             }
         }

@@ -13,7 +13,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.patches import Rectangle, FancyBboxPatch
 from matplotlib.collections import LineCollection
 import matplotlib.dates as mdates
-import seaborn as sns
+# import seaborn as sns  # Optional dependency - commented out for now
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from PyQt6.QtCore import Qt
@@ -202,14 +202,29 @@ class MatplotlibChartFactory:
         # Use WSJ colormap
         cmap = self.style_manager.get_correlation_colormap()
         
-        # Plot heatmap
-        sns.heatmap(corr_matrix, mask=mask, cmap=cmap, center=0,
-                   square=True, linewidths=0.5,
-                   cbar_kws={"shrink": 0.8, "label": "Correlation Coefficient"},
-                   vmin=-1, vmax=1, ax=ax,
-                   annot=config.get('show_values', True),
-                   fmt='.2f',
-                   annot_kws={'size': 9})
+        # Plot heatmap using matplotlib instead of seaborn
+        im = ax.imshow(corr_matrix, cmap=cmap, aspect='auto', vmin=-1, vmax=1)
+        
+        # Add colorbar
+        cbar = plt.colorbar(im, ax=ax, shrink=0.8)
+        cbar.set_label("Correlation Coefficient", rotation=270, labelpad=15)
+        
+        # Set ticks and labels
+        ax.set_xticks(np.arange(len(corr_matrix.columns)))
+        ax.set_yticks(np.arange(len(corr_matrix.index)))
+        ax.set_xticklabels(corr_matrix.columns)
+        ax.set_yticklabels(corr_matrix.index)
+        
+        # Rotate the tick labels and set their alignment
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        
+        # Add values if requested
+        if config.get('show_values', True):
+            for i in range(len(corr_matrix)):
+                for j in range(len(corr_matrix)):
+                    if mask is None or not mask[i, j]:
+                        text = ax.text(j, i, f'{corr_matrix.iloc[i, j]:.2f}',
+                                     ha="center", va="center", color="black", fontsize=9)
         
         # Add significance stars if provided
         if sig_matrix is not None and config.get('significance_indicators', True):

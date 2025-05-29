@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-05-28T21:08:55.908558",
+  "total_time": 1.5837302207946777,
+  "target_time": 600,
+  "passed": true,
+  "test_count": 7,
+  "results": [
+    {
+      "test": "Data Generation",
+      "duration": 0.2227613925933838,
+      "timestamp": "2025-05-28T21:08:54.579264"
+    },
+    {
+      "test": "Unit Tests",
+      "duration": 0.007848978042602539,
+      "timestamp": "2025-05-28T21:08:54.587290"
+    },
+    {
+      "test": "Visual Regression",
+      "duration": 0.5116777420043945,
+      "timestamp": "2025-05-28T21:08:55.099016"
+    },
+    {
+      "test": "Performance Benchmarks",
+      "duration": 0.24919652938842773,
+      "timestamp": "2025-05-28T21:08:55.348280"
+    },
+    {
+      "test": "Accessibility Tests",
+      "duration": 0.05124521255493164,
+      "timestamp": "2025-05-28T21:08:55.399562"
+    },
+    {
+      "test": "Integration Tests",
+      "duration": 0.002231597900390625,
+      "timestamp": "2025-05-28T21:08:55.401822"
+    },
+    {
+      "test": "Full Suite (5 components)",
+      "duration": 0.5008683204650879,
+      "timestamp": "2025-05-28T21:08:55.902743"
+    }
+  ]
+}

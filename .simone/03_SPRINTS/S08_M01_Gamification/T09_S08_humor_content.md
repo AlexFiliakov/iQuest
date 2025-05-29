@@ -12,10 +12,11 @@ last_updated: 2025-05-28T12:00:00Z
 Inject humor, puns, and entertaining flavor text throughout the gamification system. This includes item descriptions, achievement names, skill descriptions, loading tips, and random encounters to keep the experience light and engaging.
 
 ## Goal / Objectives
-- Write entertaining content for all game elements
+- Implement humorous content from spec `SPEC_GAMIFICATION_HUMOR.md`
+- Incorporate entertaining content for all game elements
 - Add loading screen tips and jokes
-- Create random flavor text events
-- Maintain consistent humorous tone
+- Implement random flavor text events
+- Maintain consistent humorous, witty, cheeky tone throughout
 
 ## Acceptance Criteria
 - [ ] All items have punny names and descriptions
@@ -32,6 +33,7 @@ Inject humor, puns, and entertaining flavor text throughout the gamification sys
 - Achievement System: `T07_S08_achievements.md`
 - Class System: `T02_S08_class_system.md`
 - Skill Tree: `T04_S08_skill_tree.md`
+- Humor Spec: `SPEC_GAMIFICATION_HUMOR.md`
 
 ## Subtasks
 - [ ] Create pun database for item names

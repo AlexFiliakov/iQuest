@@ -3,10 +3,17 @@ Mock data source implementations for testing.
 Implements DataSourceProtocol for type-safe testing.
 """
 
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Callable
 from datetime import datetime
 import pandas as pd
 import numpy as np
+
+try:
+    from PyQt6.QtCore import QObject, pyqtSignal
+except ImportError:
+    # Fallback for non-Qt tests
+    QObject = object
+    pyqtSignal = lambda: None
 
 from src.analytics.data_source_protocol import DataSourceProtocol
 
@@ -235,3 +242,75 @@ class CorruptDataSource(MockDataSource):
     def get_dataframe(self) -> pd.DataFrame:
         """Return corrupt data as-is."""
         return self._data.copy()
+
+
+class ReactiveDataSource(QObject if QObject != object else object):
+    """Mock reactive data source with change notifications."""
+    
+    def __init__(self, initial_data: Optional[pd.DataFrame] = None):
+        """Initialize reactive data source."""
+        if QObject != object:
+            super().__init__()
+        self._data = initial_data if initial_data is not None else pd.DataFrame()
+        self._listeners: List[Callable] = []
+        
+        # Initialize signals if Qt is available
+        if hasattr(self, 'pyqtSignal'):
+            self.dataChanged = pyqtSignal()
+            self.dataUpdated = pyqtSignal(pd.DataFrame)
+        
+    def get_data(self) -> pd.DataFrame:
+        """Get current data."""
+        return self._data.copy()
+        
+    def set_data(self, data: pd.DataFrame) -> None:
+        """Set new data and notify listeners."""
+        self._data = data.copy()
+        
+        # Emit Qt signals if available
+        if hasattr(self, 'dataChanged'):
+            self.dataChanged.emit()
+        if hasattr(self, 'dataUpdated'):
+            self.dataUpdated.emit(self._data)
+        
+        # Notify callback listeners
+        for listener in self._listeners:
+            try:
+                listener(self._data)
+            except Exception:
+                pass  # Ignore listener errors in tests
+                
+    def add_listener(self, callback: Callable) -> None:
+        """Add a change listener callback."""
+        if callback not in self._listeners:
+            self._listeners.append(callback)
+            
+    def remove_listener(self, callback: Callable) -> None:
+        """Remove a change listener callback."""
+        if callback in self._listeners:
+            self._listeners.remove(callback)
+            
+    def clear_listeners(self) -> None:
+        """Clear all listeners."""
+        self._listeners.clear()
+        
+    def update_row(self, index: int, row_data: dict) -> None:
+        """Update a specific row in the data."""
+        if 0 <= index < len(self._data):
+            for column, value in row_data.items():
+                if column in self._data.columns:
+                    self._data.at[index, column] = value
+            
+            # Emit signals if available
+            if hasattr(self, 'dataChanged'):
+                self.dataChanged.emit()
+            if hasattr(self, 'dataUpdated'):
+                self.dataUpdated.emit(self._data)
+                
+    def bind_data_source(self, source) -> None:
+        """Mock method for binding to another data source."""
+        pass  # Mock implementation
+        
+    def coordinate_with(self, other) -> None:
+        """Mock method for coordinating with another component."""
+        pass  # Mock implementation

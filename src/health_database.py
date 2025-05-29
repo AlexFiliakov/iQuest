@@ -16,13 +16,27 @@ logger = logging.getLogger(__name__)
 
 
 class HealthDatabase:
-    """Wrapper class for health data queries."""
+    """Wrapper class for health data queries.
+    
+    Provides a clean interface for querying health data availability
+    and supports the DataAvailabilityService. Acts as a facade over
+    the DatabaseManager for health-specific database operations.
+    
+    Attributes:
+        db_manager (DatabaseManager): The underlying database manager instance.
+    """
     
     def __init__(self):
+        """Initialize the HealthDatabase with a DatabaseManager instance."""
         self.db_manager = DatabaseManager()
         
     def get_available_types(self) -> List[str]:
-        """Get all unique health record types."""
+        """Get all unique health record types.
+        
+        Returns:
+            List[str]: A sorted list of unique health record type names.
+                     Returns empty list if no types found or on error.
+        """
         try:
             query = "SELECT DISTINCT type FROM health_records WHERE type IS NOT NULL ORDER BY type"
             results = self.db_manager.execute_query(query)
@@ -32,7 +46,15 @@ class HealthDatabase:
             return []
             
     def get_date_range_for_type(self, metric_type: str) -> Optional[Tuple[date, date]]:
-        """Get the min and max dates for a specific metric type."""
+        """Get the min and max dates for a specific metric type.
+        
+        Args:
+            metric_type (str): The health record type to query.
+            
+        Returns:
+            Optional[Tuple[date, date]]: A tuple of (min_date, max_date) if data exists,
+                                       None if no data found or on error.
+        """
         try:
             query = """
                 SELECT MIN(DATE(startDate)) as min_date, MAX(DATE(startDate)) as max_date 
@@ -55,7 +77,14 @@ class HealthDatabase:
             return None
             
     def get_record_count_for_type(self, metric_type: str) -> int:
-        """Get total record count for a specific metric type."""
+        """Get total record count for a specific metric type.
+        
+        Args:
+            metric_type (str): The health record type to count.
+            
+        Returns:
+            int: The number of records for the given type. Returns 0 on error.
+        """
         try:
             query = "SELECT COUNT(*) FROM health_records WHERE type = ?"
             results = self.db_manager.execute_query(query, (metric_type,))
@@ -65,7 +94,17 @@ class HealthDatabase:
             return 0
             
     def get_dates_with_data(self, metric_type: str, start_date: date, end_date: date) -> List[date]:
-        """Get list of dates that have data for a specific metric type within a date range."""
+        """Get list of dates that have data for a specific metric type within a date range.
+        
+        Args:
+            metric_type (str): The health record type to query.
+            start_date (date): The start date of the range (inclusive).
+            end_date (date): The end date of the range (inclusive).
+            
+        Returns:
+            List[date]: A sorted list of dates that have data within the range.
+                       Returns empty list if no data found or on error.
+        """
         try:
             query = """
                 SELECT DISTINCT DATE(startDate) as record_date
@@ -91,7 +130,12 @@ class HealthDatabase:
             return []
             
     def get_date_range(self) -> Optional[Tuple[date, date]]:
-        """Get the overall min and max dates across all health records."""
+        """Get the overall min and max dates across all health records.
+        
+        Returns:
+            Optional[Tuple[date, date]]: A tuple of (min_date, max_date) for all records,
+                                       None if no data found or on error.
+        """
         try:
             query = """
                 SELECT MIN(DATE(startDate)) as min_date, MAX(DATE(startDate)) as max_date 
@@ -114,7 +158,12 @@ class HealthDatabase:
             return None
             
     def get_available_sources(self) -> List[str]:
-        """Get all unique source names."""
+        """Get all unique source names.
+        
+        Returns:
+            List[str]: A sorted list of unique source names.
+                     Returns empty list if no sources found or on error.
+        """
         try:
             query = "SELECT DISTINCT sourceName FROM health_records WHERE sourceName IS NOT NULL ORDER BY sourceName"
             results = self.db_manager.execute_query(query)
@@ -124,7 +173,15 @@ class HealthDatabase:
             return []
             
     def get_types_for_source(self, source_name: str) -> List[str]:
-        """Get all metric types available for a specific source."""
+        """Get all metric types available for a specific source.
+        
+        Args:
+            source_name (str): The source name to query.
+            
+        Returns:
+            List[str]: A sorted list of metric types for the given source.
+                     Returns empty list if no types found or on error.
+        """
         try:
             query = """
                 SELECT DISTINCT type 
@@ -139,7 +196,16 @@ class HealthDatabase:
             return []
             
     def get_record_count_for_date_range(self, metric_type: str, start_date: date, end_date: date) -> int:
-        """Get record count for a specific metric type within a date range."""
+        """Get record count for a specific metric type within a date range.
+        
+        Args:
+            metric_type (str): The health record type to count.
+            start_date (date): The start date of the range (inclusive).
+            end_date (date): The end date of the range (inclusive).
+            
+        Returns:
+            int: The number of records within the date range. Returns 0 on error.
+        """
         try:
             query = """
                 SELECT COUNT(*) 
@@ -156,7 +222,15 @@ class HealthDatabase:
             return 0
             
     def has_data_for_date(self, metric_type: str, target_date: date) -> bool:
-        """Check if there's any data for a specific metric type on a specific date."""
+        """Check if there's any data for a specific metric type on a specific date.
+        
+        Args:
+            metric_type (str): The health record type to check.
+            target_date (date): The specific date to check.
+            
+        Returns:
+            bool: True if data exists for the given type and date, False otherwise.
+        """
         try:
             query = """
                 SELECT COUNT(*) 
@@ -171,7 +245,16 @@ class HealthDatabase:
             return False
             
     def get_data_summary(self) -> Dict[str, any]:
-        """Get a summary of all available data."""
+        """Get a summary of all available data.
+        
+        Returns:
+            Dict[str, any]: A dictionary containing summary statistics including:
+                - total_records: Total number of health records
+                - available_types: Number of unique health record types
+                - available_sources: Number of unique data sources
+                - date_range: Dictionary with start and end dates
+                Returns empty dict on error.
+        """
         try:
             summary = {}
             
@@ -200,7 +283,12 @@ class HealthDatabase:
             return {}
             
     def validate_database(self) -> bool:
-        """Validate that the health_records table exists and has data."""
+        """Validate that the health_records table exists and has data.
+        
+        Returns:
+            bool: True if the health_records table exists and contains data,
+                 False otherwise.
+        """
         try:
             # Check if table exists
             table_query = """

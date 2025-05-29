@@ -1,4 +1,33 @@
-"""Analytics module for Apple Health Monitor."""
+"""Analytics module for Apple Health Monitor.
+
+This module provides comprehensive analytics capabilities for health data processing,
+including calculators for daily/weekly/monthly metrics, caching systems, trend analysis,
+and optimized engines for high-performance data processing.
+
+The module is organized into several key components:
+
+- **Basic Calculators**: Core metric calculation classes for different time periods
+- **Caching System**: High-performance caching with background refresh and invalidation
+- **Trend Analysis**: Week-over-week trends, momentum indicators, and predictions  
+- **Optimized Engine**: Streaming data processing with connection pooling and queues
+- **Data Adapters**: Protocol definitions and DataFrame adapters for data sources
+
+Example:
+    Basic usage with cached calculators:
+    
+    >>> from analytics import create_cached_daily_calculator
+    >>> calculator = create_cached_daily_calculator(database)
+    >>> metrics = calculator.calculate_metrics('HKQuantityTypeIdentifierStepCount', 
+    ...                                        start_date, end_date)
+    
+    Advanced usage with optimized engine:
+    
+    >>> from analytics import OptimizedAnalyticsEngine, AnalyticsRequest
+    >>> engine = OptimizedAnalyticsEngine(database)
+    >>> request = AnalyticsRequest(metric_type='HKQuantityTypeIdentifierStepCount',
+    ...                           calculation_type='daily_metrics')
+    >>> results = await engine.process_request(request)
+"""
 
 from .data_source_protocol import DataSourceProtocol
 from .dataframe_adapter import DataFrameAdapter

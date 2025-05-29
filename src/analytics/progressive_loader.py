@@ -365,7 +365,7 @@ class LoadingSession:
                 metadata={'show_enhanced_skeleton': True}
             )
             if self.loader.callbacks.on_progress_update:
-            self.loader.callbacks.on_progress_update(result)
+                self.loader.callbacks.on_progress_update(result)
     
     def _combine_results(self, results: List[Any]) -> Any:
         """Combine multiple chunk results."""

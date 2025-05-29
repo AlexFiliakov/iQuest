@@ -12,7 +12,7 @@ last_updated: 2025-05-28T12:00:00Z
 Create the core character system that transforms health metrics into RPG-style character statistics with humor and personality. This system will analyze various health data points and convert them into the 8 core stats defined in the gamification spec, complete with witty descriptions and meaningful progression.
 
 ## Goal / Objectives
-- Implement the exact 8-stat system from SPEC_GAMIFICATION.md
+- Implement the exact 8-stat system from `SPEC_GAMIFICATION.md`
 - Create stat calculation algorithms using the specified formulas
 - Add temporary buffs/debuffs and status effects
 - Implement character progression with level-based stat increases

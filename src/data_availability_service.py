@@ -18,7 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 class AvailabilityLevel(Enum):
-    """Data availability levels for different time ranges."""
+    """Data availability levels for different time ranges.
+    
+    Attributes:
+        FULL: Complete data for the time range with minimal gaps.
+        PARTIAL: Some gaps but still usable for analysis.
+        SPARSE: Limited data points, may not be reliable for analysis.
+        NONE: No data available for the time range.
+    """
     FULL = "full"       # Complete data for range
     PARTIAL = "partial" # Some gaps but usable  
     SPARSE = "sparse"   # Limited data points
@@ -26,7 +33,15 @@ class AvailabilityLevel(Enum):
 
 
 class TimeRange(Enum):
-    """Available time range options."""
+    """Available time range options.
+    
+    Attributes:
+        TODAY: Single day view.
+        WEEK: Last 7 days view.
+        MONTH: Last 30 days view.
+        YEAR: Last 365 days view.
+        CUSTOM: User-defined date range.
+    """
     TODAY = "today"
     WEEK = "week"
     MONTH = "month"
@@ -36,7 +51,19 @@ class TimeRange(Enum):
 
 @dataclass
 class DataRange:
-    """Data range information for a metric."""
+    """Data range information for a metric.
+    
+    Contains comprehensive information about data availability,
+    density, and gaps for a specific health metric type.
+    
+    Attributes:
+        start_date: First date with available data.
+        end_date: Last date with available data.
+        total_points: Total number of data points.
+        density: Average data points per day.
+        gaps: List of date ranges with missing data.
+        level: Overall availability level assessment.
+    """
     start_date: Optional[date]
     end_date: Optional[date]
     total_points: int
@@ -47,7 +74,19 @@ class DataRange:
 
 @dataclass
 class RangeAvailability:
-    """Availability information for a specific time range."""
+    """Availability information for a specific time range.
+    
+    Contains analysis results for whether a specific time range
+    (today, week, month, year) has sufficient data for visualization.
+    
+    Attributes:
+        range_type: The time range being analyzed.
+        available: Whether the range has sufficient data.
+        level: Data availability level for this range.
+        reason: Human-readable explanation if not available.
+        data_points: Number of data points in this range.
+        coverage_percent: Percentage of days with data.
+    """
     range_type: TimeRange
     available: bool
     level: AvailabilityLevel
@@ -57,9 +96,27 @@ class RangeAvailability:
 
 
 class DataAvailabilityService:
-    """Service to detect data availability and provide UI adaptation logic."""
+    """Service to detect data availability and provide UI adaptation logic.
+    
+    This service analyzes health data to determine what time ranges have
+    sufficient data for meaningful visualization. It provides caching,
+    callback notifications, and intelligent recommendations for default
+    time ranges based on actual data availability.
+    
+    Attributes:
+        db (HealthDatabase): Database interface for health data queries.
+        availability_cache (Dict[str, DataRange]): Cached availability data.
+        update_callbacks (List[Callable]): Registered update callbacks.
+        cache_expiry (timedelta): Cache validity duration.
+        last_scan (Optional[datetime]): Timestamp of last availability scan.
+    """
     
     def __init__(self, database: HealthDatabase):
+        """Initialize the DataAvailabilityService.
+        
+        Args:
+            database (HealthDatabase): The database interface for health data queries.
+        """
         self.db = database
         self.availability_cache: Dict[str, DataRange] = {}
         self.update_callbacks: List[Callable] = []
@@ -67,16 +124,28 @@ class DataAvailabilityService:
         self.last_scan = None
         
     def register_callback(self, callback: Callable) -> None:
-        """Register callback for availability updates."""
+        """Register callback for availability updates.
+        
+        Args:
+            callback (Callable): Function to call when availability data updates.
+        """
         self.update_callbacks.append(callback)
         
     def unregister_callback(self, callback: Callable) -> None:
-        """Unregister callback."""
+        """Unregister callback.
+        
+        Args:
+            callback (Callable): The callback function to remove.
+        """
         if callback in self.update_callbacks:
             self.update_callbacks.remove(callback)
             
     def notify_updates(self) -> None:
-        """Notify all registered callbacks of availability updates."""
+        """Notify all registered callbacks of availability updates.
+        
+        Calls all registered callback functions to inform them that
+        availability data has been updated. Logs errors if callbacks fail.
+        """
         for callback in self.update_callbacks:
             try:
                 callback()
@@ -84,13 +153,26 @@ class DataAvailabilityService:
                 logger.error(f"Error in availability callback: {e}")
                 
     def _is_cache_valid(self) -> bool:
-        """Check if availability cache is still valid."""
+        """Check if availability cache is still valid.
+        
+        Returns:
+            bool: True if cache is within expiry time, False otherwise.
+        """
         if self.last_scan is None:
             return False
         return datetime.now() - self.last_scan < self.cache_expiry
         
     def scan_availability(self) -> Dict[str, DataRange]:
-        """Scan all metrics for data availability."""
+        """Scan all metrics for data availability.
+        
+        Performs a comprehensive scan of all available health metric types
+        to determine their data availability, gaps, and density. Updates
+        the internal cache and notifies registered callbacks.
+        
+        Returns:
+            Dict[str, DataRange]: Dictionary mapping metric types to their
+                                 availability information. Empty dict on error.
+        """
         logger.info("Scanning data availability for all metrics")
         
         availability = {}
@@ -113,7 +195,15 @@ class DataAvailabilityService:
         return availability
         
     def _scan_metric_availability(self, metric_type: str) -> DataRange:
-        """Scan availability for a specific metric type."""
+        """Scan availability for a specific metric type.
+        
+        Args:
+            metric_type (str): The health metric type to analyze.
+            
+        Returns:
+            DataRange: Comprehensive availability information for the metric.
+                      Returns DataRange with NONE level on error.
+        """
         try:
             # Get basic range info
             date_range = self.db.get_date_range_for_type(metric_type)

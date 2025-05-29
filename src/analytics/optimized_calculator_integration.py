@@ -9,10 +9,10 @@ from .optimized_analytics_engine import OptimizedAnalyticsEngine, AnalyticsReque
 from .daily_metrics_calculator import DailyMetricsCalculator
 from .weekly_metrics_calculator import WeeklyMetricsCalculator
 from .monthly_metrics_calculator import MonthlyMetricsCalculator
-from .statistics_calculator import StatisticsCalculator
+from ..statistics_calculator import StatisticsCalculator
 from .comparison_overlay_calculator import ComparisonOverlayCalculator
 from .cached_calculators import CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, CachedMonthlyMetricsCalculator
-from .cache_manager import CacheManager
+from .cache_manager import AnalyticsCacheManager as CacheManager
 from .streaming_data_loader import StreamingDataLoader
 from .progressive_loader import ProgressiveLoaderCallbacks
 

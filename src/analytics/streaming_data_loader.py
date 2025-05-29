@@ -10,7 +10,8 @@ from contextlib import contextmanager
 from queue import Queue
 import threading
 
-from ..data_access import DataAccess
+from ..health_database import HealthDatabase
+from .connection_pool import PooledDataAccess
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class StreamingDataLoader:
     - Progress tracking
     """
     
-    def __init__(self, data_access: DataAccess, 
+    def __init__(self, data_access: 'PooledDataAccess', 
                  chunk_days: int = 30,
                  max_memory_mb: float = 100,
                  prefetch_chunks: int = 2):

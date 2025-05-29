@@ -1,0 +1,1 @@
+"""Accessibility testing module for health visualizations."""

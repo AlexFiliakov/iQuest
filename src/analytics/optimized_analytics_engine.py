@@ -1,4 +1,26 @@
-"""Optimized analytics engine integrating all performance improvements."""
+"""Optimized analytics engine integrating all performance improvements.
+
+This module provides a high-performance analytics engine that combines streaming
+data loading, progressive UI updates, multi-level caching, connection pooling,
+and priority-based task scheduling for optimal health data processing.
+
+The engine is designed to handle large datasets efficiently while providing
+responsive user experiences through progressive loading and real-time updates.
+
+Classes:
+    AnalyticsRequest: Data class for analytics computation requests.
+    OptimizedAnalyticsEngine: Main engine class integrating all optimizations.
+
+Example:
+    >>> engine = OptimizedAnalyticsEngine(database_path="health.db")
+    >>> request = AnalyticsRequest(
+    ...     metric_type='HKQuantityTypeIdentifierStepCount',
+    ...     start_date=datetime(2023, 1, 1),
+    ...     end_date=datetime(2023, 12, 31),
+    ...     aggregation_level='daily'
+    ... )
+    >>> results = await engine.process_request(request)
+"""
 
 from typing import Any, Dict, Optional, List, Union
 from datetime import datetime
@@ -7,20 +29,34 @@ import pandas as pd
 import numpy as np
 from dataclasses import dataclass
 
-from ..data_access import DataAccess
+from ..health_database import HealthDatabase
 from .streaming_data_loader import StreamingDataLoader, DataChunk
 from .computation_queue import ComputationQueue, TaskPriority
 from .progressive_loader import ProgressiveAnalyticsManager
 from .connection_pool import ConnectionPool, PooledDataAccess
 from .performance_monitor import PerformanceMonitor
-from .cache_manager import CacheManager
+from .cache_manager import AnalyticsCacheManager as CacheManager
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class AnalyticsRequest:
-    """Request for analytics computation."""
+    """Request for analytics computation.
+    
+    Encapsulates all parameters needed for an analytics computation,
+    including the metric type, date range, aggregation level, and
+    processing options.
+    
+    Attributes:
+        metric_type (str): The health metric type to analyze.
+        start_date (datetime): Start date for the analysis.
+        end_date (datetime): End date for the analysis.
+        aggregation_level (str): Time grouping level ('daily', 'weekly', 'monthly').
+        metrics (Optional[List[str]]): Specific metrics to calculate.
+        options (Dict[str, Any]): Additional processing options.
+        priority (TaskPriority): Task priority for queue scheduling.
+    """
     metric_type: str
     start_date: datetime
     end_date: datetime
@@ -30,36 +66,63 @@ class AnalyticsRequest:
     priority: TaskPriority = TaskPriority.NORMAL
     
     def cache_key(self) -> str:
-        """Generate cache key for this request."""
+        """Generate cache key for this request.
+        
+        Creates a unique string identifier for caching purposes based on
+        all relevant request parameters.
+        
+        Returns:
+            str: Unique cache key string.
+        """
         metrics_str = ','.join(sorted(self.metrics)) if self.metrics else 'all'
         return f"{self.metric_type}_{self.aggregation_level}_{self.start_date.date()}_{self.end_date.date()}_{metrics_str}"
 
 
 class OptimizedAnalyticsEngine:
-    """
-    High-performance analytics engine with all optimizations integrated.
+    """High-performance analytics engine with all optimizations integrated.
+    
+    This engine combines multiple performance optimization techniques to provide
+    fast, memory-efficient health data analytics with real-time UI updates.
     
     Features:
-    - Streaming data loading for large datasets
-    - Progressive UI updates
-    - Multi-level caching
-    - Connection pooling
-    - Priority-based task scheduling
-    - Performance monitoring
-    - Memory-efficient processing
+        - Streaming data loading for large datasets
+        - Progressive UI updates during computation
+        - Multi-level caching with intelligent invalidation
+        - Connection pooling for database efficiency
+        - Priority-based task scheduling
+        - Performance monitoring and metrics
+        - Memory-efficient chunked processing
+        - Asynchronous computation with callbacks
+    
+    The engine is designed to handle datasets of any size while maintaining
+    responsive user interfaces through progressive loading and incremental
+    result delivery.
+    
+    Attributes:
+        connection_pool (ConnectionPool): Database connection pool.
+        data_access (PooledDataAccess): Pooled database access layer.
+        data_loader (StreamingDataLoader): Streaming data loading system.
+        computation_queue (ComputationQueue): Task scheduling and execution.
+        progressive_manager (ProgressiveAnalyticsManager): Progressive loading coordination.
+        cache_manager (CacheManager): Multi-level caching system.
+        performance_monitor (PerformanceMonitor): Performance tracking.
     """
     
     def __init__(self,
                  database_path: str,
                  cache_manager: Optional[CacheManager] = None,
                  enable_monitoring: bool = True):
-        """
-        Initialize optimized analytics engine.
+        """Initialize optimized analytics engine.
+        
+        Sets up all components including connection pooling, streaming data loading,
+        computation queues, progressive loading, caching, and performance monitoring.
         
         Args:
-            database_path: Path to SQLite database
-            cache_manager: Optional cache manager instance
-            enable_monitoring: Enable performance monitoring
+            database_path (str): Path to SQLite database file.
+            cache_manager (Optional[CacheManager]): Optional cache manager instance.
+                                                   Creates new one if not provided.
+            enable_monitoring (bool): Whether to enable performance monitoring.
+                                     Defaults to True.
         """
         # Connection pooling
         self.connection_pool = ConnectionPool(

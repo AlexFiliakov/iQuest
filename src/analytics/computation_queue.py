@@ -38,9 +38,9 @@ class TaskStatus(Enum):
 class ComputationTask:
     """Represents a computation task in the queue."""
     priority: int = field(compare=True)
+    func: Callable = field(compare=False)
     created_at: datetime = field(default_factory=datetime.now, compare=True)
     task_id: str = field(default_factory=lambda: str(uuid.uuid4()), compare=False)
-    func: Callable = field(compare=False)
     args: tuple = field(default_factory=tuple, compare=False)
     kwargs: dict = field(default_factory=dict, compare=False)
     callback: Optional[Callable] = field(default=None, compare=False)

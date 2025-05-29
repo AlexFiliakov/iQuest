@@ -49,11 +49,6 @@ review the updated spec `.simone/02_REQUIREMENTS/M01/SPECS_DB.md` and make the i
 review the outstanding work in sprint `.simone/03_SPRINTS/S02_M01_Data_Processing/S02_sprint_meta.md` and create tasks for any remaining work. Partition the tasks for parallel work and create subtasks when the work needs to be completed together.
 
 
-##### current: #####
-repairing tests
-
-
-
 
 ######## Repairing Tests ########
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
@@ -78,29 +73,26 @@ then:
 pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
 Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
 
+
+
+## S05 ##
+current:
+G063_export_visualization_system.md
+fix the errors identified in file `tests/pytest_failure_summaries.txt`
+update all docstrings in modules, submodules, classes, methods, and functions. Adhere to the Google docstring style.
+
+
+next:
+Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
+
+update sphinx documentation templates for the latest code structure
+Update README.md and CLAUDE.md with the latest directory structures
+
 then:
 Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
-current:
-review sprint `S04_M01_health_analytics`
-
 then:
-begin print `S05_M01_Visualization`
-
-## S05 ##
-G058_visualization_component_architecture.md
-- G061_multi_metric_dashboard_layouts.md
-  - G063_export_visualization_system.md
-- G065_accessibility_compliance_system.md
-- G066_visualization_testing_framework.md
-G059_real_time_data_binding.md
-
-then:
-G060_interactive_chart_controls.md
-G062_health_insight_annotations.md
 G064_visualization_performance_optimization.md
-
-G081
 
 
 ### ongoing ###############
@@ -216,3 +208,4 @@ T09_S08_humor_content.md
 
 then:
 T10_S08_integration_testing.md
+

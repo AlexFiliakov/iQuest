@@ -16,24 +16,127 @@ Focus on establishing project foundation, PyQt6 skeleton app, and development en
 ## Project Structure
 ```
 Apple Health Exports/
-├── src/                    # Application source code
-│   ├── __init__.py        # Package initialization
-│   ├── main.py            # Entry point (PyQt6 app)
-│   ├── ui/                # UI components
-│   ├── data/              # Data processing
-│   ├── analytics/         # Analytics engine
-│   └── utils/             # Utilities
-├── tests/                  # Test suites
-│   ├── unit/              # Unit tests
-│   ├── integration/       # Integration tests
-│   └── ui/                # UI tests
-├── assets/                 # Icons, themes, fonts
-├── data/                   # User data (gitignored)
-├── docs/                   # Documentation
-├── venv/                   # Virtual environment
-├── requirements.txt        # Python dependencies
-├── README.md              # Project overview
-└── .gitignore             # Git ignore rules
+├── src/                           # Application source code
+│   ├── __init__.py               # Package initialization
+│   ├── main.py                   # Entry point (PyQt6 app)
+│   ├── config.py                 # Configuration management
+│   ├── models.py                 # Data models
+│   ├── data_access.py            # Data access layer
+│   ├── data_loader.py            # Data import and processing
+│   ├── database.py               # Database operations
+│   ├── health_database.py        # Health-specific database operations
+│   ├── xml_streaming_processor.py # XML processing with streaming
+│   ├── filter_config_manager.py  # Filter configuration management
+│   ├── data_filter_engine.py     # Data filtering engine
+│   ├── data_availability_service.py # Data availability tracking
+│   ├── statistics_calculator.py  # Statistical calculations
+│   ├── predictive_analytics.py   # Predictive analytics engine
+│   ├── version.py                # Version information
+│   ├── analytics/                # Analytics modules
+│   │   ├── __init__.py
+│   │   ├── advanced_trend_engine.py      # Advanced trend analysis
+│   │   ├── anomaly_detection_system.py   # Anomaly detection system
+│   │   ├── cache_manager.py              # Cache management
+│   │   ├── comparative_analytics.py      # Comparative analytics
+│   │   ├── computation_queue.py          # Computation queue management
+│   │   ├── connection_pool.py            # Database connection pool
+│   │   ├── correlation_analyzer.py       # Correlation analysis
+│   │   ├── daily_metrics_calculator.py   # Daily metrics calculations
+│   │   ├── data_story_generator.py       # Data story generation
+│   │   ├── goal_management_system.py     # Goal management
+│   │   ├── health_insights_engine.py     # Health insights engine
+│   │   ├── monthly_metrics_calculator.py # Monthly metrics
+│   │   ├── optimized_analytics_engine.py # Optimized analytics
+│   │   ├── performance_monitor.py        # Performance monitoring
+│   │   ├── progressive_loader.py         # Progressive data loading
+│   │   ├── streaming_data_loader.py      # Streaming data loader
+│   │   ├── week_over_week_trends.py      # Weekly trend analysis
+│   │   ├── weekly_metrics_calculator.py  # Weekly metrics
+│   │   └── health_score/                 # Health scoring system
+│   │       ├── __init__.py
+│   │       ├── health_score_calculator.py
+│   │       ├── health_score_models.py
+│   │       └── personalization_engine.py
+│   ├── ui/                        # UI components
+│   │   ├── __init__.py
+│   │   ├── main_window.py                # Main application window
+│   │   ├── component_factory.py          # Component factory
+│   │   ├── configuration_tab.py          # Configuration interface
+│   │   ├── adaptive_configuration_tab.py # Adaptive configuration
+│   │   ├── statistics_widget.py          # Statistics display
+│   │   ├── bar_chart_component.py        # Bar chart component
+│   │   ├── comparative_visualization.py  # Comparative visualizations
+│   │   ├── data_story_widget.py          # Data story display
+│   │   ├── goal_progress_widget.py       # Goal progress display
+│   │   ├── health_insights_widget.py     # Health insights display
+│   │   ├── import_progress_dialog.py     # Import progress dialog
+│   │   ├── monthly_dashboard_widget.py   # Monthly dashboard
+│   │   ├── preference_tracker.py         # User preference tracking
+│   │   ├── progressive_ui_integration.py # Progressive UI loading
+│   │   ├── settings_manager.py           # Settings management
+│   │   ├── summary_cards.py              # Summary card display
+│   │   ├── table_components.py           # Table components
+│   │   └── charts/                       # Chart components
+│   │       ├── __init__.py
+│   │       ├── base_chart.py             # Base chart class
+│   │       ├── line_chart.py             # Line chart component
+│   │       ├── enhanced_line_chart.py    # Enhanced line charts
+│   │       ├── calendar_heatmap.py       # Calendar heatmap
+│   │       ├── matplotlib_chart_factory.py # Matplotlib charts
+│   │       ├── pyqtgraph_chart_factory.py # PyQtGraph charts
+│   │       ├── shareable_dashboard.py    # Shareable dashboards
+│   │       ├── wsj_health_visualization_suite.py # WSJ-style visualizations
+│   │       └── wsj_style_manager.py      # WSJ style management
+│   └── utils/                     # Utility modules
+│       ├── __init__.py
+│       ├── error_handler.py              # Error handling decorators and utilities
+│       ├── logging_config.py             # Centralized logging configuration
+│       └── xml_validator.py              # XML validation utilities
+├── tests/                         # Test suites
+│   ├── __init__.py
+│   ├── conftest.py                       # Test configuration
+│   ├── unit/                             # Unit tests
+│   │   ├── __init__.py
+│   │   └── test_*.py                     # Individual unit test files
+│   ├── integration/                      # Integration tests
+│   │   └── test_*.py                     # Integration test files
+│   ├── ui/                               # UI tests
+│   │   └── test_*.py                     # UI test files
+│   ├── performance/                      # Performance tests
+│   │   ├── __init__.py
+│   │   ├── benchmark_base.py
+│   │   └── test_*.py                     # Performance test files
+│   ├── visual/                           # Visual regression tests
+│   │   ├── baseline_manager.py
+│   │   └── visual_test_base.py
+│   ├── fixtures/                         # Test fixtures
+│   │   ├── __init__.py
+│   │   └── health_fixtures.py
+│   └── generators/                       # Test data generators
+│       ├── __init__.py
+│       └── health_data.py
+├── docs/                          # Documentation
+│   ├── api/                              # API documentation
+│   ├── architecture/                     # Architecture documentation
+│   ├── development/                      # Development documentation
+│   ├── user/                             # User documentation
+│   └── *.md                              # Various documentation files
+├── coverage_analysis/             # Test coverage analysis
+│   └── *.py                              # Coverage analysis tools
+├── tools/                         # Development tools
+│   └── *.py                              # Development utilities
+├── examples/                      # Usage examples
+│   └── *.py                              # Example scripts
+├── assets/                        # Icons, themes, fonts
+│   ├── README.md
+│   └── characters/                       # Character assets
+├── logs/                          # Application logs (gitignored)
+├── data/                          # User data (gitignored)
+├── specs/                         # Project specifications
+├── pyproject.toml                 # Project configuration
+├── pytest.ini                    # Pytest configuration
+├── requirements*.txt              # Python dependencies
+└── venv/                          # Virtual environment (gitignored)
 ```
 
 ## Development Setup

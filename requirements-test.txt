@@ -18,3 +18,18 @@ faker>=18.0.0
 # Ensure PyQt6 is installed for UI tests
 PyQt6>=6.5.0
 pytest-qt>=4.2.0
+
+# Performance and system monitoring
+psutil>=5.9.0
+
+# Image processing and comparison
+scikit-image>=0.19.0
+imagehash>=4.3.0
+opencv-python>=4.7.0
+
+# Platform detection (optional)
+distro>=1.8.0 ; sys_platform == 'linux'
+
+# Accessibility testing
+axe-selenium-python>=2.1.0
+pytest-accessibility>=0.2.0
