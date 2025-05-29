@@ -118,3 +118,76 @@
   3. **This Sprint:** Implement simple line/bar charts without dual rendering engines
   4. **Next Sprint:** Refactor main_window.py and data_loader.py into smaller modules
   5. **Future:** Add complexity only when proven necessary by real usage
+
+## Additional Engineering Observations (Carmack Perspective)
+
+### The Reality Check
+
+**The fundamental problem:** You're not building what users asked for. They wanted a health dashboard, you're building a medical AI system.
+
+**What users actually need:**
+- Load CSV → Show charts → Export image. That's it.
+- Everything else is v2.0 (if ever).
+
+### The Hard Questions
+
+1. **Who is this for?** If it's for non-technical users, why does it need medical-grade recommendations?
+2. **What's the MVP?** The real MVP is embarrassingly simple compared to what's been built.
+3. **Why the complexity?** This smells like resume-driven development, not user-driven development.
+
+### The 2GB Elephant in the Room
+
+The ML dependencies alone (TensorFlow, Prophet, etc.) will make the executable larger than most AAA games. For what? To tell someone their steps went up 10%? This is engineering malpractice.
+
+### The File Organization Disaster is a Symptom
+
+Those 11 scripts in root exist because developers are actively bypassing the "proper" architecture to get work done. When your team circumvents your systems, the systems are the problem.
+
+### Three Paths Forward
+
+#### Option A: The Nuclear Option (Recommended)
+1. Create new branch
+2. Delete everything except:
+   - Basic PyQt window  
+   - Simple CSV/XML parser
+   - matplotlib charts only
+   - SQLite for settings
+3. Rebuild focusing ONLY on sprint requirements
+4. Ship working v1.0 in 2 weeks
+
+**Verdict:** This is what I'd do. The "lost work" wasn't valuable.
+
+#### Option B: The Surgical Strike
+1. **Today:** Delete all ML dependencies
+2. **Tomorrow:** Extract just tab switching from 1499-line main_window.py
+3. **This Week:** One chart type with real data
+4. **Next Week:** Second chart type
+
+**Verdict:** Still fighting unnecessary complexity.
+
+#### Option C: The Political Compromise
+Keep architecture but:
+1. Feature freeze except basic charts
+2. Create "simple mode" bypassing fancy features
+3. Ship v1.0 with basics
+4. Add complexity in v2.0 if users demand it
+
+**Verdict:** Ships 2GB of unused code to save developer ego.
+
+### The Brutal Truth
+
+You're in Sprint 5 of 7. You have 2 sprints left. You can either:
+- Ship something simple that works
+- Ship nothing that's "architecturally pure"
+
+Every line of code not directly helping users see their health data is wasted time. The ML stuff? The streaming architecture? The three-tier cache? Delete it all.
+
+**Make it work first. Make it good later. Make it complex never.**
+
+### Final Verdict
+
+Can my mom use this to see her health trends? No? Then you've failed.
+
+The test infrastructure is actually good - keep that. Everything else? Start over with the question: "What's the simplest thing that could possibly work?"
+
+Because right now, nothing works.

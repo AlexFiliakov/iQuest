@@ -1,9 +1,9 @@
 ---
 sprint_id: S06_M01_Journal_Feature
 title: Journal Note-Taking Functionality
-status: planned
-start_date: 2025-03-03
-end_date: 2025-03-09
+status: in_progress
+start_date: 2025-05-29
+end_date: 
 ---
 
 # Sprint S06: Journal Note-Taking Functionality
