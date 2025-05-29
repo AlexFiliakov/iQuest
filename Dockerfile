@@ -1,5 +1,5 @@
 # Multi-stage build for Python application
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -16,7 +16,7 @@ COPY requirements*.txt ./
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Runtime stage
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Install runtime dependencies for Qt
 RUN apt-get update && apt-get install -y \
