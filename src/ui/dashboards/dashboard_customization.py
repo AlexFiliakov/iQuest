@@ -108,14 +108,14 @@ class DraggableChartWidget(QFrame):
         """Handle mouse press for drag initiation."""
         if event.button() == Qt.MouseButton.LeftButton:
             # Check if click is on header
-            if self.header.geometry().contains(event.pos()):
-                self._drag_start_position = event.pos()
+            if self.header.geometry().contains(event.position().toPoint()):
+                self._drag_start_position = event.position().toPoint()
                 self.header.setCursor(Qt.CursorShape.ClosedHandCursor)
                 
     def mouseMoveEvent(self, event):
         """Handle mouse move for dragging."""
         if event.buttons() == Qt.MouseButton.LeftButton and self._drag_start_position:
-            distance = (event.pos() - self._drag_start_position).manhattanLength()
+            distance = (event.position().toPoint() - self._drag_start_position).manhattanLength()
             if distance >= 10:  # Start drag after minimum distance
                 self._start_drag()
                 

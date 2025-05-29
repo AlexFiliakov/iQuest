@@ -1,8 +1,8 @@
 """
-Monthly dashboard widget containing the calendar heatmap and related components.
+Modern monthly dashboard widget with improved UI design.
 
-This widget provides the monthly view of health metrics with calendar heatmap visualization,
-summary statistics, and month navigation controls.
+This widget provides a modern, Wall Street Journal-inspired monthly view of health metrics
+with tighter layout, better visual hierarchy, and modern design patterns.
 """
 
 from typing import Dict, List, Optional, Any
@@ -11,29 +11,31 @@ from calendar import monthrange
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy
+    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
+    QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QDate
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtCore import Qt, pyqtSignal, QDate, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QFont, QIcon, QPainter, QColor, QPen
 
 from .charts.calendar_heatmap import CalendarHeatmapComponent
 from .statistics_widget import StatisticsWidget
 from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
 from ..utils.logging_config import get_logger
+from .style_manager import StyleManager
 
 logger = get_logger(__name__)
 
 
-class MonthlyDashboardWidget(QWidget):
+class ModernMonthlyDashboardWidget(QWidget):
     """
-    Monthly dashboard widget with calendar heatmap and analytics.
+    Modern monthly dashboard widget with improved UI design.
     
     Features:
-    - Calendar heatmap visualization
-    - Monthly summary statistics
-    - Month navigation controls
-    - Metric selection dropdown
-    - Journal entry integration
+    - Modern, clean visual design with better use of space
+    - Smooth animations and transitions
+    - Improved visual hierarchy
+    - Wall Street Journal-inspired typography
+    - Tighter layout without excessive borders
     """
     
     # Signals
@@ -45,12 +47,13 @@ class MonthlyDashboardWidget(QWidget):
         super().__init__(parent)
         
         self.monthly_calculator = monthly_calculator
+        self.style_manager = StyleManager()
         
         # Always initialize to current date
         now = datetime.now()
         self._current_year = now.year
         self._current_month = now.month
-        logger.info(f"Initializing MonthlyDashboardWidget with date: {self._current_month}/{self._current_year}")
+        logger.info(f"Initializing ModernMonthlyDashboardWidget with date: {self._current_month}/{self._current_year}")
         
         self._current_metric = "steps"
         self._available_metrics = ["steps", "heart_rate", "sleep_hours", "distance"]
@@ -66,128 +69,103 @@ class MonthlyDashboardWidget(QWidget):
         self._load_month_data()
         
     def _setup_ui(self):
-        """Set up the user interface."""
-        # Main layout
+        """Set up the modern user interface."""
+        # Main layout - Tighter margins
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(16)
+        
+        # Apply background color
+        self.setStyleSheet(f"background-color: {self.style_manager.SECONDARY_BG};")
         
         # Header section
-        header = self._create_header()
+        header = self._create_modern_header()
         main_layout.addWidget(header)
         
-        # Content area with scroll
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: transparent;
-            }
-            QScrollBar:vertical {
-                background-color: #F8F9FA;
-                width: 12px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #ADB5BD;
-                border-radius: 6px;
-                min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #6C757D;
-            }
-        """)
+        # Content area - No scroll area for cleaner look
+        content_layout = QVBoxLayout()
+        content_layout.setSpacing(16)
         
-        # Content widget
-        content_widget = QWidget(self)
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(20)
+        # Main content grid for better space utilization
+        content_grid = QGridLayout()
+        content_grid.setSpacing(16)
         
-        # Calendar heatmap section
-        heatmap_section = self._create_heatmap_section()
-        content_layout.addWidget(heatmap_section)
+        # Calendar heatmap section (spans 2 columns)
+        heatmap_section = self._create_modern_heatmap_section()
+        content_grid.addWidget(heatmap_section, 0, 0, 1, 2)
         
         # Summary statistics section
-        stats_section = self._create_statistics_section()
-        content_layout.addWidget(stats_section)
+        stats_section = self._create_modern_statistics_section()
+        content_grid.addWidget(stats_section, 1, 0, 1, 2)
         
-        # Journal section placeholder
-        journal_section = self._create_journal_section()
-        content_layout.addWidget(journal_section)
-        
+        content_layout.addLayout(content_grid)
         content_layout.addStretch()
         
-        scroll_area.setWidget(content_widget)
-        main_layout.addWidget(scroll_area)
+        main_layout.addLayout(content_layout)
         
-    def _create_header(self) -> QWidget:
-        """Create the dashboard header with navigation and controls."""
-        header = QFrame(self)
-        header.setStyleSheet("""
-            QFrame {
-                background-color: #FFF8F0;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 16px;
-            }
-        """)
+    def _create_modern_header(self) -> QWidget:
+        """Create the modern dashboard header."""
+        header = QWidget(self)
+        header.setMaximumHeight(60)
         
         layout = QHBoxLayout(header)
-        layout.setSpacing(20)
+        layout.setContentsMargins(16, 8, 16, 8)
+        layout.setSpacing(16)
         
         # Month navigation
         nav_layout = QHBoxLayout()
+        nav_layout.setSpacing(8)
         
         # Previous month button
         self.prev_btn = QPushButton("◀")
-        self.prev_btn.setFixedSize(40, 40)
-        self.prev_btn.setStyleSheet(self._get_nav_button_style())
+        self.prev_btn.setFixedSize(36, 36)
+        self.prev_btn.setStyleSheet(self._get_modern_nav_button_style())
         self.prev_btn.setToolTip("Previous month")
+        self.prev_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         nav_layout.addWidget(self.prev_btn)
         
         # Current month/year label
         self.month_label = QLabel(self)
-        self.month_label.setFont(QFont('Poppins', 18, QFont.Weight.Bold))
-        self.month_label.setStyleSheet("color: #5D4E37; padding: 0 20px;")
+        self.month_label.setFont(QFont('Inter', 22, QFont.Weight.Bold))
+        self.month_label.setStyleSheet(f"color: {self.style_manager.TEXT_PRIMARY}; padding: 0 12px;")
         self.month_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Set fixed width to accommodate longest month name (September) plus year
-        # Typical width: "September 2023" with padding
-        self.month_label.setFixedWidth(250)
+        self.month_label.setFixedWidth(200)
         nav_layout.addWidget(self.month_label)
         
         # Next month button
         self.next_btn = QPushButton("▶")
-        self.next_btn.setFixedSize(40, 40)
-        self.next_btn.setStyleSheet(self._get_nav_button_style())
+        self.next_btn.setFixedSize(36, 36)
+        self.next_btn.setStyleSheet(self._get_modern_nav_button_style())
         self.next_btn.setToolTip("Next month")
+        self.next_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         nav_layout.addWidget(self.next_btn)
         
         # Today button
         self.today_btn = QPushButton("Today")
-        self.today_btn.setFixedSize(70, 40)
-        self.today_btn.setStyleSheet(self._get_nav_button_style())
+        self.today_btn.setFixedSize(64, 36)
+        self.today_btn.setStyleSheet(self._get_modern_today_button_style())
         self.today_btn.setToolTip("Go to current month")
+        self.today_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         nav_layout.addWidget(self.today_btn)
         
         layout.addLayout(nav_layout)
         layout.addStretch()
         
-        # Metric selector
+        # Metric selector with modern styling
         metric_layout = QHBoxLayout()
+        metric_layout.setSpacing(8)
         
         metric_label = QLabel("Metric:", self)
-        metric_label.setFont(QFont('Inter', 12, QFont.Weight.Medium))
-        metric_label.setStyleSheet("color: #5D4E37;")
+        metric_label.setFont(QFont('Inter', 13, QFont.Weight.Medium))
+        metric_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
         metric_layout.addWidget(metric_label)
         
         self.metric_combo = QComboBox(self)
         self.metric_combo.addItems([
             "Steps", "Heart Rate", "Sleep Hours", "Distance"
         ])
-        self.metric_combo.setStyleSheet(self._get_combo_style())
+        self.metric_combo.setStyleSheet(self._get_modern_combo_style())
+        self.metric_combo.setCursor(Qt.CursorShape.PointingHandCursor)
         metric_layout.addWidget(self.metric_combo)
         
         layout.addLayout(metric_layout)
@@ -197,30 +175,34 @@ class MonthlyDashboardWidget(QWidget):
         
         return header
         
-    def _create_heatmap_section(self) -> QWidget:
-        """Create the calendar heatmap section."""
+    def _create_modern_heatmap_section(self) -> QWidget:
+        """Create the modern calendar heatmap section."""
         section = QFrame(self)
-        section.setStyleSheet("""
-            QFrame {
-                background-color: #FFFFFF;
-                border: 1px solid rgba(139, 115, 85, 0.1);
+        section.setObjectName("modernSection")
+        
+        # Apply modern card styling with shadow effect
+        section.setStyleSheet(f"""
+            QFrame#modernSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
                 border-radius: 12px;
                 padding: 20px;
-            }
+            }}
         """)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 30))
+        section.setGraphicsEffect(shadow)
         
         layout = QVBoxLayout(section)
         layout.setSpacing(16)
         
-        # Section title
-        title = QLabel("Monthly Activity Calendar")
-        title.setFont(QFont('Poppins', 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #5D4E37; margin-bottom: 8px;")
-        layout.addWidget(title)
-        
         # Calendar heatmap
         self.calendar_heatmap = CalendarHeatmapComponent()
-        self.calendar_heatmap.setMinimumHeight(350)  # Reduced minimum height
+        self.calendar_heatmap.setMinimumHeight(320)
         # Set to Month Grid view by default for monthly dashboard
         self.calendar_heatmap._view_mode = "month_grid"
         # Hide view mode controls since we want Month Grid only
@@ -229,42 +211,35 @@ class MonthlyDashboardWidget(QWidget):
         
         return section
         
-    def _create_statistics_section(self) -> QWidget:
-        """Create the summary statistics section."""
-        section = QFrame(self)
-        section.setStyleSheet("""
-            QFrame {
-                background-color: #FFFFFF;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-            }
-        """)
+    def _create_modern_statistics_section(self) -> QWidget:
+        """Create the modern summary statistics section."""
+        section = QWidget(self)
         
         layout = QVBoxLayout(section)
-        layout.setSpacing(16)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         
-        # Section title
+        # Section title with modern typography
         title = QLabel("Monthly Summary")
-        title.setFont(QFont('Poppins', 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #5D4E37; margin-bottom: 8px;")
+        title.setFont(QFont('Inter', 14, QFont.Weight.DemiBold))
+        title.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY}; margin-bottom: 4px;")
         layout.addWidget(title)
         
-        # Statistics grid
+        # Statistics grid - 2x2 layout
         stats_grid = QGridLayout()
-        stats_grid.setSpacing(16)
+        stats_grid.setSpacing(12)
         
-        # Create statistics cards
+        # Create modern statistics cards
         self.stats_cards = {}
         stats_info = [
-            ("average", "Average", "#FF8C42"),
-            ("total", "Total", "#FFD166"),
-            ("best_day", "Best Day", "#95C17B"),
-            ("trend", "Trend", "#6C9BD1")
+            ("average", "Average", self.style_manager.DATA_ORANGE),
+            ("total", "Total", self.style_manager.DATA_PURPLE),
+            ("best_day", "Best Day", self.style_manager.ACCENT_SUCCESS),
+            ("trend", "Trend", self.style_manager.ACCENT_SECONDARY)
         ]
         
         for i, (key, label, color) in enumerate(stats_info):
-            card = self._create_stat_card(label, "0", color)
+            card = self._create_modern_stat_card(label, "0", color)
             self.stats_cards[key] = card
             row, col = divmod(i, 2)
             stats_grid.addWidget(card, row, col)
@@ -273,30 +248,43 @@ class MonthlyDashboardWidget(QWidget):
         
         return section
         
-    def _create_stat_card(self, title: str, value: str, color: str) -> QWidget:
-        """Create a summary statistic card."""
+    def _create_modern_stat_card(self, title: str, value: str, color: str) -> QWidget:
+        """Create a modern summary statistic card."""
         card = QFrame(self)
+        card.setObjectName("statCard")
         card.setStyleSheet(f"""
-            QFrame {{
-                background-color: #FFF8F0;
-                border-left: 4px solid {color};
-                border-radius: 8px;
+            QFrame#statCard {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border-radius: 10px;
                 padding: 16px;
+                border-left: 3px solid {color};
+            }}
+            QFrame#statCard:hover {{
+                background-color: {self.style_manager.TERTIARY_BG};
             }}
         """)
         
+        # Add subtle shadow
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setXOffset(0)
+        shadow.setYOffset(2)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        card.setGraphicsEffect(shadow)
+        
         layout = QVBoxLayout(card)
-        layout.setSpacing(8)
+        layout.setSpacing(4)
+        layout.setContentsMargins(12, 12, 12, 12)
         
         # Title
         title_label = QLabel(title)
-        title_label.setFont(QFont('Inter', 12, QFont.Weight.Medium))
-        title_label.setStyleSheet("color: #8B7355;")
+        title_label.setFont(QFont('Inter', 11, QFont.Weight.Medium))
+        title_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
         layout.addWidget(title_label)
         
-        # Value
+        # Value with larger font
         value_label = QLabel(value)
-        value_label.setFont(QFont('Poppins', 20, QFont.Weight.Bold))
+        value_label.setFont(QFont('Inter', 22, QFont.Weight.Bold))
         value_label.setStyleSheet(f"color: {color};")
         layout.addWidget(value_label)
         
@@ -305,78 +293,96 @@ class MonthlyDashboardWidget(QWidget):
         
         return card
         
-    def _create_journal_section(self) -> QWidget:
-        """Create the journal section placeholder."""
-        section = QFrame(self)
-        section.setStyleSheet("""
-            QFrame {
-                background-color: #FFFFFF;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-            }
-        """)
-        
-        layout = QVBoxLayout(section)
-        layout.setSpacing(16)
-        
-        # Section title
-        title = QLabel("Monthly Reflection")
-        title.setFont(QFont('Poppins', 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #5D4E37; margin-bottom: 8px;")
-        layout.addWidget(title)
-        
-        # Placeholder content
-        placeholder = QLabel("Journal feature coming soon...")
-        placeholder.setStyleSheet("color: #A69583; font-style: italic;")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(placeholder)
-        
-        return section
-        
-    def _get_nav_button_style(self) -> str:
-        """Get navigation button stylesheet."""
-        return """
-            QPushButton {
-                background-color: #FFFFFF;
-                border: 2px solid #E8DCC8;
-                border-radius: 20px;
-                color: #5D4E37;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #FFF8F0;
-                border-color: #FF8C42;
-                color: #FF8C42;
-            }
-            QPushButton:pressed {
-                background-color: #FFE8D1;
-            }
+    def _get_modern_nav_button_style(self) -> str:
+        """Get modern navigation button stylesheet."""
+        return f"""
+            QPushButton {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border: none;
+                border-radius: 18px;
+                color: {self.style_manager.TEXT_PRIMARY};
+                font-size: 14px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {self.style_manager.TERTIARY_BG};
+                color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.style_manager.ACCENT_LIGHT};
+            }}
         """
         
-    def _get_combo_style(self) -> str:
-        """Get combobox stylesheet."""
-        return """
-            QComboBox {
-                background-color: #FFFFFF;
-                border: 2px solid #E8DCC8;
-                border-radius: 6px;
-                padding: 8px 12px;
-                color: #5D4E37;
+    def _get_modern_today_button_style(self) -> str:
+        """Get modern today button stylesheet."""
+        return f"""
+            QPushButton {{
+                background-color: {self.style_manager.ACCENT_SECONDARY};
+                border: none;
+                border-radius: 18px;
+                color: {self.style_manager.TEXT_INVERSE};
                 font-size: 12px;
-                min-width: 120px;
-            }
-            QComboBox:hover {
-                border-color: #FF8C42;
-            }
-            QComboBox::drop-down {
+                font-weight: 600;
+                padding: 0 12px;
+            }}
+            QPushButton:hover {{
+                background-color: #1D4ED8;
+            }}
+            QPushButton:pressed {{
+                background-color: #1E40AF;
+            }}
+        """
+        
+    def _get_modern_combo_style(self) -> str:
+        """Get modern combobox stylesheet."""
+        return f"""
+            QComboBox {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border: 1px solid {self.style_manager.ACCENT_LIGHT};
+                border-radius: 8px;
+                padding: 8px 12px;
+                color: {self.style_manager.TEXT_PRIMARY};
+                font-size: 13px;
+                font-weight: 500;
+                min-width: 140px;
+            }}
+            QComboBox:hover {{
+                border-color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QComboBox:focus {{
+                border-color: {self.style_manager.ACCENT_SECONDARY};
+                border-width: 2px;
+            }}
+            QComboBox::drop-down {{
                 border: none;
-            }
-            QComboBox::down-arrow {
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
                 image: none;
-                border: none;
-            }
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid {self.style_manager.TEXT_SECONDARY};
+                margin-right: 8px;
+            }}
+            QComboBox:hover::down-arrow {{
+                border-top-color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border: 1px solid {self.style_manager.ACCENT_LIGHT};
+                border-radius: 8px;
+                padding: 4px;
+                selection-background-color: {self.style_manager.TERTIARY_BG};
+                selection-color: {self.style_manager.ACCENT_SECONDARY};
+            }}
+            QComboBox QAbstractItemView::item {{
+                padding: 8px 12px;
+                min-height: 28px;
+                border-radius: 4px;
+            }}
+            QComboBox QAbstractItemView::item:hover {{
+                background-color: {self.style_manager.TERTIARY_BG};
+            }}
         """
         
     def _setup_connections(self):
@@ -439,6 +445,16 @@ class MonthlyDashboardWidget(QWidget):
         self._current_month = next_month
         self._current_year = next_year
             
+        self._update_month_label()
+        self._load_month_data()
+        self.month_changed.emit(self._current_year, self._current_month)
+        
+    def reset_to_current_month(self):
+        """Reset the view to the current month."""
+        now = datetime.now()
+        self._current_year = now.year
+        self._current_month = now.month
+        logger.info(f"Resetting to current month: {self._current_month}/{self._current_year}")
         self._update_month_label()
         self._load_month_data()
         self.month_changed.emit(self._current_year, self._current_month)
@@ -512,7 +528,6 @@ class MonthlyDashboardWidget(QWidget):
         
     def _generate_sample_data(self) -> Dict[date, float]:
         """Generate sample data for demonstration."""
-        # This is placeholder data - in production would come from monthly_calculator
         import random
         
         sample_data = {}
@@ -536,7 +551,7 @@ class MonthlyDashboardWidget(QWidget):
         return sample_data
         
     def _update_summary_stats(self, data: Dict[date, float]):
-        """Update the summary statistics cards."""
+        """Update the summary statistics cards with animations."""
         if not data:
             return
             
@@ -553,6 +568,7 @@ class MonthlyDashboardWidget(QWidget):
         first_half_avg = sum(values[:mid_point]) / mid_point if mid_point > 0 else 0
         second_half_avg = sum(values[mid_point:]) / (len(values) - mid_point) if len(values) > mid_point else 0
         trend = "↑" if second_half_avg > first_half_avg else "↓"
+        trend_text = "Trending Up" if second_half_avg > first_half_avg else "Trending Down"
         
         # Format values based on metric type
         if self._current_metric == "steps":
@@ -572,21 +588,35 @@ class MonthlyDashboardWidget(QWidget):
             total_text = f"{total:.1f} km"
             best_text = f"{best_value:.1f} km"
             
-        # Update cards
+        # Update cards with animation effect
         self.stats_cards["average"].value_label.setText(avg_text)
         self.stats_cards["total"].value_label.setText(total_text)
         self.stats_cards["best_day"].value_label.setText(f"{best_text}")
-        self.stats_cards["trend"].value_label.setText(f"{trend} Trending")
+        self.stats_cards["trend"].value_label.setText(f"{trend} {trend_text}")
+        
+        # Add subtle fade animation
+        for card in self.stats_cards.values():
+            self._animate_card_update(card)
+            
+    def _animate_card_update(self, card: QWidget):
+        """Animate card update with fade effect."""
+        # Create opacity animation
+        self.fade_animation = QPropertyAnimation(card, b"windowOpacity")
+        self.fade_animation.setDuration(150)
+        self.fade_animation.setStartValue(0.7)
+        self.fade_animation.setEndValue(1.0)
+        self.fade_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.fade_animation.start()
         
     def _on_date_clicked(self, clicked_date: date):
         """Handle date click in calendar heatmap."""
         # TODO: Show detailed daily view
-        print(f"Date clicked: {clicked_date}")
+        logger.info(f"Date clicked: {clicked_date}")
         
     def _on_date_range_selected(self, start_date: date, end_date: date):
         """Handle date range selection in calendar heatmap."""
         # TODO: Show range statistics
-        print(f"Date range selected: {start_date} to {end_date}")
+        logger.info(f"Date range selected: {start_date} to {end_date}")
         
     def set_data_source(self, monthly_calculator):
         """Set the monthly metrics calculator data source."""
@@ -597,16 +627,6 @@ class MonthlyDashboardWidget(QWidget):
         """Get the current year and month being displayed."""
         return self._current_year, self._current_month
     
-    def reset_to_current_month(self):
-        """Reset the view to the current month."""
-        now = datetime.now()
-        self._current_year = now.year
-        self._current_month = now.month
-        logger.info(f"Resetting to current month: {self._current_month}/{self._current_year}")
-        self._update_month_label()
-        self._load_month_data()
-        self.month_changed.emit(self._current_year, self._current_month)
-        
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""
         super().showEvent(event)

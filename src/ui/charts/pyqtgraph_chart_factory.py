@@ -507,7 +507,7 @@ class CorrelationHeatmapChart(InteractiveChartWidget):
             return
         
         # Get position
-        pos = event.pos()
+        pos = event.position().toPoint()
         i, j = int(pos.x()), int(pos.y())
         
         # Get correlation value
@@ -523,7 +523,7 @@ class CorrelationHeatmapChart(InteractiveChartWidget):
     
     def _on_click(self, event):
         """Handle click events."""
-        pos = event.pos()
+        pos = event.position().toPoint()
         i, j = int(pos.x()), int(pos.y())
         
         corr_matrix = self.data.get('correlation', pd.DataFrame())

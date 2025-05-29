@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QGridLayout, QGroupBox, QProgressBar, QToolTip
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
 
 from ..analytics.comparative_analytics import (
@@ -585,6 +585,193 @@ class PeerGroupComparisonWidget(QWidget):
             return 75 + 20 * (value - stats['percentile_75']) / (stats['max'] - stats['percentile_75'])
 
 
+class SeasonalTrendsWidget(QWidget):
+    """Widget for displaying seasonal trends with loading state."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.comparative_engine = None
+        self.current_metric = None
+        self.is_loading = True
+        self.seasonal_data = None
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Initialize the UI."""
+        layout = QVBoxLayout(self)
+        
+        # Loading state
+        self.loading_label = QLabel("Seasonal Trends (caching...)")
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_label.setStyleSheet("""
+            font-size: 18px;
+            color: #666666;
+            padding: 40px;
+        """)
+        layout.addWidget(self.loading_label)
+        
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 0)  # Indeterminate progress
+        self.progress_bar.setTextVisible(False)
+        layout.addWidget(self.progress_bar)
+        
+        # Content widget (hidden initially)
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_widget.hide()
+        layout.addWidget(self.content_widget)
+        
+        layout.addStretch()
+        
+    def set_comparative_engine(self, engine):
+        """Set the comparative analytics engine."""
+        self.comparative_engine = engine
+        
+    def set_current_metric(self, metric: str):
+        """Set the current metric."""
+        self.current_metric = metric
+        
+    def update_metric(self, metric: str):
+        """Update the displayed metric and start loading seasonal data."""
+        self.current_metric = metric
+        self.show_loading()
+        
+        # Start loading seasonal data
+        if self.comparative_engine:
+            # Simulate async loading - in real implementation this would be async
+            QTimer.singleShot(2000, self.load_seasonal_data)
+        
+    def show_loading(self):
+        """Show loading state."""
+        self.is_loading = True
+        self.loading_label.show()
+        self.progress_bar.show()
+        self.content_widget.hide()
+        
+    def load_seasonal_data(self):
+        """Load seasonal pattern data."""
+        if not self.comparative_engine:
+            self.show_no_data()
+            return
+            
+        try:
+            # Get seasonal analyzer
+            if hasattr(self.comparative_engine, 'seasonal_analyzer'):
+                analyzer = self.comparative_engine.seasonal_analyzer
+                
+                # Analyze seasonal patterns
+                from datetime import datetime, timedelta
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=365)
+                
+                patterns = analyzer.analyze_seasonal_patterns(
+                    self.current_metric,
+                    start_date,
+                    end_date
+                )
+                
+                self.seasonal_data = patterns
+                self.show_seasonal_patterns()
+            else:
+                self.show_no_data()
+                
+        except Exception as e:
+            logger.error(f"Error loading seasonal data: {e}")
+            self.show_error()
+    
+    def show_seasonal_patterns(self):
+        """Display the loaded seasonal patterns."""
+        self.is_loading = False
+        self.loading_label.hide()
+        self.progress_bar.hide()
+        
+        # Clear content
+        while self.content_layout.count():
+            child = self.content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+        
+        # Add title
+        title = QLabel("Seasonal Trends")
+        title.setStyleSheet("""
+            font-size: 20px;
+            font-weight: bold;
+            color: #333333;
+            padding: 10px 0;
+        """)
+        self.content_layout.addWidget(title)
+        
+        # Add seasonal pattern visualization
+        if self.seasonal_data:
+            # Pattern strength indicator
+            strength_widget = self._create_strength_widget()
+            self.content_layout.addWidget(strength_widget)
+            
+            # Key findings
+            findings_widget = self._create_findings_widget()
+            self.content_layout.addWidget(findings_widget)
+            
+            # Seasonal chart placeholder
+            chart_label = QLabel("Seasonal pattern visualization coming soon...")
+            chart_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            chart_label.setStyleSheet("""
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                padding: 60px;
+                color: #666;
+            """)
+            self.content_layout.addWidget(chart_label)
+        
+        self.content_layout.addStretch()
+        self.content_widget.show()
+        
+    def _create_strength_widget(self) -> QWidget:
+        """Create seasonal strength indicator."""
+        widget = QGroupBox("Pattern Strength")
+        layout = QHBoxLayout(widget)
+        
+        if self.seasonal_data and hasattr(self.seasonal_data, 'seasonal_strength'):
+            strength_label = QLabel(f"Strength: {self.seasonal_data.seasonal_strength.value}")
+            strength_label.setStyleSheet("font-size: 14px; font-weight: bold;")
+            layout.addWidget(strength_label)
+        
+        return widget
+        
+    def _create_findings_widget(self) -> QWidget:
+        """Create key findings widget."""
+        widget = QGroupBox("Key Findings")
+        layout = QVBoxLayout(widget)
+        
+        if self.seasonal_data and hasattr(self.seasonal_data, 'insights'):
+            for insight in self.seasonal_data.insights[:3]:
+                label = QLabel(f"• {insight}")
+                label.setWordWrap(True)
+                layout.addWidget(label)
+        else:
+            label = QLabel("Analyzing seasonal patterns...")
+            layout.addWidget(label)
+        
+        return widget
+        
+    def show_no_data(self):
+        """Show no data available state."""
+        self.is_loading = False
+        self.loading_label.setText("No seasonal data available")
+        self.progress_bar.hide()
+        
+    def show_error(self):
+        """Show error state."""
+        self.is_loading = False
+        self.loading_label.setText("Error loading seasonal trends")
+        self.loading_label.setStyleSheet("""
+            font-size: 18px;
+            color: #d32f2f;
+            padding: 40px;
+        """)
+        self.progress_bar.hide()
+
+
 class ComparativeAnalyticsWidget(QWidget):
     """Main widget for comparative analytics display."""
     
@@ -647,6 +834,7 @@ class ComparativeAnalyticsWidget(QWidget):
         # Connect buttons
         self.personal_btn.clicked.connect(self.show_personal)
         self.group_btn.clicked.connect(self.show_group)
+        self.seasonal_btn.clicked.connect(self.show_seasonal)
         
     def show_personal(self):
         """Show personal comparison view."""
@@ -665,11 +853,43 @@ class ComparativeAnalyticsWidget(QWidget):
         
         self.historical_widget.hide()
         self.group_widget.show()
+        
+    def show_seasonal(self):
+        """Show seasonal trends view."""
+        self.personal_btn.setChecked(False)
+        self.group_btn.setChecked(False)
+        self.seasonal_btn.setChecked(True)
+        
+        # Hide other widgets
+        self.historical_widget.hide()
+        self.group_widget.hide()
+        
+        # Check if seasonal widget exists
+        if not hasattr(self, 'seasonal_widget'):
+            # Create seasonal widget with loading state
+            self.seasonal_widget = SeasonalTrendsWidget()
+            self.content_stack.addWidget(self.seasonal_widget)
+            
+            # Connect to comparative engine if available
+            if self.comparative_engine:
+                self.seasonal_widget.set_comparative_engine(self.comparative_engine)
+                self.seasonal_widget.set_current_metric(self.current_metric)
+        
+        # Show seasonal widget
+        self.seasonal_widget.show()
+        
+        # Update with current metric
+        if hasattr(self, 'current_metric'):
+            self.seasonal_widget.update_metric(self.current_metric)
     
     def set_comparative_engine(self, engine):
         """Set the comparative analytics engine."""
         self.comparative_engine = engine
         logger.info("Comparative engine set for visualization widget")
+        
+        # Pass engine to seasonal widget if it exists
+        if hasattr(self, 'seasonal_widget'):
+            self.seasonal_widget.set_comparative_engine(engine)
         
         # Trigger initial trend calculation for default metric
         if engine and hasattr(engine, 'background_processor') and engine.background_processor:
@@ -679,6 +899,10 @@ class ComparativeAnalyticsWidget(QWidget):
         """Set the current metric and update display."""
         self.current_metric = metric
         self.update_comparisons()
+        
+        # Update seasonal widget if it exists
+        if hasattr(self, 'seasonal_widget'):
+            self.seasonal_widget.update_metric(metric)
         
     def update_comparisons(self):
         """Update comparison displays using cached trends."""

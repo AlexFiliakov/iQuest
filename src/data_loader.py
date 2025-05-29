@@ -116,14 +116,50 @@ def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
         conn.execute('BEGIN IMMEDIATE')
         
         try:
-            # Store data
-            record_data.to_sql('health_records', conn, 
-                             index=False, if_exists='replace')
+            # Store data using INSERT OR IGNORE to prevent duplicates
+            # First ensure the table exists with unique constraint
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS health_records (
+                    type TEXT,
+                    sourceName TEXT,
+                    sourceVersion TEXT,
+                    device TEXT,
+                    unit TEXT,
+                    creationDate TEXT,
+                    startDate TEXT,
+                    endDate TEXT,
+                    value REAL,
+                    UNIQUE(type, sourceName, startDate, endDate, value)
+                )
+            """)
             
-            # Validate the import by checking record count
-            imported_count = conn.execute('SELECT COUNT(*) FROM health_records').fetchone()[0]
-            if imported_count != len(record_data):
-                raise DatabaseError(f"Import verification failed: expected {len(record_data)} records, found {imported_count}")
+            # Insert records one by one with INSERT OR IGNORE
+            records_inserted = 0
+            for _, row in record_data.iterrows():
+                try:
+                    conn.execute("""
+                        INSERT OR IGNORE INTO health_records 
+                        (type, sourceName, sourceVersion, device, unit, creationDate, startDate, endDate, value)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        row.get('type', ''),
+                        row.get('sourceName', ''),
+                        row.get('sourceVersion', ''),
+                        row.get('device', ''),
+                        row.get('unit', ''),
+                        str(row.get('creationDate', '')) if pd.notna(row.get('creationDate')) else '',
+                        str(row.get('startDate', '')) if pd.notna(row.get('startDate')) else '',
+                        str(row.get('endDate', '')) if pd.notna(row.get('endDate')) else '',
+                        row.get('value', 1.0)
+                    ))
+                    if conn.total_changes > records_inserted:
+                        records_inserted = conn.total_changes
+                except Exception as e:
+                    logger.warning(f"Failed to insert record: {e}")
+            
+            # Log import results
+            total_count = conn.execute('SELECT COUNT(*) FROM health_records').fetchone()[0]
+            logger.info(f"Import complete: {records_inserted} new records added, {total_count} total records in database")
             
             # Create indexes for fast queries
             conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
@@ -140,14 +176,14 @@ def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
                 )
             ''')
             conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', datetime('now'))")
-            conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('record_count', '{len(record_data)}')")
+            conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('record_count', '{records_inserted}')")
             conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('source_file', '{xml_path}')")
             
             # Commit transaction
             conn.commit()
-            logger.info(f"Successfully imported {len(record_data)} records with transaction")
+            logger.info(f"Successfully imported {records_inserted} new records (skipped {len(record_data) - records_inserted} duplicates)")
             
-            return len(record_data)
+            return records_inserted
             
         except Exception as e:
             # Rollback transaction on any error
@@ -223,29 +259,65 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
         # Create SQLite database with indexes
         logger.info(f"Creating SQLite database: {db_path}")
         with sqlite3.connect(db_path) as conn:
-            # Store data
-            record_data.to_sql('health_records', conn, 
-                             index=False, if_exists='replace')
+            # Create table with unique constraint
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS health_records (
+                    type TEXT,
+                    sourceName TEXT,
+                    sourceVersion TEXT,
+                    device TEXT,
+                    unit TEXT,
+                    creationDate TEXT,
+                    startDate TEXT,
+                    endDate TEXT,
+                    value REAL,
+                    UNIQUE(type, sourceName, startDate, endDate, value)
+                )
+            """)
+            
+            # Insert records using INSERT OR IGNORE
+            records_inserted = 0
+            for _, row in record_data.iterrows():
+                try:
+                    conn.execute("""
+                        INSERT OR IGNORE INTO health_records 
+                        (type, sourceName, sourceVersion, device, unit, creationDate, startDate, endDate, value)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        row.get('type', ''),
+                        row.get('sourceName', ''),
+                        row.get('sourceVersion', ''),
+                        row.get('device', ''),
+                        row.get('unit', ''),
+                        str(row.get('creationDate', '')) if pd.notna(row.get('creationDate')) else '',
+                        str(row.get('startDate', '')) if pd.notna(row.get('startDate')) else '',
+                        str(row.get('endDate', '')) if pd.notna(row.get('endDate')) else '',
+                        row.get('value', 1.0)
+                    ))
+                    if conn.total_changes > records_inserted:
+                        records_inserted = conn.total_changes
+                except Exception as e:
+                    logger.warning(f"Failed to insert record: {e}")
             
             # Create indexes for fast queries
-            conn.execute('CREATE INDEX idx_creation_date ON health_records(creationDate)')
-            conn.execute('CREATE INDEX idx_type ON health_records(type)')
-            conn.execute('CREATE INDEX idx_type_date ON health_records(type, creationDate)')
-            conn.execute('CREATE INDEX idx_source ON health_records(sourceName)')
-            conn.execute('CREATE INDEX idx_source_type ON health_records(sourceName, type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_source ON health_records(sourceName)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_source_type ON health_records(sourceName, type)')
             
             # Create metadata table
             conn.execute('''
-                CREATE TABLE metadata (
+                CREATE TABLE IF NOT EXISTS metadata (
                     key TEXT PRIMARY KEY,
                     value TEXT
                 )
             ''')
-            conn.execute("INSERT INTO metadata VALUES ('import_date', datetime('now'))")
-            conn.execute(f"INSERT INTO metadata VALUES ('record_count', '{len(record_data)}')")
+            conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', datetime('now'))")
+            conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('record_count', '{records_inserted}')")
             
-        logger.info(f"Successfully imported {len(record_data)} records")
-        return len(record_data)
+        logger.info(f"Successfully imported {records_inserted} new records (skipped {len(record_data) - records_inserted} duplicates)")
+        return records_inserted
     except sqlite3.Error as e:
         logger.error(f"Database error during conversion: {e}")
         raise

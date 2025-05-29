@@ -8,37 +8,45 @@ logger = get_logger(__name__)
 class StyleManager:
     """Manages application styling and themes."""
     
-    # Color palette constants - WSJ-inspired professional palette
+    # Color palette constants - Modern WSJ-inspired professional palette
     PRIMARY_BG = "#FFFFFF"       # Clean white background
-    SECONDARY_BG = "#F8F9FA"     # Light gray for cards
-    TERTIARY_BG = "#F8F9FA"      # Light gray for sections
+    SECONDARY_BG = "#FAFBFC"     # Very light gray for subtle contrast
+    TERTIARY_BG = "#F3F4F6"      # Light gray for hover states
+    SURFACE_ELEVATED = "#FFFFFF" # Elevated surface with shadow
     
-    ACCENT_PRIMARY = "#5B6770"   # Sophisticated slate - CTAs
-    ACCENT_SECONDARY = "#ADB5BD" # Medium gray - highlights
-    ACCENT_SUCCESS = "#28A745"   # Professional green - positive
-    ACCENT_WARNING = "#FFC107"   # Standard amber - caution
-    ACCENT_ERROR = "#DC3545"     # Standard red - errors
-    ACCENT_LIGHT = "#E9ECEF"     # Light gray - selections
+    ACCENT_PRIMARY = "#0F172A"   # Rich black - primary text
+    ACCENT_SECONDARY = "#2563EB" # Vibrant blue - CTAs and highlights
+    ACCENT_SUCCESS = "#10B981"   # Modern green - positive states
+    ACCENT_WARNING = "#F59E0B"   # Modern amber - caution
+    ACCENT_ERROR = "#EF4444"     # Modern red - errors
+    ACCENT_LIGHT = "#E5E7EB"     # Light gray - subtle borders
     
-    TEXT_PRIMARY = "#212529"     # Near black
-    TEXT_SECONDARY = "#6C757D"   # Medium gray
-    TEXT_MUTED = "#ADB5BD"       # Light gray
+    TEXT_PRIMARY = "#0F172A"     # Rich black
+    TEXT_SECONDARY = "#64748B"   # Slate gray
+    TEXT_MUTED = "#94A3B8"       # Light slate
     TEXT_INVERSE = "#FFFFFF"     # White on dark
     
+    # New accent colors for data visualization
+    DATA_ORANGE = "#FB923C"      # Warm orange for data points
+    DATA_PURPLE = "#A78BFA"      # Soft purple for secondary data
+    DATA_TEAL = "#2DD4BF"        # Teal for tertiary data
+    DATA_PINK = "#F472B6"        # Pink for quaternary data
+    
     # Focus indicator color
-    FOCUS_COLOR = "#5B6770"      # Slate for focus indicators
-    FOCUS_SHADOW = "rgba(91, 103, 112, 0.3)"  # Slate shadow for focus
+    FOCUS_COLOR = "#0080C7"      # WSJ Blue for focus
+    FOCUS_SHADOW = "rgba(0, 128, 199, 0.25)"  # Blue shadow for focus
     
-    # Chart colors - Professional palette
-    CHART_COLORS = ["#5B6770", "#6C757D", "#ADB5BD", "#495057", "#868E96"]
+    # Chart colors - Modern vibrant palette
+    CHART_COLORS = ["#2563EB", "#10B981", "#FB923C", "#A78BFA", "#2DD4BF", "#F472B6"]
     
-    # Shadow system - Note: Qt doesn't support CSS box-shadow directly
+    # Shadow system - Modern elevation system
     # These are for reference, actual implementation uses borders and effects
     SHADOWS = {
-        'sm': '0 1px 3px rgba(0,0,0,0.06)',
-        'md': '0 2px 4px rgba(0,0,0,0.08)', 
-        'lg': '0 4px 12px rgba(0,0,0,0.10)',
-        'xl': '0 8px 24px rgba(0,0,0,0.12)'
+        'sm': '0 1px 2px rgba(0,0,0,0.05)',
+        'md': '0 4px 6px rgba(0,0,0,0.07)', 
+        'lg': '0 10px 15px rgba(0,0,0,0.10)',
+        'xl': '0 20px 25px rgba(0,0,0,0.15)',
+        'inner': 'inset 0 2px 4px rgba(0,0,0,0.06)'
     }
     
     def __init__(self):
@@ -161,19 +169,20 @@ class StyleManager:
                     background-color: {self.ACCENT_PRIMARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 12px 24px;
-                    border-radius: 4px;
-                    font-weight: 500;
-                    font-size: 13px;
+                    padding: 12px 28px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    font-size: 14px;
                     min-height: 44px;
+                    letter-spacing: 0.3px;
                 }}
                 
                 QPushButton:hover {{
-                    background-color: #4A5560;
+                    background-color: #333333;
                 }}
                 
                 QPushButton:pressed {{
-                    background-color: #3A4550;
+                    background-color: #000000;
                 }}
                 
                 QPushButton:disabled {{
@@ -183,25 +192,26 @@ class StyleManager:
                 
                 QPushButton:focus {{
                     outline: none;
-                    border: 3px solid rgba(91,103,112,0.25);
+                    border: 3px solid {self.FOCUS_SHADOW};
                 }}
             """
         elif button_type == "secondary":
             return f"""
                 QPushButton {{
-                    background-color: transparent;
+                    background-color: {self.PRIMARY_BG};
                     color: {self.ACCENT_PRIMARY};
-                    border: 1px solid {self.ACCENT_LIGHT};
-                    padding: 12px 24px;
-                    border-radius: 4px;
-                    font-weight: 500;
-                    font-size: 13px;
+                    border: 1.5px solid {self.ACCENT_LIGHT};
+                    padding: 12px 28px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    font-size: 14px;
                     min-height: 44px;
+                    letter-spacing: 0.3px;
                 }}
                 
                 QPushButton:hover {{
                     background-color: {self.TERTIARY_BG};
-                    border-color: {self.ACCENT_PRIMARY};
+                    border-color: {self.TEXT_SECONDARY};
                 }}
                 
                 QPushButton:pressed {{
@@ -217,7 +227,7 @@ class StyleManager:
                 
                 QPushButton:focus {{
                     outline: none;
-                    border: 3px solid rgba(91,103,112,0.25);
+                    border: 3px solid {self.FOCUS_SHADOW};
                 }}
             """
         elif button_type == "ghost":
@@ -563,7 +573,7 @@ class StyleManager:
             
             QPushButton:focus, QToolButton:focus {{
                 outline: none;
-                border: 3px solid rgba(91,103,112,0.25);
+                border: 3px solid {self.FOCUS_SHADOW};
             }}
             
             QTabBar::tab:focus {{
@@ -573,7 +583,7 @@ class StyleManager:
             
             QCheckBox:focus, QRadioButton:focus {{
                 outline: none;
-                border: 3px solid rgba(91,103,112,0.25);
+                border: 3px solid {self.FOCUS_SHADOW};
                 border-radius: 4px;
             }}
             
@@ -587,15 +597,15 @@ class StyleManager:
             }}
             
             QPushButton[class="ghost"]:hover {{
-                background-color: rgba(91,103,112,0.08);
+                background-color: rgba(26,26,26,0.08);
             }}
             
             QPushButton[class="ghost"]:pressed {{
-                background-color: rgba(91,103,112,0.12);
+                background-color: rgba(26,26,26,0.12);
             }}
             
             QPushButton[class="ghost"]:focus {{
-                border: 3px solid rgba(91,103,112,0.25);
+                border: 3px solid {self.FOCUS_SHADOW};
             }}
         """
         
@@ -643,5 +653,50 @@ class StyleManager:
                 border: none;
                 border-bottom: 1px solid rgba(0, 0, 0, 0.05);
                 font-weight: 600;
+            }}
+        """
+    
+    def get_tooltip_style(self):
+        """Get modern tooltip style."""
+        return f"""
+            QToolTip {{
+                background-color: {self.TEXT_PRIMARY};
+                color: {self.TEXT_INVERSE};
+                border: none;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 500;
+            }}
+        """
+    
+    def get_modern_dialog_style(self):
+        """Get modern dialog styling with elevated appearance."""
+        return f"""
+            QDialog {{
+                background-color: {self.SURFACE_ELEVATED};
+                border-radius: 12px;
+                border: 1px solid rgba(0, 0, 0, 0.08);
+            }}
+        """
+    
+    def get_modern_progress_bar_style(self):
+        """Get modern progress bar style with gradient effect."""
+        return f"""
+            QProgressBar {{
+                border: none;
+                border-radius: 12px;
+                text-align: center;
+                background-color: {self.TERTIARY_BG};
+                height: 24px;
+                font-weight: 600;
+                font-size: 13px;
+                color: {self.TEXT_PRIMARY};
+            }}
+            QProgressBar::chunk {{
+                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+                    stop: 0 {self.ACCENT_SECONDARY},
+                    stop: 1 #0066A1);
+                border-radius: 12px;
             }}
         """

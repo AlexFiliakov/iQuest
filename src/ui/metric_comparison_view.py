@@ -108,8 +108,8 @@ class CorrelationMatrix(QWidget):
         
     def mousePressEvent(self, event):
         """Handle mouse clicks on cells."""
-        x = event.pos().x() - self.margin
-        y = event.pos().y() - self.margin
+        x = event.position().x() - self.margin
+        y = event.position().y() - self.margin
         
         if x >= 0 and y >= 0:
             col = x // self.cell_size

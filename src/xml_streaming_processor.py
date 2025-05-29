@@ -87,7 +87,7 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
         try:
             self.conn = sqlite3.connect(self.db_path)
             
-            # Create health_records table
+            # Create health_records table with unique constraint
             self.conn.execute('''
                 CREATE TABLE IF NOT EXISTS health_records (
                     type TEXT,
@@ -98,7 +98,8 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
                     creationDate TEXT,
                     startDate TEXT,
                     endDate TEXT,
-                    value REAL
+                    value REAL,
+                    UNIQUE(type, sourceName, startDate, endDate, value)
                 )
             ''')
             
@@ -154,7 +155,10 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
             # Update progress if callback provided
             if self.progress_callback and self.file_size > 0:
                 progress_pct = (self.bytes_processed / self.file_size) * 100
-                self.progress_callback(progress_pct, self.record_count)
+                # Check if callback returns False to signal cancellation
+                should_continue = self.progress_callback(progress_pct, self.record_count)
+                if should_continue is False:
+                    raise xml.sax.SAXException("Import cancelled by user")
             
             # Check memory usage
             if self.memory_monitor and self.memory_monitor.is_over_limit():
@@ -203,20 +207,35 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
             return
             
         try:
-            # Convert to DataFrame for efficient processing
-            df = pd.DataFrame(self.records)
+            # Insert records using INSERT OR IGNORE to prevent duplicates
+            records_inserted = 0
+            cursor = self.conn.cursor()
             
-            # Convert date columns
-            date_cols = ['creationDate', 'startDate', 'endDate']
-            for col in date_cols:
-                if col in df.columns:
-                    df[col] = pd.to_datetime(df[col], errors='coerce')
+            for record in self.records:
+                try:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO health_records 
+                        (type, sourceName, sourceVersion, device, unit, creationDate, startDate, endDate, value)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        record.get('type', ''),
+                        record.get('sourceName', ''),
+                        record.get('sourceVersion', ''),
+                        record.get('device', ''),
+                        record.get('unit', ''),
+                        record.get('creationDate'),
+                        record.get('startDate'),
+                        record.get('endDate'),
+                        record.get('value', 1.0)
+                    ))
+                    if cursor.rowcount > 0:
+                        records_inserted += 1
+                except Exception as e:
+                    logger.warning(f"Failed to insert record: {e}")
             
-            # Insert into database
-            df.to_sql('health_records', self.conn, if_exists='append', index=False)
             self.conn.commit()
             
-            logger.debug(f"Flushed {len(self.records)} records to database")
+            logger.debug(f"Flushed {records_inserted} new records to database (skipped {len(self.records) - records_inserted} duplicates)")
             
             # Clear records from memory
             self.records.clear()
@@ -228,6 +247,15 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
     def characters(self, content: str):
         """Handle character data (not used for Apple Health XML)."""
         self.bytes_processed += len(content.encode('utf-8'))
+    
+    def startDocument(self):
+        """Handle start of document."""
+        self.bytes_processed = 0
+        self.record_count = 0
+    
+    def ignorableWhitespace(self, whitespace):
+        """Track whitespace for progress."""
+        self.bytes_processed += len(whitespace.encode('utf-8'))
     
     def finalize(self) -> int:
         """Finalize processing and close database connection."""
@@ -307,7 +335,7 @@ class XMLStreamingProcessor:
         else:
             logger.info("Using memory-based processor for small file")
             # Fall back to existing memory-based approach for small files
-            from data_loader import convert_xml_to_sqlite
+            from .data_loader import convert_xml_to_sqlite
             return convert_xml_to_sqlite(xml_path, db_path)
     
     def _stream_process(self, xml_path: str, db_path: str,
@@ -343,8 +371,13 @@ class XMLStreamingProcessor:
             return record_count
             
         except xml.sax.SAXException as e:
-            logger.error(f"XML parsing error: {e}")
-            raise DataImportError(f"Failed to parse XML: {str(e)}")
+            # Check if this is a cancellation
+            if "cancelled by user" in str(e).lower():
+                logger.info("Import cancelled by user")
+                raise DataImportError("Import cancelled by user")
+            else:
+                logger.error(f"XML parsing error: {e}")
+                raise DataImportError(f"Failed to parse XML: {str(e)}")
         except Exception as e:
             logger.error(f"Streaming processing error: {e}")
             raise DataImportError(f"Streaming processing failed: {str(e)}")

@@ -186,8 +186,8 @@ class DailyDashboardWidget(QWidget):
         main_layout.setSpacing(20)
         
         # Header section
-        header = self._create_header()
-        main_layout.addWidget(header)
+        self.header_widget = self._create_header()
+        main_layout.addWidget(self.header_widget)
         
         # Content area with scroll
         scroll_area = QScrollArea(self)
@@ -241,7 +241,7 @@ class DailyDashboardWidget(QWidget):
         main_layout.addWidget(scroll_area)
     
     def _create_header(self) -> QWidget:
-        """Create the dashboard header with date and refresh."""
+        """Create the dashboard header with date selector and refresh."""
         header = QFrame(self)
         header.setStyleSheet("""
             QFrame {
@@ -255,20 +255,124 @@ class DailyDashboardWidget(QWidget):
         layout = QHBoxLayout(header)
         layout.setSpacing(20)
         
-        # Date display
-        date_layout = QVBoxLayout()
+        # Date navigation
+        date_nav_layout = QHBoxLayout()
+        date_nav_layout.setSpacing(10)
         
-        self.date_label = QLabel(self._current_date.strftime("%A"))
+        # Previous day button
+        self.prev_day_btn = QPushButton("◀")
+        self.prev_day_btn.setFixedSize(36, 36)
+        self.prev_day_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                border: 1px solid rgba(139, 115, 85, 0.2);
+                border-radius: 18px;
+                font-size: 14px;
+                color: #5D4E37;
+            }
+            QPushButton:hover {
+                background-color: #FFF8F0;
+                border: 2px solid #FF8C42;
+            }
+            QPushButton:pressed {
+                background-color: #F5E6D3;
+            }
+        """)
+        self.prev_day_btn.setToolTip("Previous day")
+        date_nav_layout.addWidget(self.prev_day_btn)
+        
+        # Date picker button
+        from PyQt6.QtWidgets import QDateEdit
+        from PyQt6.QtCore import QDate
+        
+        self.date_picker = QDateEdit(self)
+        self.date_picker.setDate(QDate(self._current_date))
+        self.date_picker.setCalendarPopup(True)
+        self.date_picker.setDisplayFormat("MMMM d, yyyy")
+        self.date_picker.setStyleSheet("""
+            QDateEdit {
+                background-color: white;
+                border: 1px solid rgba(139, 115, 85, 0.2);
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-family: Poppins;
+                font-size: 14px;
+                color: #5D4E37;
+                min-width: 180px;
+            }
+            QDateEdit:hover {
+                border: 2px solid #FF8C42;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid rgba(139, 115, 85, 0.2);
+            }
+            QDateEdit::down-arrow {
+                image: none;
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #5D4E37;
+            }
+        """)
+        self.date_picker.dateChanged.connect(self._on_date_picked)
+        date_nav_layout.addWidget(self.date_picker)
+        
+        # Next day button
+        self.next_day_btn = QPushButton("▶")
+        self.next_day_btn.setFixedSize(36, 36)
+        self.next_day_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                border: 1px solid rgba(139, 115, 85, 0.2);
+                border-radius: 18px;
+                font-size: 14px;
+                color: #5D4E37;
+            }
+            QPushButton:hover {
+                background-color: #FFF8F0;
+                border: 2px solid #FF8C42;
+            }
+            QPushButton:pressed {
+                background-color: #F5E6D3;
+            }
+            QPushButton:disabled {
+                background-color: rgba(255, 255, 255, 0.5);
+                color: rgba(93, 78, 55, 0.3);
+            }
+        """)
+        self.next_day_btn.setToolTip("Next day")
+        # Disable if current date is today
+        self.next_day_btn.setEnabled(self._current_date < date.today())
+        date_nav_layout.addWidget(self.next_day_btn)
+        
+        layout.addLayout(date_nav_layout)
+        
+        # Date display
+        date_display_layout = QVBoxLayout()
+        
+        # Dynamic title based on whether it's today
+        if self._current_date == date.today():
+            title_text = "Today's Summary"
+        else:
+            title_text = self._current_date.strftime("%A")
+        
+        self.date_label = QLabel(title_text)
         self.date_label.setFont(QFont('Poppins', 24, QFont.Weight.Bold))
         self.date_label.setStyleSheet("color: #5D4E37;")
-        date_layout.addWidget(self.date_label)
+        date_display_layout.addWidget(self.date_label)
         
-        self.full_date_label = QLabel(self._current_date.strftime("%B %d, %Y"))
-        self.full_date_label.setFont(QFont('Poppins', 14))
-        self.full_date_label.setStyleSheet("color: #8B7355;")
-        date_layout.addWidget(self.full_date_label)
+        # Subtitle showing relative date
+        relative_text = self._get_relative_date_text()
+        self.relative_date_label = QLabel(relative_text)
+        self.relative_date_label.setFont(QFont('Poppins', 12))
+        self.relative_date_label.setStyleSheet("color: #8B7355;")
+        date_display_layout.addWidget(self.relative_date_label)
         
-        layout.addLayout(date_layout)
+        layout.addLayout(date_display_layout)
         layout.addStretch()
         
         # Today button
@@ -317,8 +421,10 @@ class DailyDashboardWidget(QWidget):
         return header
     
     def _create_summary_section(self) -> QWidget:
-        """Create today's summary section."""
-        section = QGroupBox("Today's Summary")
+        """Create summary section."""
+        title = "Today's Summary" if self._current_date == date.today() else f"{self._current_date.strftime('%A')}'s Summary"
+        section = QGroupBox(title)
+        self.summary_section = section
         section.setStyleSheet("""
             QGroupBox {
                 background-color: white;
@@ -544,6 +650,8 @@ class DailyDashboardWidget(QWidget):
         """Set up signal connections."""
         self.today_btn.clicked.connect(self._go_to_today)
         self.refresh_btn.clicked.connect(self._refresh_data)
+        self.prev_day_btn.clicked.connect(self._go_to_previous_day)
+        self.next_day_btn.clicked.connect(self._go_to_next_day)
         self.view_selector.currentTextChanged.connect(self._filter_metric_cards)
         self.detail_metric_selector.currentTextChanged.connect(self._update_detail_chart)
     
@@ -612,6 +720,7 @@ class DailyDashboardWidget(QWidget):
     def _load_daily_data(self):
         """Load data for the current date."""
         if not self.daily_calculator:
+            self._show_no_data_message()
             return
             
         try:
@@ -620,24 +729,39 @@ class DailyDashboardWidget(QWidget):
                 self._create_metric_cards()
                 self._populate_detail_selector()
             
+            # Check if we have any data for this date
+            has_any_data = False
+            metrics_with_data = []
+            
             # Get today's data for each metric
             for metric_name, card in self._metric_cards.items():
                 stats = self._get_metric_stats(metric_name)
-                if stats:
+                if stats and stats['value'] is not None:
                     card.update_value(stats['value'], stats.get('trend'))
+                    has_any_data = True
+                    metrics_with_data.append(metric_name)
+                else:
+                    card.update_value(None, None)
             
-            # Update summary cards
-            self._update_summary_cards()
-            
-            # Update timeline
-            self._update_timeline()
-            
-            # Update detail chart if metric selected
-            if self.detail_metric_selector.currentText():
-                self._update_detail_chart()
+            if not has_any_data:
+                self._show_no_data_for_date()
+            else:
+                # Hide no data message if it exists
+                self._hide_no_data_message()
+                
+                # Update summary cards
+                self._update_summary_cards()
+                
+                # Update timeline
+                self._update_timeline()
+                
+                # Update detail chart if metric selected
+                if self.detail_metric_selector.currentText():
+                    self._update_detail_chart()
                 
         except Exception as e:
             logger.error(f"Error loading daily data: {e}")
+            self._show_error_message(str(e))
     
     def _get_metric_stats(self, metric_name: str) -> Optional[Dict]:
         """Get statistics for a specific metric."""
@@ -974,9 +1098,71 @@ class DailyDashboardWidget(QWidget):
     
     def _update_date_display(self):
         """Update the date display labels."""
-        self.date_label.setText(self._current_date.strftime("%A"))
-        self.full_date_label.setText(self._current_date.strftime("%B %d, %Y"))
+        # Update title
+        if self._current_date == date.today():
+            title_text = "Today's Summary"
+        else:
+            title_text = self._current_date.strftime("%A")
+        self.date_label.setText(title_text)
+        
+        # Update relative date
+        relative_text = self._get_relative_date_text()
+        self.relative_date_label.setText(relative_text)
+        
+        # Update date picker
+        from PyQt6.QtCore import QDate
+        self.date_picker.setDate(QDate(self._current_date))
+        
+        # Update navigation buttons
         self.today_btn.setEnabled(self._current_date != date.today())
+        self.next_day_btn.setEnabled(self._current_date < date.today())
+        
+        # Update summary section title
+        if hasattr(self, 'summary_section'):
+            summary_title = "Today's Summary" if self._current_date == date.today() else f"{self._current_date.strftime('%A')}'s Summary"
+            self.summary_section.setTitle(summary_title)
+    
+    def _get_relative_date_text(self) -> str:
+        """Get relative date text for display."""
+        today = date.today()
+        delta = (self._current_date - today).days
+        
+        if delta == 0:
+            return self._current_date.strftime("%B %d, %Y")
+        elif delta == -1:
+            return "Yesterday"
+        elif delta == 1:
+            return "Tomorrow"
+        elif -7 <= delta < -1:
+            return f"{-delta} days ago"
+        elif 1 < delta <= 7:
+            return f"In {delta} days"
+        else:
+            return self._current_date.strftime("%B %d, %Y")
+    
+    def _go_to_previous_day(self):
+        """Navigate to the previous day."""
+        self._current_date = self._current_date - timedelta(days=1)
+        self._update_date_display()
+        self._refresh_data()
+        self.date_changed.emit(self._current_date)
+    
+    def _go_to_next_day(self):
+        """Navigate to the next day."""
+        if self._current_date < date.today():
+            self._current_date = self._current_date + timedelta(days=1)
+            self._update_date_display()
+            self._refresh_data()
+            self.date_changed.emit(self._current_date)
+    
+    def _on_date_picked(self, qdate):
+        """Handle date selection from the date picker."""
+        new_date = qdate.toPyDate()
+        if new_date != self._current_date and new_date <= date.today():
+            self._current_date = new_date
+            self._update_date_display()
+            self._refresh_data()
+            self.date_changed.emit(self._current_date)
     
     def _refresh_data(self):
         """Refresh all data displays."""
@@ -1016,6 +1202,160 @@ class DailyDashboardWidget(QWidget):
         self.personal_records = tracker
         self._update_summary_cards()
     
+    def _show_no_data_message(self):
+        """Show message when no data is loaded."""
+        # Create or update no data overlay
+        if not hasattr(self, 'no_data_overlay'):
+            from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+            from PyQt6.QtCore import Qt
+            
+            self.no_data_overlay = QWidget(self)
+            self.no_data_overlay.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(255, 255, 255, 0.95);
+                    border-radius: 12px;
+                    border: 1px solid rgba(139, 115, 85, 0.1);
+                    margin: 10px;
+                }
+            """)
+            
+            overlay_layout = QVBoxLayout(self.no_data_overlay)
+            overlay_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            # Icon
+            icon_label = QLabel("📊")
+            icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            icon_label.setStyleSheet("font-size: 64px;")
+            overlay_layout.addWidget(icon_label)
+            
+            # Message
+            message_label = QLabel("No Data Loaded")
+            message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            message_label.setStyleSheet("""
+                font-family: Poppins;
+                font-size: 24px;
+                font-weight: 600;
+                color: #5D4E37;
+                margin: 20px 0;
+            """)
+            overlay_layout.addWidget(message_label)
+            
+            # Instructions
+            instructions = QLabel("Please go to the Configuration tab and import your Apple Health data.")
+            instructions.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            instructions.setWordWrap(True)
+            instructions.setStyleSheet("""
+                font-family: Poppins;
+                font-size: 14px;
+                color: #8B7355;
+                max-width: 400px;
+            """)
+            overlay_layout.addWidget(instructions)
+        
+        # Position and show overlay
+        self._position_overlay()
+        self.no_data_overlay.show()
+        self.no_data_overlay.raise_()
+    
+    def _show_no_data_for_date(self):
+        """Show message when no data exists for selected date."""
+        if not hasattr(self, 'no_data_overlay'):
+            from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+            from PyQt6.QtCore import Qt
+            
+            self.no_data_overlay = QWidget(self)
+            self.no_data_overlay.setStyleSheet("""
+                QWidget {
+                    background-color: rgba(255, 255, 255, 0.95);
+                    border-radius: 12px;
+                    border: 1px solid rgba(139, 115, 85, 0.1);
+                    margin: 10px;
+                }
+            """)
+            
+            overlay_layout = QVBoxLayout(self.no_data_overlay)
+            overlay_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            # Icon
+            self.no_data_icon = QLabel("📅")
+            self.no_data_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.no_data_icon.setStyleSheet("font-size: 64px;")
+            overlay_layout.addWidget(self.no_data_icon)
+            
+            # Message
+            self.no_data_message = QLabel("No Data for This Day")
+            self.no_data_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.no_data_message.setStyleSheet("""
+                font-family: Poppins;
+                font-size: 24px;
+                font-weight: 600;
+                color: #5D4E37;
+                margin: 20px 0;
+            """)
+            overlay_layout.addWidget(self.no_data_message)
+            
+            # Date info
+            self.no_data_date = QLabel()
+            self.no_data_date.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.no_data_date.setWordWrap(True)
+            self.no_data_date.setStyleSheet("""
+                font-family: Poppins;
+                font-size: 14px;
+                color: #8B7355;
+                max-width: 400px;
+            """)
+            overlay_layout.addWidget(self.no_data_date)
+        
+        # Update message for specific date
+        date_str = self._current_date.strftime("%B %d, %Y")
+        if self._current_date == date.today():
+            self.no_data_message.setText("No Data for Today")
+            self.no_data_date.setText("Start recording activities and they'll appear here automatically.\n\nUse the navigation controls above to view other days.")
+        else:
+            self.no_data_message.setText("No Data Available")
+            self.no_data_date.setText(f"No health data was recorded on {date_str}.\n\nUse the navigation controls above to view other days.")
+        
+        # Position and show overlay
+        self._position_overlay()
+        self.no_data_overlay.show()
+        self.no_data_overlay.raise_()
+    
+    def _hide_no_data_message(self):
+        """Hide the no data message overlay."""
+        if hasattr(self, 'no_data_overlay'):
+            self.no_data_overlay.hide()
+    
+    def _show_error_message(self, error: str):
+        """Show error message overlay."""
+        logger.error(f"Showing error: {error}")
+        # For now, just log the error
+        # Could implement a proper error overlay if needed
+    
+    def _position_overlay(self):
+        """Position the overlay to cover the content area."""
+        if hasattr(self, 'no_data_overlay'):
+            # Only cover the content area below the header
+            # Calculate actual header height including margins
+            header_height = 20  # top margin
+            if hasattr(self, 'header_widget'):
+                header_height += self.header_widget.height() + 20  # header + spacing
+            else:
+                header_height = 100  # fallback
+            
+            self.no_data_overlay.setGeometry(
+                20,  # left margin
+                header_height, 
+                self.width() - 40,  # account for left/right margins
+                self.height() - header_height - 20  # account for bottom margin
+            )
+    
+    def resizeEvent(self, event):
+        """Handle resize events."""
+        super().resizeEvent(event)
+        # Reposition overlay if visible
+        if hasattr(self, 'no_data_overlay') and self.no_data_overlay.isVisible():
+            self._position_overlay()
+    
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""
         super().showEvent(event)
@@ -1024,3 +1364,5 @@ class DailyDashboardWidget(QWidget):
             self._load_daily_data()
             self.update()
             QApplication.processEvents()
+        else:
+            self._show_no_data_message()

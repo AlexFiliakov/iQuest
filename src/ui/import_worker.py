@@ -18,6 +18,7 @@ try:
     from ..data_loader import convert_xml_to_sqlite_with_validation, DataLoader
     from ..database import db_manager
     from ..config import DATA_DIR
+    from ..xml_streaming_processor import XMLStreamingProcessor
 except (ImportError, ValueError) as e:
     # Fallback for when running in a thread context
     # ValueError catches "attempted relative import with no known parent package"
@@ -33,6 +34,7 @@ except (ImportError, ValueError) as e:
     from src.data_loader import convert_xml_to_sqlite_with_validation, DataLoader
     from src.database import db_manager
     from src.config import DATA_DIR
+    from src.xml_streaming_processor import XMLStreamingProcessor
 
 logger = get_logger(__name__)
 
@@ -41,9 +43,9 @@ class ImportWorker(QThread):
     """Worker thread for handling import operations with progress updates."""
     
     # Signals for progress communication
-    progress_updated = pyqtSignal(int, str)  # (percentage, message)
-    import_completed = pyqtSignal(dict)      # {success, message, stats}
-    import_error = pyqtSignal(str, str)      # (title, message)
+    progress_updated = pyqtSignal(int, str, int)  # (percentage, message, record_count)
+    import_completed = pyqtSignal(dict)           # {success, message, stats}
+    import_error = pyqtSignal(str, str)           # (title, message)
     
     def __init__(self, file_path: str, import_type: str = "auto"):
         """
@@ -120,7 +122,7 @@ class ImportWorker(QThread):
     
     def _import_xml(self) -> Dict[str, Any]:
         """Import XML file with progress updates."""
-        self.progress_updated.emit(5, "Validating XML file...")
+        self.progress_updated.emit(5, "Validating XML file...", 0)
         
         # Check if file exists and is readable
         if not Path(self.file_path).exists():
@@ -129,7 +131,7 @@ class ImportWorker(QThread):
         if self.is_cancelled():
             return {'success': False, 'message': 'Import cancelled'}
         
-        self.progress_updated.emit(10, "Preparing database...")
+        self.progress_updated.emit(10, "Preparing database...", 0)
         
         # Prepare database path
         # Use a hardcoded filename to avoid import issues in thread
@@ -140,39 +142,77 @@ class ImportWorker(QThread):
         if self.is_cancelled():
             return {'success': False, 'message': 'Import cancelled'}
         
-        self.progress_updated.emit(20, "Parsing XML file...")
+        self.progress_updated.emit(15, "Analyzing file size...", 0)
         
-        # Parse and convert XML to SQLite
-        # Note: The actual convert_xml_to_sqlite function doesn't support progress callbacks yet
-        # For now, we'll simulate progress and enhance the function later
-        record_count = 0
+        # Get file size for progress tracking
+        file_size = os.path.getsize(self.file_path)
+        file_size_mb = file_size / (1024 * 1024)
+        
+        # Initialize streaming processor
+        processor = XMLStreamingProcessor(memory_limit_mb=500)
+        
+        # Determine if we should use streaming based on file size
+        use_streaming = processor.should_use_streaming(self.file_path)
         
         try:
-            # Simulate parsing progress
-            for i in range(20, 70, 10):
-                if self.is_cancelled():
-                    return {'success': False, 'message': 'Import cancelled'}
+            if use_streaming:
+                logger.info(f"Using streaming processor for large file ({file_size_mb:.1f}MB)")
+                self.progress_updated.emit(20, f"Processing large file ({file_size_mb:.1f}MB)...", 0)
                 
-                self.progress_updated.emit(i, f"Processing XML data... ({i}%)")
-                time.sleep(0.1)  # Small delay to show progress
-                QApplication.processEvents()  # Keep UI responsive
-            
-            self.progress_updated.emit(70, "Converting to database format...")
-            
-            # Actual conversion with validation
-            record_count, validation_summary = convert_xml_to_sqlite_with_validation(
-                self.file_path, db_path, validate_first=True
-            )
+                # Track records processed
+                self.current_record_count = 0
+                
+                # Create progress callback
+                def progress_callback(percentage: float, record_count: int):
+                    if self.is_cancelled():
+                        return False  # Signal cancellation
+                    
+                    self.current_record_count = record_count
+                    # Scale progress from 20% to 90%
+                    scaled_progress = int(20 + (percentage * 0.7))
+                    message = f"Processing records... ({percentage:.1f}%)"
+                    self.progress_updated.emit(scaled_progress, message, record_count)
+                    QApplication.processEvents()  # Keep UI responsive
+                    return True  # Continue processing
+                
+                # Process with streaming
+                record_count = processor.process_xml_file(
+                    self.file_path, 
+                    db_path, 
+                    progress_callback=progress_callback
+                )
+                
+            else:
+                logger.info(f"Using standard processor for file ({file_size_mb:.1f}MB)")
+                self.progress_updated.emit(20, "Loading XML file...", 0)
+                
+                # For smaller files, show periodic updates during conversion
+                self.current_record_count = 0
+                last_update_time = time.time()
+                
+                def update_progress():
+                    # Simulate progress for standard loading
+                    if time.time() - last_update_time > 0.5:  # Update every 0.5 seconds
+                        self.progress_updated.emit(50, "Converting to database format...", self.current_record_count)
+                        QApplication.processEvents()
+                
+                # Use standard conversion with validation
+                record_count, validation_summary = convert_xml_to_sqlite_with_validation(
+                    self.file_path, db_path, validate_first=True
+                )
+                
+                # Update with final count
+                self.progress_updated.emit(80, "Processing complete", record_count)
             
             if self.is_cancelled():
                 return {'success': False, 'message': 'Import cancelled'}
             
-            self.progress_updated.emit(90, "Finalizing import...")
+            self.progress_updated.emit(90, "Finalizing import...", record_count)
             
             # Initialize database manager
             db_manager.initialize_database()
             
-            self.progress_updated.emit(100, "Import completed successfully!")
+            self.progress_updated.emit(100, "Import completed successfully!", record_count)
             
             return {
                 'success': True,
@@ -180,7 +220,7 @@ class ImportWorker(QThread):
                 'record_count': record_count,
                 'file_path': self.file_path,
                 'import_type': 'xml',
-                'validation_summary': validation_summary
+                'file_size_mb': round(file_size_mb, 1)
             }
             
         except Exception as e:
@@ -189,7 +229,7 @@ class ImportWorker(QThread):
     
     def _import_csv(self) -> Dict[str, Any]:
         """Import CSV file with progress updates."""
-        self.progress_updated.emit(10, "Reading CSV file...")
+        self.progress_updated.emit(10, "Reading CSV file...", 0)
         
         if self.is_cancelled():
             return {'success': False, 'message': 'Import cancelled'}
@@ -197,22 +237,23 @@ class ImportWorker(QThread):
         try:
             # Load CSV data
             data = self.data_loader.load_csv(self.file_path)
+            record_count = len(data) if data is not None else 0
             
             if self.is_cancelled():
                 return {'success': False, 'message': 'Import cancelled'}
             
-            self.progress_updated.emit(50, "Processing CSV data...")
+            self.progress_updated.emit(50, "Processing CSV data...", record_count)
             time.sleep(0.1)  # Small delay to show progress
             
             if self.is_cancelled():
                 return {'success': False, 'message': 'Import cancelled'}
             
-            self.progress_updated.emit(100, "CSV import completed!")
+            self.progress_updated.emit(100, "CSV import completed!", record_count)
             
             return {
                 'success': True,
                 'message': 'CSV import completed successfully',
-                'record_count': len(data) if data is not None else 0,
+                'record_count': record_count,
                 'file_path': self.file_path,
                 'import_type': 'csv',
                 'data': data

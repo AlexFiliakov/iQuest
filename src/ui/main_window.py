@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QMenuBar, QMenu, QStatusBar, QMessageBox, QComboBox, QScrollArea, QFrame
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QPalette, QColor, QKeyEvent
 
 import pandas as pd
@@ -107,6 +107,11 @@ class MainWindow(QMainWindow):
         # Restore window state after UI is created
         self.settings_manager.restore_window_state(self)
         
+        # Set up status update timer
+        self.status_update_timer = QTimer(self)
+        self.status_update_timer.timeout.connect(self._update_trend_status)
+        self.status_update_timer.start(2000)  # Update every 2 seconds
+        
         logger.info("Main window initialization complete")
     
     def _apply_theme(self):
@@ -157,11 +162,11 @@ class MainWindow(QMainWindow):
         file_menu = menu_bar.addMenu("&File")
         
         # Import action
-        import_action = QAction("&Import CSV...", self)
+        import_action = QAction("&Import...", self)
         import_action.setShortcut("Ctrl+O")
-        import_action.setStatusTip("Import Apple Health CSV data")
-        import_action.setToolTip("Import Apple Health data from a CSV file (Ctrl+O)")
-        import_action.triggered.connect(self._on_import_csv)
+        import_action.setStatusTip("Import Apple Health data")
+        import_action.setToolTip("Import Apple Health data from CSV or XML file (Ctrl+O)")
+        import_action.triggered.connect(self._on_import_data)
         file_menu.addAction(import_action)
         
         # Save action
@@ -447,10 +452,10 @@ class MainWindow(QMainWindow):
     def _create_monthly_dashboard_tab(self):
         """Create the monthly dashboard tab with calendar heatmap."""
         try:
-            from .monthly_dashboard_widget import MonthlyDashboardWidget
+            from .monthly_dashboard_widget_modern import ModernMonthlyDashboardWidget
             
             # Create the monthly dashboard widget
-            self.monthly_dashboard = MonthlyDashboardWidget()
+            self.monthly_dashboard = ModernMonthlyDashboardWidget()
             
             # Connect signals if needed
             self.monthly_dashboard.month_changed.connect(self._on_month_changed)
@@ -746,7 +751,7 @@ class MainWindow(QMainWindow):
         file_section = self._create_help_section(
             "File Operations",
             [
-                ("Ctrl+O", "Import CSV file"),
+                ("Ctrl+O", "Import data file (CSV or XML)"),
                 ("Ctrl+S", "Save configuration"),
                 ("Ctrl+Q", "Exit application"),
                 ("F5", "Refresh current view")
@@ -1044,7 +1049,7 @@ class MainWindow(QMainWindow):
     def _complete_tab_change(self, index: int, tab_name: str):
         """Complete tab change without animation."""
         logger.debug(f"Switched to tab: {tab_name}")
-        self.status_bar.showMessage(f"Viewing {tab_name}")
+        self._update_trend_status()
         
         # Save the current tab index immediately
         self.settings_manager.set_setting("MainWindow/lastActiveTab", index)
@@ -1053,16 +1058,14 @@ class MainWindow(QMainWindow):
         if index == 1:  # Daily tab
             self._refresh_daily_data()
         elif index == 2:  # Weekly tab
-            # TODO: Implement weekly data refresh
-            pass
+            self._refresh_weekly_data()
         elif index == 3:  # Monthly tab
-            # TODO: Implement monthly data refresh
-            pass
+            self._refresh_monthly_data()
     
     def _on_transition_started(self, from_view: ViewType, to_view: ViewType):
         """Handle transition start."""
         logger.debug(f"Transition started: {from_view.value} → {to_view.value}")
-        self.status_bar.showMessage(f"Transitioning to {to_view.value.title()}...")
+        self._update_trend_status()
     
     def _on_transition_completed(self, target_view: ViewType):
         """Handle transition completion."""
@@ -1073,9 +1076,13 @@ class MainWindow(QMainWindow):
         tab_name = self.tab_widget.tabText(current_index)
         self._complete_tab_change(current_index, tab_name)
         
-        # Refresh data for the Daily dashboard when transitioning to it
+        # Refresh data for dashboard tabs when transitioning to them
         if current_index == 1:  # Daily tab index
             self._refresh_daily_data()
+        elif current_index == 2:  # Weekly tab index
+            self._refresh_weekly_data()
+        elif current_index == 3:  # Monthly tab index
+            self._refresh_monthly_data()
     
     def _on_transition_interrupted(self):
         """Handle transition interruption."""
@@ -1088,9 +1095,9 @@ class MainWindow(QMainWindow):
         self.settings_manager.set_setting("accessibility/disable_animations", enabled)
         logger.info(f"Accessibility mode {'enabled' if enabled else 'disabled'}")
     
-    def _on_import_csv(self):
-        """Handle CSV import action."""
-        logger.info("Import CSV action triggered")
+    def _on_import_data(self):
+        """Handle data import action."""
+        logger.info("Import data action triggered")
         # Switch to configuration tab and trigger import
         self.tab_widget.setCurrentIndex(0)  # Configuration tab is index 0
         if hasattr(self.config_tab, '_on_browse_clicked'):
@@ -1133,7 +1140,7 @@ class MainWindow(QMainWindow):
         
         <h3>File Operations</h3>
         <table>
-        <tr><td><b>Ctrl+O</b></td><td>Import CSV file</td></tr>
+        <tr><td><b>Ctrl+O</b></td><td>Import data file (CSV or XML)</td></tr>
         <tr><td><b>Ctrl+S</b></td><td>Save configuration</td></tr>
         <tr><td><b>Ctrl+Q</b></td><td>Exit application</td></tr>
         <tr><td><b>F5</b></td><td>Refresh current view</td></tr>
@@ -1205,6 +1212,22 @@ class MainWindow(QMainWindow):
         """Handle data loaded signal from configuration tab."""
         logger.info(f"Data loaded: {len(data) if data is not None else 0} records")
         self.status_bar.showMessage(f"Loaded {len(data):,} health records")
+        
+        # Refresh all dashboard tabs when data is loaded
+        current_tab = self.tab_widget.currentIndex()
+        
+        # Refresh the current tab first
+        if current_tab == 1:
+            self._refresh_daily_data()
+        elif current_tab == 2:
+            self._refresh_weekly_data()
+        elif current_tab == 3:
+            self._refresh_monthly_data()
+            
+        # Enable other tabs when data is loaded
+        if data is not None and not data.empty:
+            for i in range(1, self.tab_widget.count()):
+                self.tab_widget.setTabEnabled(i, True)
     
     def _handle_metric_selection(self, metric_name: str):
         """Handle metric selection from daily dashboard.
@@ -1273,6 +1296,46 @@ class MainWindow(QMainWindow):
         # Trigger health insights generation if available
         if hasattr(self, 'health_insights_widget') and data is not None:
             self._refresh_health_insights()
+    
+    def _refresh_weekly_data(self):
+        """Refresh data in the weekly dashboard."""
+        logger.debug("Refreshing weekly dashboard data")
+        if hasattr(self, 'weekly_dashboard'):
+            # Get current data from configuration tab
+            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
+                data = self.config_tab.filtered_data
+                if data is not None and not data.empty:
+                    # Create weekly calculator with the data
+                    from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+                    weekly_calculator = WeeklyMetricsCalculator(data)
+                    
+                    # Set the calculator in the weekly dashboard
+                    if hasattr(self.weekly_dashboard, 'set_weekly_calculator'):
+                        self.weekly_dashboard.set_weekly_calculator(weekly_calculator)
+                    
+                    logger.info(f"Set weekly calculator with {len(data)} records")
+                else:
+                    logger.warning("No data available to refresh weekly dashboard")
+    
+    def _refresh_monthly_data(self):
+        """Refresh data in the monthly dashboard."""
+        logger.debug("Refreshing monthly dashboard data")
+        if hasattr(self, 'monthly_dashboard'):
+            # Get current data from configuration tab
+            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
+                data = self.config_tab.filtered_data
+                if data is not None and not data.empty:
+                    # Create monthly calculator with the data
+                    from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                    monthly_calculator = MonthlyMetricsCalculator(data)
+                    
+                    # Set the calculator in the monthly dashboard
+                    if hasattr(self.monthly_dashboard, 'set_data_source'):
+                        self.monthly_dashboard.set_data_source(monthly_calculator)
+                    
+                    logger.info(f"Set monthly calculator with {len(data)} records")
+                else:
+                    logger.warning("No data available to refresh monthly dashboard")
     
     def _on_filters_applied(self, filters):
         """Handle filters applied signal from configuration tab."""
@@ -1365,9 +1428,52 @@ class MainWindow(QMainWindow):
         
         super().keyPressEvent(event)
     
+    def _update_trend_status(self):
+        """Update the status bar with background trend processing information."""
+        try:
+            if self.background_trend_processor:
+                status = self.background_trend_processor.get_processing_status()
+                
+                # Format the status message
+                queue_size = status.get('queue_size', 0)
+                processing = status.get('processing', [])
+                cached_count = len(status.get('cached_metrics', []))
+                
+                if processing:
+                    # Show what's currently being processed
+                    metric_names = ', '.join([self._format_metric_name(m) for m in processing[:2]])
+                    if len(processing) > 2:
+                        metric_names += f" (+{len(processing) - 2} more)"
+                    msg = f"📊 Processing trends: {metric_names}"
+                elif queue_size > 0:
+                    msg = f"📊 {queue_size} trend{'s' if queue_size != 1 else ''} queued for processing"
+                else:
+                    msg = f"✓ All trends calculated ({cached_count} metrics cached)"
+                
+                self.status_bar.showMessage(msg)
+            else:
+                # No background processor available
+                self.status_bar.showMessage("Ready")
+        except Exception as e:
+            logger.error(f"Error updating trend status: {e}")
+            self.status_bar.showMessage("Ready")
+    
+    def _format_metric_name(self, metric: str) -> str:
+        """Format metric identifier to readable name."""
+        # Simple formatting - remove prefix and make readable
+        name = metric.replace('HKQuantityTypeIdentifier', '')
+        name = name.replace('HKCategoryTypeIdentifier', '')
+        # Convert camelCase to spaced words
+        import re
+        name = re.sub(r'([A-Z])', r' \1', name).strip()
+        return name
+    
     def closeEvent(self, event):
         """Handle window close event."""
         logger.info("Main window closing, saving state")
+        
+        # Stop the status update timer
+        self.status_update_timer.stop()
         
         # Save window state before closing
         self.settings_manager.save_window_state(self)

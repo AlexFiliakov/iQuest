@@ -112,17 +112,28 @@ class SummaryCard(QWidget):
         style = f"""
             QFrame#summaryCard {{
                 background-color: {self.style_manager.PRIMARY_BG};
-                border-radius: 8px;
-                border: {shadow['border']};
+                border-radius: 12px;
+                border: none;
                 padding: {padding}px;
             }}
             
             QFrame#summaryCard:hover {{
-                background-color: {self.style_manager.PRIMARY_BG};
-                border: {shadow['hover_border']};
+                background-color: {self.style_manager.TERTIARY_BG};
+                transform: translateY(-2px);
             }}
         """
         self.setStyleSheet(style)
+        
+        # Add modern shadow effect
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+        from PyQt6.QtGui import QColor
+        
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(15)
+        shadow_effect.setXOffset(0)
+        shadow_effect.setYOffset(2)
+        shadow_effect.setColor(QColor(0, 0, 0, 40))
+        self.card_frame.setGraphicsEffect(shadow_effect)
     
     def update_content(self, data: Dict, animate: bool = True):
         """Update card content with optional animation. Override in subclasses."""

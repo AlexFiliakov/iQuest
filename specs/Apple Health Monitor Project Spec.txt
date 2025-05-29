@@ -356,15 +356,47 @@ Please be thorough in your analysis and provide both high-level design feedback 
 ### UI screenshot review ###
 Please help me evaluate and improve my PyQt6 application's UI design:
 
-1. Evaluate the following screenshots:
-   - `ad hoc\config_tab.png`
-   - `ad hoc\daily_tab.png`
-   - `ad hoc\monthly_tab.png`
-   - `ad hoc\statistics_tab.png`
-   - `ad hoc\streaks_tab.png`
-   - `ad hoc\weekly_tab.png`
+1. Evaluate the following screenshot:
+   - `ad hoc\import_windows.png`
+     - It represents two popup windows: import on the left, and a success message on the right.
 
-3. Analyze each screenshot for:
+2. Analyze each screenshot for:
+   - Overall aesthetic quality and modern design principles
+   - Color scheme effectiveness and accessibility
+   - Typography choices and readability
+   - Layout and spacing issues
+   - Visual hierarchy and information organization
+   - User experience flow and intuitive navigation
+   - Conformity to Wall Street Journal style
+
+3. Provide specific, actionable recommendations for:
+   - Color palette improvements (with hex codes if possible)
+   - Font and sizing adjustments
+   - Spacing and alignment fixes
+   - Modern UI element suggestions (rounded corners, shadows, etc.)
+   - Accessibility improvements (contrast ratios, etc.)
+   - Any outdated UI patterns that could be modernized
+
+4. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
+
+Please be thorough in your analysis and provide both high-level design feedback and specific technical implementation suggestions. Create tasks in `.simone/04_GENERAL_TASKS` folder with your recommendations.
+
+--------------
+
+Review the following documents and create tasks in `.simone/04_GENERAL_TASKS` conforming to our specs and PRD
+   - `.simone/04_GENERAL_TASKSUI_DESIGN_ANALYSIS_AND_RECOMMENDATIONS.md`
+   - `.simone/04_GENERAL_TASKSUI_IMPLEMENTATION_CODE_SAMPLES.md`
+   - `.simone/04_GENERAL_TASKSUI_QUICK_FIXES_PRIORITY.md`
+
+-----------
+
+Please help me evaluate and improve my PyQt6 application's UI design:
+
+1. Evaluate the following screenshot:
+   - `ad hoc\import_windows.png`
+     - It represents two popup windows: import on the left, and a success message on the right.
+
+2. Analyze the screenshot for:
    - Overall aesthetic quality and modern design principles
    - Color scheme effectiveness and accessibility
    - Typography choices and readability
@@ -383,14 +415,8 @@ Please help me evaluate and improve my PyQt6 application's UI design:
 
 5. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
 
-Please be thorough in your analysis and provide both high-level design feedback and specific technical implementation suggestions. Create tasks in `.simone/04_GENERAL_TASKS` folder with your recommendations.
-
---------------
-
-Review the following documents and create tasks in `.simone/04_GENERAL_TASKS` conforming to our specs and PRD
-   - `.simone/04_GENERAL_TASKSUI_DESIGN_ANALYSIS_AND_RECOMMENDATIONS.md`
-   - `.simone/04_GENERAL_TASKSUI_IMPLEMENTATION_CODE_SAMPLES.md`
-   - `.simone/04_GENERAL_TASKSUI_QUICK_FIXES_PRIORITY.md`
+6. Implement the code changes.
 
 
-On the monthly tab, make the selector displaying the month the same width regardless of the month so it doesn’t shift the right button on scroll. Make it the width of the longest month (September) or slightly wider and center the month text in the textbox.
+------
+

@@ -80,7 +80,7 @@ class CalendarHeatmapComponent(QWidget):
         self._brush_active = False
         
         # Visual configuration
-        self._cell_size = 20
+        self._cell_size = 15  # Reduced default cell size
         self._cell_spacing = 2
         self._show_patterns = False  # For colorblind accessibility
         self._show_today_marker = True
@@ -445,21 +445,33 @@ class CalendarHeatmapComponent(QWidget):
         days_in_month = calendar.monthrange(year, month)[1]
         first_weekday = first_day.weekday()  # 0 = Monday
         
-        # Calculate cell size with minimum size to prevent squishing
-        MIN_CELL_SIZE = 40  # Minimum cell size in pixels
-        MAX_CELL_SIZE = 60  # Maximum cell size in pixels
+        # Calculate number of weeks needed (rows)
+        total_cells_needed = first_weekday + days_in_month
+        weeks_needed = (total_cells_needed + 6) // 7  # Round up
+        
+        # Calculate cell size with smaller minimum to fit all rows
+        MIN_CELL_SIZE = 25  # Reduced minimum cell size
+        MAX_CELL_SIZE = 45  # Reduced maximum cell size
         
         grid_width = rect.width() - 100  # Leave space for labels
-        grid_height = rect.height() - 120  # Leave more space for month/year label
+        grid_height = rect.height() - 100  # Adjusted for better spacing
         
-        # Calculate optimal cell size
-        cell_width = min(max(grid_width // 7, MIN_CELL_SIZE), MAX_CELL_SIZE)
-        cell_height = cell_width
+        # Calculate optimal cell size based on both width and height constraints
+        cell_width_from_width = grid_width // 7
+        cell_height_from_height = grid_height // weeks_needed
+        
+        # Use the smaller of the two to ensure everything fits
+        cell_size = min(cell_width_from_width, cell_height_from_height)
+        cell_size = min(max(cell_size, MIN_CELL_SIZE), MAX_CELL_SIZE)
+        
+        cell_width = cell_size
+        cell_height = cell_size
         
         # Starting position - center the grid
         grid_total_width = 7 * cell_width
+        grid_total_height = weeks_needed * cell_height
         start_x = rect.x() + (rect.width() - grid_total_width) // 2
-        start_y = rect.y() + 90  # More space for month/year display
+        start_y = rect.y() + 70 + (rect.height() - 70 - grid_total_height) // 2  # Center vertically in available space
         
         # Draw month and year label
         month_names = [
@@ -468,9 +480,9 @@ class CalendarHeatmapComponent(QWidget):
         ]
         month_year_text = f"{month_names[month - 1]} {year}"
         
-        painter.setFont(QFont('Poppins', 16, QFont.Weight.Bold))
+        painter.setFont(QFont('Poppins', 14, QFont.Weight.Bold))
         painter.setPen(self._colors['text'])
-        text_rect = QRect(rect.x(), rect.y() + 40, rect.width(), 30)
+        text_rect = QRect(rect.x(), rect.y() + 20, rect.width(), 30)
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, month_year_text)
         
         # Draw day labels
@@ -492,8 +504,8 @@ class CalendarHeatmapComponent(QWidget):
             x = start_x + weekday * cell_width
             y = start_y + week * cell_height
             
-            # Add more spacing between cells
-            cell_padding = 3
+            # Add spacing between cells (reduced for smaller cells)
+            cell_padding = 2
             cell_rect = QRect(x + cell_padding, y + cell_padding, 
                             cell_width - 2 * cell_padding, cell_height - 2 * cell_padding)
             
@@ -521,7 +533,9 @@ class CalendarHeatmapComponent(QWidget):
                 
             # Draw day number
             painter.setPen(self._colors['text'])
-            painter.setFont(self._fonts['label_small'])
+            # Use smaller font for smaller cells
+            day_font = QFont('Inter', 8 if cell_size < 30 else 10, QFont.Weight.Normal)
+            painter.setFont(day_font)
             painter.drawText(cell_rect, Qt.AlignmentFlag.AlignCenter, str(day))
             
     def _draw_github_style(self, painter: QPainter, rect: QRect):
@@ -757,7 +771,23 @@ class CalendarHeatmapComponent(QWidget):
             # Show tooltip
             if hover_date and hover_date in self._metric_data:
                 value = self._metric_data[hover_date]
-                tooltip_text = f"{hover_date.strftime('%B %d, %Y')}\n{self._metric_type}: {value:,.1f}"
+                # Format the value appropriately based on metric type
+                if self._metric_type.lower() in ['steps', 'calories', 'active_calories', 'exercise_minutes']:
+                    formatted_value = f"{int(value):,}"
+                elif self._metric_type.lower() in ['distance', 'walking_distance', 'running_distance']:
+                    formatted_value = f"{value:,.1f} km"
+                elif self._metric_type.lower() in ['heart_rate', 'resting_heart_rate']:
+                    formatted_value = f"{int(value)} bpm"
+                elif self._metric_type.lower() in ['sleep_hours']:
+                    formatted_value = f"{value:.1f} hours"
+                else:
+                    formatted_value = f"{value:,.1f}"
+                    
+                tooltip_text = f"{hover_date.strftime('%B %d, %Y')}\n{self._metric_type.replace('_', ' ').title()}: {formatted_value}"
+                QToolTip.showText(event.globalPosition().toPoint(), tooltip_text)
+            elif hover_date:
+                # Show date even if no data
+                tooltip_text = f"{hover_date.strftime('%B %d, %Y')}\nNo data"
                 QToolTip.showText(event.globalPosition().toPoint(), tooltip_text)
             else:
                 QToolTip.hideText()
@@ -787,9 +817,157 @@ class CalendarHeatmapComponent(QWidget):
             
     def _get_date_at_position(self, pos: QPoint) -> Optional[date]:
         """Get the date at the given position based on current view mode."""
-        # This would be implemented based on the current view mode
-        # For now, return None as placeholder
+        # Get chart area (excluding margins)
+        margins = {'top': 80, 'right': 20, 'bottom': 60, 'left': 20}
+        chart_rect = self.rect().adjusted(
+            margins['left'], margins['top'],
+            -margins['right'], -margins['bottom']
+        )
+        
+        if self._view_mode == ViewMode.MONTH_GRID:
+            return self._get_date_at_position_month_grid(pos, chart_rect)
+        elif self._view_mode == ViewMode.GITHUB_STYLE:
+            return self._get_date_at_position_github_style(pos, chart_rect)
+        elif self._view_mode == ViewMode.CIRCULAR:
+            return self._get_date_at_position_circular(pos, chart_rect)
+        
         return None
+    
+    def _get_date_at_position_month_grid(self, pos: QPoint, rect: QRect) -> Optional[date]:
+        """Get date at position for month grid view."""
+        if not self._metric_data:
+            return None
+            
+        year = self._current_date.year
+        month = self._current_date.month
+        
+        # Get month info
+        first_day = date(year, month, 1)
+        days_in_month = calendar.monthrange(year, month)[1]
+        first_weekday = first_day.weekday()  # 0 = Monday
+        
+        # Calculate number of weeks needed (same as in _draw_month_grid)
+        total_cells_needed = first_weekday + days_in_month
+        weeks_needed = (total_cells_needed + 6) // 7  # Round up
+        
+        # Calculate cell size (same as in _draw_month_grid)
+        MIN_CELL_SIZE = 25
+        MAX_CELL_SIZE = 45
+        
+        grid_width = rect.width() - 100
+        grid_height = rect.height() - 100
+        
+        cell_width_from_width = grid_width // 7
+        cell_height_from_height = grid_height // weeks_needed
+        
+        cell_size = min(cell_width_from_width, cell_height_from_height)
+        cell_size = min(max(cell_size, MIN_CELL_SIZE), MAX_CELL_SIZE)
+        
+        cell_width = cell_size
+        cell_height = cell_size
+        
+        # Starting position
+        grid_total_width = 7 * cell_width
+        grid_total_height = weeks_needed * cell_height
+        start_x = rect.x() + (rect.width() - grid_total_width) // 2
+        start_y = rect.y() + 70 + (rect.height() - 70 - grid_total_height) // 2
+        
+        # Check if position is within grid
+        grid_x = pos.x() - start_x
+        grid_y = pos.y() - start_y
+        
+        if grid_x < 0 or grid_y < 0:
+            return None
+            
+        # Calculate which cell
+        col = grid_x // cell_width
+        row = grid_y // cell_height
+        
+        if col >= 7 or row >= 6:  # Maximum 6 weeks in a month
+            return None
+            
+        # Calculate day number
+        day_number = row * 7 + col - first_weekday + 1
+        
+        if day_number >= 1 and day_number <= days_in_month:
+            return date(year, month, day_number)
+            
+        return None
+    
+    def _get_date_at_position_github_style(self, pos: QPoint, rect: QRect) -> Optional[date]:
+        """Get date at position for GitHub style view."""
+        if not self._metric_data:
+            return None
+            
+        # Calculate grid parameters (same as in _draw_github_style)
+        available_width = rect.width() - 120
+        available_height = rect.height() - 100
+        cell_size = min(available_width // 54, available_height // 9)
+        
+        start_x = rect.x() + 50
+        start_y = rect.y() + 60
+        
+        # Calculate starting date
+        today = date.today()
+        days_since_sunday = (today.weekday() + 1) % 7
+        last_sunday = today - timedelta(days=days_since_sunday)
+        start_date = last_sunday - timedelta(weeks=51)
+        
+        # Check if position is within grid
+        grid_x = pos.x() - start_x
+        grid_y = pos.y() - start_y
+        
+        if grid_x < 0 or grid_y < 0:
+            return None
+            
+        # Calculate which cell
+        week = grid_x // (cell_size + 2)
+        day = grid_y // (cell_size + 2)
+        
+        if week >= 52 or day >= 7:
+            return None
+            
+        # Calculate date
+        target_date = start_date + timedelta(weeks=week, days=day)
+        
+        # Don't return future dates
+        if target_date > today:
+            return None
+            
+        return target_date
+    
+    def _get_date_at_position_circular(self, pos: QPoint, rect: QRect) -> Optional[date]:
+        """Get date at position for circular view."""
+        if not self._metric_data:
+            return None
+            
+        center = rect.center()
+        radius = min(rect.width(), rect.height()) // 2 - 50
+        
+        # Calculate distance from center
+        dx = pos.x() - center.x()
+        dy = pos.y() - center.y()
+        distance = math.sqrt(dx * dx + dy * dy)
+        
+        # Check if within ring (with some tolerance)
+        if abs(distance - radius) > 10:
+            return None
+            
+        # Calculate angle
+        angle = math.degrees(math.atan2(dy, dx))
+        # Normalize to 0-360 and adjust for starting at top
+        angle = (angle + 90) % 360
+        
+        # Calculate day of year
+        current_year = self._current_date.year
+        days_in_year = 366 if calendar.isleap(current_year) else 365
+        day_of_year = int((angle / 360) * days_in_year)
+        
+        # Calculate date
+        start_date = date(current_year, 1, 1)
+        target_date = start_date + timedelta(days=day_of_year)
+        
+        return target_date
         
     def set_current_date(self, target_date: date):
         """Set the current date for month grid view."""

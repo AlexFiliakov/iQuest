@@ -245,35 +245,23 @@ class ConfigurationTab(QWidget):
         
         layout.addLayout(file_row)
         
-        # Import buttons row - more compact
+        # Import button row - more compact
         import_row = QHBoxLayout()
         import_row.setSpacing(4)
         import_row.setContentsMargins(0, 4, 0, 0)
         
-        import_button = QPushButton("CSV")
+        import_button = QPushButton("Import")
         import_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
             QPushButton {
-                padding: 2px 8px;
+                padding: 1px 8px;
                 font-size: 11px;
+                max-height: 22px;
             }
         """)
         import_button.clicked.connect(self._on_import_clicked)
-        import_button.setToolTip("Import CSV file (Alt+I)")
-        import_button.setFixedWidth(50)
+        import_button.setToolTip("Import data from selected file (Alt+I)")
+        import_button.setFixedWidth(60)
         import_row.addWidget(import_button)
-        
-        # Add XML import button
-        import_xml_button = QPushButton("XML")
-        import_xml_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
-            QPushButton {
-                padding: 2px 8px;
-                font-size: 11px;
-            }
-        """)
-        import_xml_button.clicked.connect(self._on_import_xml_clicked)
-        import_xml_button.setToolTip("Import XML file")
-        import_xml_button.setFixedWidth(50)
-        import_row.addWidget(import_xml_button)
         
         import_row.addStretch()
         layout.addLayout(import_row)
@@ -401,8 +389,9 @@ class ConfigurationTab(QWidget):
         self.save_preset_button = QPushButton("Save")
         self.save_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 2px 8px;
+                padding: 1px 8px;
                 font-size: 11px;
+                max-height: 22px;
             }
         """)
         self.save_preset_button.clicked.connect(self._on_save_preset_clicked)
@@ -413,8 +402,9 @@ class ConfigurationTab(QWidget):
         self.load_preset_button = QPushButton("Load")
         self.load_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 2px 8px;
+                padding: 1px 8px;
                 font-size: 11px;
+                max-height: 22px;
             }
         """)
         self.load_preset_button.clicked.connect(self._on_load_preset_clicked)
@@ -428,8 +418,9 @@ class ConfigurationTab(QWidget):
         self.reset_settings_button = QPushButton("Reset")
         self.reset_settings_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 2px 8px;
+                padding: 1px 8px;
                 font-size: 11px;
+                max-height: 22px;
             }
         """)
         self.reset_settings_button.clicked.connect(self._on_reset_settings_clicked)
@@ -442,7 +433,7 @@ class ConfigurationTab(QWidget):
         # Add spacing instead of separator
         layout.addSpacing(16)
         
-        # Action buttons - compact
+        # Action buttons - compact with reduced height
         button_row = QHBoxLayout()
         button_row.setSpacing(4)
         button_row.addStretch()
@@ -450,8 +441,9 @@ class ConfigurationTab(QWidget):
         self.reset_button = QPushButton("Reset")
         self.reset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 3px 10px;
+                padding: 1px 10px;
                 font-size: 11px;
+                max-height: 22px;
             }
         """)
         self.reset_button.clicked.connect(self._on_reset_clicked)
@@ -462,8 +454,9 @@ class ConfigurationTab(QWidget):
         self.apply_button = QPushButton("Apply")
         self.apply_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
             QPushButton {
-                padding: 3px 10px;
+                padding: 1px 10px;
                 font-size: 11px;
+                max-height: 22px;
             }
         """)
         self.apply_button.clicked.connect(self._on_apply_filters_clicked)
@@ -545,8 +538,32 @@ class ConfigurationTab(QWidget):
     
     def _create_statistics_section(self):
         """Create the statistics display section."""
-        # Main container without GroupBox for better integration
-        container = QWidget(self)
+        # Create a scroll area for the statistics section
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: transparent;
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background-color: {self.style_manager.TERTIARY_BG};
+                width: 12px;
+                border-radius: 6px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {self.style_manager.ACCENT_SECONDARY};
+                border-radius: 6px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {self.style_manager.ACCENT_PRIMARY};
+            }}
+        """)
+        
+        # Main container for scroll content
+        container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(20)
@@ -576,10 +593,10 @@ class ConfigurationTab(QWidget):
         preview_layout = QVBoxLayout()
         preview_layout.setContentsMargins(4, 4, 4, 4)
         
-        # Create data preview table with larger page size
+        # Create data preview table with smaller page size for compactness
         self.data_preview_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=5,  # Reduced for space
+                page_size=3,  # Further reduced for more compact display
                 alternating_rows=True,
                 grid_style='dotted'
             ),
@@ -587,7 +604,8 @@ class ConfigurationTab(QWidget):
         )
         
         # Set minimum height for better visibility
-        self.data_preview_table.setMinimumHeight(120)
+        self.data_preview_table.setMinimumHeight(100)
+        self.data_preview_table.setMaximumHeight(150)
         
         # Apply custom styling for better readability
         self.data_preview_table.setStyleSheet(f"""
@@ -599,16 +617,16 @@ class ConfigurationTab(QWidget):
                 selection-background-color: {self.style_manager.ACCENT_LIGHT};
             }}
             QTableWidget::item {{
-                padding: 4px;
+                padding: 2px 4px;
                 border: none;
             }}
             QHeaderView::section {{
                 background-color: {self.style_manager.ACCENT_PRIMARY};
                 color: white;
-                padding: 6px;
+                padding: 3px 6px;
                 border: none;
                 font-weight: 600;
-                font-size: 11px;
+                font-size: 10px;
             }}
         """)
         
@@ -647,7 +665,10 @@ class ConfigurationTab(QWidget):
         stats_group.setLayout(stats_layout)
         layout.addWidget(stats_group)
         
-        return container
+        # Set the container as the scroll area's widget
+        scroll_area.setWidget(container)
+        
+        return scroll_area
     
     def _create_custom_statistics_widget(self):
         """Create custom statistics widget without internal scrolling."""
@@ -697,15 +718,8 @@ class ConfigurationTab(QWidget):
         separator.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
         layout.addWidget(separator)
         
-        # Two-column layout for Record Types and Data Sources
-        columns_layout = QHBoxLayout()
-        columns_layout.setSpacing(20)
-        
-        # Record Types Column
-        types_column = QWidget()
-        types_layout = QVBoxLayout(types_column)
-        types_layout.setContentsMargins(0, 0, 0, 0)
-        
+        # Vertical layout for Record Types and Data Sources
+        # Record Types Section
         types_title = QLabel("Record Types")
         types_title.setStyleSheet(f"""
             QLabel {{
@@ -715,12 +729,12 @@ class ConfigurationTab(QWidget):
                 margin-bottom: 8px;
             }}
         """)
-        types_layout.addWidget(types_title)
+        layout.addWidget(types_title)
         
-        # Record types table
+        # Record types table - show all records without pagination if possible
         self.record_types_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=15,  # Show more records
+                page_size=50,  # Show many more records
                 alternating_rows=True,
                 resizable_columns=True,
                 movable_columns=False,
@@ -729,17 +743,55 @@ class ConfigurationTab(QWidget):
             ),
             wsj_style=True
         )
-        self.record_types_table.setMinimumHeight(250)
-        self.record_types_table.setMaximumHeight(400)
-        types_layout.addWidget(self.record_types_table)
+        self.record_types_table.setMinimumHeight(200)  # Reduced minimum height
+        self.record_types_table.setMaximumHeight(300)  # Reduced maximum height
         
-        columns_layout.addWidget(types_column, 1)
+        # Apply compact styling to record types table
+        self.record_types_table.setStyleSheet(f"""
+            QTableWidget {{
+                font-size: 11px;
+                gridline-color: rgba(139, 115, 85, 0.2);
+                background-color: white;
+                alternate-background-color: {self.style_manager.TERTIARY_BG};
+            }}
+            QTableWidget::item {{
+                padding: 2px 4px;
+                border: none;
+            }}
+            QHeaderView::section {{
+                background-color: {self.style_manager.ACCENT_PRIMARY};
+                color: white;
+                padding: 3px 6px;
+                border: none;
+                font-weight: 600;
+                font-size: 10px;
+            }}
+        """)
         
-        # Data Sources Column
-        sources_column = QWidget()
-        sources_layout = QVBoxLayout(sources_column)
-        sources_layout.setContentsMargins(0, 0, 0, 0)
+        # Make navigation controls compact
+        if hasattr(self.record_types_table, 'pagination_widget'):
+            self.record_types_table.pagination_widget.setStyleSheet(f"""
+                QPushButton {{
+                    padding: 2px 8px;
+                    font-size: 10px;
+                    max-height: 20px;
+                }}
+                QLabel {{
+                    font-size: 10px;
+                }}
+                QComboBox, QSpinBox {{
+                    font-size: 10px;
+                    max-height: 20px;
+                    padding: 0px 4px;
+                }}
+            """)
         
+        layout.addWidget(self.record_types_table)
+        
+        # Add spacing between sections
+        layout.addSpacing(20)
+        
+        # Data Sources Section
         sources_title = QLabel("Data Sources")
         sources_title.setStyleSheet(f"""
             QLabel {{
@@ -749,12 +801,12 @@ class ConfigurationTab(QWidget):
                 margin-bottom: 8px;
             }}
         """)
-        sources_layout.addWidget(sources_title)
+        layout.addWidget(sources_title)
         
-        # Data sources table
+        # Data sources table - show all records without pagination if possible
         self.data_sources_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=15,  # Show more records
+                page_size=50,  # Show many more records
                 alternating_rows=True,
                 resizable_columns=True,
                 movable_columns=False,
@@ -763,17 +815,58 @@ class ConfigurationTab(QWidget):
             ),
             wsj_style=True
         )
-        self.data_sources_table.setMinimumHeight(250)
-        self.data_sources_table.setMaximumHeight(400)
-        sources_layout.addWidget(self.data_sources_table)
+        self.data_sources_table.setMinimumHeight(200)  # Reduced minimum height
+        self.data_sources_table.setMaximumHeight(300)  # Reduced maximum height
         
-        columns_layout.addWidget(sources_column, 1)
+        # Apply compact styling to data sources table
+        self.data_sources_table.setStyleSheet(f"""
+            QTableWidget {{
+                font-size: 11px;
+                gridline-color: rgba(139, 115, 85, 0.2);
+                background-color: white;
+                alternate-background-color: {self.style_manager.TERTIARY_BG};
+            }}
+            QTableWidget::item {{
+                padding: 2px 4px;
+                border: none;
+            }}
+            QHeaderView::section {{
+                background-color: {self.style_manager.ACCENT_PRIMARY};
+                color: white;
+                padding: 3px 6px;
+                border: none;
+                font-weight: 600;
+                font-size: 10px;
+            }}
+        """)
         
-        layout.addLayout(columns_layout)
+        # Make navigation controls compact
+        if hasattr(self.data_sources_table, 'pagination_widget'):
+            self.data_sources_table.pagination_widget.setStyleSheet(f"""
+                QPushButton {{
+                    padding: 2px 8px;
+                    font-size: 10px;
+                    max-height: 20px;
+                }}
+                QLabel {{
+                    font-size: 10px;
+                }}
+                QComboBox, QSpinBox {{
+                    font-size: 10px;
+                    max-height: 20px;
+                    padding: 0px 4px;
+                }}
+            """)
         
-        # Store original statistics widget for compatibility
-        self.statistics_widget = StatisticsWidget()
-        self.statistics_widget.setVisible(False)  # Hide original widget
+        layout.addWidget(self.data_sources_table)
+        
+        # Store the custom widget as statistics_widget for compatibility
+        # This ensures that any code expecting statistics_widget gets the actual widget in the UI
+        widget.update_statistics = lambda stats: self._update_custom_statistics(stats) if hasattr(self, '_update_custom_statistics') else None
+        
+        # Also create the original statistics widget but keep it hidden
+        self.original_statistics_widget = StatisticsWidget()
+        self.original_statistics_widget.setVisible(False)  # Hide original widget
         
         return widget
     
@@ -861,9 +954,11 @@ class ConfigurationTab(QWidget):
         if file_path:
             self.file_path_input.setText(file_path)
             logger.info(f"Selected file: {file_path}")
+            # Automatically start import when file is selected
+            self._start_import_with_progress(file_path)
     
     def _on_import_clicked(self):
-        """Handle import button click."""
+        """Handle import button click - automatically detect file type."""
         file_path = self.file_path_input.text()
         if not file_path:
             QMessageBox.warning(
@@ -885,18 +980,6 @@ class ConfigurationTab(QWidget):
         logger.info(f"Starting import of: {file_path}")
         self._start_import_with_progress(file_path)
     
-    def _on_import_xml_clicked(self):
-        """Handle import XML button click."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Apple Health XML Export",
-            "",
-            "XML Files (*.xml);;All Files (*)"
-        )
-        
-        if file_path:
-            logger.info(f"Starting XML import of: {file_path}")
-            self._start_import_with_progress(file_path)
     
     def _start_import_with_progress(self, file_path):
         """Start import with progress dialog."""
@@ -951,8 +1034,12 @@ class ConfigurationTab(QWidget):
             
             # Calculate and display statistics
             if self.data is not None and not self.data.empty:
-                stats = self.statistics_calculator.calculate_from_dataframe(self.data)
-                self._update_custom_statistics(stats)
+                try:
+                    stats = self.statistics_calculator.calculate_from_dataframe(self.data)
+                    self._update_custom_statistics(stats)
+                except AttributeError as e:
+                    logger.warning(f"Error updating statistics: {e}")
+                    # Continue without failing the entire import
             
             # Load last used filters if available
             self._load_last_used_filters()
@@ -991,7 +1078,7 @@ class ConfigurationTab(QWidget):
             self.data_loader.db_path = db_path
             
             # Load data
-            self.data = self.data_loader.load_from_sqlite()
+            self.data = self.data_loader.get_all_records()
             
             if self.data is None or self.data.empty:
                 raise ValueError("No data found in database")
@@ -1022,8 +1109,12 @@ class ConfigurationTab(QWidget):
             self._update_data_preview()
             
             # Calculate and display statistics
-            stats = self.statistics_calculator.calculate_from_dataframe(self.data)
-            self._update_custom_statistics(stats)
+            try:
+                stats = self.statistics_calculator.calculate_from_dataframe(self.data)
+                self._update_custom_statistics(stats)
+            except AttributeError as e:
+                logger.warning(f"Error updating statistics: {e}")
+                # Continue without failing the entire load
             
             # Load last used filters if available
             self._load_last_used_filters()
@@ -1474,23 +1565,29 @@ class ConfigurationTab(QWidget):
     def _update_custom_statistics(self, stats):
         """Update the custom statistics display."""
         if not stats:
-            self.stats_total_label.setText("Total Records: -")
-            self.stats_date_label.setText("Date Range: -")
-            self.record_types_table.clear_data() if hasattr(self, 'record_types_table') else None
-            self.data_sources_table.clear_data() if hasattr(self, 'data_sources_table') else None
+            if hasattr(self, 'stats_total_label'):
+                self.stats_total_label.setText("Total Records: -")
+            if hasattr(self, 'stats_date_label'):
+                self.stats_date_label.setText("Date Range: -")
+            if hasattr(self, 'record_types_table'):
+                self.record_types_table.clear_data()
+            if hasattr(self, 'data_sources_table'):
+                self.data_sources_table.clear_data()
             return
         
         # Update summary labels
-        self.stats_total_label.setText(f"Total Records: {stats.total_records:,}")
+        if hasattr(self, 'stats_total_label'):
+            self.stats_total_label.setText(f"Total Records: {stats.total_records:,}")
         
-        if stats.date_range[0] and stats.date_range[1]:
-            try:
-                date_str = f"{stats.date_range[0].strftime('%Y-%m-%d')} to {stats.date_range[1].strftime('%Y-%m-%d')}"
-                self.stats_date_label.setText(f"Date Range: {date_str}")
-            except:
-                self.stats_date_label.setText("Date Range: Invalid dates")
-        else:
-            self.stats_date_label.setText("Date Range: -")
+        if hasattr(self, 'stats_date_label'):
+            if stats.date_range[0] and stats.date_range[1]:
+                try:
+                    date_str = f"{stats.date_range[0].strftime('%Y-%m-%d')} to {stats.date_range[1].strftime('%Y-%m-%d')}"
+                    self.stats_date_label.setText(f"Date Range: {date_str}")
+                except:
+                    self.stats_date_label.setText("Date Range: Invalid dates")
+            else:
+                self.stats_date_label.setText("Date Range: -")
         
         # Update record types table
         if hasattr(self, 'record_types_table') and stats.records_by_type:
@@ -1505,6 +1602,7 @@ class ConfigurationTab(QWidget):
             if types_data:
                 types_df = pd.DataFrame(types_data)
                 self.record_types_table.load_data(types_df)
+                self._apply_compact_table_styling(self.record_types_table)
         
         # Update data sources table
         if hasattr(self, 'data_sources_table') and stats.records_by_source:
@@ -1519,10 +1617,31 @@ class ConfigurationTab(QWidget):
             if sources_data:
                 sources_df = pd.DataFrame(sources_data)
                 self.data_sources_table.load_data(sources_df)
+                self._apply_compact_table_styling(self.data_sources_table)
         
         # Also update original statistics widget for compatibility
-        if hasattr(self, 'statistics_widget'):
-            self.statistics_widget.update_statistics(stats)
+        if hasattr(self, 'original_statistics_widget') and hasattr(self.original_statistics_widget, 'update_statistics'):
+            self.original_statistics_widget.update_statistics(stats)
+    
+    def _apply_compact_table_styling(self, table):
+        """Apply compact styling to table navigation controls."""
+        # Apply compact styling to pagination widget if it exists
+        if hasattr(table, 'pagination_widget') and table.pagination_widget:
+            table.pagination_widget.setStyleSheet(f"""
+                QPushButton {{
+                    padding: 2px 8px;
+                    font-size: 10px;
+                    max-height: 20px;
+                }}
+                QLabel {{
+                    font-size: 10px;
+                }}
+                QComboBox, QSpinBox {{
+                    font-size: 10px;
+                    max-height: 20px;
+                    padding: 0px 4px;
+                }}
+            """)
     
     def _update_data_preview(self):
         """Update the data preview table with sample data."""
@@ -1555,6 +1674,7 @@ class ConfigurationTab(QWidget):
             # Load into preview table
             if hasattr(self, 'data_preview_table'):
                 self.data_preview_table.load_data(preview_data)
+                self._apply_compact_table_styling(self.data_preview_table)
     
     def _update_status(self, message):
         """Update the status label with a message."""

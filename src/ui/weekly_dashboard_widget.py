@@ -912,3 +912,29 @@ class WeeklyDashboardWidget(QWidget):
     def get_current_week(self) -> Tuple[date, date]:
         """Get the current week's start and end dates."""
         return self._current_week_start, self._current_week_end
+    
+    def set_weekly_calculator(self, weekly_calculator: WeeklyMetricsCalculator):
+        """Set the weekly metrics calculator."""
+        self.weekly_calculator = weekly_calculator
+        self.daily_calculator = weekly_calculator.daily_calculator if weekly_calculator else None
+        
+        self.wow_analyzer = WeekOverWeekTrendAnalyzer(weekly_calculator) if weekly_calculator else None
+        self.dow_analyzer = DayOfWeekAnalyzer(self.daily_calculator) if self.daily_calculator else None
+        
+        self._detect_available_metrics()
+        self._load_weekly_data()
+        
+        # Force UI refresh
+        self.update()
+        from PyQt6.QtWidgets import QApplication
+        QApplication.processEvents()
+    
+    def showEvent(self, event):
+        """Handle widget show event to ensure UI is refreshed."""
+        super().showEvent(event)
+        # Force a refresh when the widget is shown
+        if self.weekly_calculator:
+            self._load_weekly_data()
+            self.update()
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()

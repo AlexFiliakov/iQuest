@@ -782,7 +782,7 @@ class EnhancedLineChart(QWidget):
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle mouse movement."""
         chart_rect = self._get_chart_rect()
-        pos = event.pos()
+        pos = event.position().toPoint()
         
         # Handle panning
         if self.is_panning and event.buttons() & Qt.MouseButton.MiddleButton:
@@ -846,7 +846,7 @@ class EnhancedLineChart(QWidget):
     def mousePressEvent(self, event: QMouseEvent):
         """Handle mouse press."""
         chart_rect = self._get_chart_rect()
-        pos = event.pos()
+        pos = event.position().toPoint()
         
         if event.button() == Qt.MouseButton.LeftButton:
             if self.hover_series is not None and self.hover_index >= 0:

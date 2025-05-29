@@ -378,13 +378,13 @@ class LineChart(QWidget):
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle mouse move for hover effects."""
         chart_rect = self._get_chart_rect()
-        mouse_x = event.pos().x()
+        mouse_x = event.position().x()
         
         # Find closest data point
         old_hover = self.hover_index
         self.hover_index = -1
         
-        if chart_rect.contains(event.posF()) and self.data_points:
+        if chart_rect.contains(event.position().toPoint()) and self.data_points:
             min_distance = float('inf')
             
             for i in range(len(self.data_points)):

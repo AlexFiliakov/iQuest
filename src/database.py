@@ -298,7 +298,8 @@ class DatabaseManager:
                     creationDate TEXT,
                     startDate TEXT,
                     endDate TEXT,
-                    value REAL
+                    value REAL,
+                    UNIQUE(type, sourceName, startDate, endDate, value)
                 )
             """)
             
@@ -389,6 +390,47 @@ class DatabaseManager:
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (2)")
             logger.info("Migration 2 applied successfully")
+        
+        # Migration 3: Add unique constraint to health_records
+        if current_version < 3:
+            logger.info("Applying migration 3: Adding unique constraint to health_records")
+            
+            # Create new table with unique constraint
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS health_records_new (
+                    type TEXT,
+                    sourceName TEXT,
+                    sourceVersion TEXT,
+                    device TEXT,
+                    unit TEXT,
+                    creationDate TEXT,
+                    startDate TEXT,
+                    endDate TEXT,
+                    value REAL,
+                    UNIQUE(type, sourceName, startDate, endDate, value)
+                )
+            """)
+            
+            # Copy unique records from old table to new table
+            cursor.execute("""
+                INSERT OR IGNORE INTO health_records_new
+                SELECT DISTINCT type, sourceName, sourceVersion, device, unit, 
+                       creationDate, startDate, endDate, value
+                FROM health_records
+            """)
+            
+            # Drop old table and rename new table
+            cursor.execute("DROP TABLE IF EXISTS health_records")
+            cursor.execute("ALTER TABLE health_records_new RENAME TO health_records")
+            
+            # Recreate indexes
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (3)")
+            logger.info("Migration 3 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute a SELECT query and return results.

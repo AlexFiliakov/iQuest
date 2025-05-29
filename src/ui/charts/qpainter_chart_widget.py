@@ -361,7 +361,7 @@ class QPainterChartWidget(QWidget):
         """Handle mouse move for hover effects."""
         chart_rect = self._get_chart_rect()
         
-        if chart_rect.contains(event.pos()):
+        if chart_rect.contains(event.position().toPoint()):
             # Find nearest data point
             min_dist = float('inf')
             hover_idx = None
@@ -372,8 +372,8 @@ class QPainterChartWidget(QWidget):
                 
                 for i, (x, y) in enumerate(zip(self.data[x_col], self.data[y_col])):
                     screen_x, screen_y = self._data_to_screen(x, y, chart_rect)
-                    dist = ((event.pos().x() - screen_x) ** 2 + 
-                           (event.pos().y() - screen_y) ** 2) ** 0.5
+                    dist = ((event.position().x() - screen_x) ** 2 + 
+                           (event.position().y() - screen_y) ** 2) ** 0.5
                     
                     if dist < min_dist and dist < 20:  # 20 pixel threshold
                         min_dist = dist
