@@ -3,7 +3,9 @@ Health-specific data generators for Apple Health Monitor tests.
 """
 
 from typing import Dict, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
 from .base import BaseDataGenerator
 
 
@@ -97,3 +99,40 @@ class HealthMetricGenerator(BaseDataGenerator):
             return 2.0 - activity_multiplier
         else:
             return 1.0
+    
+    def generate_dataframe(self, days: int, records_per_day: int = 1) -> pd.DataFrame:
+        """Generate a DataFrame with health metrics data.
+        
+        Args:
+            days: Number of days to generate
+            records_per_day: Number of records per day per metric
+            
+        Returns:
+            DataFrame with columns: creationDate, type, value
+        """
+        
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Generate date range
+        dates = pd.date_range(start=start_date, end=end_date, freq='D')
+        
+        # Generate data for each metric
+        data = []
+        metrics = ['steps', 'heart_rate', 'distance', 'calories']
+        
+        for date in dates:
+            for metric in metrics:
+                for _ in range(records_per_day):
+                    # Add some time variation within the day
+                    hours = int(self.rng.integers(0, 24))
+                    minutes = int(self.rng.integers(0, 60))
+                    timestamp = date + timedelta(hours=hours, minutes=minutes)
+                    
+                    data.append({
+                        'creationDate': timestamp,
+                        'type': f'HKQuantityTypeIdentifier{metric.title().replace("_", "")}',
+                        'value': self.generate(metric, timestamp)
+                    })
+        
+        return pd.DataFrame(data)

@@ -16,6 +16,7 @@ from typing import List, Dict, Any, Optional
 from tests.test_data_generator import HealthDataGenerator
 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
 from src.analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+from src.analytics.dataframe_adapter import DataFrameAdapter
 from src.database import DatabaseManager as HealthDatabase
 from src.data_loader import DataLoader as HealthDataLoader
 
@@ -98,38 +99,50 @@ class TestChaosScenarios:
     # Data Corruption Tests
     def test_handle_corrupted_step_data(self, chaos_engine, clean_data):
         """Test handling of corrupted step count data."""
-        calculator = DailyMetricsCalculator()
+        # Transform data to expected format
+        health_data = []
+        for _, row in clean_data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row['steps']
+            })
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(health_data)
         
         # Inject extreme values in steps
-        corrupted_data = clean_data.copy()
-        corrupted_data.loc[10:15, 'steps'] = [1e10, -5000, None, 0, 1e6, float('inf')]
+        df.loc[10:15, 'value'] = [1e10, -5000, None, 0, 1e6, float('inf')]
+        
+        # Initialize calculator with corrupted data
+        calculator = DailyMetricsCalculator(df)
         
         # System should handle gracefully
-        result = calculator.calculate_statistics('steps', corrupted_data['steps'])
+        result = calculator.calculate_statistics('StepCount')
         
         assert result is not None
-        assert 'error_handled' in result or result['count'] < len(corrupted_data)
-        
-        # Should detect outliers
-        if 'outliers_detected' in result:
-            assert result['outliers_detected'] > 0
+        # MetricStatistics object should handle corrupted data gracefully
+        assert hasattr(result, 'count')
+        # Should have filtered out invalid values (negative, None, inf)
+        assert result.count < len(df)
 
     def test_handle_missing_date_columns(self, clean_data):
         """Test handling of missing or corrupted date columns."""
-        calculator = DailyMetricsCalculator()
-        
         # Remove date column
         corrupted_data = clean_data.drop('date', axis=1)
         
+        # Try to create calculator with corrupted data
         with pytest.raises((KeyError, ValueError)):
-            calculator.calculate_all_metrics(corrupted_data)
+            # This should fail either when creating the adapter or the calculator
+            adapter = DataFrameAdapter(corrupted_data)
+            calculator = DailyMetricsCalculator(adapter)
 
     def test_handle_duplicate_dates(self, data_generator):
         """Test handling of duplicate date entries."""
-        calculator = DailyMetricsCalculator()
-        
         edge_cases = data_generator.generate_edge_cases()
         duplicate_data = edge_cases['duplicate_dates']
+        
+        calculator = DailyMetricsCalculator(duplicate_data)
         
         # Should handle or raise appropriate error
         try:

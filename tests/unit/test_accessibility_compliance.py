@@ -11,6 +11,9 @@ from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
 import pandas as pd
 
+# Mark all tests in this module as requiring Qt
+pytestmark = pytest.mark.ui
+
 from src.ui.accessibility import (
     VisualizationAccessibilityManager,
     WCAGValidator,
@@ -55,9 +58,11 @@ def mock_chart():
 @pytest.fixture
 def accessible_chart_instance(qtbot):
     """Create accessible chart instance for testing."""
-    class TestChart(QApplication, AccessibleChartMixin):
+    from PyQt6.QtWidgets import QWidget
+    
+    class TestChart(QWidget, AccessibleChartMixin):
         def __init__(self):
-            super().__init__([])
+            QWidget.__init__(self)
             AccessibleChartMixin.__init__(self)
             self._data = [
                 {'value': 10, 'label': 'Point 1'},
@@ -340,7 +345,7 @@ class TestAccessibleChartMixin:
 class TestAlternativeRepresentations:
     """Test alternative representations."""
     
-    def test_data_table_creation(self):
+    def test_data_table_creation(self, qtbot):
         """Test accessible data table creation."""
         from src.ui.accessibility.alternative_representations import (
             AccessibleDataTable
@@ -354,6 +359,7 @@ class TestAlternativeRepresentations:
         })
         
         table = AccessibleDataTable(data, "Health Metrics")
+        qtbot.addWidget(table)
         
         assert table.rowCount() == 5
         assert table.columnCount() == 3
