@@ -249,6 +249,17 @@ class TestComparativeAnalyticsIntegration:
         import src.ui.main_window
         monkeypatch.setattr(src.ui.main_window, 'db_manager', mock_db)
         
+        # Mock BackgroundTrendProcessor to avoid initialization issues
+        class MockBackgroundTrendProcessor:
+            def __init__(self, *args, **kwargs):
+                self.queue_trend_calculation = MagicMock()
+                self.get_trend = MagicMock()
+                self.shutdown = MagicMock()
+                self.set_comparative_engine = MagicMock()
+                self.VALID_METRICS = set()
+        
+        monkeypatch.setattr('src.analytics.background_trend_processor.BackgroundTrendProcessor', MockBackgroundTrendProcessor)
+        
         # Create main window
         window = MainWindow()
         qtbot.addWidget(window)

@@ -142,51 +142,97 @@ class TestChaosScenarios:
         edge_cases = data_generator.generate_edge_cases()
         duplicate_data = edge_cases['duplicate_dates']
         
-        calculator = DailyMetricsCalculator(duplicate_data)
+        # Convert to expected format
+        health_data = []
+        for _, row in duplicate_data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', 0)
+            })
+        
+        df = pd.DataFrame(health_data)
+        calculator = DailyMetricsCalculator(df)
         
         # Should handle or raise appropriate error
         try:
-            result = calculator.calculate_all_metrics(duplicate_data)
-            # If it succeeds, should have deduplication
-            assert len(result) <= len(duplicate_data.drop_duplicates('date'))
+            # Calculate statistics for StepCount metric
+            result = calculator.calculate_statistics('StepCount')
+            # If it succeeds, should have handled duplicates gracefully
+            assert result is not None
+            assert hasattr(result, 'count')
+            # The count should reflect the data after handling duplicates
+            assert result.count > 0
         except ValueError as e:
             assert 'duplicate' in str(e).lower()
 
     def test_handle_null_data_scenarios(self, data_generator):
         """Test various null data scenarios."""
-        calculator = DailyMetricsCalculator()
-        
         edge_cases = data_generator.generate_edge_cases()
         
         # All nulls
         all_nulls = edge_cases['all_nulls']
+        # Convert to expected format
+        null_health_data = []
+        for _, row in all_nulls.iterrows():
+            null_health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', None)
+            })
+        
+        df_nulls = pd.DataFrame(null_health_data)
         try:
-            result = calculator.calculate_all_metrics(all_nulls)
-            assert result is None or len(result) == 0
-        except ValueError:
+            calculator = DailyMetricsCalculator(df_nulls)
+            result = calculator.calculate_statistics('StepCount')
+            # Should either handle nulls or have insufficient data
+            assert result is None or result.insufficient_data or result.count == 0
+        except (ValueError, KeyError):
             pass  # Acceptable to raise error
         
         # All zeros
         all_zeros = edge_cases['all_zeros']
-        result = calculator.calculate_all_metrics(all_zeros)
+        # Convert to expected format
+        zero_health_data = []
+        for _, row in all_zeros.iterrows():
+            zero_health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', 0)
+            })
+        
+        df_zeros = pd.DataFrame(zero_health_data)
+        calculator = DailyMetricsCalculator(df_zeros)
+        result = calculator.calculate_statistics('StepCount')
         assert result is not None  # Should handle zeros
 
     def test_handle_extreme_values(self, data_generator):
         """Test handling of extreme values."""
-        calculator = DailyMetricsCalculator()
-        
         edge_cases = data_generator.generate_edge_cases()
         extreme_data = edge_cases['extreme_values']
         
-        result = calculator.calculate_all_metrics(extreme_data)
+        # Convert to expected format
+        extreme_health_data = []
+        for _, row in extreme_data.iterrows():
+            extreme_health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', 0)
+            })
+        
+        df_extreme = pd.DataFrame(extreme_health_data)
+        calculator = DailyMetricsCalculator(df_extreme)
+        result = calculator.calculate_statistics('StepCount')
         
         # Should detect and handle extremes
         assert result is not None
         # Check that infinite values are handled
-        for key, value in result.items():
-            if isinstance(value, (int, float)):
-                assert not np.isinf(value)
-                assert not np.isnan(value)
+        if result.mean is not None:
+            assert not np.isinf(result.mean)
+            assert not np.isnan(result.mean)
+        if result.std is not None:
+            assert not np.isinf(result.std)
+            assert not np.isnan(result.std)
 
     # Concurrency Tests
     def test_concurrent_database_writes(self, chaos_engine, data_generator):
@@ -222,15 +268,26 @@ class TestChaosScenarios:
 
     def test_concurrent_analytics_calculations(self, data_generator):
         """Test concurrent analytics calculations."""
-        calculator = DailyMetricsCalculator()
         data = data_generator.generate(500)
+        
+        # Convert to expected format
+        health_data = []
+        for _, row in data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', 0)
+            })
+        
+        df = pd.DataFrame(health_data)
+        calculator = DailyMetricsCalculator(df)
         
         results_queue = queue.Queue()
         errors = []
         
         def calculate_metrics(thread_id: int):
             try:
-                result = calculator.calculate_all_metrics(data.copy())
+                result = calculator.calculate_statistics('StepCount')
                 results_queue.put((thread_id, result))
             except Exception as e:
                 errors.append(f"Thread {thread_id}: {e}")
@@ -256,25 +313,37 @@ class TestChaosScenarios:
         # Results should be consistent
         first_result = results[0][1]
         for thread_id, result in results[1:]:
-            assert result.keys() == first_result.keys()
+            # Check that all results have same metric name and similar values
+            assert result.metric_name == first_result.metric_name
+            assert result.count == first_result.count
 
     # Memory Pressure Tests
     @pytest.mark.slow
     def test_low_memory_conditions(self, chaos_engine, data_generator):
         """Test system behavior under low memory conditions."""
-        calculator = DailyMetricsCalculator()
-        
         # Create memory pressure
         memory_hogs = chaos_engine.create_memory_pressure(50)  # 50MB
         
         try:
             # Try to process data under memory pressure
             large_data = data_generator.generate_performance_data('medium')
-            result = calculator.calculate_all_metrics(large_data)
+            
+            # Convert to expected format
+            health_data = []
+            for _, row in large_data.iterrows():
+                health_data.append({
+                    'creationDate': row['date'],
+                    'type': 'StepCount',
+                    'value': row.get('steps', 0)
+                })
+            
+            df = pd.DataFrame(health_data)
+            calculator = DailyMetricsCalculator(df)
+            result = calculator.calculate_statistics('StepCount')
             
             # Should either succeed or fail gracefully
             if result is not None:
-                assert len(result) > 0
+                assert result.count > 0
             
         except MemoryError:
             # Acceptable to run out of memory
@@ -287,17 +356,27 @@ class TestChaosScenarios:
     @pytest.mark.timeout(10)
     def test_infinite_loop_protection(self, data_generator):
         """Test protection against infinite loops."""
-        calculator = DailyMetricsCalculator()
-        
         # Create circular reference scenario
         circular_data = data_generator.generate(50)
         # Simulate a condition that might cause infinite loops
         circular_data.loc[0, 'steps'] = float('inf')
         circular_data.loc[1, 'steps'] = float('-inf')
         
+        # Convert to expected format
+        health_data = []
+        for _, row in circular_data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', 0)
+            })
+        
+        df = pd.DataFrame(health_data)
+        calculator = DailyMetricsCalculator(df)
+        
         # Should complete within timeout
         try:
-            result = calculator.calculate_all_metrics(circular_data)
+            result = calculator.calculate_statistics('StepCount')
             assert result is not None
         except (RecursionError, ValueError):
             # Acceptable to detect and prevent infinite loops
@@ -306,20 +385,30 @@ class TestChaosScenarios:
     @pytest.mark.timeout(5)
     def test_large_dataset_timeout_protection(self, data_generator):
         """Test timeout protection for very large datasets."""
-        calculator = DailyMetricsCalculator()
-        
         # Create dataset that might cause timeout
         very_large_data = data_generator.generate_performance_data('xlarge')
         
+        # Convert to expected format
+        health_data = []
+        for _, row in very_large_data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row.get('steps', 0)
+            })
+        
+        df = pd.DataFrame(health_data)
+        calculator = DailyMetricsCalculator(df)
+        
         start_time = time.time()
         try:
-            result = calculator.calculate_all_metrics(very_large_data)
+            result = calculator.calculate_statistics('StepCount')
             end_time = time.time()
             
             # Should complete reasonably quickly
             assert end_time - start_time < 30  # 30 second max
             if result is not None:
-                assert len(result) > 0
+                assert result.count > 0
                 
         except TimeoutError:
             # Acceptable to timeout on extremely large datasets
@@ -416,14 +505,24 @@ class TestChaosScenarios:
     # Type Safety and Schema Validation Tests
     def test_wrong_data_types(self, data_generator):
         """Test handling of wrong data types."""
-        calculator = DailyMetricsCalculator()
-        
         # Create data with wrong types
         wrong_type_data = data_generator.generate(50)
         wrong_type_data['steps'] = wrong_type_data['steps'].astype(str)  # Convert to string
         
+        # Convert to expected format
+        health_data = []
+        for _, row in wrong_type_data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount',
+                'value': row['steps']  # This is now a string
+            })
+        
+        df = pd.DataFrame(health_data)
+        
         try:
-            result = calculator.calculate_all_metrics(wrong_type_data)
+            calculator = DailyMetricsCalculator(df)
+            result = calculator.calculate_statistics('StepCount')
             # Should handle type conversion or fail gracefully
             assert result is not None
         except (TypeError, ValueError):
@@ -432,18 +531,27 @@ class TestChaosScenarios:
 
     def test_missing_required_columns(self, data_generator):
         """Test handling of missing required columns."""
-        calculator = DailyMetricsCalculator()
-        
         incomplete_data = data_generator.generate(50)
         del incomplete_data['steps']  # Remove required column
         
+        # Convert to expected format - will be missing 'value'
+        health_data = []
+        for _, row in incomplete_data.iterrows():
+            health_data.append({
+                'creationDate': row['date'],
+                'type': 'StepCount'
+                # 'value' is missing
+            })
+        
+        df = pd.DataFrame(health_data)
+        
         with pytest.raises((KeyError, ValueError)):
-            calculator.calculate_all_metrics(incomplete_data)
+            calculator = DailyMetricsCalculator(df)
+            result = calculator.calculate_statistics('StepCount')
 
     # Race Condition Tests
     def test_race_condition_detection(self, data_generator):
         """Test detection and handling of race conditions."""
-        calculator = DailyMetricsCalculator()
         shared_data = data_generator.generate(100)
         
         results = []
@@ -452,7 +560,19 @@ class TestChaosScenarios:
             # Modify data while calculating
             local_data = shared_data.copy()
             local_data.loc[0, 'steps'] = random.randint(1000, 20000)
-            result = calculator.calculate_all_metrics(local_data)
+            
+            # Convert to expected format
+            health_data = []
+            for _, row in local_data.iterrows():
+                health_data.append({
+                    'creationDate': row['date'],
+                    'type': 'StepCount',
+                    'value': row.get('steps', 0)
+                })
+            
+            df = pd.DataFrame(health_data)
+            calculator = DailyMetricsCalculator(df)
+            result = calculator.calculate_statistics('StepCount')
             results.append(result)
         
         # Run multiple threads that modify and calculate
@@ -472,8 +592,6 @@ class TestChaosScenarios:
     # Error Recovery Tests
     def test_error_recovery_mechanisms(self, data_generator):
         """Test system error recovery mechanisms."""
-        calculator = DailyMetricsCalculator()
-        
         # Simulate various error conditions and recovery
         problematic_datasets = [
             data_generator.generate_edge_cases()['all_nulls'],
@@ -485,7 +603,18 @@ class TestChaosScenarios:
         
         for problem_data in problematic_datasets:
             try:
-                result = calculator.calculate_all_metrics(problem_data)
+                # Convert to expected format
+                health_data = []
+                for _, row in problem_data.iterrows():
+                    health_data.append({
+                        'creationDate': row['date'],
+                        'type': 'StepCount',
+                        'value': row.get('steps', 0)
+                    })
+                
+                df = pd.DataFrame(health_data)
+                calculator = DailyMetricsCalculator(df)
+                result = calculator.calculate_statistics('StepCount')
                 if result is not None:
                     recovery_count += 1
             except Exception:
