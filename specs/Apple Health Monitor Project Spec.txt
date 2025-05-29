@@ -77,22 +77,35 @@ Create tasks to repair the remaining test errors in file `tests/pytest_failure_s
 
 ## S05 ##
 current:
-G063_export_visualization_system.md
+G064_visualization_performance_optimization.md
 fix the errors identified in file `tests/pytest_failure_summaries.txt`
-update all docstrings in modules, submodules, classes, methods, and functions. Adhere to the Google docstring style.
+
+Review tasks in sprint `S06_M01_Journal_Feature`. Fill out the subtasks to implement each task, provide analysis of pros and cons where multiple possible implementations are viable, and include test updates.
 
 
 next:
 Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
 
-update sphinx documentation templates for the latest code structure
-Update README.md and CLAUDE.md with the latest directory structures
-
 then:
 Review tasks .... Flesh out the subtasks to implement test fixes, provide analysis of pros and cons where multiple possible implementations are viable.
 
-then:
-G064_visualization_performance_optimization.md
+
+
+### SPRINT PLANNING ###
+Create tasks for sprint `S06_M01_Journal_Feature` in accordance with all specs and the sprint meta file `S06_sprint_meta.md`. Place all created tasks in folder `S06_M01_Journal_Feature`. Include detailed subtasks and a chain of dependencies between the tasks for parallel execution.
+
+# Batch update tasks
+Review tasks in sprint `S06_M01_Journal_Feature`. Fill out the subtasks to implement each task, provide analysis of pros and cons where multiple possible implementations are viable, and include test updates.
+
+# One Task:
+fill out details for task `G064_visualization_performance_optimization.md`, specify additional subtasks and break down subtasks for more granularity based on completed work, note pros and cons of various approaches where alternate solutions are available, then recommend a preferred method. Make sure you adhere to all specs.
+
+
+### DOCUMENTATION ###
+update all docstrings in modules, submodules, classes, methods, and functions. Adhere to the Google docstring style.
+update sphinx documentation templates for the latest code structure
+Update README.md and CLAUDE.md with the latest directory structures
+
 
 
 ### ongoing ###############
