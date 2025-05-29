@@ -74,10 +74,12 @@ pytest --tb=long -v > tests\pytest_failure_summaries.txt 2>&1
 Create tasks to repair the remaining test errors in file `tests/pytest_failure_summaries.txt` by either fixing bugs, updating the tests to new API, pruning or consolidating the tests. Organize the tasks for parallel execution when possible.
 
 
+###### TODO ######
+Update Simone
 
-## S05 ##
+
 #### current: ####
-Fix the following errors:
+Fix the following thest errors:
 
 
 run below command at the project root and fix errors until the command passes all tests.
@@ -94,19 +96,19 @@ run below command at the project root and fix errors until the command passes al
 Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
 
 
-Look for test status in file `tests\pytest_failure_summaries_cov.txt`, fix broken tests, and implement new tests until 90% of the code is covered. Then, run below command at the project root and create tests until there is 90% coverage across the application.
+Run below command at the project root and create tests until there is 90% coverage across the application.
 `pytest --tb=long -v --cov > tests\pytest_failure_summaries_cov.txt 2>&1`
 Look for test status in file `tests\pytest_failure_summaries_cov.txt` and tests take some time to run. Keep creating tests until 90%+ of code is covered.
 
 
 ## ENHANCEMENTS ##
 
-Improve the UI of the Config Data Statistics and Data Preview sections, see in this image: `ad hoc/config_window_data_preview.png`. Right now everything is very small in the Data Preview, and Record Types is a scrollable sub-section rather than being incorporated in the main window scrollbar.
+The application is currently too wide to use on a standard monitor: `ad hoc/config_window_main_visible.png`. Please redesign all the layouts to work in 1920x1080 at 150% scale. The current window is too wide and displays off screen on this setup.
 
 #### TODO ####
-Fix Monthly tab > Month Grid to show individual months with left and right buttons, rather than squishing all the data into a 31-day view as it seems to do now.
 
-Implement Daily tab, Weekly tab, and Insights tab in the main application.
+
+
 
 
 
@@ -278,3 +280,107 @@ T09_S08_humor_content.md
 then:
 T10_S08_integration_testing.md
 
+
+
+#### Screenshot Analysis ####
+Please help me evaluate and improve my PyQt6 application's UI design:
+
+1. Run an isolated UI element through the PyQt6 output, such as charts, graphs, windows, heatmaps, etc.
+
+2. Once the application is running, use `mcp-screenshot` mcp server to capture the main window:
+   - Take a full screenshot of the application
+   - If there are multiple windows or tabs, capture each key interface
+
+3. Analyze each screenshot for:
+   - Overall aesthetic quality and modern design principles
+   - Color scheme effectiveness and accessibility
+   - Typography choices and readability
+   - Layout and spacing issues
+   - Visual hierarchy and information organization
+   - User experience flow and intuitive navigation
+   - Conformity to Wall Street Journal style
+
+4. Provide specific, actionable recommendations for:
+   - Color palette improvements (with hex codes if possible)
+   - Font and sizing adjustments
+   - Spacing and alignment fixes
+   - Modern UI element suggestions (rounded corners, shadows, etc.)
+   - Accessibility improvements (contrast ratios, etc.)
+   - Any outdated UI patterns that could be modernized
+
+5. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
+
+6. Close the window with the isolated UI element
+
+7. Keep repeating this process until you’ve assessed and repaired each UI element in isolation
+
+Please be thorough in your analysis and provide both high-level design feedback and specific technical implementation suggestions. Create tasks in `04_GENERAL_TASKS` folder with your recommendations.
+
+
+### FIXES ###
+complete all the tasks outlined in `.simone/04_GENERAL_TASKS/UI_COMPONENT_EXAMPLES.md`, `.simone/04_GENERAL_TASKS/UI_DESIGN_EVALUATION.md`, and `.simone/04_GENERAL_TASKS/UI_QUICK_IMPLEMENTATION_GUIDE.md`
+
+
+### Opening UI capture ###
+Please help me evaluate and improve my PyQt6 application's UI design:
+
+1. First, run my PyQt6 application: `python src/main.py`
+
+2. Once the application is running, use `mcp-screenshot` mcp server to capture the main window:
+   - Take a full screenshot of the application
+   - If there are multiple windows or tabs, capture each key interface
+
+3. Analyze each screenshot for:
+   - Overall aesthetic quality and modern design principles
+   - Color scheme effectiveness and accessibility
+   - Typography choices and readability
+   - Layout and spacing issues
+   - Visual hierarchy and information organization
+   - User experience flow and intuitive navigation
+   - Conformity to Wall Street Journal style
+
+4. Provide specific, actionable recommendations for:
+   - Color palette improvements (with hex codes if possible)
+   - Font and sizing adjustments
+   - Spacing and alignment fixes
+   - Modern UI element suggestions (rounded corners, shadows, etc.)
+   - Accessibility improvements (contrast ratios, etc.)
+   - Any outdated UI patterns that could be modernized
+
+5. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
+
+Please be thorough in your analysis and provide both high-level design feedback and specific technical implementation suggestions. Create tasks in `.simone/04_GENERAL_TASKS` folder with your recommendations.
+
+
+
+### UI screenshot review ###
+Please help me evaluate and improve my PyQt6 application's UI design:
+
+1. Evaluate the following screenshots:
+   - `ad hoc\config_tab.png`
+   - `ad hoc\daily_tab.png`
+   - `ad hoc\monthly_tab.png`
+   - `ad hoc\statistics_tab.png`
+   - `ad hoc\streaks_tab.png`
+   - `ad hoc\weekly_tab.png`
+
+3. Analyze each screenshot for:
+   - Overall aesthetic quality and modern design principles
+   - Color scheme effectiveness and accessibility
+   - Typography choices and readability
+   - Layout and spacing issues
+   - Visual hierarchy and information organization
+   - User experience flow and intuitive navigation
+   - Conformity to Wall Street Journal style
+
+4. Provide specific, actionable recommendations for:
+   - Color palette improvements (with hex codes if possible)
+   - Font and sizing adjustments
+   - Spacing and alignment fixes
+   - Modern UI element suggestions (rounded corners, shadows, etc.)
+   - Accessibility improvements (contrast ratios, etc.)
+   - Any outdated UI patterns that could be modernized
+
+5. If you identify significant issues, suggest specific PyQt6 code changes or styling approaches to implement the improvements.
+
+Please be thorough in your analysis and provide both high-level design feedback and specific technical implementation suggestions. Create tasks in `.simone/04_GENERAL_TASKS` folder with your recommendations.
