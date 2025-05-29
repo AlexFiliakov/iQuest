@@ -173,12 +173,42 @@ class ComparativeAnalyticsEngine:
                  daily_calculator: DailyMetricsCalculator,
                  weekly_calculator: WeeklyMetricsCalculator,
                  monthly_calculator: MonthlyMetricsCalculator,
-                 privacy_manager: Optional[PrivacyManager] = None):
+                 privacy_manager: Optional[PrivacyManager] = None,
+                 background_processor=None):
         self.daily_calc = daily_calculator
         self.weekly_calc = weekly_calculator
         self.monthly_calc = monthly_calculator
         self.privacy_manager = privacy_manager or PrivacyManager()
         self.insights_generator = InsightsGenerator()
+        self.background_processor = background_processor
+        
+    def get_trend_analysis(self, metric: str, use_cache: bool = True) -> Optional[Dict]:
+        """
+        Get trend analysis for a metric, using cache if available.
+        
+        Args:
+            metric: The metric to analyze
+            use_cache: Whether to use cached results
+            
+        Returns:
+            Trend analysis results or None
+        """
+        if not self.background_processor:
+            # Fall back to synchronous calculation
+            logger.warning("No background processor available, performing synchronous trend calculation")
+            return None
+            
+        if use_cache:
+            # Try to get from cache first
+            trend_result = self.background_processor.get_trend(metric, wait=False)
+            if trend_result:
+                return trend_result
+                
+        # Queue for background calculation
+        self.background_processor.queue_trend_calculation(metric, priority=5)
+        
+        # Return None to indicate processing
+        return None
         
     def _validate_metric_name(self, metric: str) -> bool:
         """Validate metric name for security and correctness."""

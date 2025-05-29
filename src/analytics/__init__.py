@@ -72,6 +72,9 @@ from .optimized_calculator_integration import (
     migrate_to_optimized_calculators
 )
 
+# Background trend processing
+from .background_trend_processor import BackgroundTrendProcessor
+
 __all__ = [
     # Data source abstractions
     'DataSourceProtocol',
@@ -133,5 +136,8 @@ __all__ = [
     'OptimizedMonthlyCalculator',
     'OptimizedStatisticsCalculator',
     'OptimizedComparisonCalculator',
-    'migrate_to_optimized_calculators'
+    'migrate_to_optimized_calculators',
+    
+    # Background trend processing
+    'BackgroundTrendProcessor'
 ]
