@@ -20,7 +20,7 @@ A powerful Windows desktop application for analyzing and visualizing Apple Healt
 ## 🌟 Why Apple Health Monitor?
 
 - **📊 Comprehensive Analytics** - Daily, weekly, and monthly health insights at your fingertips
-- **🎨 Beautiful Visualizations** - Warm, inviting UI with interactive charts and heatmaps
+- **🎨 Beautiful Visualizations** - Modern Wall Street Journal-inspired UI with interactive charts and heatmaps (see [UI Specifications](.simone/01_SPECS/UI_SPECS.md))
 - **📝 Personal Journal** - Add context to your health data with integrated journaling
 - **🔒 Privacy First** - All data stays local on your machine
 - **⚡ Lightning Fast** - Optimized SQLite backend handles millions of data points

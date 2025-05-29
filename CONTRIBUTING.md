@@ -103,6 +103,19 @@ pytest -v
 
 ## Coding Standards
 
+### UI/UX Development
+
+When developing UI components, please refer to our comprehensive [UI Specifications](.simone/01_SPECS/UI_SPECS.md) which covers:
+- Design philosophy and principles
+- Visual design system (colors, typography, spacing)
+- Component architecture and specifications
+- Layout principles and responsive design
+- Interaction patterns and animations
+- Accessibility guidelines
+- Performance considerations
+
+All UI components should follow the modern Wall Street Journal-inspired design aesthetic outlined in the specifications.
+
 ### Python Style Guide
 
 We follow PEP 8 with some modifications:
