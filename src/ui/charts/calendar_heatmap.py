@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QButtonGroup, QPushButton, 
     QLabel, QToolTip, QComboBox, QSlider, QCheckBox, QFrame
 )
-from PyQt6.QtCore import Qt, QRect, QPoint, QSize, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, QRect, QPoint, QSize, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt6.QtGui import (
     QPainter, QPen, QBrush, QColor, QFont, QFontMetrics, 
     QLinearGradient, QRadialGradient, QPainterPath, QPolygonF
@@ -85,10 +85,13 @@ class CalendarHeatmapComponent(QWidget):
         self._show_today_marker = True
         
         # Animation
+        self._animation_progress = 0.0
         self._pulse_animation = QPropertyAnimation(self, b"animationProgress")
         self._pulse_animation.setDuration(2000)
         self._pulse_animation.setEasingCurve(QEasingCurve.Type.InOutSine)
         self._pulse_animation.setLoopCount(-1)  # Infinite loop
+        self._pulse_animation.setStartValue(0.0)
+        self._pulse_animation.setEndValue(1.0)
         
         # Color system
         self._colors = self._get_default_colors()
@@ -180,6 +183,17 @@ class CalendarHeatmapComponent(QWidget):
                 QColor("#FFEA46")
             ]
         }
+        
+    @pyqtProperty(float)
+    def animationProgress(self):
+        """Get animation progress value."""
+        return self._animation_progress
+        
+    @animationProgress.setter
+    def animationProgress(self, value):
+        """Set animation progress value."""
+        self._animation_progress = value
+        self.update()  # Trigger repaint
         
     def _setup_ui(self):
         """Set up the UI components."""
@@ -302,7 +316,7 @@ class CalendarHeatmapComponent(QWidget):
         if mode != self._view_mode:
             self._view_mode = mode
             self.view_mode_changed.emit(mode)
-            self.animate_update()
+            self.update()  # Direct call to update instead of animate_update
             
     def _change_color_scale(self, scale_name: str):
         """Change the color scale."""
@@ -337,6 +351,12 @@ class CalendarHeatmapComponent(QWidget):
         
     def _on_data_changed(self):
         """Handle data changes."""
+        self.update()
+        
+    def animate_update(self):
+        """Animate the update transition."""
+        # For now, just do a regular update
+        # In the future, this could implement smooth transitions
         self.update()
         
     def _get_color_for_value(self, value: Optional[float]) -> QColor:
@@ -694,3 +714,10 @@ class CalendarHeatmapComponent(QWidget):
     def get_current_date(self) -> date:
         """Get the current date."""
         return self._current_date
+        
+    def showEvent(self, event):
+        """Handle widget show event."""
+        super().showEvent(event)
+        # Start pulse animation for today marker
+        if self._show_today_marker:
+            self._pulse_animation.start()

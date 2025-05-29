@@ -307,25 +307,28 @@ class ActivityTimelineComponent(QWidget):
             if metric in self.data.columns:
                 try:
                     # Resample each metric individually
-                    metric_data = self.data[[metric]].copy()
+                    # Create a deep copy to avoid Windows access violation issues
+                    metric_series = self.data[metric].copy(deep=True)
                     
                     # Convert to float64 to ensure numeric stability
-                    metric_data[metric] = metric_data[metric].astype('float64')
+                    metric_series = metric_series.astype('float64')
+                    
+                    # Create new DataFrame with the processed series
+                    metric_data = pd.DataFrame({metric: metric_series}, index=self.data.index)
                     
                     # Handle sparse data by filling NaN values before resampling on Windows
                     # This prevents access violations in pandas' Cython code
-                    if metric_data[metric].isna().any():
+                    if metric_series.isna().any():
                         # Use interpolation for smoother results, with fallback to forward/backward fill
-                        metric_data[metric] = metric_data[metric].interpolate(method='linear', limit_direction='both')
+                        metric_series = metric_series.interpolate(method='linear', limit_direction='both')
                         # Fill any remaining NaN values
-                        metric_data[metric] = metric_data[metric].fillna(0)
-                    
-                    # Force garbage collection before resample to avoid memory issues
-                    import gc
-                    gc.collect()
+                        metric_series = metric_series.fillna(0)
+                        # Update DataFrame with cleaned series
+                        metric_data[metric] = metric_series
                     
                     # Use groupby instead of resample to avoid Cython issues on Windows
                     # This is more stable for sparse data
+                    # NOTE: Do NOT call gc.collect() here - it causes access violations on Windows
                     grouper = pd.Grouper(freq=freq, closed='left', label='left')
                     grouped = metric_data.groupby(grouper)
                     
@@ -348,10 +351,11 @@ class ActivityTimelineComponent(QWidget):
                     continue
         
         if result_dfs:
-            # Combine all metrics
-            grouped = pd.concat(result_dfs, axis=1)
+            # Combine all metrics with copy to avoid Windows memory issues
+            grouped = pd.concat(result_dfs, axis=1, copy=True)
             # Ensure multi-level column structure
-            grouped.columns = pd.MultiIndex.from_tuples(grouped.columns)
+            if not isinstance(grouped.columns, pd.MultiIndex):
+                grouped.columns = pd.MultiIndex.from_tuples(grouped.columns)
             return grouped
         else:
             return pd.DataFrame()
@@ -361,32 +365,31 @@ class ActivityTimelineComponent(QWidget):
         if self.grouped_data is None or self.grouped_data.empty:
             return
             
-        # Calculate activity scores
-        activity_scores = []
-        for idx, row in self.grouped_data.iterrows():
-            # Simple activity score based on metric values
-            score = 0
-            for metric in self.selected_metrics:
-                if (metric, 'mean') in row.index:
-                    value = row[(metric, 'mean')]
-                    if pd.notna(value):
-                        score += value
-            activity_scores.append(score)
+        # Calculate activity scores using vectorized operations (safer on Windows)
+        activity_scores = pd.Series(0, index=self.grouped_data.index, dtype='float64')
+        
+        # Sum up mean values for each metric
+        for metric in self.selected_metrics:
+            if (metric, 'mean') in self.grouped_data.columns:
+                metric_values = self.grouped_data[(metric, 'mean')].fillna(0)
+                activity_scores = activity_scores + metric_values
             
         # Determine thresholds
         scores_array = np.array(activity_scores)
         if len(scores_array) > 0:
             threshold = np.percentile(scores_array, 25)
             
-            # Classify periods
-            self.active_periods = []
-            self.rest_periods = []
+            # Classify periods using boolean indexing (vectorized)
+            active_mask = activity_scores > threshold
             
-            for i, (idx, score) in enumerate(zip(self.grouped_data.index, activity_scores)):
-                if score > threshold:
-                    self.active_periods.append((idx, score))
-                else:
-                    self.rest_periods.append((idx, score))
+            # Extract periods using boolean indexing
+            active_indices = self.grouped_data.index[active_mask]
+            active_scores = activity_scores[active_mask]
+            self.active_periods = list(zip(active_indices, active_scores))
+            
+            rest_indices = self.grouped_data.index[~active_mask]
+            rest_scores = activity_scores[~active_mask]
+            self.rest_periods = list(zip(rest_indices, rest_scores))
                     
     def perform_clustering(self):
         """Perform ML clustering on activity patterns."""
