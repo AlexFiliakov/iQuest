@@ -1,0 +1,14 @@
+# Sphinx documentation requirements
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.2.0
+sphinx-copybutton>=0.5.0
+sphinx-design>=0.4.0
+myst-parser>=0.18.0
+
+# Additional documentation tools
+sphinxcontrib-mermaid>=0.8.0
+sphinx-autodoc-typehints>=1.19.0
+sphinx-tabs>=3.4.0
+
+# Development documentation
+sphinx-autobuild>=2021.3.14

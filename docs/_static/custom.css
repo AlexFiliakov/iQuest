@@ -1,0 +1,292 @@
+/* Custom CSS for Apple Health Monitor Documentation */
+
+/* WSJ-inspired color scheme */
+:root {
+    --wsj-blue: #2E74B5;
+    --wsj-light-blue: #4A90D9;
+    --wsj-dark-blue: #1A4A6B;
+    --wsj-gray: #58595B;
+    --wsj-light-gray: #F5F5F5;
+    --wsj-border: #E5E5E5;
+    --wsj-accent: #D4AF37;
+    --wsj-success: #2E8B57;
+    --wsj-warning: #FF8C00;
+    --wsj-error: #DC143C;
+}
+
+/* Typography improvements */
+.rst-content {
+    font-family: "Georgia", "Times New Roman", serif;
+    line-height: 1.6;
+}
+
+/* Headers with WSJ styling */
+.rst-content h1,
+.rst-content h2,
+.rst-content h3,
+.rst-content h4,
+.rst-content h5,
+.rst-content h6 {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    color: var(--wsj-dark-blue);
+    font-weight: 600;
+}
+
+.rst-content h1 {
+    border-bottom: 3px solid var(--wsj-blue);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.rst-content h2 {
+    border-bottom: 2px solid var(--wsj-light-blue);
+    padding-bottom: 0.3rem;
+    margin-bottom: 1rem;
+}
+
+/* Code blocks with improved styling */
+.rst-content pre.literal-block,
+.rst-content div[class^="highlight"] {
+    background-color: #F8F9FA;
+    border: 1px solid var(--wsj-border);
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+    font-family: "Monaco", "Menlo", "Consolas", monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* Inline code */
+.rst-content code.literal {
+    background-color: #F8F9FA;
+    color: var(--wsj-dark-blue);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    border: 1px solid var(--wsj-border);
+}
+
+/* Admonitions (notes, warnings, etc.) */
+.rst-content .admonition {
+    border-left: 4px solid var(--wsj-blue);
+    background-color: #F8F9FA;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.rst-content .admonition.note {
+    border-left-color: var(--wsj-blue);
+}
+
+.rst-content .admonition.warning {
+    border-left-color: var(--wsj-warning);
+    background-color: #FFF8DC;
+}
+
+.rst-content .admonition.important {
+    border-left-color: var(--wsj-error);
+    background-color: #FFF0F0;
+}
+
+.rst-content .admonition.tip {
+    border-left-color: var(--wsj-success);
+    background-color: #F0FFF0;
+}
+
+.rst-content .admonition-title {
+    font-weight: 600;
+    color: var(--wsj-dark-blue);
+    margin-bottom: 0.5rem;
+}
+
+/* Tables */
+.rst-content table.docutils {
+    border-collapse: collapse;
+    border: 1px solid var(--wsj-border);
+    margin: 1rem 0;
+    width: 100%;
+}
+
+.rst-content table.docutils th {
+    background-color: var(--wsj-light-gray);
+    color: var(--wsj-dark-blue);
+    font-weight: 600;
+    padding: 0.75rem;
+    border: 1px solid var(--wsj-border);
+    text-align: left;
+}
+
+.rst-content table.docutils td {
+    padding: 0.75rem;
+    border: 1px solid var(--wsj-border);
+}
+
+.rst-content table.docutils tbody tr:nth-child(even) {
+    background-color: #FAFAFA;
+}
+
+/* Links */
+.rst-content a {
+    color: var(--wsj-blue);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom-color 0.2s ease;
+}
+
+.rst-content a:hover {
+    border-bottom-color: var(--wsj-blue);
+}
+
+/* Navigation improvements */
+.wy-nav-content-wrap {
+    background-color: white;
+}
+
+.wy-nav-side {
+    background-color: #FAFAFA;
+}
+
+.wy-menu-vertical a {
+    color: var(--wsj-gray);
+}
+
+.wy-menu-vertical a:hover {
+    background-color: var(--wsj-light-gray);
+    color: var(--wsj-dark-blue);
+}
+
+.wy-menu-vertical li.current a {
+    background-color: var(--wsj-blue);
+    color: white;
+}
+
+/* API documentation styling */
+.rst-content dl.class,
+.rst-content dl.function,
+.rst-content dl.method {
+    border: 1px solid var(--wsj-border);
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+    background-color: #FAFAFA;
+}
+
+.rst-content dl.class > dt,
+.rst-content dl.function > dt,
+.rst-content dl.method > dt {
+    background-color: var(--wsj-blue);
+    color: white;
+    padding: 0.5rem 1rem;
+    margin: -1rem -1rem 1rem -1rem;
+    border-radius: 3px 3px 0 0;
+    font-family: "Monaco", "Menlo", "Consolas", monospace;
+    font-size: 0.9em;
+}
+
+/* Parameter lists */
+.rst-content .field-list {
+    margin: 1rem 0;
+}
+
+.rst-content .field-list .field-name {
+    background-color: var(--wsj-light-gray);
+    color: var(--wsj-dark-blue);
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* Search box */
+.wy-side-nav-search {
+    background-color: var(--wsj-blue);
+}
+
+.wy-side-nav-search input[type="text"] {
+    border-radius: 4px;
+    border: 1px solid var(--wsj-border);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 4px;
+    border: 1px solid var(--wsj-border);
+    background-color: white;
+    color: var(--wsj-dark-blue);
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    background-color: var(--wsj-light-gray);
+    border-color: var(--wsj-blue);
+}
+
+.btn-primary {
+    background-color: var(--wsj-blue);
+    border-color: var(--wsj-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--wsj-dark-blue);
+    border-color: var(--wsj-dark-blue);
+}
+
+/* Version info */
+.rst-versions {
+    border-top: 1px solid var(--wsj-border);
+    background-color: var(--wsj-light-gray);
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+    .rst-content {
+        font-size: 0.9em;
+    }
+    
+    .rst-content h1 {
+        font-size: 1.8em;
+    }
+    
+    .rst-content h2 {
+        font-size: 1.5em;
+    }
+    
+    .rst-content pre.literal-block,
+    .rst-content div[class^="highlight"] {
+        padding: 0.75rem;
+        font-size: 0.8em;
+        overflow-x: auto;
+    }
+}
+
+/* Print styles */
+@media print {
+    .wy-nav-side,
+    .wy-nav-content-wrap .wy-nav-top,
+    .rst-versions {
+        display: none !important;
+    }
+    
+    .wy-nav-content {
+        margin-left: 0 !important;
+    }
+    
+    .rst-content {
+        font-size: 11pt;
+        line-height: 1.4;
+    }
+    
+    .rst-content a {
+        color: black;
+        text-decoration: none;
+    }
+    
+    .rst-content a[href^="http"]:after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+}
