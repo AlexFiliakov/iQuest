@@ -3,6 +3,13 @@
 ## Project Overview
 Building a Windows desktop application to analyze Apple Health data from XML exports. The app features a warm, inviting UI with dashboards for daily, weekly, and monthly health metrics plus journaling functionality.
 
+### Git Configuration
+Commit with the following author info:
+```bash
+git config user.name "Alex Filiakov"
+git config user.email "alexfiliakov@gmail.com"
+```
+
 ## Key Technical Decisions
 - **UI Framework:** PyQt6 for rich desktop experience
 - **Data Processing:** Pandas with hybrid memory/streaming approach
