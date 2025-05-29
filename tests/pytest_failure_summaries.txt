@@ -15,127 +15,132 @@ rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
 configfile: pytest.ini
 plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
 asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collecting ... collected 1117 items
+collecting ... collected 1115 items
 
-atlas/tests/test_expanse.py::test_example_function PASSED                [  0%]
-coverage_analysis/test_statistics_methods.py::test_statistics_methods PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_comparative_widget_creation PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_historical_comparison_display PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_percentile_gauge_animation PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_peer_group_comparison_flow PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_view_switching PASSED [  0%]
-tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_main_window_integration FAILED [  0%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_main_window_integration PASSED [  0%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_privacy_settings_integration PASSED [  0%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_responsive_layout PASSED [  0%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_error_handling PASSED [  0%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_initialization PASSED [  0%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_journal_entry_crud PASSED [  0%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_preferences_operations PASSED [  1%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_cache_operations PASSED [  1%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_metrics_metadata PASSED [  1%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_concurrent_access PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_end_to_end_smart_selection PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_user_interaction_tracking PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_preference_learning_workflow PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_context_based_selection PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_preference_persistence_simulation PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_fallback_behavior_with_no_data PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_smart_selection_with_learned_preferences PASSED [  1%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_weight_adjustment_affects_selection PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_export_import_preferences_integration PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_availability_service_integration PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_selector_cleanup PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_error_handling_in_integration PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_multiple_metric_switches PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_selection_info_and_statistics PASSED [  2%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_end_to_end_visualization PASSED [  2%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_correlation_with_real_data PASSED [  2%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_export_functionality PASSED [  2%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_performance_with_large_dataset PASSED [  2%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_style_consistency PASSED [  3%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_data_filtering_integration PASSED [  3%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_accessibility_features PASSED [  3%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_empty_data_handling PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_full_workflow_steps_analysis PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_momentum_detection_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_streak_tracking_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_prediction_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_trend_series_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_narrative_generation_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_multiple_metrics_workflow PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_edge_case_insufficient_data PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_caching_behavior PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_year_boundary_handling PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_partial_week_handling PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_error_logging PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_ui_widget_with_real_calculator PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_momentum_indicator_real_data PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_streak_tracker_real_data PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_slope_graph_real_data PASSED [  4%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_memory_monitor PASSED [  4%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_chunk_size_calculation PASSED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_streaming_processor_with_real_data SKIPPED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_streaming_decision_logic PASSED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_database_structure SKIPPED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_error_handling PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[30-0.1] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[90-0.3] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[365-1.0] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[730-2.0] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[1825-5.0] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_weekly_calculator_performance PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_monthly_calculator_performance FAILED [  6%]
 
 =================================== FAILURES ===================================
-_______ TestComparativeAnalyticsIntegration.test_main_window_integration _______
-
-self = <test_comparative_analytics_integration.TestComparativeAnalyticsIntegration object at 0x7fa9928cd3a0>
-qtbot = <pytestqt.qtbot.QtBot object at 0x7fa98090e3c0>
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fa98090f1d0>
-
-    def test_main_window_integration(self, qtbot, monkeypatch):
-        """Test comparative analytics integration in main window."""
-        # Mock the configuration tab to avoid dependencies
-        def mock_create_config_tab(self):
-            from PyQt6.QtWidgets import QWidget
-            self.config_tab = QWidget(self)  # Add parent
-            self.tab_widget.addTab(self.config_tab, "Configuration")
-    
-        monkeypatch.setattr(MainWindow, '_create_configuration_tab', mock_create_config_tab)
-    
-        # Mock the database manager to avoid disk I/O errors
->       from unittest.mock import MagicMock
-
-tests/integration/test_comparative_analytics_integration.py:243: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <src.ui.main_window.MainWindow object at 0x7fa980918af0>
-
-    def __init__(self):
-        """Initialize the main window.
-    
-        Sets up the window structure, applies theming, creates all tabs,
-        configures keyboard navigation, and restores the previous window state.
-        The initialization follows this sequence:
-        1. Initialize managers (style, settings, transitions, records)
-        2. Set window properties (title, size, minimum dimensions)
-        3. Apply warm color theme
-        4. Create UI components (menu bar, tabs, status bar)
-        5. Restore previous window state
-        """
-        super().__init__()
-        logger.info("Initializing main window with tab navigation")
-    
-        # Initialize managers
-        self.style_manager = StyleManager()
-        self.settings_manager = SettingsManager()
-    
-        # Initialize transition manager (check accessibility settings)
-        accessibility_mode = self.settings_manager.get_setting("accessibility/disable_animations", False)
-        self.transition_manager = ViewTransitionManager(accessibility_mode=accessibility_mode)
-    
-        # Initialize personal records tracker
->       self.personal_records_tracker = PersonalRecordsTracker(db_manager)
-
-src/ui/main_window.py:80: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <src.analytics.personal_records_tracker.PersonalRecordsTracker object at 0x7fa980943c20>
-database = <src.database.DatabaseManager object at 0x7fa9968ee000>
-
-    def __init__(self, database: DatabaseManager):
-        self.db = database
-        self.record_store = RecordStore(database)
-        self.achievement_system = AchievementSystem(database)
-        self.streak_tracker = StreakTracker()
->       self._ensure_tables_exist()
-
-src/analytics/personal_records_tracker.py:124: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <src.analytics.personal_records_tracker.PersonalRecordsTracker object at 0x7fa980943c20>
-
-    def _ensure_tables_exist(self):
-        """Ensure personal records tables exist in database."""
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-    
-            # Create personal_records table
->           cursor.execute("""
-                CREATE TABLE IF NOT EXISTS personal_records (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    record_type VARCHAR(50) NOT NULL,
-                    metric VARCHAR(100) NOT NULL,
-                    value REAL NOT NULL,
-                    date DATE NOT NULL,
-                    previous_value REAL,
-                    improvement_margin REAL,
-                    window_days INTEGER,
-                    streak_type VARCHAR(50),
-                    metadata TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-E           sqlite3.OperationalError: disk I/O error
-
-src/analytics/personal_records_tracker.py:132: OperationalError
------------------------------ Captured stderr call -----------------------------
-2025-05-29 02:21:46 - INFO - Initializing main window with tab navigation
-2025-05-29 02:21:46 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-29 02:21:46 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
------------------------------- Captured log call -------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:69 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:17 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-ERROR    src.database:database.py:107 Database connection error: disk I/O error
-ERROR    src.database:database.py:107 Database connection error: disk I/O error
+________ TestCalculatorPerformance.test_monthly_calculator_performance _________
+tests/performance/test_calculator_benchmarks.py:128: in test_monthly_calculator_performance
+    assert result.stats['mean'] < 0.3  # <300ms for 2 years
+E   AttributeError: 'MonthlyMetrics' object has no attribute 'stats'
 =============================== warnings summary ===============================
 tests/test_chaos_scenarios.py:487
   /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:487: PytestUnknownMarkWarning: Unknown pytest.mark.chaos - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
     pytestmark = pytest.mark.chaos
 
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_style_consistency
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/ui/charts/wsj_health_visualization_suite.py:529: FutureWarning: DataFrame.fillna with 'method' is deprecated and will raise in a future version. Use obj.ffill() or obj.bfill() instead.
+    hourly_pattern = full_hours.join(hourly_avg).fillna(method='ffill').fillna(method='bfill')
+
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py:2888: RuntimeWarning: invalid value encountered in subtract
+    X -= avg[:, None]
+
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:135: RuntimeWarning: invalid value encountered in reduce
+    ret = umr_sum(arr, axis, dtype, out, keepdims, where=where)
+
+tests/performance/test_calculator_benchmarks.py: 35 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:67: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 13 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:97: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 41 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:119: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+-------------------------------------------------------------------------------------------- benchmark: 7 tests --------------------------------------------------------------------------------------------
+Name (time in ms)                               Min                Max               Mean            StdDev             Median               IQR            Outliers       OPS            Rounds  Iterations
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+test_weekly_calculator_performance           7.8274 (1.0)      12.1617 (1.0)       9.7664 (1.0)      1.3250 (1.0)       9.4642 (1.0)      1.3565 (1.0)           3;0  102.3921 (1.0)          10           1
+test_daily_calculator_scaling[30-0.1]        8.8830 (1.13)     12.6358 (1.04)     10.5683 (1.08)     1.4325 (1.08)     10.0863 (1.07)     1.9198 (1.42)          2;0   94.6229 (0.92)          5           1
+test_monthly_calculator_performance         12.2255 (1.56)     30.2160 (2.48)     18.6556 (1.91)     4.7779 (3.61)     18.6893 (1.97)     8.0246 (5.92)         14;0   53.6032 (0.52)         39           1
+test_daily_calculator_scaling[90-0.3]       15.9564 (2.04)     22.9279 (1.89)     18.7991 (1.92)     2.5579 (1.93)     18.4106 (1.95)     2.4859 (1.83)          2;0   53.1941 (0.52)          5           1
+test_daily_calculator_scaling[365-1.0]      19.8419 (2.53)     35.5921 (2.93)     24.9558 (2.56)     6.5047 (4.91)     21.6589 (2.29)     8.2613 (6.09)          1;0   40.0709 (0.39)          5           1
+test_daily_calculator_scaling[730-2.0]      26.7848 (3.42)     31.6164 (2.60)     28.9342 (2.96)     1.8030 (1.36)     28.9886 (3.06)     2.2759 (1.68)          2;0   34.5611 (0.34)          5           1
+test_daily_calculator_scaling[1825-5.0]     32.9546 (4.21)     36.9654 (3.04)     35.2068 (3.60)     1.6425 (1.24)     35.9916 (3.80)     2.4907 (1.84)          2;0   28.4036 (0.28)          5           1
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Legend:
+  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.
+  OPS: Operations Per Second, computed as 1 / Mean
 =========================== short test summary info ============================
-FAILED tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_main_window_integration
+FAILED tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_monthly_calculator_performance
 !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
-=================== 1 failed, 7 passed, 1 warning in 43.46s ====================
+============ 1 failed, 64 passed, 2 skipped, 97 warnings in 32.30s =============

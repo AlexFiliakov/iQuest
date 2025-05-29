@@ -243,7 +243,11 @@ class TestComparativeAnalyticsIntegration:
         from unittest.mock import MagicMock
         mock_db = MagicMock()
         mock_db.get_connection.return_value.__enter__.return_value = MagicMock()
-        monkeypatch.setattr('src.ui.main_window.db_manager', mock_db)
+        mock_db.get_connection.return_value.__enter__.return_value.cursor.return_value = MagicMock()
+        mock_db.get_connection.return_value.__exit__.return_value = None
+        # Patch the imported db_manager in main_window module
+        import src.ui.main_window
+        monkeypatch.setattr(src.ui.main_window, 'db_manager', mock_db)
         
         # Create main window
         window = MainWindow()
