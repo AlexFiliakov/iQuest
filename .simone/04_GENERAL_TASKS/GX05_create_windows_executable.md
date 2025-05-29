@@ -1,6 +1,6 @@
 ---
 task_id: G005
-status: open
+status: canceled
 complexity: High
 sprint_ref: S09
 last_updated: 2025-01-27T12:00:00Z
