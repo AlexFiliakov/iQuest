@@ -161,7 +161,7 @@ class ExampleApp(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         
         # Create central widget
-        central_widget = QWidget()
+        central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
         
         # Create layout

@@ -112,7 +112,7 @@ class ExportDialog(QDialog):
         layout = QVBoxLayout(self)
         
         # Create tab widget
-        self.tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget(self)
         layout.addWidget(self.tab_widget)
         
         # Quick Export tab
@@ -149,7 +149,7 @@ class ExportDialog(QDialog):
         
     def _create_quick_export_tab(self) -> QWidget:
         """Create the quick export tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
         # Export type selection
@@ -196,7 +196,7 @@ class ExportDialog(QDialog):
         self.template_group = QGroupBox("Report Template")
         template_layout = QVBoxLayout(self.template_group)
         
-        self.template_combo = QComboBox()
+        self.template_combo = QComboBox(self)
         self.template_combo.addItems([
             "Comprehensive Health Report",
             "Medical Summary (for healthcare providers)",
@@ -268,13 +268,13 @@ class ExportDialog(QDialog):
         
     def _create_custom_report_tab(self) -> QWidget:
         """Create the custom report tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
         # Title
         title_layout = QHBoxLayout()
         title_layout.addWidget(QLabel("Report Title:"))
-        self.title_edit = QLineEdit()
+        self.title_edit = QLineEdit(self)
         self.title_edit.setPlaceholderText("Enter custom report title...")
         title_layout.addWidget(self.title_edit)
         layout.addLayout(title_layout)
@@ -297,7 +297,7 @@ class ExportDialog(QDialog):
         metrics_layout.addLayout(button_layout)
         
         # Metrics list
-        self.metrics_list = QListWidget()
+        self.metrics_list = QListWidget(self)
         self.metrics_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         
         for metric in self.available_metrics:
@@ -334,7 +334,7 @@ class ExportDialog(QDialog):
         resolution_layout = QHBoxLayout(resolution_group)
         
         resolution_layout.addWidget(QLabel("Resolution:"))
-        self.resolution_combo = QComboBox()
+        self.resolution_combo = QComboBox(self)
         self.resolution_combo.addItems([
             "Web (72 DPI)",
             "Print (300 DPI)",
@@ -350,7 +350,7 @@ class ExportDialog(QDialog):
         
     def _create_backup_tab(self) -> QWidget:
         """Create the backup tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
         # Backup description
@@ -384,7 +384,7 @@ class ExportDialog(QDialog):
         info_group = QGroupBox("Backup Information")
         info_layout = QVBoxLayout(info_group)
         
-        self.backup_info_text = QTextEdit()
+        self.backup_info_text = QTextEdit(self)
         self.backup_info_text.setReadOnly(True)
         self.backup_info_text.setMaximumHeight(150)
         self._update_backup_info()

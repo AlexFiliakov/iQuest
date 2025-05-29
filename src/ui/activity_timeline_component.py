@@ -26,6 +26,7 @@ import matplotlib.dates as mdates
 from matplotlib.patches import Rectangle
 from .comparison_overlay_widget import ComparisonOverlayWidget
 import warnings
+import logging
 warnings.filterwarnings('ignore', category=UserWarning)
 
 
@@ -57,6 +58,7 @@ class ActivityTimelineComponent(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.logger = logging.getLogger(__name__)
         self.data = None
         self.view_mode = 'linear'  # 'linear' or 'radial'
         self.time_grouping = 60  # minutes (15, 30, 60)
@@ -111,8 +113,8 @@ class ActivityTimelineComponent(QWidget):
         
         # View mode selector
         view_group = QButtonGroup(self)
-        linear_btn = QRadioButton("Linear")
-        radial_btn = QRadioButton("Radial")
+        linear_btn = QRadioButton("Linear", self)
+        radial_btn = QRadioButton("Radial", self)
         linear_btn.setChecked(True)
         
         linear_btn.toggled.connect(lambda checked: self.set_view_mode('linear') if checked else None)
@@ -121,13 +123,15 @@ class ActivityTimelineComponent(QWidget):
         view_group.addButton(linear_btn)
         view_group.addButton(radial_btn)
         
-        header_layout.addWidget(QLabel("View:"))
+        view_label = QLabel("View:", self)
+        header_layout.addWidget(view_label)
         header_layout.addWidget(linear_btn)
         header_layout.addWidget(radial_btn)
         
         # Time grouping selector
-        header_layout.addWidget(QLabel("Group by:"))
-        self.time_combo = QComboBox()
+        group_label = QLabel("Group by:", self)
+        header_layout.addWidget(group_label)
+        self.time_combo = QComboBox(self)
         self.time_combo.addItems(["15 minutes", "30 minutes", "1 hour"])
         self.time_combo.setCurrentIndex(2)
         self.time_combo.currentIndexChanged.connect(self.on_time_grouping_changed)
@@ -138,20 +142,20 @@ class ActivityTimelineComponent(QWidget):
         # Options bar
         options_layout = QHBoxLayout()
         
-        self.cluster_check = QCheckBox("Enable Clustering")
+        self.cluster_check = QCheckBox("Enable Clustering", self)
         self.cluster_check.stateChanged.connect(self.on_clustering_toggled)
         options_layout.addWidget(self.cluster_check)
         
-        self.patterns_check = QCheckBox("Highlight Patterns")
+        self.patterns_check = QCheckBox("Highlight Patterns", self)
         self.patterns_check.setChecked(True)
         self.patterns_check.stateChanged.connect(self.on_patterns_toggled)
         options_layout.addWidget(self.patterns_check)
         
-        self.correlations_check = QCheckBox("Show Correlations")
+        self.correlations_check = QCheckBox("Show Correlations", self)
         self.correlations_check.stateChanged.connect(self.on_correlations_toggled)
         options_layout.addWidget(self.correlations_check)
         
-        self.overlays_check = QCheckBox("Comparison Overlays")
+        self.overlays_check = QCheckBox("Comparison Overlays", self)
         self.overlays_check.setChecked(True)
         self.overlays_check.stateChanged.connect(self.on_overlays_toggled)
         options_layout.addWidget(self.overlays_check)
@@ -165,13 +169,13 @@ class ActivityTimelineComponent(QWidget):
         layout.addWidget(self.viz_widget)
         
         # Info panel
-        self.info_panel = QGroupBox("Timeline Insights")
+        self.info_panel = QGroupBox("Timeline Insights", self)
         info_layout = QVBoxLayout()
         
-        self.active_periods_label = QLabel("Active Periods: -")
-        self.rest_periods_label = QLabel("Rest Periods: -")
-        self.peak_activity_label = QLabel("Peak Activity: -")
-        self.patterns_label = QLabel("Patterns: None detected")
+        self.active_periods_label = QLabel("Active Periods: -", self)
+        self.rest_periods_label = QLabel("Rest Periods: -", self)
+        self.peak_activity_label = QLabel("Peak Activity: -", self)
+        self.patterns_label = QLabel("Patterns: None detected", self)
         
         info_layout.addWidget(self.active_periods_label)
         info_layout.addWidget(self.rest_periods_label)
@@ -282,7 +286,8 @@ class ActivityTimelineComponent(QWidget):
             self.calculate_correlations()
             
         # Update visualization
-        self.viz_widget.update()
+        if hasattr(self, 'viz_widget') and self.viz_widget:
+            self.viz_widget.update()
         self.update_info_panel()
         
     def aggregate_by_time_interval(self) -> pd.DataFrame:
@@ -294,13 +299,62 @@ class ActivityTimelineComponent(QWidget):
         freq_map = {15: '15min', 30: '30min', 60: 'h'}
         freq = freq_map[self.time_grouping]
         
-        # Group and aggregate
-        grouped = self.data.resample(freq).agg({
-            metric: ['mean', 'sum', 'count'] 
-            for metric in self.selected_metrics
-        })
+        # Windows workaround: Process each metric separately to avoid access violation
+        # This prevents the pandas Cython operation crash with sparse data
+        result_dfs = []
         
-        return grouped
+        for metric in self.selected_metrics:
+            if metric in self.data.columns:
+                try:
+                    # Resample each metric individually
+                    metric_data = self.data[[metric]].copy()
+                    
+                    # Convert to float64 to ensure numeric stability
+                    metric_data[metric] = metric_data[metric].astype('float64')
+                    
+                    # Handle sparse data by filling NaN values before resampling on Windows
+                    # This prevents access violations in pandas' Cython code
+                    if metric_data[metric].isna().any():
+                        # Use interpolation for smoother results, with fallback to forward/backward fill
+                        metric_data[metric] = metric_data[metric].interpolate(method='linear', limit_direction='both')
+                        # Fill any remaining NaN values
+                        metric_data[metric] = metric_data[metric].fillna(0)
+                    
+                    # Force garbage collection before resample to avoid memory issues
+                    import gc
+                    gc.collect()
+                    
+                    # Use groupby instead of resample to avoid Cython issues on Windows
+                    # This is more stable for sparse data
+                    grouper = pd.Grouper(freq=freq, closed='left', label='left')
+                    grouped = metric_data.groupby(grouper)
+                    
+                    # Calculate aggregations using groupby operations
+                    mean_values = grouped[metric].mean()
+                    sum_values = grouped[metric].sum()
+                    count_values = grouped[metric].count()
+                    
+                    # Create result DataFrame with MultiIndex columns
+                    metric_result = pd.DataFrame({
+                        (metric, 'mean'): mean_values,
+                        (metric, 'sum'): sum_values,
+                        (metric, 'count'): count_values
+                    })
+                    
+                    result_dfs.append(metric_result)
+                except Exception as e:
+                    # Handle any remaining issues gracefully
+                    self.logger.warning(f"Failed to aggregate {metric}: {e}")
+                    continue
+        
+        if result_dfs:
+            # Combine all metrics
+            grouped = pd.concat(result_dfs, axis=1)
+            # Ensure multi-level column structure
+            grouped.columns = pd.MultiIndex.from_tuples(grouped.columns)
+            return grouped
+        else:
+            return pd.DataFrame()
         
     def detect_activity_patterns(self):
         """Detect active vs rest periods using statistical methods."""

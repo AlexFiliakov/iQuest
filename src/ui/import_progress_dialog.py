@@ -105,7 +105,7 @@ class ImportProgressDialog(QDialog):
         layout.addWidget(file_info)
         
         # Progress section
-        progress_frame = QFrame()
+        progress_frame = QFrame(self)
         progress_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.style_manager.SECONDARY_BG};
@@ -129,7 +129,7 @@ class ImportProgressDialog(QDialog):
         progress_layout.addWidget(self.progress_label)
         
         # Progress bar
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setStyleSheet(f"""
@@ -361,7 +361,7 @@ class ImportSummaryDialog(QDialog):
         layout.addWidget(title)
         
         # Statistics frame
-        stats_frame = QFrame()
+        stats_frame = QFrame(self)
         stats_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.style_manager.SECONDARY_BG};

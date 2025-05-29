@@ -105,7 +105,7 @@ class WSJHealthVisualizationSuite(QWidget):
         layout.addWidget(toolbar)
         
         # Create main content area with tabs
-        self.tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget(self)
         self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
         layout.addWidget(self.tab_widget)
         
@@ -133,14 +133,14 @@ class WSJHealthVisualizationSuite(QWidget):
     
     def _create_toolbar(self) -> QWidget:
         """Create the toolbar with chart selection and export options."""
-        toolbar = QWidget()
+        toolbar = QWidget(self)
         toolbar.setMaximumHeight(60)
         layout = QHBoxLayout(toolbar)
         layout.setContentsMargins(20, 10, 20, 10)
         
         # Chart type selector
         layout.addWidget(QLabel("Chart Type:"))
-        self.chart_selector = QComboBox()
+        self.chart_selector = QComboBox(self)
         self.chart_selector.addItems([
             "Multi-Metric Overlay",
             "Correlation Heatmap",
@@ -245,6 +245,19 @@ class WSJHealthVisualizationSuite(QWidget):
         if isinstance(data, pd.DataFrame) and len(data) > 10000:
             data = self.performance_manager.optimize_data_for_display(data)
             config['data_optimized'] = True
+        elif isinstance(data, dict):
+            # Check if any metric has large data
+            total_points = sum(len(df) for df in data.values() if isinstance(df, pd.DataFrame))
+            if total_points > 10000:
+                # Optimize each metric's data
+                optimized_data = {}
+                for metric, df in data.items():
+                    if isinstance(df, pd.DataFrame):
+                        optimized_data[metric] = self.performance_manager.optimize_data_for_display(df)
+                    else:
+                        optimized_data[metric] = df
+                data = optimized_data
+                config['data_optimized'] = True
         
         # Create chart with PyQtGraph for interactivity
         chart_widget = self.interactive_factory.create_chart(chart_type, data, config)
@@ -400,7 +413,7 @@ class WSJHealthVisualizationSuite(QWidget):
         self.tab_widget.clear()
         
         # Create sparklines container
-        container = QWidget()
+        container = QWidget(self)
         layout = QVBoxLayout(container)
         
         # Add title
@@ -431,7 +444,7 @@ class WSJHealthVisualizationSuite(QWidget):
                 continue
             
             # Create sparkline row
-            row = QWidget()
+            row = QWidget(self)
             row_layout = QHBoxLayout(row)
             
             # Metric label

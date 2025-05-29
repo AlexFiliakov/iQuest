@@ -51,9 +51,9 @@ class ProgressiveDrillDownWidget(QWidget):
         self.navigation_stack = []  # For back navigation
         
         # UI components
-        self.stacked_widget = QStackedWidget()
-        self.breadcrumb = QWidget()
-        self.chart_container = QWidget()
+        self.stacked_widget = QStackedWidget(self)
+        self.breadcrumb = QWidget(self)
+        self.chart_container = QWidget(self)
         
         self._setup_ui()
     
@@ -81,7 +81,7 @@ class ProgressiveDrillDownWidget(QWidget):
         layout.addWidget(self.breadcrumb)
         
         # Add separator
-        separator = QFrame()
+        separator = QFrame(self)
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setStyleSheet(f"background-color: {self.style_manager.WARM_PALETTE['grid']};")
         layout.addWidget(separator)
@@ -114,7 +114,7 @@ class ProgressiveDrillDownWidget(QWidget):
     
     def _create_navigation_header(self) -> QWidget:
         """Create navigation header with back/forward buttons."""
-        header = QWidget()
+        header = QWidget(self)
         layout = QHBoxLayout(header)
         layout.setContentsMargins(20, 10, 20, 10)
         

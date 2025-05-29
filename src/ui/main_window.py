@@ -82,7 +82,8 @@ class MainWindow(QMainWindow):
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
-        self.resize(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)  # Default size
+        # Set a larger default size for better readability
+        self.resize(1600, 1000)  # Increased from 1440x900
         
         # Apply warm color theme
         self._apply_theme()
@@ -255,7 +256,7 @@ class MainWindow(QMainWindow):
         logger.debug("Creating central widget with tabs")
         
         # Create tab widget
-        self.tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget(self)
         self.tab_widget.setStyleSheet(self.style_manager.get_tab_widget_style())
         self.setCentralWidget(self.tab_widget)
         
@@ -305,18 +306,24 @@ class MainWindow(QMainWindow):
         tab's signals to main window handlers for data loading and
         filter changes.
         """
+        # Create configuration tab with scroll area
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
         self.config_tab = ConfigurationTab()
+        scroll_area.setWidget(self.config_tab)
         
         # Connect signals
         self.config_tab.data_loaded.connect(self._on_data_loaded)
         self.config_tab.filters_applied.connect(self._on_filters_applied)
         
-        self.tab_widget.addTab(self.config_tab, "Configuration")
+        self.tab_widget.addTab(scroll_area, "Configuration")
         self.tab_widget.setTabToolTip(0, "Import data and configure filters")
     
     def _create_daily_dashboard_tab(self):
         """Create the daily dashboard tab placeholder."""
-        daily_widget = QWidget()
+        daily_widget = QWidget(self)
         layout = QVBoxLayout(daily_widget)
         
         # Placeholder content
@@ -350,7 +357,7 @@ class MainWindow(QMainWindow):
     
     def _create_weekly_dashboard_tab(self):
         """Create the weekly dashboard tab placeholder."""
-        weekly_widget = QWidget()
+        weekly_widget = QWidget(self)
         layout = QVBoxLayout(weekly_widget)
         
         # Placeholder content
@@ -404,7 +411,7 @@ class MainWindow(QMainWindow):
             
     def _create_monthly_dashboard_placeholder(self):
         """Create a placeholder monthly dashboard tab."""
-        monthly_widget = QWidget()
+        monthly_widget = QWidget(self)
         layout = QVBoxLayout(monthly_widget)
         
         # Placeholder content
@@ -446,9 +453,9 @@ class MainWindow(QMainWindow):
             
             # Create the comparative analytics engine
             self.comparative_engine = ComparativeAnalyticsEngine(
-                daily_calculator=self.config_tab.daily_calculator if hasattr(self, 'config_tab') else None,
-                weekly_calculator=self.config_tab.weekly_calculator if hasattr(self, 'config_tab') else None,
-                monthly_calculator=self.config_tab.monthly_calculator if hasattr(self, 'config_tab') else None
+                daily_calculator=self.config_tab.daily_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'daily_calculator') else None,
+                weekly_calculator=self.config_tab.weekly_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'weekly_calculator') else None,
+                monthly_calculator=self.config_tab.monthly_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'monthly_calculator') else None
             )
             
             # Create peer group manager
@@ -467,7 +474,7 @@ class MainWindow(QMainWindow):
             
     def _create_comparative_analytics_placeholder(self):
         """Create a placeholder comparative analytics tab."""
-        comparative_widget = QWidget()
+        comparative_widget = QWidget(self)
         layout = QVBoxLayout(comparative_widget)
         
         # Placeholder content
@@ -550,7 +557,7 @@ class MainWindow(QMainWindow):
     
     def _create_health_insights_placeholder(self):
         """Create a placeholder health insights tab."""
-        insights_widget = QWidget()
+        insights_widget = QWidget(self)
         layout = QVBoxLayout(insights_widget)
         
         # Placeholder content
@@ -595,7 +602,7 @@ class MainWindow(QMainWindow):
     
     def _create_journal_tab(self):
         """Create the journal tab placeholder."""
-        journal_widget = QWidget()
+        journal_widget = QWidget(self)
         layout = QVBoxLayout(journal_widget)
         
         # Placeholder content
@@ -629,7 +636,7 @@ class MainWindow(QMainWindow):
     
     def _create_help_tab(self):
         """Create the help tab with keyboard shortcuts reference."""
-        help_widget = QWidget()
+        help_widget = QWidget(self)
         main_layout = QVBoxLayout(help_widget)
         main_layout.setContentsMargins(24, 24, 24, 24)
         main_layout.setSpacing(20)
@@ -648,7 +655,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(title)
         
         # Create scroll area for content
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("""
             QScrollArea {
@@ -658,7 +665,7 @@ class MainWindow(QMainWindow):
         """)
         
         # Content widget
-        content_widget = QWidget()
+        content_widget = QWidget(self)
         content_layout = QVBoxLayout(content_widget)
         content_layout.setSpacing(24)
         
@@ -751,7 +758,7 @@ class MainWindow(QMainWindow):
     
     def _create_help_section(self, title, shortcuts):
         """Create a help section with title and shortcuts table."""
-        section = QFrame()
+        section = QFrame(self)
         section.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.style_manager.SECONDARY_BG};
@@ -785,7 +792,7 @@ class MainWindow(QMainWindow):
     
     def _create_shortcut_row(self, shortcut, description):
         """Create a single shortcut row."""
-        row = QWidget()
+        row = QWidget(self)
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 4, 0, 4)
         row_layout.setSpacing(16)
@@ -822,7 +829,7 @@ class MainWindow(QMainWindow):
     
     def _create_tips_section(self):
         """Create a tips and tricks section."""
-        section = QFrame()
+        section = QFrame(self)
         section.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.style_manager.TERTIARY_BG};

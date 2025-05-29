@@ -163,7 +163,7 @@ class ComponentScoreCard(QFrame):
         score_label.setStyleSheet(f"font-size: 24px; color: {self._get_color()};")
         score_layout.addWidget(score_label)
         
-        progress = QProgressBar()
+        progress = QProgressBar(self)
         progress.setRange(0, 100)
         progress.setValue(int(self.score.score))
         progress.setTextVisible(False)
@@ -403,7 +403,7 @@ class HealthScoreDashboard(QWidget):
         top_layout.addWidget(self.gauge)
         
         # Summary info
-        summary_frame = QFrame()
+        summary_frame = QFrame(self)
         summary_frame.setFrameStyle(QFrame.Shape.Box)
         summary_layout = QVBoxLayout(summary_frame)
         
@@ -452,8 +452,8 @@ class HealthScoreDashboard(QWidget):
         insights_group = QGroupBox("Insights & Recommendations")
         insights_layout = QVBoxLayout(insights_group)
         
-        self.insights_area = QScrollArea()
-        self.insights_widget = QWidget()
+        self.insights_area = QScrollArea(self)
+        self.insights_widget = QWidget(self)
         self.insights_layout = QVBoxLayout(self.insights_widget)
         self.insights_area.setWidget(self.insights_widget)
         self.insights_area.setWidgetResizable(True)
@@ -508,7 +508,7 @@ class HealthScoreDashboard(QWidget):
         
         # Add new insights
         for insight in health_score.insights:
-            insight_frame = QFrame()
+            insight_frame = QFrame(self)
             insight_frame.setFrameStyle(QFrame.Shape.Box)
             
             # Set color based on severity

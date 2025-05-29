@@ -82,7 +82,7 @@ class SmallMultiplesWidget(QWidget):
         header_layout = QHBoxLayout()
         
         # Title
-        self.title_label = QLabel()
+        self.title_label = QLabel(self)
         title_font = QFont(self.font_family, 16, QFont.Weight.Bold)
         self.title_label.setFont(title_font)
         self.title_label.setStyleSheet(f"color: {self.text_color}; margin-bottom: 10px;")
@@ -92,14 +92,14 @@ class SmallMultiplesWidget(QWidget):
         
         # Grid size controls
         header_layout.addWidget(QLabel("Columns:"))
-        self.cols_spinbox = QSpinBox()
+        self.cols_spinbox = QSpinBox(self)
         self.cols_spinbox.setRange(1, 6)
         self.cols_spinbox.setValue(3)
         self.cols_spinbox.valueChanged.connect(self._update_grid_layout)
         header_layout.addWidget(self.cols_spinbox)
         
         header_layout.addWidget(QLabel("Rows:"))
-        self.rows_spinbox = QSpinBox()
+        self.rows_spinbox = QSpinBox(self)
         self.rows_spinbox.setRange(1, 4)
         self.rows_spinbox.setValue(2)
         self.rows_spinbox.valueChanged.connect(self._update_grid_layout)
@@ -108,13 +108,13 @@ class SmallMultiplesWidget(QWidget):
         layout.addLayout(header_layout)
         
         # Scrollable chart area
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
         # Chart container
-        self.chart_container = QWidget()
+        self.chart_container = QWidget(self)
         scroll_area.setWidget(self.chart_container)
         layout.addWidget(scroll_area)
         
@@ -416,7 +416,7 @@ class SmallMultiplesContainer(QFrame):
         controls_layout.addStretch()
         
         # Summary label
-        self.summary_label = QLabel()
+        self.summary_label = QLabel(self)
         self.summary_label.setStyleSheet("color: #666; font-size: 11px; padding: 5px;")
         controls_layout.addWidget(self.summary_label)
         

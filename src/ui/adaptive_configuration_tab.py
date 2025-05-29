@@ -129,7 +129,7 @@ class AdaptiveConfigurationTab(QWidget):
         
     def _create_control_panel(self) -> QWidget:
         """Create the control panel with adaptive components."""
-        panel = QWidget()
+        panel = QWidget(self)
         layout = QVBoxLayout(panel)
         layout.setSpacing(16)
         
@@ -156,7 +156,7 @@ class AdaptiveConfigurationTab(QWidget):
         
     def _create_data_panel(self) -> QWidget:
         """Create the data display panel."""
-        panel = QWidget()
+        panel = QWidget(self)
         layout = QVBoxLayout(panel)
         layout.setSpacing(16)
         
@@ -180,7 +180,7 @@ class AdaptiveConfigurationTab(QWidget):
         
         # File selection
         file_layout = QHBoxLayout()
-        self.file_path_input = QLineEdit()
+        self.file_path_input = QLineEdit(self)
         self.file_path_input.setPlaceholderText("Select Apple Health export file...")
         self.file_path_input.setAccessibleName("File path input")
         
@@ -362,7 +362,7 @@ class AdaptiveConfigurationTab(QWidget):
         
     def _create_status_section(self) -> QWidget:
         """Create status display section."""
-        section = QWidget()
+        section = QWidget(self)
         layout = QVBoxLayout(section)
         
         self.status_label = QLabel("No data loaded - Import data to begin")

@@ -171,13 +171,13 @@ class PaginationWidget(QWidget):
         self.next_button.setFixedWidth(120)
         
         # Page info
-        self.page_label = QLabel()
+        self.page_label = QLabel(self)
         self.page_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.page_label.setMinimumWidth(200)
         
         # Page size selector
         size_label = QLabel("Rows per page:")
-        self.page_size_combo = QComboBox()
+        self.page_size_combo = QComboBox(self)
         self.page_size_combo.addItems(["10", "25", "50", "100"])
         self.page_size_combo.setCurrentText("25")
         self.page_size_combo.currentTextChanged.connect(self._change_page_size)
@@ -185,7 +185,7 @@ class PaginationWidget(QWidget):
         
         # Jump to page
         jump_label = QLabel("Go to page:")
-        self.page_input = QSpinBox()
+        self.page_input = QSpinBox(self)
         self.page_input.setMinimum(1)
         self.page_input.valueChanged.connect(self._jump_to_page)
         self.page_input.setFixedWidth(80)
@@ -302,7 +302,7 @@ class FilterWidget(QWidget):
         
         # Create filter inputs for each column
         for i, column in enumerate(self.columns):
-            filter_input = QLineEdit()
+            filter_input = QLineEdit(self)
             filter_input.setPlaceholderText(f"Filter {column}...")
             filter_input.textChanged.connect(lambda text, col=column: self._filter_changed(col, text))
             filter_input.setMaximumWidth(150)
@@ -398,7 +398,7 @@ class MetricTable(QWidget):
         self.filter_widget = None
         
         # Create table widget
-        self.table = QTableWidget()
+        self.table = QTableWidget(self)
         self.table.setSortingEnabled(False)  # We'll handle sorting manually
         self.table.setAlternatingRowColors(self.config.alternating_rows)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -427,7 +427,7 @@ class MetricTable(QWidget):
     
     def _create_toolbar(self):
         """Create toolbar with export and filter controls."""
-        toolbar = QFrame()
+        toolbar = QFrame(self)
         toolbar.setFrameStyle(QFrame.Shape.NoFrame)
         
         layout = QHBoxLayout()
@@ -452,7 +452,7 @@ class MetricTable(QWidget):
         self.refresh_button.clicked.connect(self._refresh_data)
         
         # Info label
-        self.info_label = QLabel()
+        self.info_label = QLabel(self)
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         layout.addWidget(self.export_button)
@@ -868,6 +868,23 @@ class MetricTable(QWidget):
         
         selected_rows = [index.row() for index in self.table.selectionModel().selectedRows()]
         return self.displayed_data.iloc[selected_rows]
+    
+    def update_data(self, data: Union[pd.DataFrame, List[Dict[str, Any]]]):
+        """Update table data. Can accept either DataFrame or list of dictionaries.
+        
+        This is an alias for load_data that also accepts list of dictionaries
+        for compatibility with other table implementations.
+        """
+        # Convert list of dictionaries to DataFrame if needed
+        if isinstance(data, list):
+            if not data:
+                # Empty list - clear the table
+                self.clear_data()
+                return
+            data = pd.DataFrame(data)
+        
+        # Use the existing load_data method
+        self.load_data(data)
     
     def clear_data(self):
         """Clear all data from table."""

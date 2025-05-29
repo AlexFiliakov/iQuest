@@ -142,7 +142,7 @@ class StreakTrackerWidget(QWidget):
         layout.addWidget(self.current_streak_label)
         
         # Progress bar for streak
-        self.streak_progress = QProgressBar()
+        self.streak_progress = QProgressBar(self)
         self.streak_progress.setMaximum(10)  # Will be adjusted based on best streak
         self.streak_progress.setVisible(False)
         layout.addWidget(self.streak_progress)
@@ -202,10 +202,11 @@ class SlopeGraphWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         # Create enhanced line chart
-        config = ChartConfig.get_wsj_style()
+        config = ChartConfig()
         config.title = "Weekly Progression"
         config.show_grid = True
         config.show_legend = True
+        config.wsj_mode = True  # Enable WSJ-inspired styling
         
         self.chart = EnhancedLineChart(config)
         layout.addWidget(self.chart)
@@ -221,20 +222,24 @@ class SlopeGraphWidget(QWidget):
         if not self.trend_data:
             return
             
+        # Clear existing series
+        self.chart.clear_series()
+        
         # Prepare data for line chart
-        weeks = [f"W{i+1}" for i in range(len(self.trend_data))]
-        values = [data.value for data in self.trend_data]
+        data_points = []
+        for i, data in enumerate(self.trend_data):
+            data_points.append({
+                'x': i,
+                'y': data.value,
+                'label': f"Week {i+1}"
+            })
         
-        # Create data series
-        series_data = {
-            'x': weeks,
-            'y': values,
-            'name': self.metric_name,
-            'color': '#FF8C42'  # Orange from our warm color palette
-        }
-        
-        # Update chart
-        self.chart.set_data([series_data])
+        # Add series to chart
+        self.chart.add_series(
+            name=self.metric_name,
+            data=data_points,
+            color='#FF8C42'  # Orange from our warm color palette
+        )
         self.chart.config.title = f"{self.metric_name} - Weekly Progression"
 
 
@@ -256,15 +261,15 @@ class WeekOverWeekWidget(QWidget):
         layout.addWidget(title)
         
         # Create scroll area for content
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         
-        content_widget = QWidget()
+        content_widget = QWidget(self)
         content_layout = QVBoxLayout(content_widget)
         
         # Summary cards section
-        summary_frame = QFrame()
+        summary_frame = QFrame(self)
         summary_frame.setFrameStyle(QFrame.Shape.Box)
         summary_layout = QHBoxLayout(summary_frame)
         
@@ -321,13 +326,18 @@ class WeekOverWeekWidget(QWidget):
         
     def create_summary_card(self, title: str, value: str, subtitle: str) -> SummaryCard:
         """Create a summary card with mini bar chart."""
-        card = SummaryCard(
-            title=title,
-            value=value,
-            subtitle=subtitle,
-            card_type="mini_chart",
-            size="medium"
-        )
+        # Import the specific card type we need
+        from .summary_cards import MiniChartCard
+        
+        card = MiniChartCard(size="medium")
+        
+        # Set the card content
+        if hasattr(card, 'title_label'):
+            card.title_label.setText(title)
+        if hasattr(card, 'value_label'):
+            card.value_label.setText(value)
+        if hasattr(card, 'subtitle_label'):
+            card.subtitle_label.setText(subtitle)
         
         return card
     

@@ -186,12 +186,12 @@ class EnhancedLineChart(QWidget):
         
         # Set easing curve
         easing_map = {
-            'Linear': QEasingCurve.Linear,
-            'InOutQuad': QEasingCurve.InOutQuad,
-            'OutCubic': QEasingCurve.OutCubic,
-            'OutElastic': QEasingCurve.OutElastic,
+            'Linear': QEasingCurve.Type.Linear,
+            'InOutQuad': QEasingCurve.Type.InOutQuad,
+            'OutCubic': QEasingCurve.Type.OutCubic,
+            'OutElastic': QEasingCurve.Type.OutElastic,
         }
-        curve = easing_map.get(self.config.animation_easing, QEasingCurve.OutCubic)
+        curve = easing_map.get(self.config.animation_easing, QEasingCurve.Type.OutCubic)
         self._animation.setEasingCurve(curve)
         
         self._animation.valueChanged.connect(self.update)

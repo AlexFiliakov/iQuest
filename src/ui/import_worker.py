@@ -13,10 +13,26 @@ from typing import Optional, Dict, Any
 from PyQt6.QtCore import QThread, pyqtSignal, QMutex
 from PyQt6.QtWidgets import QApplication
 
-from ..utils.logging_config import get_logger
-from ..data_loader import convert_xml_to_sqlite_with_validation, DataLoader
-from ..database import db_manager
-from ..config import DATA_DIR
+try:
+    from ..utils.logging_config import get_logger
+    from ..data_loader import convert_xml_to_sqlite_with_validation, DataLoader
+    from ..database import db_manager
+    from ..config import DATA_DIR
+except (ImportError, ValueError) as e:
+    # Fallback for when running in a thread context
+    # ValueError catches "attempted relative import with no known parent package"
+    import sys
+    from pathlib import Path
+    # Add the project root to sys.path
+    project_root = Path(__file__).parent.parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    
+    # Now use absolute imports
+    from src.utils.logging_config import get_logger
+    from src.data_loader import convert_xml_to_sqlite_with_validation, DataLoader
+    from src.database import db_manager
+    from src.config import DATA_DIR
 
 logger = get_logger(__name__)
 
@@ -116,7 +132,8 @@ class ImportWorker(QThread):
         self.progress_updated.emit(10, "Preparing database...")
         
         # Prepare database path
-        from database import DB_FILE_NAME
+        # Use a hardcoded filename to avoid import issues in thread
+        DB_FILE_NAME = 'health_data.db'
         db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
         os.makedirs(DATA_DIR, exist_ok=True)
         

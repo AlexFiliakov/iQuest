@@ -45,7 +45,7 @@ class DraggableChartWidget(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         
         # Header for dragging
-        self.header = QFrame()
+        self.header = QFrame(self)
         self.header.setFixedHeight(30)
         self.header.setStyleSheet("""
             QFrame {
@@ -199,7 +199,7 @@ class DashboardCustomizationPanel(QWidget):
         layout = QVBoxLayout(self)
         
         # Grid preview
-        self.grid_preview = QWidget()
+        self.grid_preview = QWidget(self)
         self.grid_preview.setMinimumHeight(400)
         self.grid_layout = QGridLayout(self.grid_preview)
         self.grid_layout.setSpacing(4)

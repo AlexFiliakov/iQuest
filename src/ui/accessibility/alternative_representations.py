@@ -11,7 +11,11 @@ import numpy as np
 from PyQt6.QtWidgets import (QTableWidget, QTableWidgetItem, QHeaderView,
                            QAbstractItemView)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
-# from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer  # Optional dependency
+try:
+    from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
+    HAS_MULTIMEDIA = True
+except ImportError:
+    HAS_MULTIMEDIA = False
 from PyQt6.QtGui import QKeySequence
 import io
 import wave
@@ -201,9 +205,13 @@ class DataSonification(QObject):
         super().__init__()
         self.config = config or AudioConfig()
         self.audio_data = []
-        self.player = QMediaPlayer()
-        self.audio_output = QAudioOutput()
-        self.player.setAudioOutput(self.audio_output)
+        self.player = None
+        self.audio_output = None
+        
+        if HAS_MULTIMEDIA:
+            self.player = QMediaPlayer()
+            self.audio_output = QAudioOutput()
+            self.player.setAudioOutput(self.audio_output)
         
         logger.info("Initialized DataSonification")
     
@@ -342,6 +350,10 @@ class DataSonification(QObject):
     
     def play_audio(self, audio_bytes: bytes):
         """Play audio bytes."""
+        if not HAS_MULTIMEDIA or not self.player:
+            logger.warning("Multimedia support not available for audio playback")
+            return
+            
         try:
             # Save to temporary file (QMediaPlayer needs a file)
             import tempfile
@@ -364,14 +376,15 @@ class DataSonification(QObject):
     
     def _cleanup_temp_file(self, path: str, status):
         """Clean up temporary audio file."""
-        from PyQt6.QtMultimedia import QMediaPlayer
-        if status == QMediaPlayer.MediaStatus.EndOfMedia:
-            try:
-                import os
-                os.unlink(path)
-                self.playback_finished.emit()
-            except:
-                pass
+        if HAS_MULTIMEDIA:
+            from PyQt6.QtMultimedia import QMediaPlayer
+            if status == QMediaPlayer.MediaStatus.EndOfMedia:
+                try:
+                    import os
+                    os.unlink(path)
+                    self.playback_finished.emit()
+                except:
+                    pass
 
 
 @dataclass 

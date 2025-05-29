@@ -81,7 +81,7 @@ class TrendSummaryWidget(QWidget):
         layout.setContentsMargins(20, 15, 20, 10)
         
         # Main summary line
-        self.summary_label = QLabel()
+        self.summary_label = QLabel(self)
         self.summary_label.setFont(QFont(self.config.font_family, 16, QFont.Weight.Bold))
         self.summary_label.setStyleSheet(f"color: {self.config.text_color};")
         layout.addWidget(self.summary_label)
@@ -370,14 +370,14 @@ class TrendDetailsWidget(QWidget):
         layout.setContentsMargins(20, 10, 20, 20)
         
         # Interpretation section
-        self.interpretation_label = QLabel()
+        self.interpretation_label = QLabel(self)
         self.interpretation_label.setFont(QFont(self.config.font_family, 11))
         self.interpretation_label.setWordWrap(True)
         self.interpretation_label.setStyleSheet(f"color: {self.config.text_color};")
         layout.addWidget(self.interpretation_label)
         
         # Recommendations section
-        self.recommendations_widget = QWidget()
+        self.recommendations_widget = QWidget(self)
         self.recommendations_layout = QVBoxLayout(self.recommendations_widget)
         self.recommendations_layout.setContentsMargins(0, 10, 0, 0)
         layout.addWidget(self.recommendations_widget)
@@ -437,19 +437,19 @@ class TechnicalDetailsWidget(QWidget):
         layout.addWidget(self.header)
         
         # Content widget
-        self.content_widget = QWidget()
+        self.content_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(10, 5, 0, 0)
         self.content_widget.setVisible(False)
         layout.addWidget(self.content_widget)
         
         # Technical info labels
-        self.methods_label = QLabel()
+        self.methods_label = QLabel(self)
         self.methods_label.setFont(QFont(self.config.font_family, 9))
         self.methods_label.setStyleSheet(f"color: {self.config.muted_color};")
         self.content_layout.addWidget(self.methods_label)
         
-        self.stats_label = QLabel()
+        self.stats_label = QLabel(self)
         self.stats_label.setFont(QFont(self.config.font_family, 9))
         self.stats_label.setStyleSheet(f"color: {self.config.muted_color};")
         self.content_layout.addWidget(self.stats_label)

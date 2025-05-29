@@ -50,7 +50,7 @@ class InteractiveLegend(QWidget):
         layout.addWidget(title)
         
         # Scroll area for overlay items
-        scroll = QScrollArea()
+        scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarNever)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -71,7 +71,7 @@ class InteractiveLegend(QWidget):
             }
         """)
         
-        self.content_widget = QWidget()
+        self.content_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.content_layout.setSpacing(6)
@@ -117,7 +117,7 @@ class InteractiveLegend(QWidget):
         if overlay_type in self.overlay_items:
             return
             
-        item_frame = QFrame()
+        item_frame = QFrame(self)
         item_frame.setStyleSheet("""
             QFrame {
                 background: white;
@@ -136,7 +136,7 @@ class InteractiveLegend(QWidget):
         item_layout.setSpacing(8)
         
         # Checkbox for toggle
-        checkbox = QCheckBox()
+        checkbox = QCheckBox(self)
         checkbox.setChecked(True)
         checkbox.setStyleSheet(f"""
             QCheckBox::indicator {{
@@ -156,7 +156,7 @@ class InteractiveLegend(QWidget):
         """)
         
         # Color indicator
-        color_indicator = QLabel()
+        color_indicator = QLabel(self)
         color_indicator.setFixedSize(16, 3)
         color_indicator.setStyleSheet(f"background: {color}; border-radius: 1px;")
         

@@ -54,7 +54,7 @@ class WSJTooltip(QWidget):
         title_layout = QHBoxLayout()
         title_layout.setSpacing(12)
         
-        self.metric_label = QLabel()
+        self.metric_label = QLabel(self)
         self.metric_label.setStyleSheet(f"""
             QLabel {{
                 color: {self.text_color.name()};
@@ -66,7 +66,7 @@ class WSJTooltip(QWidget):
             }}
         """)
         
-        self.date_label = QLabel()
+        self.date_label = QLabel(self)
         self.date_label.setStyleSheet(f"""
             QLabel {{
                 color: {self.text_color.name()};
@@ -81,7 +81,7 @@ class WSJTooltip(QWidget):
         title_layout.addWidget(self.date_label)
         
         # Primary value
-        self.value_label = QLabel()
+        self.value_label = QLabel(self)
         self.value_label.setStyleSheet(f"""
             QLabel {{
                 color: {self.text_color.name()};
@@ -96,7 +96,7 @@ class WSJTooltip(QWidget):
         info_layout.setSpacing(16)
         
         # Trend indicator
-        self.trend_label = QLabel()
+        self.trend_label = QLabel(self)
         self.trend_label.setStyleSheet(f"""
             QLabel {{
                 font-size: 12px;
@@ -106,7 +106,7 @@ class WSJTooltip(QWidget):
         """)
         
         # Context information
-        self.context_label = QLabel()
+        self.context_label = QLabel(self)
         self.context_label.setStyleSheet(f"""
             QLabel {{
                 color: {self.text_color.name()};

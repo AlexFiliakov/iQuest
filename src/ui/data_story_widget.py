@@ -42,12 +42,12 @@ class DataStoryWidget(QWidget):
         layout.addWidget(self.header)
         
         # Story container
-        self.story_container = QScrollArea()
+        self.story_container = QScrollArea(self)
         self.story_container.setWidgetResizable(True)
         self.story_container.setFrameShape(QFrame.Shape.NoFrame)
         
         # Story content widget
-        self.story_content = QWidget()
+        self.story_content = QWidget(self)
         self.content_layout = QVBoxLayout(self.story_content)
         self.content_layout.setSpacing(16)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
@@ -60,7 +60,7 @@ class DataStoryWidget(QWidget):
     
     def create_header(self) -> QWidget:
         """Create story header with title and actions."""
-        header = QFrame()
+        header = QFrame(self)
         header.setObjectName("storyHeader")
         header.setStyleSheet("""
             #storyHeader {
@@ -197,7 +197,7 @@ class DataStoryWidget(QWidget):
     
     def create_section_widget(self, title: str, content: str) -> QWidget:
         """Create a collapsible section widget."""
-        section = QFrame()
+        section = QFrame(self)
         section.setObjectName("storySection")
         section.setStyleSheet("""
             #storySection {
@@ -279,7 +279,7 @@ class DataStoryWidget(QWidget):
         layout.setSpacing(12)
         
         for insight in insights[:3]:  # Limit to 3 insights
-            insight_frame = QFrame()
+            insight_frame = QFrame(self)
             insight_frame.setStyleSheet("""
                 QFrame {
                     background-color: #FFF8F0;
@@ -331,7 +331,7 @@ class DataStoryWidget(QWidget):
         layout.setSpacing(12)
         
         for rec in recommendations[:3]:  # Limit to 3 recommendations
-            rec_frame = QFrame()
+            rec_frame = QFrame(self)
             rec_frame.setStyleSheet("""
                 QFrame {
                     background-color: #F5E6D3;
@@ -472,7 +472,7 @@ class StoryListWidget(QWidget):
         layout.addWidget(title_label)
         
         # Story list
-        self.story_list = QListWidget()
+        self.story_list = QListWidget(self)
         self.story_list.setStyleSheet("""
             QListWidget {
                 border: none;
@@ -514,7 +514,7 @@ class StoryListWidget(QWidget):
     
     def create_story_item_widget(self, story: Story) -> QWidget:
         """Create a custom widget for story list item."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         layout.setSpacing(8)
         

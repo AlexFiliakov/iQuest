@@ -149,10 +149,7 @@ class ComponentFactory:
         """Create a data table with WSJ styling."""
         if config is None:
             config = TableConfig(
-                page_size=25,
-                show_pagination=True,
-                show_export=True,
-                sortable=True
+                page_size=25
             )
         
         if wsj_style:

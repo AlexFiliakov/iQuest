@@ -53,13 +53,13 @@ class WSJDashboardLayout(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         
         # Scroll area for dashboard
-        self.scroll_area = QScrollArea()
+        self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         self.main_layout.addWidget(self.scroll_area)
         
         # Dashboard container
-        self.dashboard_container = QWidget()
+        self.dashboard_container = QWidget(self)
         self.scroll_area.setWidget(self.dashboard_container)
         
         # Grid layout for charts
@@ -199,10 +199,9 @@ class WSJDashboardLayout(QWidget):
             chart.setStyleSheet("""
                 BaseChart {
                     background-color: white;
-                    border: 2px solid #FF8C42;
+                    border: 3px solid #FF8C42;
                     border-radius: 4px;
                     padding: 8px;
-                    box-shadow: 0 2px 8px rgba(255, 140, 66, 0.3);
                 }
             """)
             self.chart_focused.emit(chart_id)

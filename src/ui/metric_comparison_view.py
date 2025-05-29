@@ -154,13 +154,13 @@ class MetricComparisonView(QWidget):
         self.title_label.setFont(title_font)
         
         # Metric selectors
-        self.metric1_combo = QComboBox()
+        self.metric1_combo = QComboBox(self)
         self.metric1_combo.addItems([
             "Steps", "Distance", "Active Energy", "Heart Rate",
             "Sleep Duration", "Weight", "BMI"
         ])
         
-        self.metric2_combo = QComboBox()
+        self.metric2_combo = QComboBox(self)
         self.metric2_combo.addItems([
             "Steps", "Distance", "Active Energy", "Heart Rate",
             "Sleep Duration", "Weight", "BMI"
@@ -192,12 +192,12 @@ class MetricComparisonView(QWidget):
         self.layout.addLayout(self.header_layout)
         
         # Comparison content area
-        self.content_widget = QWidget()
+        self.content_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         
         # Scroll area for content
-        self.scroll_area = QScrollArea()
+        self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         self.scroll_area.setWidget(self.content_widget)
@@ -219,7 +219,7 @@ class MetricComparisonView(QWidget):
         self.overlay_chart.setMinimumHeight(400)
         
         # Side by side charts
-        self.sidebyside_widget = QWidget()
+        self.sidebyside_widget = QWidget(self)
         self.sidebyside_layout = QHBoxLayout(self.sidebyside_widget)
         self.sidebyside_layout.setSpacing(16)
         
@@ -232,7 +232,7 @@ class MetricComparisonView(QWidget):
         self.sidebyside_layout.addWidget(self.chart2)
         
         # Correlation matrix
-        self.correlation_widget = QWidget()
+        self.correlation_widget = QWidget(self)
         self.correlation_layout = QVBoxLayout(self.correlation_widget)
         
         self.correlation_matrix = CorrelationMatrix(self.style_manager, self)

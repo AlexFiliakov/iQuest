@@ -39,16 +39,18 @@ class RecordCardWidget(QFrame):
                 background-color: #F5E6D3;
                 border: 1px solid #FF8C42;
                 border-radius: 8px;
-                padding: 8px;
+                padding: 4px;
             }
             QLabel {
                 background: transparent;
                 color: #2D3142;
             }
         """)
-        self.setFixedHeight(120)
+        self.setFixedHeight(90)
         
         layout = QVBoxLayout()
+        layout.setSpacing(2)
+        layout.setContentsMargins(4, 4, 4, 4)
         
         # Header with record type and date
         header_layout = QHBoxLayout()
@@ -65,7 +67,7 @@ class RecordCardWidget(QFrame):
         
         # Metric name
         metric_label = QLabel(self.record.metric)
-        metric_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        metric_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         
         # Value with improvement
         value_text = f"{self.record.value:.2f}"
@@ -74,13 +76,12 @@ class RecordCardWidget(QFrame):
             value_text += improvement_text
             
         value_label = QLabel(value_text)
-        value_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        value_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         value_label.setStyleSheet("color: #FF8C42;")
         
         layout.addLayout(header_layout)
         layout.addWidget(metric_label)
         layout.addWidget(value_label)
-        layout.addStretch()
         
         self.setLayout(layout)
 
@@ -111,21 +112,23 @@ class AchievementBadgeWidget(QFrame):
                 background-color: #F5F5F5;
                 border: 2px solid {border_color};
                 border-radius: 10px;
-                padding: 8px;
+                padding: 4px;
             }}
             QLabel {{
                 background: transparent;
                 color: #2D3142;
             }}
         """)
-        self.setFixedSize(120, 140)
+        self.setFixedSize(110, 120)
         
         layout = QVBoxLayout()
+        layout.setSpacing(2)
+        layout.setContentsMargins(4, 4, 4, 4)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Icon (emoji placeholder)
         icon_label = QLabel("🏆")
-        icon_label.setFont(QFont("Arial", 32))
+        icon_label.setFont(QFont("Arial", 24))
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Badge name
@@ -170,7 +173,7 @@ class StreakDisplayWidget(QFrame):
                 background-color: #FFF8DC;
                 border: 1px solid #FFD166;
                 border-radius: 8px;
-                padding: 12px;
+                padding: 6px;
             }
             QLabel {
                 background: transparent;
@@ -179,10 +182,12 @@ class StreakDisplayWidget(QFrame):
         """)
         
         layout = QVBoxLayout()
+        layout.setSpacing(2)
+        layout.setContentsMargins(4, 4, 4, 4)
         
         # Metric name
         metric_label = QLabel(self.metric)
-        metric_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        metric_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         
         # Current streak
         current_text = f"Current: {self.streak_info.current_length} days"
@@ -197,7 +202,7 @@ class StreakDisplayWidget(QFrame):
         
         # Progress bar for current streak vs best
         if self.streak_info.best_length > 0:
-            progress_bar = QProgressBar()
+            progress_bar = QProgressBar(self)
             progress_bar.setMaximum(self.streak_info.best_length)
             progress_bar.setValue(min(self.streak_info.current_length, self.streak_info.best_length))
             progress_bar.setStyleSheet("""
@@ -237,12 +242,14 @@ class TrophyCaseWidget(QWidget):
     def setup_ui(self):
         """Create trophy case UI."""
         layout = QVBoxLayout()
+        layout.setSpacing(8)
+        layout.setContentsMargins(8, 8, 8, 8)
         
         # Title with statistics
         self.create_header(layout)
         
         # Tab widget for categories
-        self.tabs = QTabWidget()
+        self.tabs = QTabWidget(self)
         self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: 1px solid #FF8C42;
@@ -251,7 +258,7 @@ class TrophyCaseWidget(QWidget):
             QTabBar::tab {
                 background-color: #F5E6D3;
                 border: 1px solid #FF8C42;
-                padding: 8px 16px;
+                padding: 4px 12px;
                 margin-right: 2px;
             }
             QTabBar::tab:selected {
@@ -275,12 +282,12 @@ class TrophyCaseWidget(QWidget):
         
     def create_header(self, layout):
         """Create header with title and summary stats."""
-        header_frame = QFrame()
+        header_frame = QFrame(self)
         header_frame.setStyleSheet("""
             QFrame {
                 background-color: #FF8C42;
                 border-radius: 10px;
-                padding: 12px;
+                padding: 8px;
             }
             QLabel {
                 color: white;
@@ -292,11 +299,11 @@ class TrophyCaseWidget(QWidget):
         
         # Title
         title_label = QLabel("🏆 Trophy Case")
-        title_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         
         # Stats (will be updated in load_data)
         self.stats_label = QLabel("Loading...")
-        self.stats_label.setFont(QFont("Arial", 12))
+        self.stats_label.setFont(QFont("Arial", 10))
         self.stats_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         header_layout.addWidget(title_label)
@@ -308,17 +315,20 @@ class TrophyCaseWidget(QWidget):
         
     def create_records_tab(self) -> QWidget:
         """Create records display tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
+        layout.setSpacing(4)
+        layout.setContentsMargins(4, 4, 4, 4)
         
         # Filter controls
         filter_layout = QHBoxLayout()
+        filter_layout.setSpacing(8)
         
-        self.metric_filter = QComboBox()
+        self.metric_filter = QComboBox(self)
         self.metric_filter.addItem("All Metrics")
         self.metric_filter.currentTextChanged.connect(self.filter_records)
         
-        self.record_type_filter = QComboBox()
+        self.record_type_filter = QComboBox(self)
         self.record_type_filter.addItem("All Types")
         for record_type in RecordType:
             self.record_type_filter.addItem(record_type.value.replace('_', ' ').title())
@@ -333,12 +343,14 @@ class TrophyCaseWidget(QWidget):
         layout.addLayout(filter_layout)
         
         # Scrollable area for record cards
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("QScrollArea { border: none; }")
         
-        self.records_container = QWidget()
+        self.records_container = QWidget(self)
         self.records_layout = QGridLayout()
+        self.records_layout.setSpacing(4)
+        self.records_layout.setContentsMargins(0, 0, 0, 0)
         self.records_container.setLayout(self.records_layout)
         
         scroll_area.setWidget(self.records_container)
@@ -349,13 +361,15 @@ class TrophyCaseWidget(QWidget):
         
     def create_badges_tab(self) -> QWidget:
         """Create badges display tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
+        layout.setSpacing(4)
+        layout.setContentsMargins(4, 4, 4, 4)
         
         # Badge rarity filter
         filter_layout = QHBoxLayout()
         
-        self.rarity_filter = QComboBox()
+        self.rarity_filter = QComboBox(self)
         self.rarity_filter.addItem("All Rarities")
         self.rarity_filter.addItem("Common")
         self.rarity_filter.addItem("Rare")
@@ -369,12 +383,14 @@ class TrophyCaseWidget(QWidget):
         layout.addLayout(filter_layout)
         
         # Scrollable area for badges
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("QScrollArea { border: none; }")
         
-        self.badges_container = QWidget()
+        self.badges_container = QWidget(self)
         self.badges_layout = QGridLayout()
+        self.badges_layout.setSpacing(4)
+        self.badges_layout.setContentsMargins(0, 0, 0, 0)
         self.badges_container.setLayout(self.badges_layout)
         
         scroll_area.setWidget(self.badges_container)
@@ -385,8 +401,10 @@ class TrophyCaseWidget(QWidget):
         
     def create_streaks_tab(self) -> QWidget:
         """Create streaks display tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
+        layout.setSpacing(4)
+        layout.setContentsMargins(4, 4, 4, 4)
         
         # Active streaks section
         active_group = QGroupBox("🔥 Active Streaks")
@@ -395,8 +413,8 @@ class TrophyCaseWidget(QWidget):
                 font-weight: bold;
                 border: 2px solid #FFD166;
                 border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 10px;
+                margin-top: 5px;
+                padding-top: 5px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
@@ -406,6 +424,8 @@ class TrophyCaseWidget(QWidget):
         """)
         
         self.active_streaks_layout = QVBoxLayout()
+        self.active_streaks_layout.setSpacing(4)
+        self.active_streaks_layout.setContentsMargins(4, 4, 4, 4)
         active_group.setLayout(self.active_streaks_layout)
         
         # Best streaks section
@@ -415,8 +435,8 @@ class TrophyCaseWidget(QWidget):
                 font-weight: bold;
                 border: 2px solid #FF8C42;
                 border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 10px;
+                margin-top: 5px;
+                padding-top: 5px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
@@ -426,19 +446,22 @@ class TrophyCaseWidget(QWidget):
         """)
         
         self.best_streaks_layout = QVBoxLayout()
+        self.best_streaks_layout.setSpacing(4)
+        self.best_streaks_layout.setContentsMargins(4, 4, 4, 4)
         best_group.setLayout(self.best_streaks_layout)
         
         layout.addWidget(active_group)
         layout.addWidget(best_group)
-        layout.addStretch()
         
         widget.setLayout(layout)
         return widget
         
     def create_stats_tab(self) -> QWidget:
         """Create statistics display tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout()
+        layout.setSpacing(4)
+        layout.setContentsMargins(4, 4, 4, 4)
         
         # Summary statistics
         stats_group = QGroupBox("📊 Summary Statistics")
@@ -447,8 +470,8 @@ class TrophyCaseWidget(QWidget):
                 font-weight: bold;
                 border: 2px solid #118AB2;
                 border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 10px;
+                margin-top: 5px;
+                padding-top: 5px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
@@ -458,10 +481,11 @@ class TrophyCaseWidget(QWidget):
         """)
         
         self.stats_layout = QGridLayout()
+        self.stats_layout.setSpacing(4)
+        self.stats_layout.setContentsMargins(4, 4, 4, 4)
         stats_group.setLayout(self.stats_layout)
         
         layout.addWidget(stats_group)
-        layout.addStretch()
         
         widget.setLayout(layout)
         return widget
@@ -620,10 +644,10 @@ class TrophyCaseWidget(QWidget):
         row = 0
         for label, value in stats:
             name_label = QLabel(label + ":")
-            name_label.setFont(QFont("Arial", 12))
+            name_label.setFont(QFont("Arial", 10))
             
             value_label = QLabel(str(value))
-            value_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+            value_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
             value_label.setStyleSheet("color: #FF8C42;")
             
             self.stats_layout.addWidget(name_label, row, 0)

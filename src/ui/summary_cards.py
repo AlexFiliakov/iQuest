@@ -3,15 +3,24 @@ Summary card components for displaying key health metrics.
 Provides reusable card widgets with trend indicators, animations, and responsive layouts.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame,
-    QProgressBar, QSizePolicy
-)
-from PyQt6.QtCore import Qt, pyqtProperty, pyqtSignal, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QPainter, QPen, QColor
 from typing import Dict, Optional, Union
-from .style_manager import StyleManager
+
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, pyqtProperty, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
+
 from src.utils.logging_config import get_logger
+
+from .style_manager import StyleManager
 
 logger = get_logger(__name__)
 
@@ -81,7 +90,7 @@ class SummaryCard(QWidget):
         self.setLayout(self.layout)
         
         # Card container with styling
-        self.card_frame = QFrame()
+        self.card_frame = QFrame(self)
         self.card_frame.setObjectName("summaryCard")
         
         # Default content
@@ -199,15 +208,31 @@ class SimpleMetricCard(SummaryCard):
         
         # Animate main value
         if 'value' in data and animate:
-            current_value = float(self.value_label.text().replace(',', '') or 0)
-            target_value = float(data['value'])
+            # parse current value
+            try:
+                current_value = float(self.value_label.text().replace(',', ''))
+            except ValueError:
+                current_value = 0.0
+
+            # parse target value
+            value_str = data['value']
+            try:
+                target_value = float(value_str)
+            except (ValueError, TypeError):
+                # non‐numeric: just display and skip animation
+                self.value_label.setText(value_str)
+                return
             
             self.value_animator.setStartValue(current_value)
             self.value_animator.setEndValue(target_value)
             self.value_animator.setDuration(500)
             self.value_animator.start()
         elif 'value' in data:
-            self.update_value_display(float(data['value']))
+            try:
+                current_value = float(data['value'])
+                self.update_value_display(current_value)
+            except (ValueError, TypeError):
+                self.value_label.setText(f"{data['value']}")
     
     def update_value_display(self, value: float):
         """Update value display during animation."""
@@ -314,7 +339,7 @@ class GoalProgressCard(SummaryCard):
         self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_PRIMARY};")
         
         # Progress bar
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setMaximum(100)
         self.progress_bar.setStyleSheet(f"""
@@ -534,6 +559,20 @@ class MiniChartCard(SummaryCard):
             color: {self.style_manager.TEXT_MUTED};
         """)
         
+        # Subtitle
+        self.subtitle_label = QLabel("")
+        subtitle_font = QFont()
+        subtitle_font.setPointSize(max(10, config['title_font'] - 2))
+        self.subtitle_label.setFont(subtitle_font)
+        self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.subtitle_label.setStyleSheet(f"color: {self.style_manager.TEXT_MUTED};")
+        
+        # Mini chart (will be replaced with actual chart widget)
+        self.mini_chart = QWidget(self)
+        self.mini_chart.setFixedHeight(50)
+        # Add stub set_data method
+        self.mini_chart.set_data = lambda data: None
+        
         # Min/max indicators
         indicator_layout = QHBoxLayout()
         self.min_label = QLabel("Min: 0")
@@ -548,6 +587,7 @@ class MiniChartCard(SummaryCard):
         # Layout
         self.content_layout.addWidget(self.title_label)
         self.content_layout.addWidget(self.value_label)
+        self.content_layout.addWidget(self.subtitle_label)
         self.content_layout.addWidget(self.chart_placeholder, 1)
         self.content_layout.addLayout(indicator_layout)
     

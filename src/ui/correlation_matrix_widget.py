@@ -74,7 +74,7 @@ class CorrelationMatrixWidget(QWidget):
     
     def create_control_panel(self) -> QWidget:
         """Create the control panel with analysis options."""
-        panel = QFrame()
+        panel = QFrame(self)
         panel.setFrameStyle(QFrame.Shape.StyledPanel)
         layout = QVBoxLayout(panel)
         
@@ -82,7 +82,7 @@ class CorrelationMatrixWidget(QWidget):
         method_group = QGroupBox("Correlation Method")
         method_layout = QVBoxLayout(method_group)
         
-        self.method_combo = QComboBox()
+        self.method_combo = QComboBox(self)
         self.method_combo.addItems(["Pearson", "Spearman"])
         self.method_combo.currentTextChanged.connect(self.update_correlation_matrix)
         method_layout.addWidget(self.method_combo)
@@ -152,7 +152,7 @@ class CorrelationMatrixWidget(QWidget):
         layout.addWidget(button_group)
         
         # Summary statistics
-        self.summary_text = QTextEdit()
+        self.summary_text = QTextEdit(self)
         self.summary_text.setMaximumHeight(200)
         self.summary_text.setReadOnly(True)
         layout.addWidget(QLabel("Analysis Summary:"))
@@ -163,7 +163,7 @@ class CorrelationMatrixWidget(QWidget):
     
     def create_visualization_panel(self) -> QWidget:
         """Create the visualization panel with tabs."""
-        panel = QTabWidget()
+        panel = QTabWidget(self)
         
         # Correlation matrix tab
         self.matrix_tab = self.create_matrix_tab()
@@ -181,7 +181,7 @@ class CorrelationMatrixWidget(QWidget):
     
     def create_matrix_tab(self) -> QWidget:
         """Create the correlation matrix visualization tab."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
         # Create matplotlib figure
@@ -193,10 +193,10 @@ class CorrelationMatrixWidget(QWidget):
     
     def create_significant_correlations_tab(self) -> QWidget:
         """Create tab for displaying significant correlations."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
-        self.significant_correlations_text = QTextEdit()
+        self.significant_correlations_text = QTextEdit(self)
         self.significant_correlations_text.setReadOnly(True)
         layout.addWidget(self.significant_correlations_text)
         
@@ -204,7 +204,7 @@ class CorrelationMatrixWidget(QWidget):
     
     def create_network_tab(self) -> QWidget:
         """Create tab for causal network visualization."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
         # Network visualization figure

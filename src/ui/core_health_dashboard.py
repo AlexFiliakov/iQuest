@@ -77,7 +77,7 @@ class MetricPanelComponent(QWidget):
         self.layout.addWidget(self.title_label)
         
         # Content area (to be implemented by subclasses)
-        self.content_widget = QWidget()
+        self.content_widget = QWidget(self)
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.content_widget)
@@ -237,7 +237,7 @@ class HeartRatePanel(MetricPanelComponent):
         self.content_layout.addLayout(self.cards_layout)
         
         # HR Zones visualization placeholder
-        self.zones_widget = QWidget()
+        self.zones_widget = QWidget(self)
         self.zones_widget.setMinimumHeight(100)
         self.zones_widget.setStyleSheet(f"""
             QWidget {{
@@ -452,20 +452,20 @@ class CoreHealthDashboard(QWidget):
         self.main_layout.addLayout(self.header_layout)
         
         # Tab widget for overview and comparison
-        self.tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget(self)
         self.tab_widget.setDocumentMode(True)
         
         # Overview tab with metric panels
-        self.overview_widget = QWidget()
+        self.overview_widget = QWidget(self)
         self.overview_layout = QVBoxLayout(self.overview_widget)
         self.overview_layout.setContentsMargins(0, 0, 0, 0)
         
         # Scrollable content area for overview
-        self.scroll_area = QScrollArea()
+        self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         
-        self.content_widget = QWidget()
+        self.content_widget = QWidget(self)
         self.content_layout = QGridLayout(self.content_widget)
         self.content_layout.setSpacing(20)
         self.content_layout.setContentsMargins(0, 0, 0, 0)

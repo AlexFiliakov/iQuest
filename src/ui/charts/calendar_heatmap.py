@@ -200,7 +200,7 @@ class CalendarHeatmapComponent(QWidget):
         
     def _create_control_panel(self) -> QWidget:
         """Create the control panel with view mode buttons and options."""
-        panel = QFrame()
+        panel = QFrame(self)
         panel.setStyleSheet(f"""
             QFrame {{
                 background-color: {self._colors['background_alt'].name()};
@@ -239,7 +239,7 @@ class CalendarHeatmapComponent(QWidget):
         layout.addWidget(circular_btn)
         
         # Separator
-        separator = QFrame()
+        separator = QFrame(self)
         separator.setFrameStyle(QFrame.Shape.VLine)
         separator.setStyleSheet("color: rgba(139, 115, 85, 0.3);")
         layout.addWidget(separator)
@@ -248,7 +248,7 @@ class CalendarHeatmapComponent(QWidget):
         scale_label = QLabel("Color Scale:")
         layout.addWidget(scale_label)
         
-        scale_combo = QComboBox()
+        scale_combo = QComboBox(self)
         scale_combo.addItems(["Warm Orange", "Viridis", "Cividis"])
         scale_combo.currentTextChanged.connect(self._change_color_scale)
         layout.addWidget(scale_combo)

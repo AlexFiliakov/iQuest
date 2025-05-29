@@ -196,7 +196,7 @@ class ShareDashboardDialog(QDialog):
         info_layout.addWidget(self.title_edit)
         
         info_layout.addWidget(QLabel("Description:"))
-        self.desc_edit = QTextEdit()
+        self.desc_edit = QTextEdit(self)
         self.desc_edit.setMaximumHeight(80)
         self.desc_edit.setPlainText(self.share_config.description)
         info_layout.addWidget(self.desc_edit)
@@ -234,7 +234,7 @@ class ShareDashboardDialog(QDialog):
         self.use_expiration = QCheckBox("Set expiration date:")
         exp_layout.addWidget(self.use_expiration)
         
-        self.expiration_date = QDateEdit()
+        self.expiration_date = QDateEdit(self)
         self.expiration_date.setCalendarPopup(True)
         self.expiration_date.setDate(QDate.currentDate().addDays(30))
         self.expiration_date.setEnabled(False)
@@ -248,7 +248,7 @@ class ShareDashboardDialog(QDialog):
         self.use_password = QCheckBox("Password protect")
         security_layout.addWidget(self.use_password)
         
-        self.password_edit = QLineEdit()
+        self.password_edit = QLineEdit(self)
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_edit.setPlaceholderText("Enter password")
         self.password_edit.setEnabled(False)
@@ -474,7 +474,7 @@ class SharedDashboardViewer(QWidget):
         layout.addWidget(header)
         
         # Main visualization
-        self.viz_container = QWidget()
+        self.viz_container = QWidget(self)
         viz_layout = QVBoxLayout(self.viz_container)
         viz_layout.addWidget(self.visualization_suite)
         layout.addWidget(self.viz_container, 1)
@@ -485,7 +485,7 @@ class SharedDashboardViewer(QWidget):
     
     def _create_header(self) -> QWidget:
         """Create header with share info."""
-        header = QWidget()
+        header = QWidget(self)
         layout = QVBoxLayout(header)
         layout.setContentsMargins(20, 20, 20, 10)
         

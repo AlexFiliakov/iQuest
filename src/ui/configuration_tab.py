@@ -1,33 +1,45 @@
 """Configuration tab implementation for data import and filtering."""
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QLabel,
-    QPushButton, QLineEdit, QDateEdit, QCheckBox, QScrollArea,
-    QProgressBar, QFileDialog, QMessageBox, QFrame
-)
-from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer
-from PyQt6.QtGui import QIcon, QAction, QKeyEvent
-import pandas as pd
 import json
 import os
 import time
 
-from ..utils.logging_config import get_logger
+import pandas as pd
+from PyQt6.QtCore import QDate, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QAction, QIcon, QKeyEvent
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QDateEdit,
+    QFileDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
+from ..config import DATA_DIR
+from ..data_filter_engine import DataFilterEngine, FilterCriteria
 from ..data_loader import DataLoader, convert_xml_to_sqlite
 from ..database import db_manager
-from ..data_filter_engine import DataFilterEngine, FilterCriteria
-from ..filter_config_manager import FilterConfigManager, FilterConfig
-from .style_manager import StyleManager
-from .settings_manager import SettingsManager
-from .multi_select_combo import CheckableComboBox
+from ..filter_config_manager import FilterConfig, FilterConfigManager
+from ..statistics_calculator import StatisticsCalculator
+from ..utils.logging_config import get_logger
+from .component_factory import ComponentFactory
 from .enhanced_date_edit import EnhancedDateEdit
 from .import_progress_dialog import ImportProgressDialog
+from .multi_select_combo import CheckableComboBox
+from .settings_manager import SettingsManager
 from .statistics_widget import StatisticsWidget
+from .style_manager import StyleManager
 from .summary_cards import SummaryCard
 from .table_components import MetricTable, TableConfig
-from .component_factory import ComponentFactory
-from ..config import DATA_DIR
-from ..statistics_calculator import StatisticsCalculator
 
 logger = get_logger(__name__)
 
@@ -89,6 +101,12 @@ class ConfigurationTab(QWidget):
         self.data_loader = DataLoader()
         self.filter_config_manager = FilterConfigManager()
         self.statistics_calculator = StatisticsCalculator()
+        
+        # Initialize metric calculators as None - they'll be created when data is loaded
+        self.daily_calculator = None
+        self.weekly_calculator = None
+        self.monthly_calculator = None
+        
         self.data = None
         self.filtered_data = None
         self.statistics_widget = None
@@ -188,7 +206,7 @@ class ConfigurationTab(QWidget):
         file_label.setStyleSheet("font-weight: 500;")
         file_row.addWidget(file_label)
         
-        self.file_path_input = QLineEdit()
+        self.file_path_input = QLineEdit(self)
         self.file_path_input.setPlaceholderText("Select Apple Health export file (CSV or XML)...")
         self.file_path_input.setReadOnly(True)
         self.file_path_input.setStyleSheet(self.style_manager.get_input_style())
@@ -223,7 +241,7 @@ class ConfigurationTab(QWidget):
         self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
         progress_row.addWidget(self.progress_label)
         
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.setVisible(False)
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
@@ -248,6 +266,7 @@ class ConfigurationTab(QWidget):
     def _create_filter_section(self):
         """Create the data filtering section."""
         group = QGroupBox("Filter Data")
+        group.setMinimumHeight(350)  # Ensure filter section is visible
         group.setStyleSheet(f"""
             QGroupBox {{
                 font-size: 18px;
@@ -308,7 +327,7 @@ class ConfigurationTab(QWidget):
         layout.addLayout(date_section)
         
         # Separator
-        separator1 = QFrame()
+        separator1 = QFrame(self)
         separator1.setFrameShape(QFrame.Shape.HLine)
         separator1.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
         layout.addWidget(separator1)
@@ -328,7 +347,7 @@ class ConfigurationTab(QWidget):
         layout.addLayout(columns_layout)
         
         # Separator
-        separator2 = QFrame()
+        separator2 = QFrame(self)
         separator2.setFrameShape(QFrame.Shape.HLine)
         separator2.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
         layout.addWidget(separator2)
@@ -368,7 +387,7 @@ class ConfigurationTab(QWidget):
         layout.addLayout(presets_section)
         
         # Separator
-        separator3 = QFrame()
+        separator3 = QFrame(self)
         separator3.setFrameShape(QFrame.Shape.HLine)
         separator3.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
         layout.addWidget(separator3)
@@ -396,7 +415,7 @@ class ConfigurationTab(QWidget):
     
     def _create_devices_section(self):
         """Create the devices selection section."""
-        section = QWidget()
+        section = QWidget(self)
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -429,7 +448,7 @@ class ConfigurationTab(QWidget):
     
     def _create_metrics_section(self):
         """Create the metrics selection section."""
-        section = QWidget()
+        section = QWidget(self)
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -491,11 +510,7 @@ class ConfigurationTab(QWidget):
         
         self.data_preview_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=5,
-                show_pagination=False,
-                show_export=False,
-                sortable=False,
-                show_search=False
+                page_size=5
             ),
             wsj_style=True
         )
@@ -512,16 +527,17 @@ class ConfigurationTab(QWidget):
     
     def _create_summary_cards_section(self):
         """Create summary cards for data overview."""
-        section = QWidget()
+        section = QWidget(self)
         layout = QHBoxLayout(section)
-        layout.setContentsMargins(0, 0, 0, 12)
+        layout.setContentsMargins(0, 10, 0, 10)
+        layout.setSpacing(16)  # Add spacing between cards
         
         # Create summary cards with WSJ styling
         self.total_records_card = self.component_factory.create_metric_card(
             title="Total Records",
             value="-",
             card_type="simple",
-            size="small",
+            size="medium",
             wsj_style=True
         )
         
@@ -529,7 +545,7 @@ class ConfigurationTab(QWidget):
             title="Filtered Records",
             value="-",
             card_type="simple",
-            size="small",
+            size="medium",
             wsj_style=True
         )
         
@@ -537,7 +553,7 @@ class ConfigurationTab(QWidget):
             title="Data Source",
             value="None",
             card_type="simple",
-            size="small",
+            size="medium",
             wsj_style=True
         )
         
@@ -545,7 +561,7 @@ class ConfigurationTab(QWidget):
             title="Filter Status",
             value="No filters",
             card_type="simple",
-            size="small",
+            size="medium",
             wsj_style=True
         )
         
@@ -559,7 +575,7 @@ class ConfigurationTab(QWidget):
     
     def _create_status_section(self):
         """Create the status display section."""
-        section = QWidget()
+        section = QWidget(self)
         layout = QHBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
         
@@ -654,10 +670,10 @@ class ConfigurationTab(QWidget):
             self._update_status(f"Loaded {row_count:,} records")
             
             # Update summary cards
-            self.total_records_card.update_value(f"{row_count:,}")
-            self.filtered_records_card.update_value(f"{row_count:,}")
-            self.data_source_card.update_value("CSV File")
-            self.filter_status_card.update_value("Default")
+            self.total_records_card.update_content({'value': f"{row_count:,}"})
+            self.filtered_records_card.update_content({'value': f"{row_count:,}"})
+            self.data_source_card.update_content({'value': "CSV File"})
+            self.filter_status_card.update_content({'value': "Default"})
             
             # Populate filters
             self._populate_filters()
@@ -675,6 +691,9 @@ class ConfigurationTab(QWidget):
             
             # Load last used filters if available
             self._load_last_used_filters()
+            
+            # Initialize calculators with the loaded data
+            self._initialize_calculators()
             
             # Emit signal
             self.data_loaded.emit(self.data)
@@ -761,9 +780,9 @@ class ConfigurationTab(QWidget):
         )
         
         # Update summary cards
-        self.filtered_records_card.update_value(f"{filtered_count:,}")
+        self.filtered_records_card.update_content({'value': f"{filtered_count:,}"})
         percentage = f"{filtered_count/original_count*100:.1f}%"
-        self.filter_status_card.update_value(f"Active ({percentage})")
+        self.filter_status_card.update_content({'value': f"Active ({percentage})"})
         
         # Update statistics for filtered data
         if self.filtered_data is not None and not self.filtered_data.empty:
@@ -1102,7 +1121,7 @@ class ConfigurationTab(QWidget):
             db_manager.initialize_database()
             
             # Load data using DataLoader's SQLite functions
-            from database import DB_FILE_NAME
+            from ..database import DB_FILE_NAME
             self.data_loader.db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
             
             # Get all records from SQLite
@@ -1119,10 +1138,10 @@ class ConfigurationTab(QWidget):
             self._update_status(f"Loaded {row_count:,} records from database")
             
             # Update summary cards
-            self.total_records_card.update_value(f"{row_count:,}")
-            self.filtered_records_card.update_value(f"{row_count:,}")
-            self.data_source_card.update_value("Database")
-            self.filter_status_card.update_value("Default")
+            self.total_records_card.update_content({'value': f"{row_count:,}"})
+            self.filtered_records_card.update_content({'value': f"{row_count:,}"})
+            self.data_source_card.update_content({'value': "Database"})
+            self.filter_status_card.update_content({'value': "Default"})
             
             # Populate filters
             self._populate_filters()
@@ -1137,6 +1156,9 @@ class ConfigurationTab(QWidget):
             if self.data is not None and not self.data.empty:
                 stats = self.statistics_calculator.calculate_from_dataframe(self.data)
                 self.statistics_widget.update_statistics(stats)
+            
+            # Initialize calculators with the loaded data
+            self._initialize_calculators()
             
             # Emit signal
             self.data_loaded.emit(self.data)
@@ -1267,4 +1289,30 @@ class ConfigurationTab(QWidget):
         self.reset_button.setToolTip("Reset all filters to default values (Alt+R)")
         self.save_preset_button.setToolTip("Save the current filter configuration")
         self.load_preset_button.setToolTip("Load a previously saved filter configuration")
-        self.reset_settings_button.setToolTip("Reset all application settings including window position")
+    
+    def _initialize_calculators(self):
+        """Initialize metric calculators with loaded data."""
+        if self.data is None or self.data.empty:
+            logger.warning("Cannot initialize calculators without data")
+            return
+            
+        try:
+            from ..analytics import DailyMetricsCalculator, WeeklyMetricsCalculator, MonthlyMetricsCalculator
+            
+            # Create daily calculator with the loaded data
+            self.daily_calculator = DailyMetricsCalculator(self.data)
+            
+            # Create weekly calculator using the daily calculator
+            self.weekly_calculator = WeeklyMetricsCalculator(self.daily_calculator)
+            
+            # Create monthly calculator using the daily calculator
+            self.monthly_calculator = MonthlyMetricsCalculator(self.daily_calculator)
+            
+            logger.info("Metric calculators initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize calculators: {e}")
+            # Keep calculators as None if initialization fails
+            self.daily_calculator = None
+            self.weekly_calculator = None
+            self.monthly_calculator = None

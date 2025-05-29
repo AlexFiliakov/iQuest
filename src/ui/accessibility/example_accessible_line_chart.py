@@ -233,7 +233,7 @@ def example_usage():
     )
     
     # Set up window
-    central_widget = QWidget()
+    central_widget = QWidget(self)
     layout = QVBoxLayout()
     layout.addWidget(chart)
     central_widget.setLayout(layout)

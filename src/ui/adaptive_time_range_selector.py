@@ -134,7 +134,7 @@ class AdaptiveTimeRangeSelector(QWidget):
         self.status_label.setFont(status_font)
         
         # Separator
-        separator = QFrame()
+        separator = QFrame(self)
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
         
@@ -344,6 +344,9 @@ class AdaptiveTimeRangeSelector(QWidget):
         button = self.range_buttons.get(range_type)
         if button and button.isEnabled():
             button.setChecked(True)
+            # Trigger the selection logic
+            self._track_range_selection(range_type, explicit=True)
+            self.rangeSelected.emit(range_type.value)
             
     def suggest_default_range(self, context: SelectionContext = SelectionContext.STARTUP) -> Optional[TimeRange]:
         """Suggest the best available time range using smart selection.

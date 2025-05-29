@@ -74,7 +74,7 @@ class BumpChartWidget(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         
         # Title
-        self.title_label = QLabel()
+        self.title_label = QLabel(self)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_font = QFont(self.font_family, 16, QFont.Weight.Bold)
         self.title_label.setFont(title_font)
@@ -83,7 +83,7 @@ class BumpChartWidget(QWidget):
         
         # Controls panel
         controls_layout = QHBoxLayout()
-        self.controls_frame = QFrame()
+        self.controls_frame = QFrame(self)
         self.controls_frame.setLayout(controls_layout)
         self.controls_frame.setStyleSheet("""
             QFrame { 
@@ -369,7 +369,7 @@ class BumpChartContainer(QFrame):
         # Summary panel
         summary_layout = QHBoxLayout()
         
-        self.summary_label = QLabel()
+        self.summary_label = QLabel(self)
         self.summary_label.setStyleSheet("color: #666; font-size: 11px; padding: 5px;")
         summary_layout.addWidget(self.summary_label)
         

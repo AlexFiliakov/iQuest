@@ -223,11 +223,11 @@ class GoalCard(QFrame):
         # Progress details
         details_layout = QVBoxLayout()
         
-        self.value_label = QLabel()
+        self.value_label = QLabel(self)
         self.value_label.setFont(QFont("Arial", 9))
         details_layout.addWidget(self.value_label)
         
-        self.status_label = QLabel()
+        self.status_label = QLabel(self)
         self.status_label.setFont(QFont("Arial", 8))
         details_layout.addWidget(self.status_label)
         
@@ -253,7 +253,7 @@ class GoalCard(QFrame):
     
     def create_alternative_progress(self) -> QWidget:
         """Create alternative progress visualization for non-circular goals."""
-        widget = QWidget()
+        widget = QWidget(self)
         layout = QVBoxLayout(widget)
         
         if self.goal.goal_type == GoalType.CONSISTENCY:
@@ -426,11 +426,11 @@ class GoalProgressWidget(QWidget):
         layout.addLayout(filter_layout)
         
         # Scroll area for goals
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        self.goals_container = QWidget()
+        self.goals_container = QWidget(self)
         self.goals_layout = QGridLayout(self.goals_container)
         self.goals_layout.setSpacing(12)
         
@@ -451,7 +451,7 @@ class GoalProgressWidget(QWidget):
     
     def create_summary_widget(self) -> QWidget:
         """Create summary statistics widget."""
-        widget = QFrame()
+        widget = QFrame(self)
         widget.setFrameStyle(QFrame.Shape.Box)
         widget.setMaximumHeight(80)
         
@@ -583,7 +583,7 @@ class GoalProgressWidget(QWidget):
         
         layout = QVBoxLayout(dialog)
         
-        text_edit = QTextEdit()
+        text_edit = QTextEdit(self)
         text_edit.setReadOnly(True)
         
         # Format the analysis results

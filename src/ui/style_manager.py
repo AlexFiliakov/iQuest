@@ -44,7 +44,7 @@ class StyleManager:
             
             QWidget {{
                 font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
-                font-size: 16px;
+                font-size: 14px;
                 color: {self.TEXT_PRIMARY};
             }}
         """
@@ -115,7 +115,7 @@ class StyleManager:
             QTabBar::tab {{
                 background-color: {self.TERTIARY_BG};
                 color: {self.TEXT_SECONDARY};
-                padding: 12px 24px;
+                padding: 6px 12px;
                 margin-right: 4px;
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
@@ -149,10 +149,10 @@ class StyleManager:
                     background-color: {self.ACCENT_PRIMARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 12px 24px;
+                    padding: 6px 12px;
                     border-radius: 8px;
                     font-weight: 600;
-                    font-size: 16px;
+                    font-size: 14px;
                 }}
                 
                 QPushButton:hover {{
@@ -179,10 +179,10 @@ class StyleManager:
                     background-color: transparent;
                     color: {self.ACCENT_PRIMARY};
                     border: 2px solid {self.ACCENT_PRIMARY};
-                    padding: 10px 22px;
+                    padding: 5px 11px;
                     border-radius: 8px;
                     font-weight: 600;
-                    font-size: 16px;
+                    font-size: 14px;
                 }}
                 
                 QPushButton:hover {{
@@ -212,7 +212,7 @@ class StyleManager:
             QWidget {{
                 background-color: {self.SECONDARY_BG};
                 border-radius: 12px;
-                padding: 24px;
+                padding: 12px;
                 border: 1px solid rgba(139, 115, 85, 0.1);
             }}
             
@@ -228,15 +228,14 @@ class StyleManager:
                 background-color: {self.SECONDARY_BG};
                 border: 2px solid #E8DCC8;
                 border-radius: 8px;
-                padding: 12px 16px;
-                font-size: 16px;
+                padding: 6px 8px;
+                font-size: 14px;
                 color: {self.TEXT_PRIMARY};
             }}
             
             QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {{
-                border-color: {self.ACCENT_PRIMARY};
+                border: 2px solid {self.ACCENT_PRIMARY};
                 outline: none;
-                box-shadow: 0 0 0 3px {self.FOCUS_SHADOW};
             }}
             
             QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled, QComboBox:disabled {{

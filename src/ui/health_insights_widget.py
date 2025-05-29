@@ -53,7 +53,7 @@ class InsightCardWidget(QFrame):
         header_layout = QHBoxLayout()
         
         # Category icon
-        self.category_icon = QLabel()
+        self.category_icon = QLabel(self)
         self.category_icon.setFixedSize(24, 24)
         self.category_icon.setText(self._get_category_icon())
         header_layout.addWidget(self.category_icon)
@@ -68,7 +68,7 @@ class InsightCardWidget(QFrame):
         header_layout.addWidget(self.title_label, 1)
         
         # Evidence indicator
-        self.evidence_badge = QLabel()
+        self.evidence_badge = QLabel(self)
         self._setup_evidence_badge()
         header_layout.addWidget(self.evidence_badge)
         
@@ -80,7 +80,7 @@ class InsightCardWidget(QFrame):
         layout.addWidget(self.summary_label)
         
         # Expandable content
-        self.expandable_widget = QWidget()
+        self.expandable_widget = QWidget(self)
         expandable_layout = QVBoxLayout(self.expandable_widget)
         expandable_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -93,7 +93,7 @@ class InsightCardWidget(QFrame):
         
         # Recommendation box
         if self.insight.recommendation:
-            rec_frame = QFrame()
+            rec_frame = QFrame(self)
             rec_frame.setFrameStyle(QFrame.Shape.Box)
             rec_layout = QVBoxLayout(rec_frame)
             
@@ -206,7 +206,7 @@ class InsightCardWidget(QFrame):
             }}
             InsightCardWidget:hover {{
                 border-color: {colors.get('primary', '#FF8C42')};
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                border-width: 3px;
             }}
         """)
     
@@ -303,7 +303,7 @@ class HealthInsightsWidget(QWidget):
         period_label = QLabel("Time Period:")
         header_layout.addWidget(period_label)
         
-        self.period_combo = QComboBox()
+        self.period_combo = QComboBox(self)
         self.period_combo.addItems(["Weekly", "Monthly", "Quarterly"])
         self.period_combo.setCurrentText("Monthly")
         self.period_combo.currentTextChanged.connect(self.on_period_changed)
@@ -313,7 +313,7 @@ class HealthInsightsWidget(QWidget):
         insights_label = QLabel("Show:")
         header_layout.addWidget(insights_label)
         
-        self.max_insights_spin = QSpinBox()
+        self.max_insights_spin = QSpinBox(self)
         self.max_insights_spin.setRange(3, 10)
         self.max_insights_spin.setValue(5)
         self.max_insights_spin.setSuffix(" insights")
@@ -328,12 +328,12 @@ class HealthInsightsWidget(QWidget):
         layout.addLayout(header_layout)
         
         # Progress bar (hidden by default)
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.setVisible(False)
         layout.addWidget(self.progress_bar)
         
         # Tab widget for different insight views
-        self.tab_widget = QTabWidget()
+        self.tab_widget = QTabWidget(self)
         
         # All insights tab
         self.all_insights_widget = self._create_insights_scroll_area()
@@ -354,11 +354,11 @@ class HealthInsightsWidget(QWidget):
     
     def _create_insights_scroll_area(self) -> QScrollArea:
         """Create scroll area for insights."""
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        content_widget = QWidget()
+        content_widget = QWidget(self)
         scroll_area.setWidget(content_widget)
         
         return scroll_area
@@ -368,7 +368,7 @@ class HealthInsightsWidget(QWidget):
         summary_group = QGroupBox("Insights Summary")
         layout = QVBoxLayout(summary_group)
         
-        self.summary_text = QTextEdit()
+        self.summary_text = QTextEdit(self)
         self.summary_text.setReadOnly(True)
         self.summary_text.setMaximumHeight(150)
         layout.addWidget(self.summary_text)
@@ -467,7 +467,7 @@ class HealthInsightsWidget(QWidget):
         # Update all insights tab
         if self.all_insights_widget.widget():
             self.all_insights_widget.widget().deleteLater()
-        all_content = QWidget()
+        all_content = QWidget(self)
         all_content.setLayout(all_layout)
         self.all_insights_widget.setWidget(all_content)
         
@@ -493,7 +493,7 @@ class HealthInsightsWidget(QWidget):
             
             cat_layout.addStretch()
             
-            cat_content = QWidget()
+            cat_content = QWidget(self)
             cat_content.setLayout(cat_layout)
             scroll_area.setWidget(cat_content)
     

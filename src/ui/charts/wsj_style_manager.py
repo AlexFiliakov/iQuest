@@ -374,3 +374,17 @@ class WSJStyleManager:
         }
         
         return descriptions.get(chart_type, f"{chart_type} chart displaying health data.")
+    
+    def get_high_contrast_palette(self) -> Dict[str, str]:
+        """Get high contrast color palette for accessibility."""
+        return {
+            'background': '#000000',
+            'text': '#FFFFFF',
+            'primary': '#00FF00',
+            'secondary': '#FFFF00',
+            'surface': '#1A1A1A',
+            'positive': '#00FF00',
+            'negative': '#FF0000',
+            'neutral': '#FFFFFF',
+            'grid': '#333333'
+        }

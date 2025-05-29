@@ -546,7 +546,7 @@ class InteractiveBarChart(BarChart):
         
     def create_control_panel(self):
         """Create control panel for chart interactions."""
-        panel = QWidget()
+        panel = QWidget(self)
         layout = QHBoxLayout()
         
         # Export button

@@ -285,7 +285,7 @@ class HistoricalComparisonWidget(QWidget):
         layout.addLayout(self.cards_layout)
         
         # Trend indicator
-        self.trend_frame = QFrame()
+        self.trend_frame = QFrame(self)
         self.trend_frame.setFrameStyle(QFrame.Shape.Box)
         self.trend_frame.setStyleSheet("""
             background-color: #F5F5F5;
@@ -296,7 +296,7 @@ class HistoricalComparisonWidget(QWidget):
         
         trend_layout = QHBoxLayout(self.trend_frame)
         
-        self.trend_icon = QLabel()
+        self.trend_icon = QLabel(self)
         self.trend_label = QLabel("Calculating trend...")
         self.trend_label.setStyleSheet("color: #666666;")
         
@@ -310,28 +310,37 @@ class HistoricalComparisonWidget(QWidget):
                          current_value: float):
         """Update the historical comparison display."""
         # Update 7-day
-        if historical.rolling_7_day:
+        if historical.rolling_7_day and historical.rolling_7_day.mean is not None:
             self.week_card.set_comparison(
                 current_value, 
                 historical.rolling_7_day.mean
             )
+        else:
+            self.week_card.value_label.setText(f"{current_value:,.0f}")
+            self.week_card.comparison_label.setText("No historical data")
             
         # Update 30-day
-        if historical.rolling_30_day:
+        if historical.rolling_30_day and historical.rolling_30_day.mean is not None:
             self.month_card.set_comparison(
                 current_value,
                 historical.rolling_30_day.mean
             )
+        else:
+            self.month_card.value_label.setText(f"{current_value:,.0f}")
+            self.month_card.comparison_label.setText("No historical data")
             
         # Update 90-day
-        if historical.rolling_90_day:
+        if historical.rolling_90_day and historical.rolling_90_day.mean is not None:
             self.quarter_card.set_comparison(
                 current_value,
                 historical.rolling_90_day.mean
             )
+        else:
+            self.quarter_card.value_label.setText(f"{current_value:,.0f}")
+            self.quarter_card.comparison_label.setText("No historical data")
             
         # Update 365-day
-        if historical.rolling_365_day:
+        if historical.rolling_365_day and historical.rolling_365_day.mean is not None:
             self.year_card.set_comparison(
                 current_value,
                 historical.rolling_365_day.mean
@@ -340,6 +349,9 @@ class HistoricalComparisonWidget(QWidget):
                 self.year_card.set_insight(
                     f"Personal best: {historical.personal_best[1]:,.0f}"
                 )
+        else:
+            self.year_card.value_label.setText(f"{current_value:,.0f}")
+            self.year_card.comparison_label.setText("No historical data")
                 
         # Update trend
         if historical.trend_direction:
@@ -416,7 +428,7 @@ class PeerGroupComparisonWidget(QWidget):
         content_layout.addWidget(self.gauge)
         
         # Stats panel
-        stats_frame = QFrame()
+        stats_frame = QFrame(self)
         stats_frame.setFrameStyle(QFrame.Shape.Box)
         stats_frame.setStyleSheet("""
             background-color: #FAFAFA;

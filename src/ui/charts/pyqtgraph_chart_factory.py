@@ -107,7 +107,7 @@ class PyQtGraphChartFactory:
     
     def _create_fallback_widget(self, chart_type: str, config: Dict[str, Any]) -> QWidget:
         """Create a fallback widget when PyQtGraph is not available."""
-        widget = QWidget()
+        widget = QWidget()  # Remove self as parent
         layout = QVBoxLayout(widget)
         
         label = QLabel(f"Interactive {chart_type} chart\n(PyQtGraph not available)")
@@ -200,7 +200,7 @@ class MultiMetricLineChart(InteractiveChartWidget):
     
     def _create_header(self) -> QWidget:
         """Create header with title and subtitle."""
-        header = QWidget()
+        header = QWidget(self)
         header.setLayout(QVBoxLayout())
         header.layout().setContentsMargins(20, 20, 20, 10)
         
@@ -410,7 +410,7 @@ class CorrelationHeatmapChart(InteractiveChartWidget):
     
     def _create_header(self) -> QWidget:
         """Create header with title and subtitle."""
-        header = QWidget()
+        header = QWidget(self)
         header.setLayout(QVBoxLayout())
         header.layout().setContentsMargins(20, 20, 20, 10)
         
@@ -555,7 +555,7 @@ class SparklineChart(InteractiveChartWidget):
             self.layout().itemAt(i).widget().deleteLater()
         
         # Create horizontal layout for compact display
-        container = QWidget()
+        container = QWidget(self)
         container.setLayout(QHBoxLayout())
         container.layout().setContentsMargins(5, 5, 5, 5)
         self.layout().addWidget(container)

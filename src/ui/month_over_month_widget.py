@@ -90,12 +90,12 @@ class InsightPanel(QFrame):
         layout.addWidget(title_label)
         
         # Insights area
-        self.insights_area = QScrollArea()
+        self.insights_area = QScrollArea(self)
         self.insights_area.setWidgetResizable(True)
         self.insights_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.insights_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarNever)
         
-        self.insights_widget = QWidget()
+        self.insights_widget = QWidget(self)
         self.insights_layout = QVBoxLayout(self.insights_widget)
         self.insights_area.setWidget(self.insights_widget)
         
@@ -127,7 +127,7 @@ class InsightPanel(QFrame):
     
     def _create_insight_frame(self, insight) -> QFrame:
         """Create a frame for a single insight."""
-        frame = QFrame()
+        frame = QFrame(self)
         frame.setStyleSheet("""
             QFrame {
                 background-color: white;
@@ -163,7 +163,7 @@ class InsightPanel(QFrame):
     
     def _create_milestone_frame(self, milestone) -> QFrame:
         """Create a frame for a single milestone."""
-        frame = QFrame()
+        frame = QFrame(self)
         frame.setStyleSheet("""
             QFrame {
                 background-color: #FFF3E0;
@@ -236,7 +236,7 @@ class MonthOverMonthWidget(QWidget):
         layout.addLayout(header_layout)
         
         # Progress bar (hidden by default)
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(self)
         self.progress_bar.hide()
         layout.addWidget(self.progress_bar)
         
@@ -269,14 +269,16 @@ class MonthOverMonthWidget(QWidget):
         layout.addStretch()
         
         # Metric selector
-        layout.addWidget(QLabel("Metric:"))
-        self.metric_combo = QComboBox()
+        metric_label = QLabel("Metric:", self)
+        layout.addWidget(metric_label)
+        self.metric_combo = QComboBox(self)
         self.metric_combo.setMinimumWidth(150)
         layout.addWidget(self.metric_combo)
         
         # Months selector
-        layout.addWidget(QLabel("Months:"))
-        self.months_spinbox = QSpinBox()
+        months_label = QLabel("Months:", self)
+        layout.addWidget(months_label)
+        self.months_spinbox = QSpinBox(self)
         self.months_spinbox.setRange(6, 36)
         self.months_spinbox.setValue(12)
         self.months_spinbox.setSuffix(" months")
@@ -306,11 +308,11 @@ class MonthOverMonthWidget(QWidget):
     
     def _create_visualization_panel(self) -> QWidget:
         """Create the visualization panel with tabs."""
-        panel = QWidget()
+        panel = QWidget(self)
         layout = QVBoxLayout(panel)
         
         # Visualization tabs
-        self.viz_tabs = QTabWidget()
+        self.viz_tabs = QTabWidget(self)
         self.viz_tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: 1px solid #C0C0C0;
@@ -357,7 +359,7 @@ class MonthOverMonthWidget(QWidget):
     
     def _create_insights_panel(self) -> QWidget:
         """Create the insights and statistics panel."""
-        panel = QWidget()
+        panel = QWidget(self)
         layout = QVBoxLayout(panel)
         
         # Insights panel
@@ -368,7 +370,7 @@ class MonthOverMonthWidget(QWidget):
         stats_group = QGroupBox("Statistical Summary")
         stats_layout = QVBoxLayout(stats_group)
         
-        self.stats_text = QTextEdit()
+        self.stats_text = QTextEdit(self)
         self.stats_text.setMaximumHeight(200)
         self.stats_text.setReadOnly(True)
         self.stats_text.setStyleSheet("""

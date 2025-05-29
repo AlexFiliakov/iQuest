@@ -114,8 +114,15 @@ class MatplotlibChartFactory:
         for i, (metric_name, metric_data) in enumerate(data.items()):
             # Get configuration for this metric
             metric_config = y_axes_config.get(metric_name, {})
-            color = colors_config.get(metric_name, 
-                                    self.style_manager.get_metric_color(metric_name, i))
+            
+            # Handle both dict and list color configs
+            if isinstance(colors_config, dict):
+                color = colors_config.get(metric_name, 
+                                        self.style_manager.get_metric_color(metric_name, i))
+            elif isinstance(colors_config, list):
+                color = colors_config[i % len(colors_config)]
+            else:
+                color = self.style_manager.get_metric_color(metric_name, i)
             
             # Prepare data
             if isinstance(metric_data, pd.DataFrame):
@@ -227,16 +234,19 @@ class MatplotlibChartFactory:
                                      ha="center", va="center", color="black", fontsize=9)
         
         # Add significance stars if provided
-        if sig_matrix is not None and config.get('significance_indicators', True):
+        if sig_matrix is not None and not sig_matrix.empty and config.get('significance_indicators', True):
             for i in range(len(corr_matrix)):
                 for j in range(len(corr_matrix)):
                     if mask is None or not mask[i, j]:
-                        if sig_matrix.iloc[i, j] < 0.001:
-                            stars = '***'
-                        elif sig_matrix.iloc[i, j] < 0.01:
-                            stars = '**'
-                        elif sig_matrix.iloc[i, j] < 0.05:
-                            stars = '*'
+                        if i < len(sig_matrix) and j < len(sig_matrix.columns):
+                            if sig_matrix.iloc[i, j] < 0.001:
+                                stars = '***'
+                            elif sig_matrix.iloc[i, j] < 0.01:
+                                stars = '**'
+                            elif sig_matrix.iloc[i, j] < 0.05:
+                                stars = '*'
+                            else:
+                                stars = ''
                         else:
                             stars = ''
                         

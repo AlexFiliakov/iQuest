@@ -69,7 +69,7 @@ class MonthlyDashboardWidget(QWidget):
         main_layout.addWidget(header)
         
         # Content area with scroll
-        scroll_area = QScrollArea()
+        scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -94,7 +94,7 @@ class MonthlyDashboardWidget(QWidget):
         """)
         
         # Content widget
-        content_widget = QWidget()
+        content_widget = QWidget(self)
         content_layout = QVBoxLayout(content_widget)
         content_layout.setSpacing(20)
         
@@ -117,7 +117,7 @@ class MonthlyDashboardWidget(QWidget):
         
     def _create_header(self) -> QWidget:
         """Create the dashboard header with navigation and controls."""
-        header = QFrame()
+        header = QFrame(self)
         header.setStyleSheet("""
             QFrame {
                 background-color: #FFF8F0;
@@ -141,7 +141,7 @@ class MonthlyDashboardWidget(QWidget):
         nav_layout.addWidget(self.prev_btn)
         
         # Current month/year label
-        self.month_label = QLabel()
+        self.month_label = QLabel(self)
         self.month_label.setFont(QFont('Poppins', 18, QFont.Weight.Bold))
         self.month_label.setStyleSheet("color: #5D4E37; padding: 0 20px;")
         self.month_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -160,12 +160,12 @@ class MonthlyDashboardWidget(QWidget):
         # Metric selector
         metric_layout = QHBoxLayout()
         
-        metric_label = QLabel("Metric:")
+        metric_label = QLabel("Metric:", self)
         metric_label.setFont(QFont('Inter', 12, QFont.Weight.Medium))
         metric_label.setStyleSheet("color: #5D4E37;")
         metric_layout.addWidget(metric_label)
         
-        self.metric_combo = QComboBox()
+        self.metric_combo = QComboBox(self)
         self.metric_combo.addItems([
             "Steps", "Heart Rate", "Sleep Hours", "Distance"
         ])
@@ -181,7 +181,7 @@ class MonthlyDashboardWidget(QWidget):
         
     def _create_heatmap_section(self) -> QWidget:
         """Create the calendar heatmap section."""
-        section = QFrame()
+        section = QFrame(self)
         section.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
@@ -209,7 +209,7 @@ class MonthlyDashboardWidget(QWidget):
         
     def _create_statistics_section(self) -> QWidget:
         """Create the summary statistics section."""
-        section = QFrame()
+        section = QFrame(self)
         section.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
@@ -253,7 +253,7 @@ class MonthlyDashboardWidget(QWidget):
         
     def _create_stat_card(self, title: str, value: str, color: str) -> QWidget:
         """Create a summary statistic card."""
-        card = QFrame()
+        card = QFrame(self)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: #FFF8F0;
@@ -285,7 +285,7 @@ class MonthlyDashboardWidget(QWidget):
         
     def _create_journal_section(self) -> QWidget:
         """Create the journal section placeholder."""
-        section = QFrame()
+        section = QFrame(self)
         section.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
