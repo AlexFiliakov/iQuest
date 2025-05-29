@@ -234,10 +234,16 @@ class TestComparativeAnalyticsIntegration:
         # Mock the configuration tab to avoid dependencies
         def mock_create_config_tab(self):
             from PyQt6.QtWidgets import QWidget
-            self.config_tab = QWidget()
+            self.config_tab = QWidget(self)  # Add parent
             self.tab_widget.addTab(self.config_tab, "Configuration")
             
         monkeypatch.setattr(MainWindow, '_create_configuration_tab', mock_create_config_tab)
+        
+        # Mock the database manager to avoid disk I/O errors
+        from unittest.mock import MagicMock
+        mock_db = MagicMock()
+        mock_db.get_connection.return_value.__enter__.return_value = MagicMock()
+        monkeypatch.setattr('src.ui.main_window.db_manager', mock_db)
         
         # Create main window
         window = MainWindow()

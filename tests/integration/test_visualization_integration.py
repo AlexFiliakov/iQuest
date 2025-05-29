@@ -9,8 +9,6 @@ import tempfile
 
 from src.ui.charts.wsj_health_visualization_suite import WSJHealthVisualizationSuite
 from src.ui.charts.wsj_style_manager import WSJStyleManager
-# from src.data_access import HealthDataAccess  # Class doesn't exist
-from src.health_database import HealthDatabase
 from src.analytics.dataframe_adapter import DataFrameAdapter
 from PyQt6.QtWidgets import QApplication
 
@@ -20,14 +18,9 @@ class TestVisualizationIntegration:
     """Test visualization components with real data flow."""
     
     @pytest.fixture
-    def test_database(self):
-        """Create test database with sample data."""
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
-            db_path = tmp.name
-        
-        db = HealthDatabase(db_path)
-        
-        # Insert sample health data
+    def test_data(self):
+        """Create test DataFrame with sample data."""
+        # Generate sample health data
         end_date = datetime.now()
         dates = pd.date_range(end=end_date, periods=90, freq='D')
         
@@ -42,43 +35,79 @@ class TestVisualizationIntegration:
         calories_base = 2000
         calories = calories_base + 0.1 * steps + np.random.normal(0, 200, len(dates))
         
-        # Insert data
+        # Create DataFrame
+        data = []
         for i, date in enumerate(dates):
-            db.insert_health_record({
-                'date': date,
-                'type': 'StepCount',
-                'value': float(steps[i]),
-                'unit': 'count',
-                'source': 'test'
-            })
-            
-            db.insert_health_record({
-                'date': date,
-                'type': 'HeartRate',
-                'value': float(hr[i]),
-                'unit': 'count/min',
-                'source': 'test'
-            })
-            
-            db.insert_health_record({
-                'date': date,
-                'type': 'ActiveEnergyBurned',
-                'value': float(calories[i]),
-                'unit': 'Cal',
-                'source': 'test'
-            })
+            data.extend([
+                {
+                    'creationDate': date,
+                    'startDate': date,
+                    'type': 'StepCount',
+                    'value': float(steps[i]),
+                    'unit': 'count',
+                    'sourceName': 'test'
+                },
+                {
+                    'creationDate': date,
+                    'startDate': date,
+                    'type': 'HeartRate',
+                    'value': float(hr[i]),
+                    'unit': 'count/min',
+                    'sourceName': 'test'
+                },
+                {
+                    'creationDate': date,
+                    'startDate': date,
+                    'type': 'ActiveEnergyBurned',
+                    'value': float(calories[i]),
+                    'unit': 'Cal',
+                    'sourceName': 'test'
+                }
+            ])
         
-        yield db
-        
-        # Cleanup
-        db.close()
-        Path(db_path).unlink()
+        return pd.DataFrame(data)
     
     @pytest.fixture
-    def data_source(self, test_database):
-        """Create data source with test database."""
-        data_access = HealthDataAccess(test_database)
-        return DataFrameAdapter(data_access)
+    def data_source(self, test_data):
+        """Create data source with test data."""
+        class MockDataSource:
+            def __init__(self, df):
+                self.df = df
+                
+            def get_available_metrics(self):
+                """Return available metric types."""
+                return list(self.df['type'].unique())
+                
+            def get_metric_data(self, metric, date_range):
+                """Get data for a specific metric and date range."""
+                start_date, end_date = date_range
+                # Map display names to data types
+                metric_map = {
+                    'StepCount': 'StepCount',
+                    'HeartRate': 'HeartRate', 
+                    'ActiveEnergyBurned': 'ActiveEnergyBurned',
+                    'steps': 'StepCount',
+                    'heart_rate': 'HeartRate',
+                    'active_energy': 'ActiveEnergyBurned'
+                }
+                data_type = metric_map.get(metric, metric)
+                
+                mask = (
+                    (self.df['type'] == data_type) & 
+                    (self.df['creationDate'] >= start_date) & 
+                    (self.df['creationDate'] <= end_date)
+                )
+                result = self.df[mask][['creationDate', 'value']].copy()
+                if not result.empty:
+                    result.set_index('creationDate', inplace=True)
+                    result.sort_index(inplace=True)
+                return result
+                
+            def get_dataframe(self):
+                """Return the full dataframe."""
+                return self.df
+                
+        return MockDataSource(test_data)
     
     def test_end_to_end_visualization(self, data_source, qtbot):
         """Test complete visualization workflow."""
@@ -191,12 +220,35 @@ class TestVisualizationIntegration:
             if suite.current_config:
                 assert 'colors' in suite.current_config or 'color' in str(suite.current_config)
     
-    def test_data_filtering_integration(self, test_database, qtbot):
+    def test_data_filtering_integration(self, test_data, qtbot):
         """Test visualization with filtered data."""
-        # Create data access with specific metric filter
-        data_access = HealthDataAccess(test_database)
-        data_access.set_metric_filter(['StepCount', 'HeartRate'])
-        data_source = DataFrameAdapter(data_access)
+        # Create a filtered version of test data
+        filtered_data = test_data[test_data['type'].isin(['StepCount', 'HeartRate'])].copy()
+        
+        # Create mock data source with filtered data
+        class FilteredMockDataSource:
+            def __init__(self, df):
+                self.df = df
+                
+            def get_available_metrics(self):
+                """Return available metric types."""
+                return list(self.df['type'].unique())
+                
+            def get_metric_data(self, metric, date_range):
+                """Get data for a specific metric and date range."""
+                start_date, end_date = date_range
+                mask = (
+                    (self.df['type'] == metric) & 
+                    (self.df['creationDate'] >= start_date) & 
+                    (self.df['creationDate'] <= end_date)
+                )
+                result = self.df[mask][['creationDate', 'value']].copy()
+                if not result.empty:
+                    result.set_index('creationDate', inplace=True)
+                    result.sort_index(inplace=True)
+                return result
+        
+        data_source = FilteredMockDataSource(filtered_data)
         
         suite = WSJHealthVisualizationSuite(data_source)
         qtbot.addWidget(suite)

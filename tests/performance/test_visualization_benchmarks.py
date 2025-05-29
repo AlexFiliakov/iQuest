@@ -63,7 +63,7 @@ class TestVisualizationPerformance:
     @pytest.fixture
     def test_widget(self):
         """Provide a test widget for rendering."""
-        widget = QWidget()
+        widget = QWidget(self)
         widget.resize(QSize(800, 600))
         return widget
     
@@ -358,7 +358,7 @@ class TestVisualizationPerformance:
         
         # Run standard benchmark
         data = self.generate_time_series_data(10000)
-        test_widget = QWidget()
+        test_widget = QWidget(widget)
         
         with viz_benchmark.measure_performance("standard_benchmark"):
             chart = LineChart()
@@ -387,7 +387,7 @@ class TestVisualizationPerformance:
         # Run a few benchmarks
         for size in [1000, 10000]:
             data = self.generate_time_series_data(size)
-            test_widget = QWidget()
+            test_widget = QWidget(widget)
             
             with viz_benchmark.measure_performance(f"benchmark_{size}"):
                 chart = LineChart()

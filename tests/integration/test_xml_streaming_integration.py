@@ -72,17 +72,19 @@ class TestXMLStreamingIntegration:
         # Test small file (30MB)
         chunk_size_small = processor.calculate_chunk_size(30 * 1024 * 1024)
         assert chunk_size_small > 0
-        assert chunk_size_small <= 10000  # Should be reasonable batch size
+        assert chunk_size_small == 10000  # Small files get reasonable batch size
         
         # Test medium file (100MB)
         chunk_size_medium = processor.calculate_chunk_size(100 * 1024 * 1024)
         assert chunk_size_medium > 0
-        assert chunk_size_medium <= chunk_size_small  # Larger files should have smaller chunks
+        assert chunk_size_medium == 5000  # Medium files get medium chunks
+        assert chunk_size_medium < chunk_size_small  # Larger files should have smaller chunks
         
         # Test large file (500MB)
         chunk_size_large = processor.calculate_chunk_size(500 * 1024 * 1024)
         assert chunk_size_large > 0
-        assert chunk_size_large <= chunk_size_medium
+        assert chunk_size_large == 2500  # Large files get smaller chunks
+        assert chunk_size_large < chunk_size_medium
         
         # Minimum chunk size
         assert chunk_size_large >= 100  # Never go below 100 records per chunk
@@ -129,30 +131,21 @@ class TestXMLStreamingIntegration:
         final_memory = processor.memory_monitor.get_current_usage_mb()
         assert final_memory < 500  # Should stay under 500MB even for large files
     
-    def test_streaming_decision_logic(self):
+    def test_streaming_decision_logic(self, monkeypatch):
         """Test the logic for deciding when to use streaming."""
         processor = XMLStreamingProcessor()
         
-        # Mock file sizes
-        class MockPath:
-            def __init__(self, size_bytes):
-                self.size_bytes = size_bytes
-            
-            def stat(self):
-                class MockStat:
-                    def __init__(self, size):
-                        self.st_size = size
-                return MockStat(self.size_bytes)
+        # Mock os.path.getsize for small file (10MB)
+        monkeypatch.setattr(os.path, 'getsize', lambda path: 10 * 1024 * 1024)
+        assert not processor.should_use_streaming("dummy.xml")
         
-        # Small file should not stream
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__new__', lambda cls, path: MockPath(10 * 1024 * 1024))
-            assert not processor.should_use_streaming("dummy.xml")
+        # Mock os.path.getsize for medium file (100MB) - should not stream with 500MB limit
+        monkeypatch.setattr(os.path, 'getsize', lambda path: 100 * 1024 * 1024)
+        assert not processor.should_use_streaming("dummy.xml")
         
-        # Large file should stream
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__new__', lambda cls, path: MockPath(100 * 1024 * 1024))
-            assert processor.should_use_streaming("dummy.xml")
+        # Mock os.path.getsize for large file (200MB) - should stream
+        monkeypatch.setattr(os.path, 'getsize', lambda path: 200 * 1024 * 1024)
+        assert processor.should_use_streaming("dummy.xml")
     
     @pytest.mark.integration
     def test_database_structure(self, sample_xml_path, temp_database):

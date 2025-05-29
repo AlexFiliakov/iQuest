@@ -92,11 +92,18 @@ class TestWeekOverWeekIntegration:
     def test_full_workflow_steps_analysis(self, trends_calculator, sample_health_data):
         """Test complete workflow for steps analysis."""
         metric = "HKQuantityTypeIdentifierStepCount"
-        current_week = 15
-        year = 2024
+        # Use a week that's within our sample data range
+        today = datetime.now()
+        current_year, current_week, _ = today.isocalendar()
+        # Go back 4 weeks to ensure we're within the 90-day sample range
+        test_week = current_week - 4
+        test_year = current_year
+        if test_week < 1:
+            test_week = 52 + test_week
+            test_year = current_year - 1
         
         # Calculate week change
-        trend_result = trends_calculator.calculate_week_change(metric, current_week - 1, current_week, year)
+        trend_result = trends_calculator.calculate_week_change(metric, test_week - 1, test_week, test_year)
         
         assert trend_result is not None
         assert isinstance(trend_result.percent_change, float)
@@ -108,10 +115,17 @@ class TestWeekOverWeekIntegration:
     def test_momentum_detection_integration(self, trends_calculator):
         """Test momentum detection with real workflow."""
         metric = "HKQuantityTypeIdentifierStepCount"
-        current_week = 15
-        year = 2024
+        # Use a week that's within our sample data range
+        today = datetime.now()
+        current_year, current_week, _ = today.isocalendar()
+        # Go back 4 weeks to ensure we're within the 90-day sample range
+        test_week = current_week - 4
+        test_year = current_year
+        if test_week < 1:
+            test_week = 52 + test_week
+            test_year = current_year - 1
         
-        momentum = trends_calculator.detect_momentum(metric, current_week, year)
+        momentum = trends_calculator.detect_momentum(metric, test_week, test_year)
         
         assert momentum is not None
         assert isinstance(momentum.momentum_type, MomentumType)
@@ -123,10 +137,17 @@ class TestWeekOverWeekIntegration:
     def test_streak_tracking_integration(self, trends_calculator):
         """Test streak tracking with real workflow."""
         metric = "HKQuantityTypeIdentifierStepCount"
-        current_week = 15
-        year = 2024
+        # Use a week that's within our sample data range
+        today = datetime.now()
+        current_year, current_week, _ = today.isocalendar()
+        # Go back 4 weeks to ensure we're within the 90-day sample range
+        test_week = current_week - 4
+        test_year = current_year
+        if test_week < 1:
+            test_week = 52 + test_week
+            test_year = current_year - 1
         
-        streak_info = trends_calculator.get_current_streak(metric, current_week, year)
+        streak_info = trends_calculator.get_current_streak(metric, test_week, test_year)
         
         assert streak_info is not None
         assert isinstance(streak_info.current_streak, int)
@@ -139,10 +160,17 @@ class TestWeekOverWeekIntegration:
     def test_prediction_integration(self, trends_calculator):
         """Test prediction functionality integration."""
         metric = "HKQuantityTypeIdentifierStepCount"
-        current_week = 15
-        year = 2024
+        # Use a week that's within our sample data range
+        today = datetime.now()
+        current_year, current_week, _ = today.isocalendar()
+        # Go back 4 weeks to ensure we're within the 90-day sample range
+        test_week = current_week - 4
+        test_year = current_year
+        if test_week < 1:
+            test_week = 52 + test_week
+            test_year = current_year - 1
         
-        prediction = trends_calculator.predict_next_week(metric, current_week, year)
+        prediction = trends_calculator.predict_next_week(metric, test_week, test_year)
         
         assert prediction is not None
         assert isinstance(prediction.predicted_value, float)
@@ -171,13 +199,20 @@ class TestWeekOverWeekIntegration:
     def test_narrative_generation_integration(self, trends_calculator):
         """Test narrative generation integration."""
         metric = "HKQuantityTypeIdentifierStepCount"
-        current_week = 15
-        year = 2024
+        # Use a week that's within our sample data range
+        today = datetime.now()
+        current_year, current_week, _ = today.isocalendar()
+        # Go back 4 weeks to ensure we're within the 90-day sample range
+        test_week = current_week - 4
+        test_year = current_year
+        if test_week < 1:
+            test_week = 52 + test_week
+            test_year = current_year - 1
         
         # Get required components
-        trend_result = trends_calculator.calculate_week_change(metric, current_week - 1, current_week, year)
-        streak_info = trends_calculator.get_current_streak(metric, current_week, year)
-        momentum = trends_calculator.detect_momentum(metric, current_week, year)
+        trend_result = trends_calculator.calculate_week_change(metric, test_week - 1, test_week, test_year)
+        streak_info = trends_calculator.get_current_streak(metric, test_week, test_year)
+        momentum = trends_calculator.detect_momentum(metric, test_week, test_year)
         
         # Generate narrative
         narrative = trends_calculator.generate_trend_narrative(metric, trend_result, streak_info, momentum)

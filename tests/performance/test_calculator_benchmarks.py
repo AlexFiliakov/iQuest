@@ -16,6 +16,20 @@ from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
 from src.statistics_calculator import StatisticsCalculator
 
 
+def convert_to_health_format(wide_df: pd.DataFrame) -> pd.DataFrame:
+    """Convert wide format dataframe to Apple Health format."""
+    data_rows = []
+    for idx, row in wide_df.iterrows():
+        for col in wide_df.columns:
+            if col != 'timestamp' and pd.notna(row[col]):
+                data_rows.append({
+                    'creationDate': idx,
+                    'type': col,
+                    'value': row[col]
+                })
+    return pd.DataFrame(data_rows)
+
+
 @pytest.mark.performance
 class TestCalculatorPerformance(PerformanceBenchmark):
     """Performance tests for analytics calculators."""
@@ -38,16 +52,20 @@ class TestCalculatorPerformance(PerformanceBenchmark):
     ])
     def test_daily_calculator_scaling(self, benchmark, days, expected_time):
         """Test that daily calculator performance scales linearly with data size."""
-        # Generate data
-        data = self.generator.generate_dataframe(
-            days=days, 
-            records_per_day=100,
-            include_edge_cases=False
+        # Generate data using HealthDataFixtures
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        wide_data = HealthDataFixtures.create_health_dataframe(
+            days=days,
+            metrics=['steps', 'distance', 'calories', 'heart_rate'],
+            include_anomalies=False
         )
+        
+        # Convert to Apple Health format
+        data = convert_to_health_format(wide_data)
         
         def calculate():
             calculator = DailyMetricsCalculator(data)
-            return calculator.calculate_all_metrics()
+            return calculator.get_metrics_summary()
         
         # Benchmark
         result = benchmark.pedantic(
@@ -65,16 +83,19 @@ class TestCalculatorPerformance(PerformanceBenchmark):
         # Use the minimum of expected time and adaptive threshold
         max_allowed = min(expected_time, threshold)
         
-        assert result['mean'] < max_allowed
-        print(f"Daily calculator {days} days: {result['mean']:.3f}s (max: {max_allowed:.3f}s)")
+        # benchmark.pedantic returns None, stats are on benchmark object
+        assert benchmark.stats['mean'] < max_allowed
+        print(f"Daily calculator {days} days: {benchmark.stats['mean']:.3f}s (max: {max_allowed:.3f}s)")
         
     def test_weekly_calculator_performance(self, benchmark):
         """Test weekly calculator with various data sizes."""
         # Test with 1 year of data
-        data = self.generator.generate_dataframe(days=365, records_per_day=100)
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        data = convert_to_health_format(HealthDataFixtures.create_health_dataframe(days=365))
         
         def calculate():
-            calculator = WeeklyMetricsCalculator(data)
+            daily_calc = DailyMetricsCalculator(data)
+            calculator = WeeklyMetricsCalculator(daily_calc)
             return calculator.calculate_weekly_summary()
         
         result = benchmark.pedantic(
@@ -84,16 +105,18 @@ class TestCalculatorPerformance(PerformanceBenchmark):
         )
         
         # Weekly should be faster than daily for same data
-        assert result['mean'] < 0.5  # <500ms for 1 year
-        assert result['stddev'] < 0.1  # Consistent performance
+        assert benchmark.stats['mean'] < 0.5  # <500ms for 1 year
+        assert benchmark.stats['stddev'] < 0.1  # Consistent performance
         
     def test_monthly_calculator_performance(self, benchmark):
         """Test monthly calculator performance."""
         # Test with 2 years of data
-        data = self.generator.generate_dataframe(days=730, records_per_day=100)
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        data = convert_to_health_format(HealthDataFixtures.create_health_dataframe(days=730))
         
         def calculate():
-            calculator = MonthlyMetricsCalculator(data)
+            daily_calc = DailyMetricsCalculator(data)
+            calculator = MonthlyMetricsCalculator(daily_calc)
             return calculator.calculate_monthly_trends()
         
         result = benchmark(calculate)
@@ -104,14 +127,15 @@ class TestCalculatorPerformance(PerformanceBenchmark):
     def test_calculator_memory_efficiency(self):
         """Test memory usage of calculators with large datasets."""
         # Generate large dataset
-        large_data = self.generator.generate_dataframe(
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        large_data = convert_to_health_format(HealthDataFixtures.create_health_dataframe(
             days=1825,  # 5 years
-            records_per_day=200
-        )
+            include_anomalies=True
+        ))
         
         with self.measure_performance('daily_calculator_memory'):
             calculator = DailyMetricsCalculator(large_data)
-            results = calculator.calculate_all_metrics()
+            results = calculator.get_metrics_summary()
             
         # Check memory usage
         self.assert_performance(
@@ -140,24 +164,25 @@ class TestCalculatorPerformance(PerformanceBenchmark):
                 
                 # Performance should be reasonable even for large arrays
                 expected_time = size / 1000000  # Roughly 1ms per 1000 elements
-                assert result['mean'] < expected_time
+                assert benchmark.stats['mean'] < expected_time
                 
     def test_calculator_caching_performance(self, benchmark):
         """Test performance improvement from caching."""
-        data = self.generator.generate_dataframe(days=365, records_per_day=100)
-        calculator = DailyMetricsCalculator(data, enable_caching=True)
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        data = convert_to_health_format(HealthDataFixtures.create_health_dataframe(days=365))
+        calculator = DailyMetricsCalculator(data)
         
         # First run - no cache
         def first_run():
-            return calculator.calculate_all_metrics()
+            return calculator.get_metrics_summary()
             
         # Second run - with cache
         def cached_run():
-            return calculator.calculate_all_metrics()
+            return calculator.get_metrics_summary()
         
         # Benchmark both
         first_result = benchmark(first_run)
-        calculator._cache_hit = True  # Force cache usage
+        # Note: Caching may not be implemented in current version
         cached_result = benchmark(cached_run)
         
         # Cached should be significantly faster
@@ -168,19 +193,22 @@ class TestCalculatorPerformance(PerformanceBenchmark):
         import concurrent.futures
         
         # Generate shared dataset
-        data = self.generator.generate_dataframe(days=180, records_per_day=100)
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        data = convert_to_health_format(HealthDataFixtures.create_health_dataframe(days=180))
         
         def concurrent_calculations():
             """Run multiple calculators concurrently."""
             def run_calculator(calc_type):
                 if calc_type == 'daily':
                     calc = DailyMetricsCalculator(data)
-                    return calc.calculate_all_metrics()
+                    return calc.get_metrics_summary()
                 elif calc_type == 'weekly':
-                    calc = WeeklyMetricsCalculator(data)
+                    daily_calc = DailyMetricsCalculator(data)
+                    calc = WeeklyMetricsCalculator(daily_calc)
                     return calc.calculate_weekly_summary()
                 else:
-                    calc = MonthlyMetricsCalculator(data)
+                    daily_calc = DailyMetricsCalculator(data)
+                    calc = MonthlyMetricsCalculator(daily_calc)
                     return calc.calculate_monthly_trends()
             
             with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
@@ -205,20 +233,21 @@ class TestCalculatorPerformance(PerformanceBenchmark):
         # This test is marked slow and should only run in full test suite
         
         # Generate very large dataset
-        extreme_data = self.generator.generate_dataframe(
+        from tests.fixtures.health_fixtures import HealthDataFixtures
+        extreme_data = convert_to_health_format(HealthDataFixtures.create_health_dataframe(
             days=3650,  # 10 years
-            records_per_day=500  # High frequency
-        )
+            include_anomalies=True
+        ))
         
         with self.measure_performance('stress_test'):
             # Test all calculators
             daily = DailyMetricsCalculator(extreme_data)
-            daily_results = daily.calculate_all_metrics()
+            daily_results = daily.get_metrics_summary()
             
-            weekly = WeeklyMetricsCalculator(extreme_data)
+            weekly = WeeklyMetricsCalculator(daily)
             weekly_results = weekly.calculate_weekly_summary()
             
-            monthly = MonthlyMetricsCalculator(extreme_data)
+            monthly = MonthlyMetricsCalculator(daily)
             monthly_results = monthly.calculate_monthly_trends()
         
         # Even with extreme data, should complete

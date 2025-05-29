@@ -40,11 +40,26 @@ def sample_data():
 
 
 @pytest.fixture
-def timeline_component(qtbot):
+def timeline_component(qtbot, qapp):
     """Create ActivityTimelineComponent instance."""
+    # Ensure we have a QApplication instance
+    assert qapp is not None
+    
+    # Create the component directly without a parent for now
     component = ActivityTimelineComponent()
+    
+    # Let qtbot manage the widget lifecycle
     qtbot.addWidget(component)
-    return component
+    
+    # Make sure the widget is visible
+    component.show()
+    qtbot.waitExposed(component, timeout=1000)
+    
+    yield component
+    
+    # Explicit cleanup
+    if component and not component.isHidden():
+        component.hide()
 
 
 class TestActivityTimelineComponent:
@@ -158,13 +173,16 @@ class TestActivityTimelineComponent:
         assert timeline_component.data.empty
         assert timeline_component.grouped_data is None or timeline_component.grouped_data.empty
         
-    def test_sparse_data_handling(self, timeline_component):
+    def test_sparse_data_handling(self, timeline_component, qtbot):
         """Test handling of sparse data with many missing values."""
         # Create very sparse data
         times = pd.date_range(start='2024-01-01', periods=24, freq='h')
         sparse_data = pd.DataFrame({
             'metric1': [np.nan] * 20 + [100, 200, 150, 120]
         }, index=times)
+        
+        # Process events to ensure widget is ready
+        qtbot.wait(50)
         
         timeline_component.update_data(sparse_data, ['metric1'])
         
@@ -226,16 +244,18 @@ class TestTimelineVisualizationWidget:
         """Test paint event switches between linear and radial."""
         viz_widget = timeline_component.viz_widget
         
-        # Linear mode should show canvas
+        # Linear mode should call show on canvas
         timeline_component.set_view_mode('linear')
-        viz_widget.paintEvent(None)
-        assert viz_widget.canvas.isVisible()
-        
-        # Radial mode should hide canvas
-        timeline_component.set_view_mode('radial')
-        with patch.object(viz_widget, 'draw_radial_timeline'):
+        with patch.object(viz_widget.canvas, 'show') as mock_show:
             viz_widget.paintEvent(None)
-            assert not viz_widget.canvas.isVisible()
+            mock_show.assert_called_once()
+        
+        # Radial mode should call hide on canvas
+        timeline_component.set_view_mode('radial')
+        with patch.object(viz_widget.canvas, 'hide') as mock_hide:
+            with patch.object(viz_widget, 'draw_radial_timeline'):
+                viz_widget.paintEvent(None)
+                mock_hide.assert_called_once()
             
     def test_mouse_interaction(self, timeline_component, qtbot):
         """Test mouse interaction for brushing."""

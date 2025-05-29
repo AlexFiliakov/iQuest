@@ -42,6 +42,13 @@ def mock_chart():
     chart.setAccessibleDescription = Mock()
     chart.setFocusPolicy = Mock()
     chart.setProperty = Mock()
+    chart.get_color_scheme = Mock(return_value={
+        'background': '#FFFFFF',
+        'text': '#000000',
+        'primary': '#2196F3',
+        'secondary': '#FF5722',
+        'surface': '#F5F5F5'
+    })
     return chart
 
 
