@@ -269,11 +269,11 @@ class XMLStreamingProcessor:
         """Calculate optimal chunk size based on file size."""
         # Base chunk size on file size and available memory
         if file_size_bytes < 50 * 1024 * 1024:  # <50MB
-            return 20000  # Larger chunks for small files
+            return 10000  # Reasonable batch size for small files
         elif file_size_bytes < 200 * 1024 * 1024:  # <200MB
-            return 10000  # Medium chunks
+            return 5000   # Medium chunks
         else:  # >200MB
-            return 5000   # Smaller chunks for large files
+            return 2500   # Smaller chunks for large files
     
     def should_use_streaming(self, file_path: str) -> bool:
         """Determine if streaming should be used based on file size and available memory."""

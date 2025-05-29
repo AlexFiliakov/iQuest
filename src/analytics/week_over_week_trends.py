@@ -572,15 +572,35 @@ class WeekOverWeekTrends:
     
     def _linear_prediction(self, values: List[float]) -> Prediction:
         """Perform linear regression prediction."""
-        x = np.arange(len(values))
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x, values)
+        # Filter out None values and keep track of their indices
+        valid_indices = []
+        valid_values = []
+        for i, val in enumerate(values):
+            if val is not None:
+                valid_indices.append(i)
+                valid_values.append(val)
+        
+        if len(valid_values) < 2:
+            # Not enough valid data for regression
+            return Prediction(
+                predicted_value=0.0,
+                confidence_interval_lower=0.0,
+                confidence_interval_upper=0.0,
+                prediction_confidence=0.0,
+                methodology="insufficient_data",
+                factors_considered=[]
+            )
+        
+        x = np.array(valid_indices)
+        y = np.array(valid_values)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
         
         # Predict next value
         next_x = len(values)
         predicted_value = slope * next_x + intercept
         
         # Calculate confidence interval
-        mse = np.mean((np.array(values) - (slope * x + intercept)) ** 2)
+        mse = np.mean((y - (slope * x + intercept)) ** 2)
         margin = 1.96 * np.sqrt(mse)  # 95% confidence interval
         
         confidence = max(0.0, min(1.0, abs(r_value))) if p_value < 0.05 else 0.0

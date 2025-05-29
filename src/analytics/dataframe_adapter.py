@@ -123,3 +123,32 @@ class DataFrameAdapter:
     def __len__(self) -> int:
         """Return the number of rows in the adapted data."""
         return len(self._df)
+    
+    def get_metric_data(self, metric: str, date_range: Optional[Tuple[datetime, datetime]] = None) -> pd.DataFrame:
+        """
+        Get data for a specific metric within an optional date range.
+        
+        Args:
+            metric: The metric type to retrieve
+            date_range: Optional tuple of (start_date, end_date)
+            
+        Returns:
+            DataFrame with metric data, indexed by date
+        """
+        # Filter by metric type
+        metric_df = self._df[self._df['type'] == metric].copy()
+        
+        # Apply date range filter if provided
+        if date_range and len(date_range) == 2:
+            start_date, end_date = date_range
+            mask = (metric_df['creationDate'] >= start_date) & (metric_df['creationDate'] <= end_date)
+            metric_df = metric_df[mask]
+        
+        # Create time-indexed DataFrame with just the values
+        if not metric_df.empty:
+            result = metric_df[['creationDate', 'value']].copy()
+            result.set_index('creationDate', inplace=True)
+            result.sort_index(inplace=True)
+            return result
+        
+        return pd.DataFrame()

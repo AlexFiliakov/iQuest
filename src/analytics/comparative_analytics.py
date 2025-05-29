@@ -22,7 +22,7 @@ import secrets
 from functools import lru_cache
 import re
 
-from .daily_metrics_calculator import DailyMetricsCalculator
+from .daily_metrics_calculator import DailyMetricsCalculator, MetricStatistics
 from .weekly_metrics_calculator import WeeklyMetricsCalculator
 from .monthly_metrics_calculator import MonthlyMetricsCalculator
 
@@ -39,19 +39,6 @@ MAX_AGE = 120
 MIN_AGE = 13
 
 
-@dataclass
-class MetricStatistics:
-    """Container for calculated statistics of a metric."""
-    count: int
-    mean: float
-    median: float
-    std: float
-    min: float
-    max: float
-    percentile_25: float
-    percentile_75: float
-    missing_count: int = 0
-    outlier_count: int = 0
 
 
 class ComparisonType(Enum):
