@@ -100,45 +100,46 @@ class StyleManager:
         """
     
     def get_tab_widget_style(self):
-        """Get the tab widget stylesheet."""
+        """Get the tab widget stylesheet with modern underline indicators."""
         return f"""
             QTabWidget::pane {{
-                background-color: {self.SECONDARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 8px;
-                top: -1px;
+                background-color: {self.PRIMARY_BG};
+                border: none;
+                top: 0px;
             }}
             
             QTabBar {{
                 background-color: transparent;
+                border-bottom: 1px solid {self.ACCENT_LIGHT};
             }}
             
             QTabBar::tab {{
-                background-color: {self.TERTIARY_BG};
+                background: transparent;
                 color: {self.TEXT_SECONDARY};
-                padding: 6px 12px;
-                margin-right: 4px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-bottom: none;
+                padding: 8px 16px;
+                margin-right: 8px;
+                border: none;
+                border-bottom: 2px solid transparent;
                 font-weight: 500;
             }}
             
             QTabBar::tab:selected {{
-                background-color: {self.SECONDARY_BG};
                 color: {self.ACCENT_PRIMARY};
+                border-bottom: 2px solid {self.ACCENT_PRIMARY};
                 font-weight: 600;
             }}
             
             QTabBar::tab:hover:!selected {{
-                background-color: {self.SECONDARY_BG};
                 color: {self.TEXT_PRIMARY};
             }}
             
+            QTabBar::tab:first {{
+                margin-left: 0;
+            }}
+            
             QTabWidget > QWidget {{
-                background-color: {self.SECONDARY_BG};
-                border-radius: 8px;
+                background-color: {self.PRIMARY_BG};
+                border: none;
             }}
         """
     
@@ -507,7 +508,7 @@ class StyleManager:
             
             QTabBar::tab:focus {{
                 outline: none;
-                border: 3px solid rgba(91,103,112,0.25);
+                border-bottom: 3px solid {self.FOCUS_COLOR};
             }}
             
             QCheckBox:focus, QRadioButton:focus {{

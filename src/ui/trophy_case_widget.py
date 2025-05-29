@@ -256,18 +256,33 @@ class TrophyCaseWidget(QWidget):
         self.tabs = QTabWidget(self)
         self.tabs.setStyleSheet("""
             QTabWidget::pane {
-                border: 1px solid #FF8C42;
+                border: none;
                 background-color: #FFFFFF;
+                top: 0px;
+            }
+            QTabBar {
+                background-color: transparent;
+                border-bottom: 1px solid #E9ECEF;
             }
             QTabBar::tab {
-                background-color: #F5E6D3;
-                border: 1px solid #FF8C42;
-                padding: 4px 12px;
-                margin-right: 2px;
+                background: transparent;
+                color: #6C757D;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 8px 16px;
+                margin-right: 8px;
+                font-weight: 500;
             }
             QTabBar::tab:selected {
-                background-color: #FFD166;
-                font-weight: bold;
+                color: #FF8C42;
+                border-bottom: 2px solid #FF8C42;
+                font-weight: 600;
+            }
+            QTabBar::tab:hover:!selected {
+                color: #495057;
+            }
+            QTabBar::tab:first {
+                margin-left: 0;
             }
         """)
         
