@@ -3,6 +3,17 @@
 ## Project Overview
 Building a Windows desktop application to analyze Apple Health data from XML exports. The app features a warm, inviting UI with dashboards for daily, weekly, and monthly health metrics plus journaling functionality.
 
+## IMPORTANT: Date & Time
+
+- Before adding Date/Time to any file make sure you are aware of the current system time (system `date` command) and use 24h time format.
+- When Using Timestamps use YYYY-MM-DD HH:MM format, for Date only use YYYY-MM-DD
+
+## Simone Overview
+
+This project uses the Simone framework for project management. Key operational files are:
+
+- Project status: `.simone/00_PROJECT_MANIFEST.md`
+
 ### Git Configuration
 Commit with the following author info:
 ```bash
@@ -194,3 +205,21 @@ makensis installer.nsi
 - Integration tests for CSV → UI pipeline
 - UI tests with pytest-qt
 - Manual testing on Windows 10/11 before release
+
+## File Naming Conventions
+
+- Milestones: `M<NN>_<Description>`
+- Sprints: `S<NN>_M<NN>_<Focus_Area>`
+- Sprint Tasks: `T<NN>_S<NN>_<Description>.md`
+- Completed Sprint Tasks: `TX<NN>_S<NN>_<Description>.md`
+- General Tasks: `T<NNN>_<Description>.md`
+- Completed Tasks: `TX<NNN>_<Description>.md`
+- ADRs: `ADR<NNN>_<Title>.md`
+- PRD Amendments: `PRD_AMEND_<NN>_<Description>.md`
+
+## General Guidelines
+
+- Always use templates from `.simone/99_TEMPLATES/` as structural guides
+- Flag unclear requirements or overly complex tasks for human review and actively ask the user.
+- Be concise in logs and communications and be aware of current date and time
+- Update project manifest when significant changes occur (especially on Tasks, Sprints or Milestones completed)
