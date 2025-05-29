@@ -4,7 +4,7 @@ Color accessibility management for health visualizations.
 Ensures color schemes meet WCAG standards and support colorblind users.
 """
 
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 import colorsys
 import numpy as np

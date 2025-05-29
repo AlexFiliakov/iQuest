@@ -1,7 +1,36 @@
-"""
-Chart components for Apple Health Monitor.
+"""Chart components for Apple Health Monitor.
 
-This module provides visualization components for health data with WSJ-inspired styling.
+This module provides comprehensive visualization components for health data with
+Wall Street Journal-inspired styling and professional data visualization capabilities.
+
+The charts package includes:
+
+- **Base Components**: Core chart infrastructure and configuration
+- **Chart Types**: Line charts, enhanced charts with advanced features
+- **Styling**: WSJ-inspired visual design and theming
+- **Chart Factories**: PyQtGraph and Matplotlib backend support
+- **Visualization Suite**: Complete health data visualization system
+- **Interactive Features**: Drill-down, sharing, and progressive loading
+- **Accessibility**: WCAG 2.1 AA compliant chart components
+- **Export System**: High-quality export to multiple formats
+
+The visualization system is designed for both interactive exploration and
+publication-ready static exports, with comprehensive accessibility support
+for screen readers and keyboard navigation.
+
+Example:
+    Basic chart creation:
+    
+    >>> from ui.charts import LineChart, ChartConfig
+    >>> config = ChartConfig(title="Daily Steps", y_label="Steps")
+    >>> chart = LineChart(config)
+    >>> chart.set_data(dates, values)
+    
+    WSJ-styled visualization suite:
+    
+    >>> from ui.charts import WSJHealthVisualizationSuite
+    >>> suite = WSJHealthVisualizationSuite()
+    >>> chart = suite.create_trend_chart(data, metric_type="steps")
 """
 
 from .base_chart import BaseChart

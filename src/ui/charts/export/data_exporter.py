@@ -7,9 +7,20 @@ from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 from datetime import datetime
 import logging
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
-from openpyxl.utils import get_column_letter
+# import openpyxl  # Optional dependency for Excel export
+try:
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
+    # Provide stubs for missing classes
+    class Font: pass
+    class PatternFill: 
+        def __init__(self, **kwargs): pass
+    class Alignment:
+        def __init__(self, **kwargs): pass
+    def get_column_letter(col): return 'A'
 
 from .export_models import DataExportOptions, ExportResult
 

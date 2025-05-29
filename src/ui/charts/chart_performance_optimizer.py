@@ -1,365 +1,348 @@
-"""Performance optimization framework for chart rendering with large datasets."""
+"""
+Chart performance optimization utilities.
 
-from typing import Dict, Any, Optional, Tuple, List
-import pandas as pd
+This module provides optimizations specifically for chart rendering
+including data reduction algorithms and caching strategies.
+"""
+
 import numpy as np
-from dataclasses import dataclass
+import pandas as pd
+from typing import Optional, Union, Literal, Dict, Any, Tuple
+import hashlib
+import pickle
 from functools import lru_cache
-import threading
-import queue
-from concurrent.futures import ThreadPoolExecutor
+import logging
 
-from ...utils.logging_config import get_logger
-
-logger = get_logger(__name__)
-
-
-@dataclass
-class PerformanceMetrics:
-    """Performance metrics for chart rendering."""
-    data_points: int
-    render_time_ms: float
-    memory_usage_mb: float
-    fps: float
-    optimization_applied: List[str]
-
-
-class DataSampler:
-    """Intelligent data sampling for large datasets."""
-    
-    @staticmethod
-    def downsample_lttb(data: pd.DataFrame, target_points: int) -> pd.DataFrame:
-        """
-        Largest Triangle Three Buckets (LTTB) algorithm for downsampling.
-        Preserves visual characteristics while reducing data points.
-        """
-        if len(data) <= target_points:
-            return data
-        
-        # Implementation of LTTB algorithm
-        sampled_indices = [0]  # Always include first point
-        
-        # Calculate bucket size
-        bucket_size = (len(data) - 2) / (target_points - 2)
-        
-        # Process each bucket
-        for i in range(1, target_points - 1):
-            # Calculate bucket boundaries
-            start = int((i - 1) * bucket_size) + 1
-            end = int(i * bucket_size) + 1
-            
-            # Find the point with largest triangle area
-            max_area = 0
-            max_index = start
-            
-            # Get average point of next bucket for triangle calculation
-            next_start = int(i * bucket_size) + 1
-            next_end = int((i + 1) * bucket_size) + 1
-            next_end = min(next_end, len(data))
-            
-            if next_end > next_start:
-                avg_x = data.iloc[next_start:next_end, 0].mean()
-                avg_y = data.iloc[next_start:next_end, 1].mean()
-            else:
-                avg_x = data.iloc[-1, 0]
-                avg_y = data.iloc[-1, 1]
-            
-            # Previous selected point
-            prev_x = data.iloc[sampled_indices[-1], 0]
-            prev_y = data.iloc[sampled_indices[-1], 1]
-            
-            # Find point with maximum triangle area
-            for j in range(start, min(end, len(data))):
-                # Calculate triangle area
-                area = abs((prev_x - avg_x) * (data.iloc[j, 1] - prev_y) -
-                          (prev_x - data.iloc[j, 0]) * (avg_y - prev_y))
-                
-                if area > max_area:
-                    max_area = area
-                    max_index = j
-            
-            sampled_indices.append(max_index)
-        
-        # Always include last point
-        sampled_indices.append(len(data) - 1)
-        
-        return data.iloc[sampled_indices].reset_index(drop=True)
-    
-    @staticmethod
-    def adaptive_sampling(data: pd.DataFrame, viewport: Tuple[float, float, float, float],
-                         max_points: int = 1000) -> pd.DataFrame:
-        """
-        Adaptive sampling based on viewport visibility.
-        Higher density for visible data, lower for off-screen.
-        """
-        x_min, x_max, y_min, y_max = viewport
-        
-        # Filter to viewport with margin
-        margin_x = (x_max - x_min) * 0.1
-        margin_y = (y_max - y_min) * 0.1
-        
-        visible_mask = (
-            (data.iloc[:, 0] >= x_min - margin_x) &
-            (data.iloc[:, 0] <= x_max + margin_x) &
-            (data.iloc[:, 1] >= y_min - margin_y) &
-            (data.iloc[:, 1] <= y_max + margin_y)
-        )
-        
-        visible_data = data[visible_mask]
-        
-        # Apply LTTB to visible data
-        if len(visible_data) > max_points:
-            return DataSampler.downsample_lttb(visible_data, max_points)
-        
-        return visible_data
-    
-    @staticmethod
-    def time_based_aggregation(data: pd.DataFrame, time_column: str, 
-                              aggregation: str = 'mean') -> pd.DataFrame:
-        """
-        Aggregate data based on time intervals.
-        Useful for time series data.
-        """
-        if len(data) < 10000:
-            return data
-        
-        # Determine appropriate time interval
-        time_range = data[time_column].max() - data[time_column].min()
-        
-        if time_range.days > 365:
-            freq = 'W'  # Weekly
-        elif time_range.days > 30:
-            freq = 'D'  # Daily
-        elif time_range.days > 7:
-            freq = '6H'  # 6 hours
-        else:
-            freq = 'H'  # Hourly
-        
-        # Set time column as index
-        data_copy = data.copy()
-        data_copy.set_index(time_column, inplace=True)
-        
-        # Resample and aggregate
-        aggregation_funcs = {
-            'mean': 'mean',
-            'sum': 'sum',
-            'max': 'max',
-            'min': 'min',
-            'median': 'median'
-        }
-        
-        agg_func = aggregation_funcs.get(aggregation, 'mean')
-        resampled = data_copy.resample(freq).agg(agg_func)
-        
-        return resampled.reset_index()
+logger = logging.getLogger(__name__)
 
 
 class ChartPerformanceOptimizer:
-    """Main performance optimizer for chart rendering."""
+    """Optimizes chart data for improved rendering performance."""
     
     def __init__(self):
-        """Initialize performance optimizer."""
-        self.sampler = DataSampler()
-        self._cache = {}
-        self._metrics = []
-        self._optimization_thresholds = {
-            'large_dataset': 10000,      # Points requiring optimization
-            'huge_dataset': 100000,      # Points requiring aggressive optimization
-            'target_render_ms': 200,     # Target render time
-            'target_memory_mb': 100,     # Target memory usage
-            'min_fps': 30               # Minimum acceptable FPS
+        self.cache = {}
+        self.optimization_stats = {
+            'total_optimizations': 0,
+            'total_time_saved': 0,
+            'total_memory_saved': 0
         }
         
-        # Thread pool for background processing
-        self._thread_pool = ThreadPoolExecutor(max_workers=2)
-        self._processing_queue = queue.Queue()
-    
-    def optimize_data(self, data: pd.DataFrame, chart_type: str = 'line',
-                     viewport: Optional[Tuple[float, float, float, float]] = None,
-                     quality: str = 'balanced') -> pd.DataFrame:
+    def optimize_data(self, 
+                     data: pd.DataFrame,
+                     target_points: Optional[int] = None,
+                     algorithm: Literal['lttb', 'decimation', 'aggregation', 'auto'] = 'auto',
+                     preserve_peaks: bool = True) -> pd.DataFrame:
         """
-        Optimize data for rendering based on size and chart type.
+        Optimize data for chart rendering.
         
         Args:
-            data: Input dataframe
-            chart_type: Type of chart (line, scatter, bar, etc.)
-            viewport: Current viewport bounds (x_min, x_max, y_min, y_max)
-            quality: Optimization quality (performance, balanced, quality)
-        
+            data: Input DataFrame
+            target_points: Target number of points (auto-calculated if None)
+            algorithm: Downsampling algorithm to use
+            preserve_peaks: Whether to preserve local maxima/minima
+            
         Returns:
-            Optimized dataframe
+            Optimized DataFrame
         """
         if data.empty:
             return data
-        
-        data_size = len(data)
-        optimizations_applied = []
-        
-        logger.debug(f"Optimizing {data_size} data points for {chart_type} chart")
-        
-        # Check cache
-        cache_key = self._get_cache_key(data, chart_type, viewport, quality)
-        if cache_key in self._cache:
-            logger.debug("Using cached optimized data")
-            return self._cache[cache_key]
-        
-        # Determine optimization strategy
-        if data_size <= self._optimization_thresholds['large_dataset']:
-            # No optimization needed
-            optimized_data = data
-        
-        elif data_size <= self._optimization_thresholds['huge_dataset']:
-            # Moderate optimization
-            if viewport:
-                optimized_data = self.sampler.adaptive_sampling(data, viewport, 
-                                                               max_points=5000)
-                optimizations_applied.append('adaptive_sampling')
-            else:
-                target_points = 5000 if quality == 'balanced' else 10000
-                optimized_data = self.sampler.downsample_lttb(data, target_points)
-                optimizations_applied.append('lttb_downsampling')
-        
-        else:
-            # Aggressive optimization
-            if chart_type == 'line' and self._is_time_series(data):
-                # Time-based aggregation for time series
-                optimized_data = self.sampler.time_based_aggregation(
-                    data, data.columns[0], 'mean')
-                optimizations_applied.append('time_aggregation')
-            else:
-                # Heavy downsampling
-                target_points = 1000 if quality == 'performance' else 2000
-                optimized_data = self.sampler.downsample_lttb(data, target_points)
-                optimizations_applied.append('heavy_downsampling')
-        
-        # Cache result
-        self._cache[cache_key] = optimized_data
-        
-        # Log optimization
-        logger.info(f"Optimized {data_size} points to {len(optimized_data)} points. "
-                   f"Applied: {', '.join(optimizations_applied)}")
-        
-        return optimized_data
-    
-    def preload_data_async(self, data: pd.DataFrame, chart_type: str,
-                          callback: Optional[callable] = None):
-        """
-        Preload and optimize data asynchronously.
-        """
-        def process():
-            optimized = self.optimize_data(data, chart_type)
-            if callback:
-                callback(optimized)
-        
-        self._thread_pool.submit(process)
-    
-    def get_render_quality(self, data_size: int, target_fps: int = 30) -> str:
-        """
-        Determine appropriate render quality based on data size and target FPS.
-        """
-        if data_size < 1000:
-            return 'high'
-        elif data_size < 10000:
-            return 'medium' if target_fps >= 60 else 'high'
-        else:
-            return 'low' if target_fps >= 30 else 'very_low'
-    
-    def should_use_webgl(self, data_size: int) -> bool:
-        """
-        Determine if WebGL rendering should be used.
-        """
-        return data_size > 50000
-    
-    def get_optimization_suggestions(self, metrics: PerformanceMetrics) -> List[str]:
-        """
-        Get suggestions for improving performance based on metrics.
-        """
-        suggestions = []
-        
-        if metrics.render_time_ms > self._optimization_thresholds['target_render_ms']:
-            suggestions.append("Consider reducing data points or enabling hardware acceleration")
-        
-        if metrics.memory_usage_mb > self._optimization_thresholds['target_memory_mb']:
-            suggestions.append("Enable data streaming or pagination for large datasets")
-        
-        if metrics.fps < self._optimization_thresholds['min_fps']:
-            suggestions.append("Reduce visual complexity or enable frame skipping")
-        
-        if metrics.data_points > 100000:
-            suggestions.append("Use aggregated views for datasets over 100K points")
-        
-        return suggestions
-    
-    def enable_progressive_rendering(self, chunk_size: int = 1000):
-        """
-        Enable progressive rendering for smooth initial display.
-        """
-        logger.info(f"Progressive rendering enabled with chunk size: {chunk_size}")
-        # Implementation would handle chunked rendering
-    
-    @lru_cache(maxsize=32)
-    def _get_cache_key(self, data: pd.DataFrame, chart_type: str,
-                      viewport: Optional[tuple], quality: str) -> str:
-        """Generate cache key for optimized data."""
-        # Create a hashable key from parameters
-        data_hash = hash(tuple(data.columns) + (len(data),))
-        viewport_str = str(viewport) if viewport else 'full'
-        return f"{data_hash}_{chart_type}_{viewport_str}_{quality}"
-    
-    def _is_time_series(self, data: pd.DataFrame) -> bool:
-        """Check if data appears to be time series."""
-        if len(data.columns) < 1:
-            return False
-        
-        first_col = data.iloc[:, 0]
-        
-        # Check if first column is datetime
-        if pd.api.types.is_datetime64_any_dtype(first_col):
-            return True
-        
-        # Check if values are monotonically increasing (common for time)
-        if pd.api.types.is_numeric_dtype(first_col):
-            return first_col.is_monotonic_increasing
-        
-        return False
-    
-    def cleanup(self):
-        """Clean up resources."""
-        self._thread_pool.shutdown(wait=False)
-        self._cache.clear()
-
-
-class MemoryOptimizer:
-    """Memory optimization for chart data."""
-    
-    @staticmethod
-    def optimize_dtypes(data: pd.DataFrame) -> pd.DataFrame:
-        """Optimize data types to reduce memory usage."""
-        optimized = data.copy()
-        
-        for col in optimized.columns:
-            col_type = optimized[col].dtype
             
-            if col_type != object:
-                c_min = optimized[col].min()
-                c_max = optimized[col].max()
-                
-                if str(col_type)[:3] == 'int':
-                    if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
-                        optimized[col] = optimized[col].astype(np.int8)
-                    elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
-                        optimized[col] = optimized[col].astype(np.int16)
-                    elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
-                        optimized[col] = optimized[col].astype(np.int32)
-                else:
-                    if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
-                        optimized[col] = optimized[col].astype(np.float16)
-                    elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
-                        optimized[col] = optimized[col].astype(np.float32)
+        # Auto-calculate target points if not provided
+        if target_points is None:
+            target_points = self._calculate_optimal_points(len(data))
+            
+        # Skip if already optimal
+        if len(data) <= target_points:
+            return data
+            
+        # Check cache
+        cache_key = self._generate_cache_key(data, target_points, algorithm)
+        if cache_key in self.cache:
+            logger.debug(f"Using cached optimization for {len(data)} points")
+            return self.cache[cache_key]
+            
+        # Select algorithm
+        if algorithm == 'auto':
+            algorithm = self._select_algorithm(data, target_points)
+            
+        # Apply optimization
+        if algorithm == 'lttb':
+            optimized = self._lttb_downsample(data, target_points, preserve_peaks)
+        elif algorithm == 'decimation':
+            optimized = self._decimation_downsample(data, target_points)
+        elif algorithm == 'aggregation':
+            optimized = self._aggregation_downsample(data, target_points)
+        else:
+            optimized = data
+            
+        # Cache result
+        self.cache[cache_key] = optimized
+        
+        # Update stats
+        self.optimization_stats['total_optimizations'] += 1
+        self.optimization_stats['total_memory_saved'] += \
+            data.memory_usage(deep=True).sum() - optimized.memory_usage(deep=True).sum()
+            
+        logger.info(f"Optimized {len(data)} points to {len(optimized)} using {algorithm}")
         
         return optimized
+        
+    def _calculate_optimal_points(self, data_length: int) -> int:
+        """Calculate optimal number of points based on data size."""
+        if data_length <= 1000:
+            return data_length
+        elif data_length <= 10000:
+            return 2000
+        elif data_length <= 100000:
+            return 5000
+        else:
+            return 10000
+            
+    def _select_algorithm(self, data: pd.DataFrame, target_points: int) -> str:
+        """Select best algorithm based on data characteristics."""
+        compression_ratio = len(data) / target_points
+        
+        # For time series data
+        if isinstance(data.index, pd.DatetimeIndex):
+            if compression_ratio > 100:
+                return 'aggregation'  # Heavy compression needs aggregation
+            elif compression_ratio > 10:
+                return 'lttb'  # Moderate compression with shape preservation
+            else:
+                return 'decimation'  # Light compression
+        else:
+            # Non-time series data
+            return 'lttb' if compression_ratio > 5 else 'decimation'
+            
+    def _generate_cache_key(self, data: pd.DataFrame, 
+                           target_points: int, algorithm: str) -> str:
+        """Generate cache key for optimization result."""
+        # Create hash of data characteristics
+        data_hash = hashlib.md5(
+            f"{len(data)}_{data.index[0]}_{data.index[-1]}_{target_points}_{algorithm}".encode()
+        ).hexdigest()
+        return data_hash
+        
+    def _lttb_downsample(self, data: pd.DataFrame, 
+                        target_points: int,
+                        preserve_peaks: bool = True) -> pd.DataFrame:
+        """
+        Largest Triangle Three Buckets (LTTB) downsampling.
+        
+        This algorithm is excellent for preserving the visual shape of time series.
+        """
+        if len(data) <= target_points:
+            return data
+            
+        # Handle multi-column data
+        if len(data.columns) > 1:
+            # Apply LTTB to each column
+            results = []
+            for col in data.columns:
+                col_data = data[[col]]
+                downsampled = self._lttb_single_series(col_data, target_points)
+                results.append(downsampled)
+            
+            # Merge on index
+            result = results[0]
+            for df in results[1:]:
+                result = result.join(df, how='outer')
+            return result.sort_index()
+        else:
+            return self._lttb_single_series(data, target_points)
+            
+    def _lttb_single_series(self, data: pd.DataFrame, target_points: int) -> pd.DataFrame:
+        """LTTB implementation for single series."""
+        n = len(data)
+        
+        # Convert to numpy for performance
+        x = np.arange(n)
+        y = data.iloc[:, 0].values
+        
+        # Bucket size
+        every = (n - 2) / (target_points - 2)
+        
+        # Always include first and last points
+        sampled_indices = [0]
+        
+        # Previous selected point
+        a = 0
+        
+        for i in range(target_points - 2):
+            # Calculate average point in next bucket
+            avg_range_start = int((i + 1) * every) + 1
+            avg_range_end = int((i + 2) * every) + 1
+            avg_range_end = min(avg_range_end, n)
+            
+            avg_x = np.mean(x[avg_range_start:avg_range_end])
+            avg_y = np.mean(y[avg_range_start:avg_range_end])
+            
+            # Calculate point in current bucket with largest triangle area
+            range_start = int(i * every) + 1
+            range_end = int((i + 1) * every) + 1
+            range_end = min(range_end, n)
+            
+            # Vectorized triangle area calculation
+            areas = 0.5 * np.abs(
+                (x[a] - avg_x) * (y[range_start:range_end] - y[a]) -
+                (x[a] - x[range_start:range_end]) * (avg_y - y[a])
+            )
+            
+            max_area_idx = range_start + np.argmax(areas)
+            sampled_indices.append(max_area_idx)
+            a = max_area_idx
+            
+        # Always include last point
+        sampled_indices.append(n - 1)
+        
+        return data.iloc[sampled_indices]
+        
+    def _decimation_downsample(self, data: pd.DataFrame, 
+                              target_points: int) -> pd.DataFrame:
+        """Simple decimation downsampling - takes every nth point."""
+        n = len(data)
+        step = max(1, n // target_points)
+        
+        # Always include first and last points
+        indices = list(range(0, n - 1, step))
+        if indices[-1] != n - 1:
+            indices.append(n - 1)
+            
+        return data.iloc[indices]
+        
+    def _aggregation_downsample(self, data: pd.DataFrame, 
+                               target_points: int) -> pd.DataFrame:
+        """Aggregation-based downsampling for time series."""
+        if not isinstance(data.index, pd.DatetimeIndex):
+            # Fall back to decimation for non-time series
+            return self._decimation_downsample(data, target_points)
+            
+        # Calculate appropriate frequency
+        time_range = data.index[-1] - data.index[0]
+        target_freq = time_range / target_points
+        
+        # Convert to pandas frequency string
+        if target_freq.total_seconds() < 60:
+            freq = f"{int(target_freq.total_seconds())}s"
+        elif target_freq.total_seconds() < 3600:
+            freq = f"{int(target_freq.total_seconds() / 60)}min"
+        elif target_freq.total_seconds() < 86400:
+            freq = f"{int(target_freq.total_seconds() / 3600)}h"
+        else:
+            freq = f"{int(target_freq.total_seconds() / 86400)}D"
+            
+        # Resample with appropriate aggregation
+        numeric_cols = data.select_dtypes(include=[np.number]).columns
+        agg_dict = {col: ['mean', 'min', 'max'] for col in numeric_cols}
+        
+        resampled = data.resample(freq).agg(agg_dict)
+        
+        # Flatten multi-level columns
+        resampled.columns = ['_'.join(col).strip() for col in resampled.columns.values]
+        
+        # Select mean values as primary (include min/max for reference)
+        mean_cols = [col for col in resampled.columns if col.endswith('_mean')]
+        result_cols = []
+        
+        for mean_col in mean_cols:
+            base_name = mean_col.replace('_mean', '')
+            # Rename mean column to original name
+            resampled[base_name] = resampled[mean_col]
+            result_cols.append(base_name)
+            
+        return resampled[result_cols]
+        
+    def optimize_for_viewport(self, data: pd.DataFrame,
+                            viewport_start: Any,
+                            viewport_end: Any,
+                            viewport_pixels: int = 1000) -> pd.DataFrame:
+        """Optimize data specifically for viewport rendering."""
+        # Filter to viewport
+        if isinstance(data.index, pd.DatetimeIndex):
+            viewport_data = data[
+                (data.index >= viewport_start) & (data.index <= viewport_end)
+            ]
+        else:
+            viewport_data = data.iloc[viewport_start:viewport_end]
+            
+        # Calculate optimal points for viewport
+        # 2-3 data points per pixel is optimal
+        target_points = min(len(viewport_data), viewport_pixels * 2)
+        
+        return self.optimize_data(viewport_data, target_points)
+        
+    def clear_cache(self):
+        """Clear optimization cache."""
+        self.cache.clear()
+        logger.info("Cleared optimization cache")
+        
+    def get_optimization_stats(self) -> Dict[str, Any]:
+        """Get optimization statistics."""
+        return {
+            **self.optimization_stats,
+            'cache_size': len(self.cache),
+            'cache_memory_mb': sum(
+                df.memory_usage(deep=True).sum() / 1024 / 1024
+                for df in self.cache.values()
+            )
+        }
+
+
+class AdaptiveDataOptimizer:
+    """Adaptive optimization that adjusts based on rendering performance."""
     
-    @staticmethod
-    def estimate_memory_usage(data: pd.DataFrame) -> float:
-        """Estimate memory usage in MB."""
-        return data.memory_usage(deep=True).sum() / 1024 / 1024
+    def __init__(self):
+        self.optimizer = ChartPerformanceOptimizer()
+        self.performance_history = []
+        self.quality_level = 'high'
+        
+    def optimize_adaptive(self, data: pd.DataFrame,
+                         last_render_time: Optional[float] = None,
+                         target_render_time: float = 200.0) -> pd.DataFrame:
+        """
+        Adaptively optimize based on rendering performance.
+        
+        Args:
+            data: Input data
+            last_render_time: Last frame render time in ms
+            target_render_time: Target render time in ms
+            
+        Returns:
+            Optimized data
+        """
+        # Record performance
+        if last_render_time is not None:
+            self.performance_history.append(last_render_time)
+            
+        # Adjust quality based on performance
+        if len(self.performance_history) >= 5:
+            avg_render_time = np.mean(self.performance_history[-5:])
+            
+            if avg_render_time > target_render_time * 1.5:
+                # Too slow - reduce quality
+                if self.quality_level == 'high':
+                    self.quality_level = 'medium'
+                elif self.quality_level == 'medium':
+                    self.quality_level = 'low'
+            elif avg_render_time < target_render_time * 0.5:
+                # Too fast - increase quality
+                if self.quality_level == 'low':
+                    self.quality_level = 'medium'
+                elif self.quality_level == 'medium':
+                    self.quality_level = 'high'
+                    
+        # Apply optimization based on quality level
+        quality_settings = {
+            'high': {'ratio': 0.8, 'algorithm': 'lttb'},
+            'medium': {'ratio': 0.5, 'algorithm': 'lttb'},
+            'low': {'ratio': 0.2, 'algorithm': 'decimation'}
+        }
+        
+        settings = quality_settings[self.quality_level]
+        target_points = int(len(data) * settings['ratio'])
+        
+        return self.optimizer.optimize_data(
+            data, 
+            target_points=target_points,
+            algorithm=settings['algorithm']
+        )

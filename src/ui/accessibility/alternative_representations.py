@@ -4,14 +4,14 @@ Alternative representations for chart data.
 Provides data tables, sonification, and other accessible formats.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 from PyQt6.QtWidgets import (QTableWidget, QTableWidgetItem, QHeaderView,
                            QAbstractItemView)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
-from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
+# from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer  # Optional dependency
 from PyQt6.QtGui import QKeySequence
 import io
 import wave

@@ -3,7 +3,11 @@
 import uuid
 import json
 import base64
-import qrcode
+try:
+    import qrcode
+    QRCODE_AVAILABLE = True
+except ImportError:
+    QRCODE_AVAILABLE = False
 import io
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List

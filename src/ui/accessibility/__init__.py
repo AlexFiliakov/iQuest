@@ -9,7 +9,7 @@ from .accessibility_manager import (
     AccessibleChart,
     AccessibilityReport
 )
-from .wcag_validator import WCAGValidator, TestResult
+from .wcag_validator import WCAGValidator, TestResult, WCAGLevel
 from .screen_reader_support import ScreenReaderManager, HealthDataNarrator
 from .keyboard_navigation import KeyboardNavigationManager
 from .color_accessibility import ColorAccessibilityManager, ContrastResult
@@ -25,6 +25,7 @@ __all__ = [
     'AccessibilityReport',
     'WCAGValidator',
     'TestResult',
+    'WCAGLevel',
     'ScreenReaderManager',
     'HealthDataNarrator',
     'KeyboardNavigationManager',

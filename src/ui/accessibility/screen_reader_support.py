@@ -7,7 +7,7 @@ Provides comprehensive screen reader functionality for charts and data.
 from typing import List, Dict, Any, Optional
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtGui import QAccessible, QAccessibleEvent
+# from PyQt6.QtGui import QAccessible, QAccessibleEvent  # Not available in PyQt6
 import pandas as pd
 from datetime import datetime
 

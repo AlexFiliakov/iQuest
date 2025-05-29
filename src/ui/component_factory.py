@@ -7,6 +7,9 @@ from typing import Optional, Dict, Any
 from .summary_cards import SummaryCard
 from .charts.enhanced_line_chart import EnhancedLineChart
 from .charts.chart_config import ChartConfig
+from .charts.adaptive_chart_renderer import AdaptiveChartRenderer
+from .charts.optimized_line_chart import OptimizedLineChart
+from .charts.chart_performance_optimizer import ChartPerformanceOptimizer
 from .bar_chart_component import BarChart as BarChartComponent, BarChartConfig
 from .table_components import MetricTable, TableConfig
 from .style_manager import StyleManager
@@ -22,6 +25,9 @@ class ComponentFactory:
     def __init__(self):
         self.style_manager = StyleManager()
         self._wsj_config = self._initialize_wsj_config()
+        self.adaptive_renderer = AdaptiveChartRenderer()
+        self.performance_optimizer = ChartPerformanceOptimizer()
+        self.use_optimized_charts = True  # Enable by default
     
     def _initialize_wsj_config(self) -> Dict[str, Any]:
         """Initialize WSJ-style configuration for all components."""
@@ -96,14 +102,28 @@ class ComponentFactory:
         
         return card
     
-    def create_line_chart(self, config: Optional[ChartConfig] = None, wsj_style: bool = True) -> EnhancedLineChart:
-        """Create a line chart with WSJ styling."""
+    def create_line_chart(self, config: Optional[ChartConfig] = None, wsj_style: bool = True, 
+                         data_size: Optional[int] = None) -> EnhancedLineChart:
+        """Create a line chart with WSJ styling and optional performance optimization.
+        
+        Args:
+            config: Chart configuration
+            wsj_style: Whether to apply WSJ styling
+            data_size: Expected data size (enables optimization for large datasets)
+        
+        Returns:
+            Either OptimizedLineChart or EnhancedLineChart based on data size
+        """
         if config is None:
             config = ChartConfig.get_wsj_style() if wsj_style else ChartConfig()
         elif wsj_style:
             self._apply_wsj_chart_config(config)
         
-        return EnhancedLineChart(config)
+        # Use optimized chart for large datasets
+        if self.use_optimized_charts and data_size and data_size > 10000:
+            return OptimizedLineChart(config)
+        else:
+            return EnhancedLineChart(config)
     
     def create_bar_chart(
         self, 
@@ -222,9 +242,46 @@ class ComponentFactory:
         
         return dashboard
     
-    def create_dashboard_persistence(self) -> DashboardPersistence:
-        """Create dashboard persistence manager."""
-        return DashboardPersistence()
+    # def create_dashboard_persistence(self) -> DashboardPersistence:
+    #     """Create dashboard persistence manager."""
+    #     return DashboardPersistence()
+    
+    def create_adaptive_chart(self, data, chart_type: str = 'line', 
+                            container=None, **kwargs):
+        """Create a chart using the adaptive renderer that selects optimal backend.
+        
+        Args:
+            data: Chart data (DataFrame)
+            chart_type: Type of chart to create
+            container: Widget container for the chart
+            **kwargs: Additional chart options
+            
+        Returns:
+            Rendered chart object
+        """
+        return self.adaptive_renderer.render(data, chart_type, container, **kwargs)
+    
+    def optimize_chart_data(self, data, target_points: Optional[int] = None,
+                          algorithm: str = 'auto'):
+        """Optimize chart data for better performance.
+        
+        Args:
+            data: Input DataFrame
+            target_points: Target number of points after optimization
+            algorithm: Optimization algorithm ('lttb', 'decimation', 'aggregation', 'auto')
+            
+        Returns:
+            Optimized DataFrame
+        """
+        return self.performance_optimizer.optimize_data(data, target_points, algorithm)
+    
+    def set_optimization_enabled(self, enabled: bool):
+        """Enable or disable automatic chart optimization."""
+        self.use_optimized_charts = enabled
+        
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """Get performance statistics from the adaptive renderer."""
+        return self.adaptive_renderer.get_performance_stats()
     
     def get_dashboard_templates(self) -> Dict[str, Any]:
         """Get all available dashboard templates."""
