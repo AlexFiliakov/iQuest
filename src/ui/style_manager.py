@@ -18,6 +18,7 @@ class StyleManager:
     ACCENT_SUCCESS = "#95C17B"   # Soft green - positive
     ACCENT_WARNING = "#F4A261"   # Amber - caution
     ACCENT_ERROR = "#E76F51"     # Coral - errors
+    ACCENT_LIGHT = "#FFE5CC"     # Light orange - selections
     
     TEXT_PRIMARY = "#5D4E37"     # Dark brown
     TEXT_SECONDARY = "#8B7355"   # Medium brown
@@ -44,7 +45,7 @@ class StyleManager:
             
             QWidget {{
                 font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
-                font-size: 14px;
+                font-size: 13px;
                 color: {self.TEXT_PRIMARY};
             }}
         """
@@ -149,10 +150,10 @@ class StyleManager:
                     background-color: {self.ACCENT_PRIMARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 6px 12px;
-                    border-radius: 8px;
+                    padding: 4px 10px;
+                    border-radius: 6px;
                     font-weight: 600;
-                    font-size: 14px;
+                    font-size: 13px;
                 }}
                 
                 QPushButton:hover {{
@@ -179,10 +180,10 @@ class StyleManager:
                     background-color: transparent;
                     color: {self.ACCENT_PRIMARY};
                     border: 2px solid {self.ACCENT_PRIMARY};
-                    padding: 5px 11px;
-                    border-radius: 8px;
+                    padding: 3px 9px;
+                    border-radius: 6px;
                     font-weight: 600;
-                    font-size: 14px;
+                    font-size: 13px;
                 }}
                 
                 QPushButton:hover {{
@@ -213,12 +214,11 @@ class StyleManager:
                 background-color: {self.SECONDARY_BG};
                 border-radius: 12px;
                 padding: 16px;
-                border: none;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                border: 1px solid rgba(0, 0, 0, 0.05);
             }}
             
             QWidget:hover {{
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                border: 1px solid rgba(0, 0, 0, 0.1);
             }}
         """
     
@@ -229,13 +229,12 @@ class StyleManager:
                 background-color: {self.SECONDARY_BG};
                 border-radius: {radius}px;
                 padding: {padding}px;
-                border: none;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                border: 1px solid rgba(0, 0, 0, 0.05);
             }}
             
             QFrame:hover {{
                 background-color: {self.TERTIARY_BG};
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                border: 1px solid rgba(0, 0, 0, 0.1);
             }}
             
             QLabel {{
@@ -255,13 +254,12 @@ class StyleManager:
                 background-color: {self.PRIMARY_BG};
                 border-radius: {radius}px;
                 padding: {padding}px;
-                border: none;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                border: 1px solid rgba(0, 0, 0, 0.05);
             }}
             
             QFrame:hover {{
                 background-color: {self.TERTIARY_BG};
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                border: 1px solid rgba(0, 0, 0, 0.1);
             }}
             
             QLabel {{
@@ -281,9 +279,9 @@ class StyleManager:
             QLineEdit, QTextEdit, QSpinBox, QComboBox {{
                 background-color: {self.SECONDARY_BG};
                 border: 2px solid #E8DCC8;
-                border-radius: 8px;
-                padding: 6px 8px;
-                font-size: 14px;
+                border-radius: 6px;
+                padding: 4px 6px;
+                font-size: 13px;
                 color: {self.TEXT_PRIMARY};
             }}
             

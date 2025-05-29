@@ -147,30 +147,46 @@ class ConfigurationTab(QWidget):
         
         Uses consistent spacing, margins, and styling for a professional appearance.
         """
+        # Main layout with tighter spacing
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(24, 24, 24, 24)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(12, 12, 12, 12)  # Very tight margins
+        main_layout.setSpacing(12)  # Tighter spacing
         
-        # Title
-        title = QLabel("Configuration Settings")
+        # Title - smaller
+        title = QLabel("Configuration")
         title.setStyleSheet("""
             QLabel {
-                font-size: 28px;
+                font-size: 20px;
                 font-weight: 700;
                 color: #5D4E37;
-                margin-bottom: 10px;
+                margin-bottom: 4px;
             }
         """)
         main_layout.addWidget(title)
         
-        # Create sections
-        main_layout.addWidget(self._create_import_section())
-        main_layout.addWidget(self._create_filter_section())
-        main_layout.addWidget(self._create_summary_cards_section())
-        main_layout.addWidget(self._create_statistics_section())
-        main_layout.addWidget(self._create_status_section())
+        # Create two-column layout for better space usage
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(12)
         
-        # Add stretch to push everything to the top
+        # Left column
+        left_column = QVBoxLayout()
+        left_column.setSpacing(12)
+        left_column.addWidget(self._create_import_section())
+        left_column.addWidget(self._create_filter_section())
+        left_column.addStretch()
+        
+        # Right column
+        right_column = QVBoxLayout()
+        right_column.setSpacing(12)
+        right_column.addWidget(self._create_summary_cards_section())
+        right_column.addWidget(self._create_statistics_section())
+        right_column.addStretch()
+        
+        content_layout.addLayout(left_column, 1)
+        content_layout.addLayout(right_column, 1)
+        
+        main_layout.addLayout(content_layout)
+        main_layout.addWidget(self._create_status_section())
         main_layout.addStretch()
     
     def _create_import_section(self):
@@ -178,60 +194,89 @@ class ConfigurationTab(QWidget):
         group = QGroupBox("Import Data")
         group.setStyleSheet(f"""
             QGroupBox {{
-                font-size: 18px;
+                font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
                 background-color: {self.style_manager.SECONDARY_BG};
                 border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                padding-top: 32px;
+                border-radius: 6px;
+                padding: 8px;
+                padding-top: 20px;
+                margin: 0px;
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px 0 10px;
+                left: 12px;
+                padding: 0 6px 0 6px;
                 color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
         
         layout = QVBoxLayout(group)
-        layout.setSpacing(16)
+        layout.setSpacing(8)
+        layout.setContentsMargins(4, 4, 4, 4)
+        
+        # File input in a more compact vertical layout
+        file_label = QLabel("Data File:")
+        file_label.setStyleSheet("font-weight: 500; font-size: 12px;")
+        layout.addWidget(file_label)
         
         # File selection row
         file_row = QHBoxLayout()
-        file_row.setSpacing(12)
-        
-        file_label = QLabel("Data File:")
-        file_label.setStyleSheet("font-weight: 500;")
-        file_row.addWidget(file_label)
+        file_row.setSpacing(6)
+        file_row.setContentsMargins(0, 0, 0, 0)
         
         self.file_path_input = QLineEdit(self)
-        self.file_path_input.setPlaceholderText("Select Apple Health export file (CSV or XML)...")
+        self.file_path_input.setPlaceholderText("No file selected...")
         self.file_path_input.setReadOnly(True)
-        self.file_path_input.setStyleSheet(self.style_manager.get_input_style())
+        self.file_path_input.setStyleSheet(self.style_manager.get_input_style() + """
+            QLineEdit {
+                font-size: 11px;
+            }
+        """)
         file_row.addWidget(self.file_path_input, 1)
         
-        browse_button = QPushButton("Browse...")
+        browse_button = QPushButton("...")
         browse_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
         browse_button.clicked.connect(self._on_browse_clicked)
-        browse_button.setToolTip("Browse for Apple Health export file on your computer (Alt+B)")
+        browse_button.setToolTip("Browse for Apple Health export file (Alt+B)")
+        browse_button.setFixedWidth(30)
         file_row.addWidget(browse_button)
         
-        import_button = QPushButton("Import")
-        import_button.setStyleSheet(self.style_manager.get_button_style("primary"))
+        layout.addLayout(file_row)
+        
+        # Import buttons row - more compact
+        import_row = QHBoxLayout()
+        import_row.setSpacing(4)
+        import_row.setContentsMargins(0, 4, 0, 0)
+        
+        import_button = QPushButton("CSV")
+        import_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
+            QPushButton {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+        """)
         import_button.clicked.connect(self._on_import_clicked)
-        import_button.setToolTip("Import the selected CSV file into the application (Alt+I)")
-        file_row.addWidget(import_button)
+        import_button.setToolTip("Import CSV file (Alt+I)")
+        import_button.setFixedWidth(50)
+        import_row.addWidget(import_button)
         
         # Add XML import button
-        import_xml_button = QPushButton("Import XML")
-        import_xml_button.setStyleSheet(self.style_manager.get_button_style("primary"))
+        import_xml_button = QPushButton("XML")
+        import_xml_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
+            QPushButton {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+        """)
         import_xml_button.clicked.connect(self._on_import_xml_clicked)
-        import_xml_button.setToolTip("Import XML export file and convert to database format")
-        file_row.addWidget(import_xml_button)
+        import_xml_button.setToolTip("Import XML file")
+        import_xml_button.setFixedWidth(50)
+        import_row.addWidget(import_xml_button)
         
-        layout.addLayout(file_row)
+        import_row.addStretch()
+        layout.addLayout(import_row)
         
         # Progress section
         progress_row = QVBoxLayout()
@@ -266,41 +311,41 @@ class ConfigurationTab(QWidget):
     def _create_filter_section(self):
         """Create the data filtering section."""
         group = QGroupBox("Filter Data")
-        group.setMinimumHeight(350)  # Ensure filter section is visible
         group.setStyleSheet(f"""
             QGroupBox {{
-                font-size: 18px;
+                font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
                 background-color: {self.style_manager.SECONDARY_BG};
                 border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                padding-top: 32px;
+                border-radius: 6px;
+                padding: 8px;
+                padding-top: 20px;
+                margin: 0px;
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px 0 10px;
+                left: 12px;
+                padding: 0 6px 0 6px;
                 color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
         
         layout = QVBoxLayout(group)
-        layout.setSpacing(20)
+        layout.setSpacing(8)
+        layout.setContentsMargins(4, 4, 4, 4)
         
-        # Date range section
-        date_section = QVBoxLayout()
-        date_section.setSpacing(12)
-        
+        # Date range section - compact
         date_label = QLabel("Date Range")
-        date_label.setStyleSheet("font-weight: 600; font-size: 16px;")
-        date_section.addWidget(date_label)
+        date_label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        layout.addWidget(date_label)
         
         date_row = QHBoxLayout()
-        date_row.setSpacing(16)
+        date_row.setSpacing(8)
+        date_row.setContentsMargins(0, 0, 0, 0)
         
         start_label = QLabel("From:")
+        start_label.setStyleSheet("font-size: 11px;")
         date_row.addWidget(start_label)
         
         self.start_date_edit = EnhancedDateEdit()
@@ -309,9 +354,11 @@ class ConfigurationTab(QWidget):
         self.start_date_edit.setStyleSheet(self.style_manager.get_input_style())
         self.start_date_edit.setAccessibleName("Start date filter")
         self.start_date_edit.setAccessibleDescription("Filter data from this date onwards")
+        self.start_date_edit.setMaximumWidth(150)
         date_row.addWidget(self.start_date_edit)
         
         end_label = QLabel("To:")
+        end_label.setStyleSheet("font-size: 11px;")
         date_row.addWidget(end_label)
         
         self.end_date_edit = EnhancedDateEdit()
@@ -320,11 +367,11 @@ class ConfigurationTab(QWidget):
         self.end_date_edit.setStyleSheet(self.style_manager.get_input_style())
         self.end_date_edit.setAccessibleName("End date filter")
         self.end_date_edit.setAccessibleDescription("Filter data up to this date")
+        self.end_date_edit.setMaximumWidth(150)
         date_row.addWidget(self.end_date_edit)
         
         date_row.addStretch()
-        date_section.addLayout(date_row)
-        layout.addLayout(date_section)
+        layout.addLayout(date_row)
         
         # Separator
         separator1 = QFrame(self)
@@ -332,19 +379,13 @@ class ConfigurationTab(QWidget):
         separator1.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
         layout.addWidget(separator1)
         
-        # Two columns for devices and metrics
-        columns_layout = QHBoxLayout()
-        columns_layout.setSpacing(24)
-        
-        # Devices column
+        # Devices and metrics sections - stacked vertically for better space usage
         devices_section = self._create_devices_section()
-        columns_layout.addWidget(devices_section, 1)
+        layout.addWidget(devices_section)
         
-        # Metrics column
+        # Metrics section
         metrics_section = self._create_metrics_section()
-        columns_layout.addWidget(metrics_section, 1)
-        
-        layout.addLayout(columns_layout)
+        layout.addWidget(metrics_section)
         
         # Separator
         separator2 = QFrame(self)
@@ -357,31 +398,49 @@ class ConfigurationTab(QWidget):
         presets_section.setSpacing(12)
         
         presets_label = QLabel("Filter Presets")
-        presets_label.setStyleSheet("font-weight: 600; font-size: 16px;")
+        presets_label.setStyleSheet("font-weight: 600; font-size: 12px;")
         presets_section.addWidget(presets_label)
         
         presets_row = QHBoxLayout()
-        presets_row.setSpacing(12)
+        presets_row.setSpacing(4)
         
-        self.save_preset_button = QPushButton("Save Current")
-        self.save_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
+        self.save_preset_button = QPushButton("Save")
+        self.save_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
+            QPushButton {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+        """)
         self.save_preset_button.clicked.connect(self._on_save_preset_clicked)
         self.save_preset_button.setEnabled(False)
+        self.save_preset_button.setFixedWidth(45)
         presets_row.addWidget(self.save_preset_button)
         
-        self.load_preset_button = QPushButton("Load Preset")
-        self.load_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
+        self.load_preset_button = QPushButton("Load")
+        self.load_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
+            QPushButton {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+        """)
         self.load_preset_button.clicked.connect(self._on_load_preset_clicked)
         self.load_preset_button.setEnabled(False)
+        self.load_preset_button.setFixedWidth(45)
         presets_row.addWidget(self.load_preset_button)
         
         presets_row.addStretch()
         
         # Add reset app settings button
-        self.reset_settings_button = QPushButton("Reset App Settings")
-        self.reset_settings_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
+        self.reset_settings_button = QPushButton("Reset")
+        self.reset_settings_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
+            QPushButton {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+        """)
         self.reset_settings_button.clicked.connect(self._on_reset_settings_clicked)
-        self.reset_settings_button.setToolTip("Reset all application settings including window position")
+        self.reset_settings_button.setToolTip("Reset all application settings")
+        self.reset_settings_button.setFixedWidth(45)
         presets_row.addWidget(self.reset_settings_button)
         presets_section.addLayout(presets_row)
         layout.addLayout(presets_section)
@@ -392,21 +451,33 @@ class ConfigurationTab(QWidget):
         separator3.setStyleSheet("background-color: rgba(139, 115, 85, 0.2);")
         layout.addWidget(separator3)
         
-        # Action buttons
+        # Action buttons - compact
         button_row = QHBoxLayout()
-        button_row.setSpacing(12)
+        button_row.setSpacing(4)
         button_row.addStretch()
         
-        self.reset_button = QPushButton("Reset Filters")
-        self.reset_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
+        self.reset_button = QPushButton("Reset")
+        self.reset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
+            QPushButton {
+                padding: 3px 10px;
+                font-size: 11px;
+            }
+        """)
         self.reset_button.clicked.connect(self._on_reset_clicked)
         self.reset_button.setEnabled(False)
+        self.reset_button.setFixedWidth(60)
         button_row.addWidget(self.reset_button)
         
-        self.apply_button = QPushButton("Apply Filters")
-        self.apply_button.setStyleSheet(self.style_manager.get_button_style("primary"))
+        self.apply_button = QPushButton("Apply")
+        self.apply_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
+            QPushButton {
+                padding: 3px 10px;
+                font-size: 11px;
+            }
+        """)
         self.apply_button.clicked.connect(self._on_apply_filters_clicked)
         self.apply_button.setEnabled(False)
+        self.apply_button.setFixedWidth(60)
         button_row.addWidget(self.apply_button)
         
         layout.addLayout(button_row)
@@ -418,10 +489,10 @@ class ConfigurationTab(QWidget):
         section = QWidget(self)
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(4)
         
         label = QLabel("Source Devices")
-        label.setStyleSheet("font-weight: 600; font-size: 16px;")
+        label.setStyleSheet("font-weight: 600; font-size: 12px;")
         layout.addWidget(label)
         
         # Multi-select dropdown for devices
@@ -430,10 +501,11 @@ class ConfigurationTab(QWidget):
         self.device_dropdown.setEnabled(False)
         self.device_dropdown.setStyleSheet(self.style_manager.get_input_style() + """
             QComboBox {
-                min-height: 36px;
+                min-height: 24px;
+                font-size: 11px;
             }
             QComboBox QAbstractItemView {
-                max-height: 200px;
+                max-height: 150px;
             }
         """)
         
@@ -451,10 +523,10 @@ class ConfigurationTab(QWidget):
         section = QWidget(self)
         layout = QVBoxLayout(section)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(4)
         
         label = QLabel("Metric Types")
-        label.setStyleSheet("font-weight: 600; font-size: 16px;")
+        label.setStyleSheet("font-weight: 600; font-size: 12px;")
         layout.addWidget(label)
         
         # Multi-select dropdown for metrics
@@ -463,10 +535,11 @@ class ConfigurationTab(QWidget):
         self.metric_dropdown.setEnabled(False)
         self.metric_dropdown.setStyleSheet(self.style_manager.get_input_style() + """
             QComboBox {
-                min-height: 36px;
+                min-height: 24px;
+                font-size: 11px;
             }
             QComboBox QAbstractItemView {
-                max-height: 200px;
+                max-height: 150px;
             }
         """)
         
@@ -491,31 +564,31 @@ class ConfigurationTab(QWidget):
         preview_group = QGroupBox("Data Preview")
         preview_group.setStyleSheet(f"""
             QGroupBox {{
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
                 background-color: {self.style_manager.SECONDARY_BG};
                 border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                padding-top: 32px;
-                margin-bottom: 10px;
+                border-radius: 8px;
+                padding: 12px;
+                padding-top: 24px;
+                margin-bottom: 8px;
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px 0 10px;
+                left: 16px;
+                padding: 0 8px 0 8px;
                 color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
         
         preview_layout = QVBoxLayout()
-        preview_layout.setContentsMargins(12, 12, 12, 12)
+        preview_layout.setContentsMargins(4, 4, 4, 4)
         
         # Create data preview table with larger page size
         self.data_preview_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=10,  # Increased from 5
+                page_size=5,  # Reduced for space
                 alternating_rows=True,
                 grid_style='dotted'
             ),
@@ -523,28 +596,28 @@ class ConfigurationTab(QWidget):
         )
         
         # Set minimum height for better visibility
-        self.data_preview_table.setMinimumHeight(300)
+        self.data_preview_table.setMinimumHeight(120)
         
         # Apply custom styling for better readability
         self.data_preview_table.setStyleSheet(f"""
             QTableWidget {{
-                font-size: 14px;
+                font-size: 11px;
                 gridline-color: rgba(139, 115, 85, 0.2);
                 background-color: white;
                 alternate-background-color: {self.style_manager.TERTIARY_BG};
                 selection-background-color: {self.style_manager.ACCENT_LIGHT};
             }}
             QTableWidget::item {{
-                padding: 8px;
+                padding: 4px;
                 border: none;
             }}
             QHeaderView::section {{
                 background-color: {self.style_manager.ACCENT_PRIMARY};
                 color: white;
-                padding: 10px;
+                padding: 6px;
                 border: none;
                 font-weight: 600;
-                font-size: 14px;
+                font-size: 11px;
             }}
         """)
         
@@ -556,19 +629,19 @@ class ConfigurationTab(QWidget):
         stats_group = QGroupBox("Data Statistics")
         stats_group.setStyleSheet(f"""
             QGroupBox {{
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
                 background-color: {self.style_manager.SECONDARY_BG};
                 border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 12px;
-                padding: 20px;
-                padding-top: 32px;
+                border-radius: 8px;
+                padding: 12px;
+                padding-top: 24px;
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 10px 0 10px;
+                left: 16px;
+                padding: 0 8px 0 8px;
                 color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
@@ -821,6 +894,19 @@ class ConfigurationTab(QWidget):
         logger.info(f"Starting import of: {file_path}")
         self._start_import_with_progress(file_path)
     
+    def _on_import_xml_clicked(self):
+        """Handle import XML button click."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Apple Health XML Export",
+            "",
+            "XML Files (*.xml);;All Files (*)"
+        )
+        
+        if file_path:
+            logger.info(f"Starting XML import of: {file_path}")
+            self._start_import_with_progress(file_path)
+    
     def _start_import_with_progress(self, file_path):
         """Start import with progress dialog."""
         # Create and show import progress dialog
@@ -904,6 +990,71 @@ class ConfigurationTab(QWidget):
         self.progress_label.setText("Import cancelled")
         self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
     
+    def _load_from_sqlite(self):
+        """Load data from SQLite database."""
+        try:
+            logger.info("Loading data from SQLite database")
+            
+            # Set database path
+            db_path = os.path.join(DATA_DIR, "health_data.db")
+            self.data_loader.db_path = db_path
+            
+            # Load data
+            self.data = self.data_loader.load_from_sqlite()
+            
+            if self.data is None or self.data.empty:
+                raise ValueError("No data found in database")
+            
+            row_count = len(self.data)
+            
+            # Update UI
+            self.progress_bar.setVisible(False)
+            self.progress_label.setText("Data loaded from database!")
+            self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_SUCCESS};")
+            
+            # Update status
+            self._update_status(f"Loaded {row_count:,} records from database")
+            
+            # Update summary cards
+            self.total_records_card.update_content({'value': f"{row_count:,}"})
+            self.filtered_records_card.update_content({'value': f"{row_count:,}"})
+            self.data_source_card.update_content({'value': "Database"})
+            self.filter_status_card.update_content({'value': "Default"})
+            
+            # Populate filters
+            self._populate_filters()
+            
+            # Enable filter controls
+            self._enable_filter_controls(True)
+            
+            # Update data preview
+            self._update_data_preview()
+            
+            # Calculate and display statistics
+            stats = self.statistics_calculator.calculate_from_dataframe(self.data)
+            self._update_custom_statistics(stats)
+            
+            # Load last used filters if available
+            self._load_last_used_filters()
+            
+            # Initialize calculators
+            self._initialize_calculators()
+            
+            # Emit signal
+            self.data_loaded.emit(self.data)
+            
+            logger.info(f"Database load complete: {row_count} records")
+            
+        except Exception as e:
+            logger.error(f"Failed to load from database: {e}")
+            self.progress_label.setText("Database load failed!")
+            self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_ERROR};")
+            QMessageBox.critical(
+                self,
+                "Load Error",
+                f"Failed to load from database: {str(e)}"
+            )
+    
     def _populate_filters(self):
         """Populate filter options from loaded data."""
         if self.data is None:
@@ -975,7 +1126,7 @@ class ConfigurationTab(QWidget):
         # Update statistics for filtered data
         if self.filtered_data is not None and not self.filtered_data.empty:
             stats = self.statistics_calculator.calculate_from_dataframe(self.filtered_data)
-            self.statistics_widget.update_statistics(stats)
+            self._update_custom_statistics(stats)
         
         # Show feedback
         self.apply_button.setText("Filters Applied ✓")
@@ -1086,121 +1237,55 @@ class ConfigurationTab(QWidget):
                     f"Failed to reset application settings: {str(e)}"
                 )
     
-    def _update_status(self, message):
-        """Update the status label."""
-        self.status_label.setText(message)
-        self.status_label.setStyleSheet(f"""
-            QLabel {{
-                background-color: {self.style_manager.TERTIARY_BG};
-                border: 1px solid {self.style_manager.ACCENT_PRIMARY};
-                border-radius: 8px;
-                padding: 16px;
-                font-size: 14px;
-                color: {self.style_manager.TEXT_PRIMARY};
-                font-weight: 500;
-            }}
-        """)
-        
-    def _update_data_preview(self):
-        """Update the data preview table with sample records."""
-        if self.data is None or self.data.empty:
-            self.data_preview_table.clear_data()
-            return
-            
-        # Get a sample of the data (first 5 rows)
-        sample_data = self.data.head(5)
-        
-        # Convert to list of dictionaries for the table
-        preview_data = []
-        for _, row in sample_data.iterrows():
-            preview_data.append({
-                'Type': str(row.get('type', row.get('metric_type', 'Unknown'))),
-                'Value': str(row.get('value', row.get('numeric_value', '-'))),
-                'Unit': str(row.get('unit', row.get('unit_name', '-'))),
-                'Date': str(row.get('date', row.get('start_date', row.get('startDate', '-'))))[:10],  # First 10 chars for date
-                'Source': str(row.get('source', row.get('sourceName', '-')))
-            })
-        
-        self.data_preview_table.update_data(preview_data)
-    
-    def get_filtered_data(self):
-        """Get the current filtered data."""
-        return self.filtered_data if self.filtered_data is not None else self.data
-    
-    def get_current_filters(self):
-        """Get the current filter settings."""
-        return {
-            'start_date': self.start_date_edit.date().toPyDate(),
-            'end_date': self.end_date_edit.date().toPyDate(),
-            'devices': self.device_dropdown.checkedTexts(),
-            'metrics': self.metric_dropdown.checkedTexts()
-        }
-    
     def _on_save_preset_clicked(self):
         """Handle save preset button click."""
-        logger.info("Saving filter preset")
+        from PyQt6.QtWidgets import QInputDialog
         
         # Get preset name from user
-        from PyQt6.QtWidgets import QInputDialog
         preset_name, ok = QInputDialog.getText(
             self,
             "Save Filter Preset",
-            "Enter a name for this preset:"
+            "Enter a name for this filter preset:"
         )
         
         if ok and preset_name:
-            if preset_name.startswith("__"):
-                QMessageBox.warning(
-                    self,
-                    "Invalid Name",
-                    "Preset names cannot start with '__' as these are reserved for system use."
-                )
-                return
-            
             try:
-                # Create filter config from current settings
-                filters = self.get_current_filters()
+                # Create filter config
                 config = FilterConfig(
                     preset_name=preset_name,
-                    start_date=filters['start_date'],
-                    end_date=filters['end_date'],
-                    source_names=filters['devices'] if filters['devices'] else None,
-                    health_types=filters['metrics'] if filters['metrics'] else None
+                    start_date=self.start_date_edit.date().toPyDate(),
+                    end_date=self.end_date_edit.date().toPyDate(),
+                    source_names=self.device_dropdown.checkedTexts() if self.device_dropdown.checkedTexts() else None,
+                    health_types=self.metric_dropdown.checkedTexts() if self.metric_dropdown.checkedTexts() else None
                 )
                 
                 # Save to database
-                config_id = self.filter_config_manager.save_config(config)
+                self.filter_config_manager.save_preset(config)
                 
                 QMessageBox.information(
                     self,
                     "Preset Saved",
-                    f"Filter preset '{preset_name}' has been saved to the database."
+                    f"Filter preset '{preset_name}' saved successfully!"
                 )
-                logger.info(f"Saved preset: {preset_name} (ID: {config_id})")
+                logger.info(f"Saved filter preset: {preset_name}")
                 
             except Exception as e:
                 logger.error(f"Failed to save preset: {e}")
                 QMessageBox.critical(
                     self,
                     "Save Error",
-                    f"Failed to save preset: {str(e)}"
+                    f"Failed to save filter preset: {str(e)}"
                 )
     
     def _on_load_preset_clicked(self):
         """Handle load preset button click."""
-        logger.info("Loading filter preset")
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QListWidget, QDialogButtonBox
         
         try:
-            # Migrate legacy JSON presets if they exist
-            self._migrate_legacy_presets()
+            # Get available presets
+            presets = self.filter_config_manager.list_presets()
             
-            # Get available presets from database
-            configs = self.filter_config_manager.list_configs()
-            
-            # Filter out system presets (last used, default)
-            user_configs = [c for c in configs if not c.preset_name.startswith("__")]
-            
-            if not user_configs:
+            if not presets:
                 QMessageBox.information(
                     self,
                     "No Presets",
@@ -1208,203 +1293,120 @@ class ConfigurationTab(QWidget):
                 )
                 return
             
-            # Let user choose preset
-            from PyQt6.QtWidgets import QInputDialog
-            preset_names = [config.preset_name for config in user_configs]
-            preset_name, ok = QInputDialog.getItem(
-                self,
-                "Load Filter Preset",
-                "Select a preset to load:",
-                preset_names,
-                0,
-                False
-            )
+            # Create selection dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Load Filter Preset")
+            dialog.setMinimumWidth(300)
             
-            if ok and preset_name:
-                # Load the selected config
-                config = self.filter_config_manager.load_config(preset_name)
-                if config:
-                    self._apply_config_to_ui(config)
+            layout = QVBoxLayout(dialog)
+            
+            # Add list widget
+            list_widget = QListWidget()
+            for preset in presets:
+                list_widget.addItem(preset['preset_name'])
+            list_widget.setCurrentRow(0)
+            layout.addWidget(list_widget)
+            
+            # Add buttons
+            buttons = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            )
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+            
+            # Show dialog
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                selected_item = list_widget.currentItem()
+                if selected_item:
+                    preset_name = selected_item.text()
+                    self._load_preset(preset_name)
                     
-                    # Apply the loaded filters
-                    self._on_apply_filters_clicked()
-                    
-                    logger.info(f"Loaded preset: {preset_name}")
-                else:
-                    QMessageBox.warning(
-                        self,
-                        "Load Error",
-                        f"Could not find preset '{preset_name}'"
-                    )
-                
         except Exception as e:
-            logger.error(f"Failed to load preset: {e}")
+            logger.error(f"Failed to load preset list: {e}")
             QMessageBox.critical(
                 self,
                 "Load Error",
-                f"Failed to load preset: {str(e)}"
+                f"Failed to load filter presets: {str(e)}"
             )
     
-    def _on_import_xml_clicked(self):
-        """Handle XML import button click."""
-        file_path = self.file_path_input.text()
-        if not file_path:
-            # Open file dialog for XML
-            file_path, _ = QFileDialog.getOpenFileName(
-                self,
-                "Select Apple Health Export XML",
-                "",
-                "XML Files (*.xml);;All Files (*)"
-            )
-            if not file_path:
-                return
-            self.file_path_input.setText(file_path)
-        
-        if not file_path.lower().endswith('.xml'):
+    def _load_preset(self, preset_name):
+        """Load a specific filter preset."""
+        try:
+            config = self.filter_config_manager.load_preset(preset_name)
+            
+            if config:
+                # Apply preset values
+                self.start_date_edit.setDate(QDate(config.start_date))
+                self.end_date_edit.setDate(QDate(config.end_date))
+                
+                # Update device selection
+                self.device_dropdown.uncheckAll()
+                if config.source_names:
+                    for device in config.source_names:
+                        for i in range(self.device_dropdown.count()):
+                            if self.device_dropdown.itemText(i) == device:
+                                self.device_dropdown.setItemChecked(i, True)
+                else:
+                    self.device_dropdown.checkAll()
+                
+                # Update metric selection
+                self.metric_dropdown.uncheckAll()
+                if config.health_types:
+                    for metric in config.health_types:
+                        for i in range(self.metric_dropdown.count()):
+                            if self.metric_dropdown.itemText(i) == metric:
+                                self.metric_dropdown.setItemChecked(i, True)
+                else:
+                    self.metric_dropdown.checkAll()
+                
+                # Apply the loaded filters
+                self._on_apply_filters_clicked()
+                
+                logger.info(f"Loaded filter preset: {preset_name}")
+            else:
+                raise ValueError(f"Preset '{preset_name}' not found")
+                
+        except Exception as e:
+            logger.error(f"Failed to load preset '{preset_name}': {e}")
             QMessageBox.warning(
                 self,
-                "Invalid File",
-                "Please select an XML file for XML import."
+                "Load Error",
+                f"Failed to load preset '{preset_name}': {str(e)}"
             )
-            return
-        
-        logger.info(f"Starting XML import of: {file_path}")
-        self._start_import_with_progress(file_path)
-    
-    
-    def _on_statistics_filter_requested(self, filter_type: str, filter_value: str):
-        """Handle filter request from statistics widget."""
-        logger.debug(f"Statistics filter requested: {filter_type}={filter_value}")
-        
-        if filter_type == "type":
-            # Add the type to the metric filter
-            current_metrics = self.metric_dropdown.checkedTexts()
-            if filter_value not in current_metrics:
-                # Check the item in the dropdown
-                for i in range(self.metric_dropdown.count()):
-                    if self.metric_dropdown.itemText(i) == filter_value:
-                        self.metric_dropdown.setItemChecked(i, True)
-                        break
-                
-                # Apply filters
-                self._on_apply_clicked()
-        
-        elif filter_type == "source":
-            # Add the source to the device filter
-            current_devices = self.device_dropdown.checkedTexts()
-            if filter_value not in current_devices:
-                # Check the item in the dropdown
-                for i in range(self.device_dropdown.count()):
-                    if self.device_dropdown.itemText(i) == filter_value:
-                        self.device_dropdown.setItemChecked(i, True)
-                        break
-                
-                # Apply filters
-                self._on_apply_clicked()
-    
-    def _load_from_sqlite(self):
-        """Load data from SQLite database."""
-        try:
-            # Initialize database if needed
-            db_manager.initialize_database()
-            
-            # Load data using DataLoader's SQLite functions
-            from ..database import DB_FILE_NAME
-            self.data_loader.db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
-            
-            # Get all records from SQLite
-            self.data = self.data_loader.get_all_records()
-            
-            # Update UI
-            self.progress_bar.setValue(100)
-            self.progress_bar.setVisible(False)
-            self.progress_label.setText("Data loaded from database successfully!")
-            self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_SUCCESS};")
-            
-            # Update status
-            row_count = len(self.data) if self.data is not None else 0
-            self._update_status(f"Loaded {row_count:,} records from database")
-            
-            # Update summary cards
-            self.total_records_card.update_content({'value': f"{row_count:,}"})
-            self.filtered_records_card.update_content({'value': f"{row_count:,}"})
-            self.data_source_card.update_content({'value': "Database"})
-            self.filter_status_card.update_content({'value': "Default"})
-            
-            # Populate filters
-            self._populate_filters()
-            
-            # Enable filter controls
-            self._enable_filter_controls(True)
-            
-            # Update data preview
-            self._update_data_preview()
-            
-            # Calculate and display statistics
-            if self.data is not None and not self.data.empty:
-                stats = self.statistics_calculator.calculate_from_dataframe(self.data)
-                self._update_custom_statistics(stats)
-            
-            # Initialize calculators with the loaded data
-            self._initialize_calculators()
-            
-            # Emit signal
-            self.data_loaded.emit(self.data)
-            
-            logger.info(f"Database load completed: {row_count} records")
-            
-        except Exception as e:
-            logger.error(f"Database load failed: {e}")
-            raise
-    
-    def _migrate_legacy_presets(self):
-        """Migrate legacy JSON presets to database if they exist."""
-        try:
-            if os.path.exists(self.legacy_presets_file):
-                migrated_count = self.filter_config_manager.migrate_from_json(self.legacy_presets_file)
-                if migrated_count > 0:
-                    logger.info(f"Migrated {migrated_count} legacy presets to database")
-                    
-                    # Rename the old file to prevent future migrations
-                    backup_file = self.legacy_presets_file + ".migrated"
-                    os.rename(self.legacy_presets_file, backup_file)
-                    logger.info(f"Legacy presets file renamed to {backup_file}")
-        except Exception as e:
-            logger.warning(f"Failed to migrate legacy presets: {e}")
-    
-    def _apply_config_to_ui(self, config: FilterConfig):
-        """Apply a filter configuration to the UI controls."""
-        # Set date range
-        if config.start_date:
-            self.start_date_edit.setDate(QDate.fromString(config.start_date.isoformat(), Qt.DateFormat.ISODate))
-        if config.end_date:
-            self.end_date_edit.setDate(QDate.fromString(config.end_date.isoformat(), Qt.DateFormat.ISODate))
-        
-        # Set device selection
-        if config.source_names:
-            self.device_dropdown.setCheckedItems(config.source_names)
-        else:
-            self.device_dropdown.checkAll()  # Default to all if none specified
-        
-        # Set metric selection
-        if config.health_types:
-            self.metric_dropdown.setCheckedItems(config.health_types)
-        else:
-            self.metric_dropdown.checkAll()  # Default to all if none specified
     
     def _load_last_used_filters(self):
-        """Load the last used filters if available."""
+        """Load and apply last used filter configuration."""
         try:
-            last_used = self.filter_config_manager.get_last_used_config()
-            if last_used:
-                self._apply_config_to_ui(last_used)
+            config = self.filter_config_manager.get_last_used()
+            
+            if config:
+                # Apply last used values
+                self.start_date_edit.setDate(QDate(config.start_date))
+                self.end_date_edit.setDate(QDate(config.end_date))
+                
+                # Only update selections if they differ from defaults
+                if config.source_names is not None:
+                    self.device_dropdown.uncheckAll()
+                    for device in config.source_names:
+                        for i in range(self.device_dropdown.count()):
+                            if self.device_dropdown.itemText(i) == device:
+                                self.device_dropdown.setItemChecked(i, True)
+                
+                if config.health_types is not None:
+                    self.metric_dropdown.uncheckAll()
+                    for metric in config.health_types:
+                        for i in range(self.metric_dropdown.count()):
+                            if self.metric_dropdown.itemText(i) == metric:
+                                self.metric_dropdown.setItemChecked(i, True)
+                
+                # Don't auto-apply, just load the values
                 logger.info("Loaded last used filter configuration")
             else:
-                # Try to load default configuration
-                default_config = self.filter_config_manager.get_default_config()
-                if default_config:
-                    self._apply_config_to_ui(default_config)
-                    logger.info("Loaded default filter configuration")
+                # No last used config, ensure all items are checked
+                self.device_dropdown.checkAll()
+                self.metric_dropdown.checkAll()
+                logger.info("Loaded default filter configuration")
         except Exception as e:
             logger.warning(f"Failed to load last used filters: {e}")
     
@@ -1454,6 +1456,29 @@ class ConfigurationTab(QWidget):
         import_action.setShortcut("Alt+I")
         import_action.triggered.connect(self._on_import_clicked)
         self.addAction(import_action)
+        
+        # Alt+A for Apply Filters
+        apply_action = QAction(self)
+        apply_action.setShortcut("Alt+A")
+        apply_action.triggered.connect(self._on_apply_filters_clicked)
+        self.addAction(apply_action)
+        
+        # Alt+R for Reset Filters
+        reset_action = QAction(self)
+        reset_action.setShortcut("Alt+R")
+        reset_action.triggered.connect(self._on_reset_clicked)
+        self.addAction(reset_action)
+        
+        # Add tooltips for accessibility
+        self.file_path_input.setToolTip("Path to Apple Health export file")
+        self.start_date_edit.setToolTip("Filter data from this date (inclusive)")
+        self.end_date_edit.setToolTip("Filter data up to this date (inclusive)")
+        self.device_dropdown.setToolTip("Select which devices to include in the data")
+        self.metric_dropdown.setToolTip("Select which health metrics to include")
+        self.apply_button.setToolTip("Apply the selected filters to the data (Alt+A)")
+        self.reset_button.setToolTip("Reset all filters to default values (Alt+R)")
+        self.save_preset_button.setToolTip("Save the current filter configuration")
+        self.load_preset_button.setToolTip("Load a previously saved filter configuration")
     
     def _update_custom_statistics(self, stats):
         """Update the custom statistics display."""
@@ -1549,25 +1574,6 @@ class ConfigurationTab(QWidget):
         """Handle filter request from statistics widget."""
         # This method handles clicks on statistics items to filter data
         pass
-        apply_action.triggered.connect(self._on_apply_filters_clicked)
-        self.addAction(apply_action)
-        
-        # Alt+R for Reset Filters
-        reset_action = QAction(self)
-        reset_action.setShortcut("Alt+R")
-        reset_action.triggered.connect(self._on_reset_clicked)
-        self.addAction(reset_action)
-        
-        # Add tooltips for accessibility
-        self.file_path_input.setToolTip("Path to Apple Health export file")
-        self.start_date_edit.setToolTip("Filter data from this date (inclusive)")
-        self.end_date_edit.setToolTip("Filter data up to this date (inclusive)")
-        self.device_dropdown.setToolTip("Select which devices to include in the data")
-        self.metric_dropdown.setToolTip("Select which health metrics to include")
-        self.apply_button.setToolTip("Apply the selected filters to the data (Alt+A)")
-        self.reset_button.setToolTip("Reset all filters to default values (Alt+R)")
-        self.save_preset_button.setToolTip("Save the current filter configuration")
-        self.load_preset_button.setToolTip("Load a previously saved filter configuration")
     
     def _initialize_calculators(self):
         """Initialize metric calculators with loaded data."""
@@ -1595,3 +1601,7 @@ class ConfigurationTab(QWidget):
             self.daily_calculator = None
             self.weekly_calculator = None
             self.monthly_calculator = None
+    
+    def get_filtered_data(self):
+        """Get the current filtered data or full data if no filters applied."""
+        return self.filtered_data if self.filtered_data is not None else self.data

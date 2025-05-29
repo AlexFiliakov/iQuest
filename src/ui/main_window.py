@@ -1,6 +1,7 @@
 """Main window implementation with tab navigation for Apple Health Monitor Dashboard."""
 
 from typing import List
+from datetime import date
 from PyQt6.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QMenuBar, QMenu, QStatusBar, QMessageBox, QComboBox, QScrollArea, QFrame
@@ -92,8 +93,8 @@ class MainWindow(QMainWindow):
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
-        # Set a larger default size for better readability
-        self.resize(1600, 1000)  # Increased from 1440x900
+        # Set default size appropriate for 1920x1080 at 150% scale
+        self.resize(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)
         
         # Apply warm color theme
         self._apply_theme()
@@ -332,7 +333,31 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(0, "Import data and configure filters")
     
     def _create_daily_dashboard_tab(self):
-        """Create the daily dashboard tab placeholder."""
+        """Create the daily dashboard tab."""
+        try:
+            from .daily_dashboard_widget import DailyDashboardWidget
+            
+            # Create the daily dashboard widget
+            self.daily_dashboard = DailyDashboardWidget()
+            
+            # Connect signals
+            if hasattr(self.daily_dashboard, 'metric_selected'):
+                self.daily_dashboard.metric_selected.connect(self._handle_metric_selection)
+            if hasattr(self.daily_dashboard, 'date_changed'):
+                self.daily_dashboard.date_changed.connect(self._handle_date_change)
+            if hasattr(self.daily_dashboard, 'refresh_requested'):
+                self.daily_dashboard.refresh_requested.connect(self._refresh_daily_data)
+            
+            self.tab_widget.addTab(self.daily_dashboard, "Daily")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View your daily health metrics and trends")
+            
+        except ImportError as e:
+            # Fallback to placeholder if import fails
+            logger.warning(f"Could not import DailyDashboardWidget: {e}")
+            self._create_daily_dashboard_placeholder()
+    
+    def _create_daily_dashboard_placeholder(self):
+        """Create a placeholder daily dashboard tab."""
         daily_widget = QWidget(self)
         layout = QVBoxLayout(daily_widget)
         
@@ -366,7 +391,27 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View your daily health metrics and trends")
     
     def _create_weekly_dashboard_tab(self):
-        """Create the weekly dashboard tab placeholder."""
+        """Create the weekly dashboard tab."""
+        try:
+            from .weekly_dashboard_widget import WeeklyDashboardWidget
+            
+            # Create the weekly dashboard widget
+            self.weekly_dashboard = WeeklyDashboardWidget()
+            
+            # Connect signals
+            self.weekly_dashboard.week_changed.connect(self._on_week_changed)
+            self.weekly_dashboard.metric_selected.connect(self._on_metric_selected)
+            
+            self.tab_widget.addTab(self.weekly_dashboard, "Weekly")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Analyze weekly health summaries and patterns")
+            
+        except ImportError as e:
+            # Fallback to placeholder if import fails
+            logger.warning(f"Could not import WeeklyDashboardWidget: {e}")
+            self._create_weekly_dashboard_placeholder()
+    
+    def _create_weekly_dashboard_placeholder(self):
+        """Create a placeholder weekly dashboard tab."""
         weekly_widget = QWidget(self)
         layout = QVBoxLayout(weekly_widget)
         
@@ -1003,6 +1048,16 @@ class MainWindow(QMainWindow):
         
         # Save the current tab index immediately
         self.settings_manager.set_setting("MainWindow/lastActiveTab", index)
+        
+        # Refresh data for dashboard tabs when switching without animation
+        if index == 1:  # Daily tab
+            self._refresh_daily_data()
+        elif index == 2:  # Weekly tab
+            # TODO: Implement weekly data refresh
+            pass
+        elif index == 3:  # Monthly tab
+            # TODO: Implement monthly data refresh
+            pass
     
     def _on_transition_started(self, from_view: ViewType, to_view: ViewType):
         """Handle transition start."""
@@ -1017,6 +1072,10 @@ class MainWindow(QMainWindow):
         current_index = self.tab_widget.currentIndex()
         tab_name = self.tab_widget.tabText(current_index)
         self._complete_tab_change(current_index, tab_name)
+        
+        # Refresh data for the Daily dashboard when transitioning to it
+        if current_index == 1:  # Daily tab index
+            self._refresh_daily_data()
     
     def _on_transition_interrupted(self):
         """Handle transition interruption."""
@@ -1146,10 +1205,55 @@ class MainWindow(QMainWindow):
         """Handle data loaded signal from configuration tab."""
         logger.info(f"Data loaded: {len(data) if data is not None else 0} records")
         self.status_bar.showMessage(f"Loaded {len(data):,} health records")
+    
+    def _handle_metric_selection(self, metric_name: str):
+        """Handle metric selection from daily dashboard.
+        
+        Args:
+            metric_name: The name of the selected metric
+        """
+        logger.debug(f"Metric selected: {metric_name}")
+    
+    def _handle_date_change(self, new_date: date):
+        """Handle date change from daily dashboard.
+        
+        Args:
+            new_date: The newly selected date
+        """
+        logger.debug(f"Date changed to: {new_date}")
+    
+    def _refresh_daily_data(self):
+        """Refresh data in the daily dashboard."""
+        logger.debug("Refreshing daily dashboard data")
+        if hasattr(self, 'daily_dashboard'):
+            # Get current data from configuration tab
+            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
+                data = self.config_tab.filtered_data
+                if data is not None and not data.empty:
+                    # Create daily calculator with the data
+                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+                    daily_calculator = DailyMetricsCalculator(data)
+                    
+                    # Set the calculator in the daily dashboard
+                    self.daily_dashboard.set_daily_calculator(daily_calculator)
+                    
+                    # Create and set personal records tracker
+                    if not hasattr(self, 'personal_records_tracker'):
+                        self.personal_records_tracker = PersonalRecordsTracker(db_manager.get_connection())
+                    self.daily_dashboard.set_personal_records(self.personal_records_tracker)
+                    
+                    logger.info(f"Set daily calculator with {len(data)} records")
+                else:
+                    logger.warning("No data available to refresh daily dashboard")
         
         # Enable other tabs when data is loaded
         for i in range(1, self.tab_widget.count()):
             self.tab_widget.setTabEnabled(i, True)
+        
+        # Get current data from configuration tab
+        data = None
+        if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'get_filtered_data'):
+            data = self.config_tab.get_filtered_data()
         
         # Trigger background trend calculation for all metrics
         if self.background_trend_processor and data is not None:
