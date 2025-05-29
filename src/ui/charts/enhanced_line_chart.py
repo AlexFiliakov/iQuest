@@ -337,7 +337,7 @@ class EnhancedLineChart(QWidget):
         
         # Draw selection rectangle
         if self.rubber_band and self.rubber_band.isVisible():
-            painter.setPen(QPen(QColor(100, 100, 100), 1, Qt.DashLine))
+            painter.setPen(QPen(QColor(100, 100, 100), 1, Qt.PenStyle.DashLine))
             painter.setBrush(QBrush(QColor(100, 100, 100, 50)))
             painter.drawRect(self.rubber_band.geometry())
             
@@ -431,7 +431,7 @@ class EnhancedLineChart(QWidget):
             painter.setPen(QColor(self.config.text_color))
             
             title_rect = QRectF(0, 10, self.width(), 30)
-            painter.drawText(title_rect, Qt.AlignCenter, self.title)
+            painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, self.title)
             
         # Subtitle
         if self.subtitle:
@@ -440,7 +440,7 @@ class EnhancedLineChart(QWidget):
             painter.setPen(QColor(self.config.text_muted))
             
             subtitle_rect = QRectF(0, 35, self.width(), 20)
-            painter.drawText(subtitle_rect, Qt.AlignCenter, self.subtitle)
+            painter.drawText(subtitle_rect, Qt.AlignmentFlag.AlignCenter, self.subtitle)
             
         # Axis tick labels
         self._draw_axis_labels(painter, chart_rect)
@@ -479,7 +479,7 @@ class EnhancedLineChart(QWidget):
         if self.x_label:
             painter.drawText(
                 QRectF(0, self.height() - 25, self.width(), 20),
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
                 self.x_label
             )
             
@@ -489,7 +489,7 @@ class EnhancedLineChart(QWidget):
             painter.rotate(-90)
             painter.drawText(
                 QRectF(-50, -10, 100, 20),
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
                 self.y_label
             )
             painter.restore()
@@ -506,8 +506,8 @@ class EnhancedLineChart(QWidget):
         """Draw a single data series."""
         # Set pen for line
         pen = QPen(QColor(series.color), self.config.line_width)
-        pen.setCapStyle(Qt.RoundCap)
-        pen.setJoinStyle(Qt.RoundJoin)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         
         if series.style == 'dashed':
             pen.setStyle(Qt.PenStyle.DashLine)
