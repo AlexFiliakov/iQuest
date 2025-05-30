@@ -1365,7 +1365,7 @@ class ConfigurationTab(QWidget):
             current_data = self.get_filtered_data()
             if current_data is None or current_data.empty:
                 # Load all data if no filtered data exists
-                current_data = self.data_loader.load_data()
+                current_data = self.data_loader.get_all_records()
                 if current_data is not None:
                     self.data = current_data
             
