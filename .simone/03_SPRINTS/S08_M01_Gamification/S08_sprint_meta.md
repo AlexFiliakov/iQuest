@@ -21,6 +21,7 @@ Implement an engaging RPG-style gamification system that transforms health metri
 - **Skill Trees**: Unlock abilities and perks based on consistent healthy behaviors
 - **Item/Equipment System**: Virtual items earned through achievements and milestones
 - **UI Integration**: New Gamification tab with sub-tabs for Character Sheet, Inventory, World/Quests
+- **UI Specification**: components follow design system from `.simone/01_PROJECT_DOCS/UI_SPECS.md`
 - **Humor Elements**: Funny descriptions, puns, and easter eggs throughout
 
 ## Definition of Done (for the Sprint)
@@ -31,6 +32,7 @@ Implement an engaging RPG-style gamification system that transforms health metri
 - [ ] Skill tree with at least 3 skills per class implemented
 - [ ] Item/equipment system with 20+ unique items
 - [ ] Gamification tab fully integrated with sub-navigation
+- [ ] Component follows design system from `.simone/01_PROJECT_DOCS/UI_SPECS.md`
 - [ ] Achievement system recognizing health milestones
 - [ ] Save/load system for game progress
 - [ ] Humorous flavor text throughout the experience

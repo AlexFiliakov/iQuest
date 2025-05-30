@@ -16,7 +16,7 @@ Create the main journal editor component with rich text editing capabilities. Th
 - Build reusable journal editor widget using PyQt6
 - Implement character limit (10,000) with visual feedback
 - Support daily, weekly, and monthly entry types
-- Follow warm color design system from SPECS_UI.md
+- Follow design system from `.simone/01_PROJECT_DOCS/UI_SPECS.md`
 - Ensure keyboard accessibility and smooth UX
 
 ## Acceptance Criteria
@@ -27,7 +27,7 @@ Create the main journal editor component with rich text editing capabilities. Th
 - [ ] Save/Cancel buttons with proper styling
 - [ ] Unsaved changes warning implemented
 - [ ] Keyboard shortcuts work (Ctrl+S to save)
-- [ ] Component follows warm color palette
+- [ ] Component follows design system from `.simone/01_PROJECT_DOCS/UI_SPECS.md`
 - [ ] Tab navigation works correctly
 - [ ] Widget is responsive to window resizing
 

@@ -15,7 +15,7 @@ Create a new main tab for gamification features with sub-tabs for Character Shee
 - Add Gamification as a main navigation tab
 - Implement sub-tab navigation within gamification
 - Create layouts for each game section
-- Maintain consistent styling with existing UI
+- Maintain consistent styling with existing UI, following the design system from `.simone/01_PROJECT_DOCS/UI_SPECS.md`
 
 ## Acceptance Criteria
 - [ ] Gamification tab added to main navigation, tab name is "iQuest", which is located in between tabs "Journal" and "Help"
@@ -27,6 +27,7 @@ Create a new main tab for gamification features with sub-tabs for Character Shee
 - [ ] World tab shows quests and progress
 - [ ] Smooth transitions between sub-tabs
 - [ ] Responsive layout adapts to window size
+- [ ] Component follows design system from `.simone/01_PROJECT_DOCS/UI_SPECS.md`
 
 ## Important References
 - Main Window: `src/ui/main_window.py`
