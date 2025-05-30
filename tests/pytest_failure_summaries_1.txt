@@ -10,1481 +10,740 @@ hypothesis profile 'default'
 Matplotlib: 3.10.3
 Freetype: 2.6.1
 PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
-metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
 rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
 configfile: pytest.ini
-plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
 asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collecting ... collected 1203 items
+collecting ... collected 1219 items / 322 deselected / 897 selected
 
-tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_comparative_widget_creation PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_historical_comparison_display PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_percentile_gauge_animation PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_seasonal_trends_flow PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_view_switching PASSED [  0%]
-tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_main_window_integration PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_privacy_settings_integration PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_responsive_layout PASSED [  0%]
 tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_error_handling PASSED [  0%]
-tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_refresh_on_switch FAILED [  0%]
-tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_data_summary_display PASSED [  0%]
-tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_no_data_message FAILED [  0%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_refresh_on_switch PASSED [  0%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_data_summary_display PASSED [  1%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_no_data_message PASSED [  1%]
 tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_metric_selection PASSED [  1%]
-tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_time_range_selection FAILED [  1%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_time_range_selection PASSED [  1%]
 tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_initialization PASSED [  1%]
 tests/integration/test_database_integration.py::TestDatabaseIntegration::test_journal_entry_crud PASSED [  1%]
 tests/integration/test_database_integration.py::TestDatabaseIntegration::test_preferences_operations PASSED [  1%]
 tests/integration/test_database_integration.py::TestDatabaseIntegration::test_cache_operations PASSED [  1%]
 tests/integration/test_database_integration.py::TestDatabaseIntegration::test_metrics_metadata PASSED [  1%]
-tests/integration/test_database_integration.py::TestDatabaseIntegration::test_concurrent_access PASSED [  1%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_menu_action_exists PASSED [  1%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_csv_file_flow FAILED [  1%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_xml_file_flow FAILED [  1%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_dialog_shows_progress FAILED [  1%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_cancelled_by_user ERROR [  2%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_error_handling FAILED [  2%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_completion_updates_ui FAILED [  2%]
-tests/integration/test_import_flow.py::TestImportFlow::test_import_file_filter FAILED [  2%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_concurrent_access PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_end_to_end_smart_selection PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_user_interaction_tracking PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_preference_learning_workflow PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_context_based_selection PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_preference_persistence_simulation PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_fallback_behavior_with_no_data PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_smart_selection_with_learned_preferences PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_weight_adjustment_affects_selection PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_export_import_preferences_integration PASSED [  3%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_availability_service_integration PASSED [  3%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_selector_cleanup PASSED [  3%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_error_handling_in_integration PASSED [  3%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_multiple_metric_switches PASSED [  3%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_selection_info_and_statistics PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_full_workflow_steps_analysis PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_momentum_detection_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_streak_tracking_integration PASSED [  3%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_prediction_integration PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_trend_series_integration PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_narrative_generation_integration PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_multiple_metrics_workflow PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_edge_case_insufficient_data PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_caching_behavior PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_year_boundary_handling PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_partial_week_handling PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_error_logging PASSED [  4%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset PASSED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_memory_monitor PASSED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_chunk_size_calculation PASSED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_streaming_processor_with_real_data SKIPPED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_streaming_decision_logic PASSED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_database_structure SKIPPED [  5%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_error_handling PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[30-0.1] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[90-0.3] PASSED [  5%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[365-1.0] PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[730-2.0] PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_daily_calculator_scaling[1825-5.0] PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_weekly_calculator_performance PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_monthly_calculator_performance PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_memory_efficiency PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_statistics_calculator_performance PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_caching_performance PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_concurrent_calculator_performance PASSED [  6%]
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_stress_test PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_initial_render_performance PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_data_update_performance PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_time_range_change_performance PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_tab_switch_performance PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_responsive_layout_performance PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_scalability_performance[10] PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_scalability_performance[25] PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_scalability_performance[50] PASSED [  7%]
+tests/performance/test_dashboard_performance.py::TestDashboardPerformance::test_memory_efficiency PASSED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_bulk_insert_performance SKIPPED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_indexed_query_performance SKIPPED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_aggregation_query_performance SKIPPED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_concurrent_read_performance SKIPPED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_large_dataset_memory_efficiency SKIPPED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_transaction_performance SKIPPED [  8%]
+tests/performance/test_database_benchmarks.py::TestDatabasePerformance::test_index_creation_performance SKIPPED [  8%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_streaming_processor_memory SKIPPED [  8%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_data_loader_memory_efficiency SKIPPED [  9%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_cache_manager_memory_limits SKIPPED [  9%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_calculator_memory_profile SKIPPED [  9%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_memory_leak_detection PASSED [  9%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_dataframe_memory_optimization PASSED [  9%]
+tests/performance/test_memory_benchmarks.py::TestMemoryUsage::test_concurrent_memory_usage PASSED [  9%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data PASSED [  9%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_missing_date_columns PASSED [  9%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_duplicate_dates PASSED [  9%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_null_data_scenarios PASSED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_extreme_values PASSED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_concurrent_database_writes SKIPPED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_concurrent_analytics_calculations PASSED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_low_memory_conditions PASSED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection PASSED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_large_dataset_timeout_protection PASSED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_database_corruption_recovery SKIPPED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_file_system_errors SKIPPED [ 10%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_csv_parsing_errors SKIPPED [ 11%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_disk_space_exhaustion SKIPPED [ 11%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_wrong_data_types PASSED [ 11%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection PASSED [ 11%]
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms PASSED [ 11%]
+tests/test_data_generator_basic.py::TestHealthDataPatterns::test_steps_pattern_generation PASSED [ 11%]
+tests/test_data_generator_basic.py::TestHealthDataPatterns::test_heart_rate_pattern_generation PASSED [ 11%]
+tests/test_data_generator_basic.py::TestHealthDataPatterns::test_sleep_pattern_generation PASSED [ 11%]
+tests/test_data_generator_basic.py::TestHealthDataPatterns::test_exercise_pattern_generation PASSED [ 11%]
+tests/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_synthetic_data_generation PASSED [ 12%]
+tests/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_edge_cases_generation PASSED [ 12%]
+tests/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_performance_data_generation PASSED [ 12%]
+tests/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_anonymized_sample_generation PASSED [ 12%]
+tests/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_database_data_generation PASSED [ 12%]
+tests/test_mock_compliance.py::TestMockCompliance::test_mock_implements_protocol PASSED [ 12%]
+tests/test_mock_compliance.py::TestMockCompliance::test_empty_data_source_compliance PASSED [ 12%]
+tests/test_mock_compliance.py::TestMockCompliance::test_large_data_source_performance PASSED [ 12%]
+tests/test_mock_compliance.py::TestMockCompliance::test_mock_data_consistency PASSED [ 12%]
+tests/test_mock_compliance.py::TestMockCompliance::test_get_data_for_period PASSED [ 13%]
+tests/test_mock_compliance.py::TestMockCompliance::test_mock_with_calculator_integration PASSED [ 13%]
+tests/test_mock_compliance.py::TestMockCompliance::test_fixture_factory_integration PASSED [ 13%]
+tests/test_mock_compliance.py::TestMockCompliance::test_corrupt_data_handling PASSED [ 13%]
+tests/test_mock_compliance.py::TestMockCompliance::test_mock_immutability PASSED [ 13%]
+tests/test_mock_compliance.py::TestCalculatorIntegration::test_daily_calculator_with_mock PASSED [ 13%]
+tests/test_mock_compliance.py::TestCalculatorIntegration::test_weekly_calculator_with_mock PASSED [ 13%]
+tests/test_mock_compliance.py::TestCalculatorIntegration::test_monthly_calculator_with_mock PASSED [ 13%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_small FAILED [ 13%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_medium FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_large FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_statistics_calculation_performance FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_memory_usage_daily_calculator FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_memory_leak_prevention FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_scalability_analysis[small] FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_scalability_analysis[medium] FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_scalability_analysis[large] FAILED [ 14%]
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_concurrent_processing_performance FAILED [ 14%]
 
-==================================== ERRORS ====================================
-________ ERROR at setup of TestImportFlow.test_import_cancelled_by_user ________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:23: in main_window
-    ???
-src/ui/main_window.py:150: in __init__
-    self.personal_records_tracker = PersonalRecordsTracker(db_manager)
-src/analytics/personal_records_tracker.py:124: in __init__
-    self._ensure_tables_exist()
-src/analytics/personal_records_tracker.py:132: in _ensure_tables_exist
-    cursor.execute("""
-E   sqlite3.OperationalError: disk I/O error
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:13 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:13 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:13 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-ERROR    src.database:database.py:214 Database connection error: disk I/O error
 =================================== FAILURES ===================================
-__________ TestConfigTabIntegration.test_config_tab_refresh_on_switch __________
-tests/integration/test_config_tab_integration.py:85: in test_config_tab_refresh_on_switch
-    assert config_tab.isVisible()
-E   assert False
-E    +  where False = <built-in method isVisible of ConfigurationTab object at 0x7f3de7680d70>()
-E    +    where <built-in method isVisible of ConfigurationTab object at 0x7f3de7680d70> = <src.ui.configuration_tab.ConfigurationTab object at 0x7f3de7680d70>.isVisible
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:45:29 - INFO - Initializing main window with tab navigation
-2025-05-30 03:45:29 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:45:29 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:45:29 - INFO - Background trend processor initialized
-2025-05-30 03:45:29 - INFO - Using standard ConfigurationTab
-2025-05-30 03:45:29 - INFO - Initializing Configuration tab
-2025-05-30 03:45:29 - INFO - MetricTable initialized
-2025-05-30 03:45:29 - INFO - MetricTable initialized
-2025-05-30 03:45:29 - INFO - MetricTable initialized
-2025-05-30 03:45:29 - INFO - MetricTable initialized
-2025-05-30 03:45:29 - INFO - MetricTable initialized
-2025-05-30 03:45:29 - INFO - Configuration tab initialized
-2025-05-30 03:45:30 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:45:30 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:45:30 - INFO - Found 0 data sources in database
-2025-05-30 03:45:30 - INFO - No sources in database, using default metrics
-2025-05-30 03:45:30 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:45:30 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:45:30 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:45:30 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:45:30 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:30 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:30 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:30 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:30 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:30 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:30 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:45:31 - INFO - Found existing database, loading statistics only
-2025-05-30 03:45:31 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:45:31 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:45:32 - INFO - Loading data with 39 rows into table
-2025-05-30 03:45:32 - INFO - Data loaded successfully
-2025-05-30 03:45:32 - INFO - Loading data with 13 rows into table
-2025-05-30 03:45:32 - INFO - Data loaded successfully
-2025-05-30 03:45:32 - INFO - Statistics updated from SQL queries
-2025-05-30 03:45:32 - INFO - Loaded default filter configuration
-2025-05-30 03:45:32 - INFO - Database statistics loaded: 798,727 records
-2025-05-30 03:45:32 - ERROR - Failed to load data for comparative analytics: name 'DATA_DIR' is not defined
-2025-05-30 03:45:32 - INFO - No data available yet - comparative analytics will update when data is loaded
-2025-05-30 03:45:32 - INFO - Window state restored successfully
-2025-05-30 03:45:32 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:2198 Found existing database, loading statistics only
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:1309 Loading statistics from SQLite database (optimized)
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:2102 Populated filters: 13 devices, 39 metrics
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:552 Loading data with 39 rows into table
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:575 Data loaded successfully
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:552 Loading data with 13 rows into table
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:575 Data loaded successfully
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:2187 Statistics updated from SQL queries
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:1780 Loaded default filter configuration
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:1364 Database statistics loaded: 798,727 records
-ERROR    apple_health_monitor.src.ui.main_window:main_window.py:1952 Failed to load data for comparative analytics: name 'DATA_DIR' is not defined
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:1977 No data available yet - comparative analytics will update when data is loaded
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:45:32 - WARNING - No data available to refresh daily dashboard
------------------------------- Captured log call -------------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  apple_health_monitor.src.ui.main_window:main_window.py:1805 No data available to refresh daily dashboard
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:45:38 - INFO - Main window closing, saving state
-2025-05-30 03:45:38 - INFO - Window state saved successfully
-2025-05-30 03:45:38 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:340 Error getting from SQLite cache: disk I/O error
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-___________ TestConfigTabIntegration.test_config_tab_no_data_message ___________
-tests/integration/test_config_tab_integration.py:118: in test_config_tab_no_data_message
-    assert config_tab.isVisible()
-E   assert False
-E    +  where False = <built-in method isVisible of ConfigurationTab object at 0x7f3de64d2350>()
-E    +    where <built-in method isVisible of ConfigurationTab object at 0x7f3de64d2350> = <src.ui.configuration_tab.ConfigurationTab object at 0x7f3de64d2350>.isVisible
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: QItemSelectionModel: Selecting when no model has been set will result in a no-op.
-QtWarningMsg: QItemSelectionModel: Selecting when no model has been set will result in a no-op.
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:45:43 - INFO - Initializing main window with tab navigation
-2025-05-30 03:45:43 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:45:43 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:45:43 - INFO - Background trend processor initialized
-2025-05-30 03:45:43 - INFO - Using standard ConfigurationTab
-2025-05-30 03:45:43 - INFO - Initializing Configuration tab
-2025-05-30 03:45:43 - INFO - MetricTable initialized
-2025-05-30 03:45:43 - INFO - MetricTable initialized
-2025-05-30 03:45:44 - INFO - MetricTable initialized
-2025-05-30 03:45:44 - INFO - MetricTable initialized
-2025-05-30 03:45:44 - INFO - MetricTable initialized
-2025-05-30 03:45:44 - INFO - Configuration tab initialized
-2025-05-30 03:45:44 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:45:44 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:45:44 - INFO - Found 0 data sources in database
-2025-05-30 03:45:44 - INFO - No sources in database, using default metrics
-2025-05-30 03:45:44 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:45:44 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:45:44 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:45:44 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:45:44 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:44 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:44 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:44 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:44 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:44 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:44 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:45:45 - INFO - Window state restored successfully
-2025-05-30 03:45:45 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:45:46 - INFO - Found existing database, loading statistics only
-2025-05-30 03:45:46 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:45:46 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:45:46 - INFO - Loading data with 39 rows into table
-2025-05-30 03:45:46 - INFO - Data loaded successfully
-2025-05-30 03:45:46 - INFO - Loading data with 13 rows into table
-2025-05-30 03:45:46 - INFO - Data loaded successfully
-2025-05-30 03:45:46 - INFO - Statistics updated from SQL queries
-2025-05-30 03:45:46 - INFO - Loaded default filter configuration
-2025-05-30 03:45:46 - INFO - Database statistics loaded: 798,727 records
------------------------------- Captured log call -------------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:45:46 - INFO - Main window closing, saving state
-2025-05-30 03:45:47 - INFO - Window state saved successfully
-2025-05-30 03:45:47 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-________ TestConfigTabIntegration.test_config_tab_time_range_selection _________
-tests/integration/test_config_tab_integration.py:151: in test_config_tab_time_range_selection
-    assert config_tab.start_date_edit.isVisible()
-E   assert False
-E    +  where False = <built-in method isVisible of EnhancedDateEdit object at 0x7f3de63309b0>()
-E    +    where <built-in method isVisible of EnhancedDateEdit object at 0x7f3de63309b0> = <src.ui.enhanced_date_edit.EnhancedDateEdit object at 0x7f3de63309b0>.isVisible
-E    +      where <src.ui.enhanced_date_edit.EnhancedDateEdit object at 0x7f3de63309b0> = <src.ui.configuration_tab.ConfigurationTab object at 0x7f3de632f570>.start_date_edit
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: QItemSelectionModel: Selecting when no model has been set will result in a no-op.
-QtWarningMsg: QItemSelectionModel: Selecting when no model has been set will result in a no-op.
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:45:51 - INFO - Initializing main window with tab navigation
-2025-05-30 03:45:51 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:45:51 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:45:51 - INFO - Background trend processor initialized
-2025-05-30 03:45:51 - INFO - Using standard ConfigurationTab
-2025-05-30 03:45:51 - INFO - Initializing Configuration tab
-2025-05-30 03:45:51 - INFO - MetricTable initialized
-2025-05-30 03:45:52 - INFO - MetricTable initialized
-2025-05-30 03:45:52 - INFO - MetricTable initialized
-2025-05-30 03:45:52 - INFO - MetricTable initialized
-2025-05-30 03:45:52 - INFO - MetricTable initialized
-2025-05-30 03:45:52 - INFO - Configuration tab initialized
-2025-05-30 03:45:52 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:45:52 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:45:52 - INFO - Found 0 data sources in database
-2025-05-30 03:45:52 - INFO - No sources in database, using default metrics
-2025-05-30 03:45:52 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:45:52 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:45:52 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:45:52 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:45:52 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:52 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:52 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:52 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:52 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:45:52 - INFO - Generating sample data for demonstration
-2025-05-30 03:45:52 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:45:53 - INFO - Window state restored successfully
-2025-05-30 03:45:53 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:45:53 - INFO - Found existing database, loading statistics only
-2025-05-30 03:45:53 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:45:53 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:45:53 - INFO - Loading data with 39 rows into table
-2025-05-30 03:45:53 - INFO - Data loaded successfully
-2025-05-30 03:45:53 - INFO - Loading data with 13 rows into table
-2025-05-30 03:45:53 - INFO - Data loaded successfully
-2025-05-30 03:45:53 - INFO - Statistics updated from SQL queries
-2025-05-30 03:45:53 - INFO - Loaded default filter configuration
-2025-05-30 03:45:53 - INFO - Database statistics loaded: 798,727 records
------------------------------- Captured log call -------------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:45:54 - INFO - Main window closing, saving state
-2025-05-30 03:45:54 - INFO - Window state saved successfully
-2025-05-30 03:45:54 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.database:database.py:214 Database connection error: disk I/O error
-ERROR    src.analytics.background_trend_processor:background_trend_processor.py:280 Error calculating trend for HKQuantityTypeIdentifierStepCount: disk I/O error
-___________________ TestImportFlow.test_import_csv_file_flow ___________________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:91: in test_import_csv_file_flow
-    ???
-E   AttributeError: 'MainWindow' object has no attribute 'import_health_data'
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: QItemSelectionModel: Selecting when no model has been set will result in a no-op.
-QtWarningMsg: QItemSelectionModel: Selecting when no model has been set will result in a no-op.
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:00 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:00 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:00 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:46:01 - INFO - Background trend processor initialized
-2025-05-30 03:46:01 - INFO - Using standard ConfigurationTab
-2025-05-30 03:46:01 - INFO - Initializing Configuration tab
-2025-05-30 03:46:01 - INFO - MetricTable initialized
-2025-05-30 03:46:01 - INFO - MetricTable initialized
-2025-05-30 03:46:01 - INFO - MetricTable initialized
-2025-05-30 03:46:01 - INFO - MetricTable initialized
-2025-05-30 03:46:01 - INFO - MetricTable initialized
-2025-05-30 03:46:01 - INFO - Configuration tab initialized
-2025-05-30 03:46:01 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:46:01 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:46:02 - INFO - Found 0 data sources in database
-2025-05-30 03:46:02 - INFO - No sources in database, using default metrics
-2025-05-30 03:46:02 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:46:02 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:46:02 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:46:02 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:46:02 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:02 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:02 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:02 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:02 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:02 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:02 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:46:02 - INFO - Window state restored successfully
-2025-05-30 03:46:02 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:46:03 - INFO - Found existing database, loading statistics only
-2025-05-30 03:46:03 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:46:03 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:46:03 - INFO - Loading data with 39 rows into table
-2025-05-30 03:46:03 - INFO - Data loaded successfully
-2025-05-30 03:46:03 - INFO - Loading data with 13 rows into table
-2025-05-30 03:46:03 - INFO - Data loaded successfully
-2025-05-30 03:46:03 - INFO - Statistics updated from SQL queries
-2025-05-30 03:46:03 - INFO - Loaded default filter configuration
-2025-05-30 03:46:03 - INFO - Database statistics loaded: 798,727 records
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:46:03 - INFO - Main window closing, saving state
-2025-05-30 03:46:03 - INFO - Window state saved successfully
-2025-05-30 03:46:03 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-___________________ TestImportFlow.test_import_xml_file_flow ___________________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:109: in test_import_xml_file_flow
-    ???
-E   AttributeError: 'MainWindow' object has no attribute 'import_health_data'
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:04 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:04 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:04 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:46:05 - INFO - Background trend processor initialized
-2025-05-30 03:46:05 - INFO - Using standard ConfigurationTab
-2025-05-30 03:46:05 - INFO - Initializing Configuration tab
-2025-05-30 03:46:05 - INFO - MetricTable initialized
-2025-05-30 03:46:05 - INFO - MetricTable initialized
-2025-05-30 03:46:05 - INFO - MetricTable initialized
-2025-05-30 03:46:05 - INFO - MetricTable initialized
-2025-05-30 03:46:05 - INFO - MetricTable initialized
-2025-05-30 03:46:05 - INFO - Configuration tab initialized
-2025-05-30 03:46:06 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:46:06 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:46:06 - INFO - Found 0 data sources in database
-2025-05-30 03:46:06 - INFO - No sources in database, using default metrics
-2025-05-30 03:46:06 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:46:06 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:46:06 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:46:06 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:46:06 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:06 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:06 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:06 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:06 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:06 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:06 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:46:07 - INFO - Window state restored successfully
-2025-05-30 03:46:07 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-WARNING  src.analytics.cache_manager:cache_manager.py:409 Could not load cache metadata: Expecting value: line 1 column 1 (char 0)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:46:07 - INFO - Found existing database, loading statistics only
-2025-05-30 03:46:07 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:46:07 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:46:07 - INFO - Loading data with 39 rows into table
-2025-05-30 03:46:07 - INFO - Data loaded successfully
-2025-05-30 03:46:07 - INFO - Loading data with 13 rows into table
-2025-05-30 03:46:07 - INFO - Data loaded successfully
-2025-05-30 03:46:07 - INFO - Statistics updated from SQL queries
-2025-05-30 03:46:07 - INFO - Loaded default filter configuration
-2025-05-30 03:46:07 - INFO - Database statistics loaded: 798,727 records
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:46:08 - INFO - Main window closing, saving state
-2025-05-30 03:46:08 - INFO - Window state saved successfully
-2025-05-30 03:46:08 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-_______________ TestImportFlow.test_import_dialog_shows_progress _______________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:130: in test_import_dialog_shows_progress
-    ???
-E   AttributeError: 'MainWindow' object has no attribute 'import_health_data'
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:09 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:09 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:09 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:46:09 - INFO - Background trend processor initialized
-2025-05-30 03:46:09 - INFO - Using standard ConfigurationTab
-2025-05-30 03:46:09 - INFO - Initializing Configuration tab
-2025-05-30 03:46:09 - INFO - MetricTable initialized
-2025-05-30 03:46:09 - INFO - MetricTable initialized
-2025-05-30 03:46:09 - INFO - MetricTable initialized
-2025-05-30 03:46:09 - INFO - MetricTable initialized
-2025-05-30 03:46:09 - INFO - MetricTable initialized
-2025-05-30 03:46:09 - INFO - Configuration tab initialized
-2025-05-30 03:46:10 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:46:10 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:46:10 - INFO - Found 0 data sources in database
-2025-05-30 03:46:10 - INFO - No sources in database, using default metrics
-2025-05-30 03:46:10 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:46:10 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:46:10 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:46:10 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:46:10 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:10 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:10 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:10 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:10 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:10 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:10 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:46:11 - INFO - Window state restored successfully
-2025-05-30 03:46:11 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:46:11 - INFO - Found existing database, loading statistics only
-2025-05-30 03:46:11 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:46:11 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:46:11 - INFO - Loading data with 39 rows into table
-2025-05-30 03:46:11 - INFO - Data loaded successfully
-2025-05-30 03:46:11 - INFO - Loading data with 13 rows into table
-2025-05-30 03:46:11 - INFO - Data loaded successfully
-2025-05-30 03:46:11 - INFO - Statistics updated from SQL queries
-2025-05-30 03:46:11 - INFO - Loaded default filter configuration
-2025-05-30 03:46:11 - INFO - Database statistics loaded: 798,727 records
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:46:12 - INFO - Main window closing, saving state
-2025-05-30 03:46:12 - INFO - Window state saved successfully
-2025-05-30 03:46:12 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-__________________ TestImportFlow.test_import_error_handling ___________________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:170: in test_import_error_handling
-    ???
-E   AttributeError: 'MainWindow' object has no attribute 'import_health_data'
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:14 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:14 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:14 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:46:14 - INFO - Background trend processor initialized
-2025-05-30 03:46:14 - INFO - Using standard ConfigurationTab
-2025-05-30 03:46:14 - INFO - Initializing Configuration tab
-2025-05-30 03:46:14 - INFO - MetricTable initialized
-2025-05-30 03:46:14 - INFO - MetricTable initialized
-2025-05-30 03:46:14 - INFO - MetricTable initialized
-2025-05-30 03:46:14 - INFO - MetricTable initialized
-2025-05-30 03:46:14 - INFO - MetricTable initialized
-2025-05-30 03:46:14 - INFO - Configuration tab initialized
-2025-05-30 03:46:15 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:46:15 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:46:15 - INFO - Found 0 data sources in database
-2025-05-30 03:46:15 - INFO - No sources in database, using default metrics
-2025-05-30 03:46:15 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:46:15 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:46:15 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:46:15 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:46:15 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:15 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:15 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:15 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:15 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:15 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:15 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:46:16 - INFO - Window state restored successfully
-2025-05-30 03:46:16 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:46:16 - INFO - Found existing database, loading statistics only
-2025-05-30 03:46:16 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:46:16 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:46:16 - INFO - Loading data with 39 rows into table
-2025-05-30 03:46:16 - INFO - Data loaded successfully
-2025-05-30 03:46:16 - INFO - Loading data with 13 rows into table
-2025-05-30 03:46:16 - INFO - Data loaded successfully
-2025-05-30 03:46:16 - INFO - Statistics updated from SQL queries
-2025-05-30 03:46:16 - INFO - Loaded default filter configuration
-2025-05-30 03:46:16 - INFO - Database statistics loaded: 798,727 records
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:46:17 - INFO - Main window closing, saving state
-2025-05-30 03:46:17 - INFO - Window state saved successfully
-2025-05-30 03:46:17 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-_______________ TestImportFlow.test_import_completion_updates_ui _______________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:186: in test_import_completion_updates_ui
-    ???
-E   NameError: name 'HealthDataModel' is not defined
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:19 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:19 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:19 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:46:19 - INFO - Background trend processor initialized
-2025-05-30 03:46:19 - INFO - Using standard ConfigurationTab
-2025-05-30 03:46:19 - INFO - Initializing Configuration tab
-2025-05-30 03:46:19 - INFO - MetricTable initialized
-2025-05-30 03:46:19 - INFO - MetricTable initialized
-2025-05-30 03:46:19 - INFO - MetricTable initialized
-2025-05-30 03:46:19 - INFO - MetricTable initialized
-2025-05-30 03:46:19 - INFO - MetricTable initialized
-2025-05-30 03:46:20 - INFO - Configuration tab initialized
-2025-05-30 03:46:20 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:46:20 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:46:20 - INFO - Found 0 data sources in database
-2025-05-30 03:46:20 - INFO - No sources in database, using default metrics
-2025-05-30 03:46:20 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:46:20 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:46:20 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:46:20 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:46:20 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:20 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:20 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:20 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:20 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:20 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:20 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:46:21 - INFO - Window state restored successfully
-2025-05-30 03:46:21 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:46:22 - INFO - Found existing database, loading statistics only
-2025-05-30 03:46:22 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:46:22 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:46:22 - INFO - Loading data with 39 rows into table
-2025-05-30 03:46:22 - INFO - Data loaded successfully
-2025-05-30 03:46:22 - INFO - Loading data with 13 rows into table
-2025-05-30 03:46:22 - INFO - Data loaded successfully
-2025-05-30 03:46:22 - INFO - Statistics updated from SQL queries
-2025-05-30 03:46:22 - INFO - Loaded default filter configuration
-2025-05-30 03:46:22 - INFO - Database statistics loaded: 798,727 records
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:46:23 - INFO - Main window closing, saving state
-2025-05-30 03:46:23 - INFO - Window state saved successfully
-2025-05-30 03:46:23 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.database:database.py:214 Database connection error: unable to open database file
-ERROR    src.analytics.background_trend_processor:background_trend_processor.py:280 Error calculating trend for HKQuantityTypeIdentifierStepCount: unable to open database file
-____________________ TestImportFlow.test_import_file_filter ____________________
-C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\tests\integration\test_import_flow.py:217: in test_import_file_filter
-    ???
-E   AttributeError: 'MainWindow' object has no attribute 'import_health_data'
------------------------------ Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
-QtWarningMsg: This plugin does not support propagateSizeHints()
----------------------------- Captured stderr setup -----------------------------
-2025-05-30 03:46:24 - INFO - Initializing main window with tab navigation
-2025-05-30 03:46:24 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-2025-05-30 03:46:24 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
-2025-05-30 03:46:24 - INFO - Background trend processor initialized
-2025-05-30 03:46:24 - INFO - Using standard ConfigurationTab
-2025-05-30 03:46:24 - INFO - Initializing Configuration tab
-2025-05-30 03:46:24 - INFO - MetricTable initialized
-2025-05-30 03:46:24 - INFO - MetricTable initialized
-2025-05-30 03:46:24 - INFO - MetricTable initialized
-2025-05-30 03:46:24 - INFO - MetricTable initialized
-2025-05-30 03:46:24 - INFO - MetricTable initialized
-2025-05-30 03:46:24 - INFO - Configuration tab initialized
-2025-05-30 03:46:25 - INFO - Using standard WeeklyDashboardWidget
-2025-05-30 03:46:25 - INFO - Initializing MonthlyDashboardWidget with date: 5/2025
-2025-05-30 03:46:25 - INFO - Found 0 data sources in database
-2025-05-30 03:46:25 - INFO - No sources in database, using default metrics
-2025-05-30 03:46:25 - INFO - Loaded 8 metric-source combinations
-2025-05-30 03:46:25 - INFO - Populating combo box with 8 metrics
-2025-05-30 03:46:25 - INFO - Set current metric to: ('StepCount', None) at index 6
-2025-05-30 03:46:25 - INFO - Refreshing combo box with 8 metrics
-2025-05-30 03:46:25 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:25 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:25 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:25 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:25 - WARNING - No monthly calculator available, generating sample data
-2025-05-30 03:46:25 - INFO - Generating sample data for demonstration
-2025-05-30 03:46:25 - INFO - Using MonthlyDashboardWidget
-2025-05-30 03:46:26 - INFO - Window state restored successfully
-2025-05-30 03:46:26 - INFO - Main window initialization complete
------------------------------- Captured log setup ------------------------------
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:139 Initializing main window with tab navigation
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
-INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:157 Background trend processor initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:465 Using standard ConfigurationTab
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:196 Initializing Configuration tab
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.table_components:table_components.py:385 MetricTable initialized
-INFO     apple_health_monitor.src.ui.configuration_tab:configuration_tab.py:246 Configuration tab initialized
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:591 Using standard WeeklyDashboardWidget
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:62 Initializing MonthlyDashboardWidget with date: 5/2025
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:225 Found 0 data sources in database
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:232 No sources in database, using default metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:272 Loaded 8 metric-source combinations
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:434 Populating combo box with 8 metrics
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:452 Set current metric to: ('StepCount', None) at index 6
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:291 Refreshing combo box with 8 metrics
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-WARNING  apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:845 No monthly calculator available, generating sample data
-INFO     apple_health_monitor.src.ui.monthly_dashboard_widget:monthly_dashboard_widget.py:919 Generating sample data for demonstration
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:672 Using MonthlyDashboardWidget
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.comparative_analytics:comparative_analytics.py:253 No daily calculator available
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:217 Window state restored successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:183 Main window initialization complete
------------------------------ Captured stderr call -----------------------------
-2025-05-30 03:46:26 - INFO - Found existing database, loading statistics only
-2025-05-30 03:46:26 - INFO - Loading statistics from SQLite database (optimized)
-2025-05-30 03:46:26 - INFO - Populated filters: 13 devices, 39 metrics
-2025-05-30 03:46:26 - INFO - Loading data with 39 rows into table
-2025-05-30 03:46:26 - INFO - Data loaded successfully
-2025-05-30 03:46:26 - INFO - Loading data with 13 rows into table
-2025-05-30 03:46:26 - INFO - Data loaded successfully
-2025-05-30 03:46:26 - INFO - Statistics updated from SQL queries
-2025-05-30 03:46:26 - INFO - Loaded default filter configuration
-2025-05-30 03:46:26 - INFO - Database statistics loaded: 798,727 records
---------------------------- Captured stderr teardown ---------------------------
-2025-05-30 03:46:27 - INFO - Main window closing, saving state
-2025-05-30 03:46:27 - INFO - Window state saved successfully
-2025-05-30 03:46:27 - INFO - Shutting down background trend processor
----------------------------- Captured log teardown -----------------------------
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2122 Main window closing, saving state
-INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:150 Window state saved successfully
-INFO     apple_health_monitor.src.ui.main_window:main_window.py:2132 Shutting down background trend processor
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-WARNING  src.analytics.background_trend_processor:background_trend_processor.py:240 No data found for trend analysis: HKQuantityTypeIdentifierStepCount
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
-ERROR    src.analytics.cache_manager:cache_manager.py:370 Error setting SQLite cache: database disk image is malformed
+____________ TestPerformanceBenchmarks.test_daily_calculator_small _____________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f22030>
+benchmark = <pytest_benchmark.fixture.BenchmarkFixture object at 0x7f08fc450470>
+small_dataset =                           date  steps  heart_rate   distance  calories
+0   2022-09-04 08:44:11.968246   8996          ...54   5.687256      1991
+999 2025-05-30 08:44:11.968246   7480          52   5.646943      2237
+
+[1000 rows x 5 columns]
+
+    @pytest.mark.benchmark(group="daily_calculator")
+    def test_daily_calculator_small(self, benchmark, small_dataset):
+        """Benchmark daily calculator with small dataset."""
+>       data_source = MockDataSource(small_dataset)
+
+tests/test_performance_benchmarks.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.mocks.data_sources.MockDataSource object at 0x7f08fc450260>
+data =                           date  steps  heart_rate   distance  calories
+0   2022-09-04 08:44:11.968246   8996          ...54   5.687256      1991
+999 2025-05-30 08:44:11.968246   7480          52   5.646943      2237
+
+[1000 rows x 5 columns]
+
+    def __init__(self, data: pd.DataFrame):
+        """
+        Initialize mock data source with a DataFrame.
+    
+        Args:
+            data: DataFrame with columns 'creationDate', 'type', 'value'
+                  Additional columns like 'date', 'sourceName', 'unit' are optional
+        """
+        self._data = data.copy()
+>       self._validate_data()
+
+tests/mocks/data_sources.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.mocks.data_sources.MockDataSource object at 0x7f08fc450260>
+
+    def _validate_data(self):
+        """Validate that data has required columns."""
+        required_cols = {'creationDate', 'type', 'value'}
+        if 'date' in self._data.columns:
+            # Support both 'date' and 'creationDate' for flexibility
+            if 'creationDate' not in self._data.columns:
+                self._data['creationDate'] = pd.to_datetime(self._data['date'])
+    
+        missing = required_cols - set(self._data.columns)
+        if missing:
+>           raise ValueError(f"Missing required columns: {missing}")
+E           ValueError: Missing required columns: {'type', 'value'}
+
+tests/mocks/data_sources.py:46: ValueError
+____________ TestPerformanceBenchmarks.test_daily_calculator_medium ____________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f22360>
+benchmark = <pytest_benchmark.fixture.BenchmarkFixture object at 0x7f08fc380bc0>
+medium_dataset =                            date  steps  heart_rate   distance  calories
+0    1998-01-13 08:44:12.475148   8996        ...   9.285713      2004
+9999 2025-05-30 08:44:12.475148   9156          50   5.526967      2345
+
+[10000 rows x 5 columns]
+
+    @pytest.mark.benchmark(group="daily_calculator")
+    def test_daily_calculator_medium(self, benchmark, medium_dataset):
+        """Benchmark daily calculator with medium dataset."""
+>       calculator = DailyMetricsCalculator(medium_dataset)
+
+tests/test_performance_benchmarks.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.daily_metrics_calculator.DailyMetricsCalculator object at 0x7f08f5c7a4e0>
+data =                            date  steps  heart_rate   distance  calories
+0    1998-01-13 08:44:12.475148   8996        ...   9.285713      2004
+9999 2025-05-30 08:44:12.475148   9156          50   5.526967      2345
+
+[10000 rows x 5 columns]
+timezone = 'UTC'
+
+    def __init__(self, data: Union[pd.DataFrame, DataSourceProtocol], timezone: str = 'UTC'):
+        """
+        Initialize the calculator with health data and configuration.
+    
+        Args:
+            data: Health data source. Can be either:
+                - pandas.DataFrame with columns: 'creationDate', 'type', 'value'
+                - DataSourceProtocol implementation for advanced data sources
+                DataFrame usage is deprecated - use DataSourceProtocol for new code.
+            timezone: Timezone for date handling and calculations. Defaults to 'UTC'.
+                     Common values: 'UTC', 'US/Eastern', 'Europe/London', etc.
+    
+        Raises:
+            ValueError: If data doesn't contain required columns
+            TypeError: If data is not DataFrame or DataSourceProtocol
+    
+        Example:
+            >>> import pandas as pd
+            >>>
+            >>> # Using DataFrame (deprecated but supported)
+            >>> data = pd.DataFrame({
+            ...     'creationDate': pd.date_range('2024-01-01', periods=10),
+            ...     'type': 'steps',
+            ...     'value': range(8000, 9000, 100)
+            ... })
+            >>> calculator = DailyMetricsCalculator(data, timezone='US/Eastern')
+            >>>
+            >>> # Using DataSourceProtocol (recommended)
+            >>> from .dataframe_adapter import DataFrameAdapter
+            >>> adapter = DataFrameAdapter(data)
+            >>> calculator = DailyMetricsCalculator(adapter)
+        """
+        # Use adapter for flexibility
+>       adapter = DataFrameAdapter(data)
+
+src/analytics/daily_metrics_calculator.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.dataframe_adapter.DataFrameAdapter object at 0x7f08f5c780e0>
+data =                            date  steps  heart_rate   distance  calories
+0    1998-01-13 08:44:12.475148   8996        ...   9.285713      2004
+9999 2025-05-30 08:44:12.475148   9156          50   5.526967      2345
+
+[10000 rows x 5 columns]
+
+    def __init__(self, data: Union[pd.DataFrame, DataSourceProtocol]):
+        """
+        Initialize adapter with data source.
+    
+        Args:
+            data: Either a pandas DataFrame or an object implementing DataSourceProtocol
+        """
+        self._original_source = data
+        self._df: Optional[pd.DataFrame] = None
+>       self._load_data()
+
+src/analytics/dataframe_adapter.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.dataframe_adapter.DataFrameAdapter object at 0x7f08f5c780e0>
+
+    def _load_data(self):
+        """Load data from the source into internal DataFrame."""
+        if isinstance(self._original_source, pd.DataFrame):
+            # Direct DataFrame - make a copy to avoid mutations
+            self._df = self._original_source.copy()
+            logger.debug("Loaded data from pandas DataFrame")
+        elif hasattr(self._original_source, 'get_dataframe'):
+            # DataSourceProtocol implementation
+            try:
+                self._df = self._original_source.get_dataframe()
+                logger.debug(f"Loaded data from {type(self._original_source).__name__}")
+            except Exception as e:
+                logger.error(f"Failed to load data from source: {e}")
+                raise ValueError(f"Failed to load data from source: {e}")
+        else:
+            raise TypeError(
+                f"Unsupported data source type: {type(self._original_source)}. "
+                "Expected pandas DataFrame or DataSourceProtocol implementation."
+            )
+    
+        # Validate required columns
+>       self._validate_dataframe()
+
+src/analytics/dataframe_adapter.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.dataframe_adapter.DataFrameAdapter object at 0x7f08f5c780e0>
+
+    def _validate_dataframe(self):
+        """Validate that the DataFrame has required columns."""
+        required_columns = {'creationDate', 'type', 'value'}
+        missing_columns = required_columns - set(self._df.columns)
+    
+        if missing_columns:
+>           raise ValueError(
+                f"DataFrame missing required columns: {missing_columns}. "
+                f"Required columns are: {required_columns}"
+            )
+E           ValueError: DataFrame missing required columns: {'type', 'creationDate', 'value'}. Required columns are: {'type', 'creationDate', 'value'}
+
+src/analytics/dataframe_adapter.py:67: ValueError
+____________ TestPerformanceBenchmarks.test_daily_calculator_large _____________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f22630>
+benchmark = <pytest_benchmark.fixture.BenchmarkFixture object at 0x7f08f5c91e80>
+large_dataset =                             date  steps  heart_rate  distance  calories
+0     1888-07-08 08:44:12.963930   8996       ...0  7.161247      2177
+49999 2025-05-30 08:44:12.963930   9546          50  6.789100      2262
+
+[50000 rows x 5 columns]
+
+    @pytest.mark.benchmark(group="daily_calculator")
+    def test_daily_calculator_large(self, benchmark, large_dataset):
+        """Benchmark daily calculator with large dataset."""
+>       calculator = DailyMetricsCalculator()
+E       TypeError: DailyMetricsCalculator.__init__() missing 1 required positional argument: 'data'
+
+tests/test_performance_benchmarks.py:108: TypeError
+______ TestPerformanceBenchmarks.test_statistics_calculation_performance _______
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f22900>
+benchmark = <pytest_benchmark.fixture.BenchmarkFixture object at 0x7f08f5c93110>
+large_dataset =                             date  steps  heart_rate  distance  calories
+0     1888-07-08 08:44:13.382006   8996       ...0  7.161247      2177
+49999 2025-05-30 08:44:13.382006   9546          50  6.789100      2262
+
+[50000 rows x 5 columns]
+
+    @pytest.mark.benchmark(group="statistics")
+    def test_statistics_calculation_performance(self, benchmark, large_dataset):
+        """Benchmark statistics calculations."""
+        calculator = StatisticsCalculator()
+    
+        result = benchmark(
+>           calculator.calculate_comprehensive_stats,
+            large_dataset['steps']
+        )
+E       AttributeError: 'StatisticsCalculator' object has no attribute 'calculate_comprehensive_stats'. Did you mean: 'calculate_descriptive_stats'?
+
+tests/test_performance_benchmarks.py:127: AttributeError
+_________ TestPerformanceBenchmarks.test_memory_usage_daily_calculator _________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f22ba0>
+large_dataset =                             date  steps  heart_rate  distance  calories
+0     1888-07-08 08:44:13.910953   8996       ...0  7.161247      2177
+49999 2025-05-30 08:44:13.910953   9546          50  6.789100      2262
+
+[50000 rows x 5 columns]
+
+    @pytest.mark.slow
+    def test_memory_usage_daily_calculator(self, large_dataset):
+        """Test memory usage of daily calculator."""
+        with self.measure_performance('daily_calculator_memory'):
+>           calculator = DailyMetricsCalculator(large_dataset)
+
+tests/test_performance_benchmarks.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.daily_metrics_calculator.DailyMetricsCalculator object at 0x7f08f5c793d0>
+data =                             date  steps  heart_rate  distance  calories
+0     1888-07-08 08:44:13.910953   8996       ...0  7.161247      2177
+49999 2025-05-30 08:44:13.910953   9546          50  6.789100      2262
+
+[50000 rows x 5 columns]
+timezone = 'UTC'
+
+    def __init__(self, data: Union[pd.DataFrame, DataSourceProtocol], timezone: str = 'UTC'):
+        """
+        Initialize the calculator with health data and configuration.
+    
+        Args:
+            data: Health data source. Can be either:
+                - pandas.DataFrame with columns: 'creationDate', 'type', 'value'
+                - DataSourceProtocol implementation for advanced data sources
+                DataFrame usage is deprecated - use DataSourceProtocol for new code.
+            timezone: Timezone for date handling and calculations. Defaults to 'UTC'.
+                     Common values: 'UTC', 'US/Eastern', 'Europe/London', etc.
+    
+        Raises:
+            ValueError: If data doesn't contain required columns
+            TypeError: If data is not DataFrame or DataSourceProtocol
+    
+        Example:
+            >>> import pandas as pd
+            >>>
+            >>> # Using DataFrame (deprecated but supported)
+            >>> data = pd.DataFrame({
+            ...     'creationDate': pd.date_range('2024-01-01', periods=10),
+            ...     'type': 'steps',
+            ...     'value': range(8000, 9000, 100)
+            ... })
+            >>> calculator = DailyMetricsCalculator(data, timezone='US/Eastern')
+            >>>
+            >>> # Using DataSourceProtocol (recommended)
+            >>> from .dataframe_adapter import DataFrameAdapter
+            >>> adapter = DataFrameAdapter(data)
+            >>> calculator = DailyMetricsCalculator(adapter)
+        """
+        # Use adapter for flexibility
+>       adapter = DataFrameAdapter(data)
+
+src/analytics/daily_metrics_calculator.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.dataframe_adapter.DataFrameAdapter object at 0x7f08f5c7b140>
+data =                             date  steps  heart_rate  distance  calories
+0     1888-07-08 08:44:13.910953   8996       ...0  7.161247      2177
+49999 2025-05-30 08:44:13.910953   9546          50  6.789100      2262
+
+[50000 rows x 5 columns]
+
+    def __init__(self, data: Union[pd.DataFrame, DataSourceProtocol]):
+        """
+        Initialize adapter with data source.
+    
+        Args:
+            data: Either a pandas DataFrame or an object implementing DataSourceProtocol
+        """
+        self._original_source = data
+        self._df: Optional[pd.DataFrame] = None
+>       self._load_data()
+
+src/analytics/dataframe_adapter.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.dataframe_adapter.DataFrameAdapter object at 0x7f08f5c7b140>
+
+    def _load_data(self):
+        """Load data from the source into internal DataFrame."""
+        if isinstance(self._original_source, pd.DataFrame):
+            # Direct DataFrame - make a copy to avoid mutations
+            self._df = self._original_source.copy()
+            logger.debug("Loaded data from pandas DataFrame")
+        elif hasattr(self._original_source, 'get_dataframe'):
+            # DataSourceProtocol implementation
+            try:
+                self._df = self._original_source.get_dataframe()
+                logger.debug(f"Loaded data from {type(self._original_source).__name__}")
+            except Exception as e:
+                logger.error(f"Failed to load data from source: {e}")
+                raise ValueError(f"Failed to load data from source: {e}")
+        else:
+            raise TypeError(
+                f"Unsupported data source type: {type(self._original_source)}. "
+                "Expected pandas DataFrame or DataSourceProtocol implementation."
+            )
+    
+        # Validate required columns
+>       self._validate_dataframe()
+
+src/analytics/dataframe_adapter.py:59: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.dataframe_adapter.DataFrameAdapter object at 0x7f08f5c7b140>
+
+    def _validate_dataframe(self):
+        """Validate that the DataFrame has required columns."""
+        required_columns = {'creationDate', 'type', 'value'}
+        missing_columns = required_columns - set(self._df.columns)
+    
+        if missing_columns:
+>           raise ValueError(
+                f"DataFrame missing required columns: {missing_columns}. "
+                f"Required columns are: {required_columns}"
+            )
+E           ValueError: DataFrame missing required columns: {'type', 'creationDate', 'value'}. Required columns are: {'type', 'creationDate', 'value'}
+
+src/analytics/dataframe_adapter.py:67: ValueError
+____________ TestPerformanceBenchmarks.test_memory_leak_prevention _____________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f22e10>
+data_generator = <tests.test_data_generator.HealthDataGenerator object at 0x7f08f5c91f70>
+
+    @pytest.mark.slow
+    def test_memory_leak_prevention(self, data_generator):
+        """Test for memory leaks in repeated calculations."""
+>       calculator = DailyMetricsCalculator()
+E       TypeError: DailyMetricsCalculator.__init__() missing 1 required positional argument: 'data'
+
+tests/test_performance_benchmarks.py:152: TypeError
+__________ TestPerformanceBenchmarks.test_scalability_analysis[small] __________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f23110>
+data_generator = <tests.test_data_generator.HealthDataGenerator object at 0x7f08f5c916d0>
+dataset_size = 'small'
+
+    @pytest.mark.parametrize("dataset_size", ['small', 'medium', 'large'])
+    def test_scalability_analysis(self, data_generator, dataset_size):
+        """Test how performance scales with data size."""
+>       calculator = DailyMetricsCalculator()
+E       TypeError: DailyMetricsCalculator.__init__() missing 1 required positional argument: 'data'
+
+tests/test_performance_benchmarks.py:180: TypeError
+_________ TestPerformanceBenchmarks.test_scalability_analysis[medium] __________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f232f0>
+data_generator = <tests.test_data_generator.HealthDataGenerator object at 0x7f095ca85310>
+dataset_size = 'medium'
+
+    @pytest.mark.parametrize("dataset_size", ['small', 'medium', 'large'])
+    def test_scalability_analysis(self, data_generator, dataset_size):
+        """Test how performance scales with data size."""
+>       calculator = DailyMetricsCalculator()
+E       TypeError: DailyMetricsCalculator.__init__() missing 1 required positional argument: 'data'
+
+tests/test_performance_benchmarks.py:180: TypeError
+__________ TestPerformanceBenchmarks.test_scalability_analysis[large] __________
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f233b0>
+data_generator = <tests.test_data_generator.HealthDataGenerator object at 0x7f08fc31ff50>
+dataset_size = 'large'
+
+    @pytest.mark.parametrize("dataset_size", ['small', 'medium', 'large'])
+    def test_scalability_analysis(self, data_generator, dataset_size):
+        """Test how performance scales with data size."""
+>       calculator = DailyMetricsCalculator()
+E       TypeError: DailyMetricsCalculator.__init__() missing 1 required positional argument: 'data'
+
+tests/test_performance_benchmarks.py:180: TypeError
+_______ TestPerformanceBenchmarks.test_concurrent_processing_performance _______
+
+self = <tests.test_performance_benchmarks.TestPerformanceBenchmarks object at 0x7f0955f235f0>
+data_generator = <tests.test_data_generator.HealthDataGenerator object at 0x7f08f5c6d100>
+
+    @pytest.mark.slow
+    def test_concurrent_processing_performance(self, data_generator):
+        """Test performance under concurrent load."""
+        import threading
+        import queue
+    
+>       calculator = DailyMetricsCalculator()
+E       TypeError: DailyMetricsCalculator.__init__() missing 1 required positional argument: 'data'
+
+tests/test_performance_benchmarks.py:201: TypeError
 =============================== warnings summary ===============================
 tests/test_chaos_scenarios.py:571
   /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:571: PytestUnknownMarkWarning: Unknown pytest.mark.chaos - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
     pytestmark = pytest.mark.chaos
 
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py:2842: RuntimeWarning: invalid value encountered in subtract
+    X -= avg[:, None]
+
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:136: RuntimeWarning: invalid value encountered in reduce
+    ret = umr_sum(arr, axis, dtype, out, keepdims, where=where)
+
+tests/performance/test_calculator_benchmarks.py: 35 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:67: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 13 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:97: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 18 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:119: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_memory_efficiency
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:140: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(large_data)
+
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_caching_performance
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:188: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 11 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:219: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 11 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:226: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py: 11 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:222: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_stress_test
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_calculator_benchmarks.py:263: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily = DailyMetricsCalculator(extreme_data)
+
+tests/performance/test_calculator_benchmarks.py::TestCalculatorPerformance::test_calculator_stress_test
+  /usr/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=69038) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+tests/performance/test_memory_benchmarks.py: 10 warnings
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/performance/test_memory_benchmarks.py:159: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(data)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:115: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value '[10000000000.0, -5000, None, 0, 1000000.0, inf]' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
+    df.loc[10:15, 'value'] = [1e10, -5000, None, 0, 1e6, float('inf')]
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:118: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:194: RuntimeWarning: invalid value encountered in subtract
+    x = asanyarray(arr - arrmean)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_duplicate_dates
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:155: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_null_data_scenarios
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:190: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df_nulls)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_null_data_scenarios
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:209: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df_zeros)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_handle_extreme_values
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:228: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df_extreme)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_concurrent_analytics_calculations
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:290: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_low_memory_conditions
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:348: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:369: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value 'inf' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
+    circular_data.loc[0, 'steps'] = float('inf')
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:382: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:173: RuntimeWarning: invalid value encountered in reduce
+    arrmean = umr_sum(arr, axis, dtype, keepdims=True, where=where)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_large_dataset_timeout_protection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:409: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_wrong_data_types
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:466: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:516: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms
+tests/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/test_chaos_scenarios.py:558: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_small
+  tests/test_performance_benchmarks.py:64: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    @pytest.mark.benchmark(group="daily_calculator")
+
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_medium
+  tests/test_performance_benchmarks.py:85: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    @pytest.mark.benchmark(group="daily_calculator")
+
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_large
+  tests/test_performance_benchmarks.py:105: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    @pytest.mark.benchmark(group="daily_calculator")
+
+tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_statistics_calculation_performance
+  tests/test_performance_benchmarks.py:121: PytestBenchmarkWarning: Benchmark fixture was not used at all in this test!
+    @pytest.mark.benchmark(group="statistics")
+
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+----------------------------------------------------------------------------------------------- benchmark: 9 tests ----------------------------------------------------------------------------------------------
+Name (time in ms)                                Min                 Max                Mean             StdDev              Median                IQR            Outliers      OPS            Rounds  Iterations
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+test_statistics_calculator_performance       16.6938 (1.0)       25.2010 (1.0)       20.5811 (1.0)       3.2322 (1.0)       20.6855 (1.0)       4.4918 (1.0)           2;0  48.5882 (1.0)           5           1
+test_weekly_calculator_performance           18.2557 (1.09)      52.9934 (2.10)      40.0578 (1.95)     11.5986 (3.59)      43.1544 (2.09)     18.7205 (4.17)          3;0  24.9639 (0.51)         10           1
+test_monthly_calculator_performance          23.7211 (1.42)      62.6545 (2.49)      40.8631 (1.99)     11.3859 (3.52)      36.7585 (1.78)     14.8403 (3.30)          5;0  24.4720 (0.50)         16           1
+test_daily_calculator_scaling[30-0.1]        28.1225 (1.68)      53.3552 (2.12)      41.1497 (2.00)     11.3290 (3.51)      36.4634 (1.76)     19.6224 (4.37)          3;0  24.3015 (0.50)          5           1
+test_daily_calculator_scaling[1825-5.0]      50.0730 (3.00)      78.6270 (3.12)      60.0941 (2.92)     10.8246 (3.35)      57.4438 (2.78)      7.9587 (1.77)          1;1  16.6406 (0.34)          5           1
+test_daily_calculator_scaling[730-2.0]       51.3267 (3.07)      70.7260 (2.81)      55.9537 (2.72)      8.3630 (2.59)      51.7238 (2.50)      7.1589 (1.59)          1;1  17.8719 (0.37)          5           1
+test_daily_calculator_scaling[365-1.0]       57.7949 (3.46)      74.2455 (2.95)      64.6834 (3.14)      7.0013 (2.17)      65.7974 (3.18)     11.5203 (2.56)          1;0  15.4599 (0.32)          5           1
+test_daily_calculator_scaling[90-0.3]        65.1598 (3.90)     100.8886 (4.00)      78.0964 (3.79)     14.5311 (4.50)      70.5453 (3.41)     19.4371 (4.33)          1;0  12.8047 (0.26)          5           1
+test_concurrent_calculator_performance      100.4076 (6.01)     176.2364 (6.99)     124.7268 (6.06)     25.9959 (8.04)     113.0525 (5.47)     35.7627 (7.96)          2;0   8.0175 (0.17)          9           1
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Legend:
+  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.
+  OPS: Operations Per Second, computed as 1 / Mean
 =========================== short test summary info ============================
-FAILED tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_refresh_on_switch
-FAILED tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_no_data_message
-FAILED tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_time_range_selection
-FAILED tests/integration/test_import_flow.py::TestImportFlow::test_import_csv_file_flow
-FAILED tests/integration/test_import_flow.py::TestImportFlow::test_import_xml_file_flow
-FAILED tests/integration/test_import_flow.py::TestImportFlow::test_import_dialog_shows_progress
-FAILED tests/integration/test_import_flow.py::TestImportFlow::test_import_error_handling
-FAILED tests/integration/test_import_flow.py::TestImportFlow::test_import_completion_updates_ui
-FAILED tests/integration/test_import_flow.py::TestImportFlow::test_import_file_filter
-ERROR tests/integration/test_import_flow.py::TestImportFlow::test_import_cancelled_by_user
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_small
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_medium
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_daily_calculator_large
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_statistics_calculation_performance
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_memory_usage_daily_calculator
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_memory_leak_prevention
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_scalability_analysis[small]
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_scalability_analysis[medium]
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_scalability_analysis[large]
+FAILED tests/test_performance_benchmarks.py::TestPerformanceBenchmarks::test_concurrent_processing_performance
 !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 10 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
-========= 9 failed, 18 passed, 1 warning, 1 error in 90.37s (0:01:30) ==========
+= 10 failed, 106 passed, 18 skipped, 322 deselected, 145 warnings in 130.42s (0:02:10) =

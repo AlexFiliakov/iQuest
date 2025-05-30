@@ -142,7 +142,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         db.close()
         
         # Performance assertions
-        assert result.stats['mean'] < 0.5  # <500ms for 2 years aggregation
+        assert benchmark.stats['mean'] < 0.5  # <500ms for 2 years aggregation
         
     @pytest.mark.skip(reason="HealthDatabase doesn't support db path argument")
     def test_concurrent_read_performance(self, benchmark, temp_db):
@@ -178,7 +178,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         result = benchmark(concurrent_reads)
         
         # Should handle concurrent reads efficiently
-        assert result.stats['mean'] < 2.0  # <2s for 10 concurrent operations
+        assert benchmark.stats['mean'] < 2.0  # <2s for 10 concurrent operations
         
     @pytest.mark.slow
     @pytest.mark.skip(reason="HealthDatabase doesn't support db path argument")
@@ -227,7 +227,7 @@ class TestDatabasePerformance(PerformanceBenchmark):
         result = benchmark(transaction_test)
         
         # Transactions should be efficient
-        assert result.stats['mean'] < 3.0  # <3s for full year with transactions
+        assert benchmark.stats['mean'] < 3.0  # <3s for full year with transactions
         
     @pytest.mark.skip(reason="HealthDatabase doesn't support db path argument")
     def test_index_creation_performance(self, benchmark, temp_db):
@@ -249,4 +249,4 @@ class TestDatabasePerformance(PerformanceBenchmark):
         db.close()
         
         # Index creation should be reasonably fast
-        assert result.stats['mean'] < 5.0  # <5s to create all indexes
+        assert benchmark.stats['mean'] < 5.0  # <5s to create all indexes

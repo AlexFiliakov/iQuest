@@ -10,9 +10,51 @@ hypothesis profile 'default'
 Matplotlib: 3.10.3
 Freetype: 2.6.1
 PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
-metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
 rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
 configfile: pytest.ini
-plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 74 items
+
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_comparative_widget_creation PASSED [  1%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_historical_comparison_display PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_percentile_gauge_animation PASSED [  4%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_seasonal_trends_flow PASSED [  5%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_view_switching PASSED [  6%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_main_window_integration PASSED [  8%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_privacy_settings_integration PASSED [  9%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_responsive_layout PASSED [ 10%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_error_handling PASSED [ 12%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_refresh_on_switch PASSED [ 13%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_data_summary_display PASSED [ 14%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_no_data_message PASSED [ 16%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_metric_selection PASSED [ 17%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_time_range_selection PASSED [ 18%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_initialization PASSED [ 20%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_journal_entry_crud PASSED [ 21%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_preferences_operations PASSED [ 22%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_cache_operations PASSED [ 24%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_metrics_metadata PASSED [ 25%]
+tests/integration/test_database_integration.py::TestDatabaseIntegration::test_concurrent_access PASSED [ 27%]
+tests/integration/test_import_flow.py::TestImportFlow::test_import_menu_action_exists PASSED [ 28%]
+tests/integration/test_import_flow.py::TestImportFlow::test_import_csv_file_flow PASSED [ 29%]
+tests/integration/test_import_flow.py::TestImportFlow::test_import_xml_file_flow PASSED [ 31%]
+tests/integration/test_import_flow.py::TestImportFlow::test_import_dialog_shows_progress /home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
 asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 collecting ... 

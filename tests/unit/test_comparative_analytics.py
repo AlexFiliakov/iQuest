@@ -356,3 +356,76 @@ class TestComparisonResult:
         assert result.context is None
         assert result.insights == []
         assert result.privacy_level == PrivacyLevel.LOCAL_ONLY
+
+    def test_input_validation(self):
+        """Test input validation for comparative analytics engine."""
+        # Create mock calculators with proper DataFrame
+        test_df = pd.DataFrame({
+            'creationDate': pd.date_range('2024-01-01', periods=10),
+            'type': ['steps'] * 10,
+            'value': range(1000, 1100, 10)
+        })
+        daily_calc = DailyMetricsCalculator(test_df)
+        weekly_calc = WeeklyMetricsCalculator(daily_calc)
+        monthly_calc = MonthlyMetricsCalculator(daily_calc)
+        
+        engine = ComparativeAnalyticsEngine(
+            daily_calculator=daily_calc,
+            weekly_calculator=weekly_calc,
+            monthly_calculator=monthly_calc
+        )
+        
+        # Test invalid metric name - should return empty result
+        result = engine.compare_to_historical("invalid@metric!", datetime.now())
+        assert result is not None  # Returns empty HistoricalComparison
+        assert result.rolling_7_day is None
+        assert result.rolling_30_day is None
+        
+        # Test invalid lookback days - should return empty result
+        result = engine.compare_to_historical("steps", datetime.now(), lookback_days=5000)
+        assert result is not None
+        assert result.rolling_7_day is None
+        
+        # Test invalid age - should return None
+        result = engine.compare_to_demographic("steps", age=200)
+        assert result is None
+        
+        # Test invalid gender - should return None
+        result = engine.compare_to_demographic("steps", age=30, gender="invalid")
+        assert result is None
+
+    def test_secure_random_generation(self):
+        """Test that secure random generation is working properly."""
+        privacy_manager = PrivacyManager()
+        
+        # Generate multiple anonymized values
+        values = []
+        for _ in range(10):
+            anonymized = privacy_manager.anonymize_value(100.0, method='differential_privacy')
+            values.append(anonymized)
+        
+        # Check that values are different (randomness working)
+        assert len(set(values)) > 1, "Secure random should generate different values"
+        
+        # Check that values are within reasonable range (differential privacy)
+        assert all(50 < v < 150 for v in values), "Values should be within reasonable range"
+
+    def test_error_handling_in_historical_comparison(self):
+        """Test error handling when calculators raise exceptions."""
+        # Create mock calculator that raises an error
+        class ErrorCalculator:
+            def calculate_statistics(self, metric, start_date, end_date):
+                if metric == "error_metric":
+                    raise Exception("Simulated error")
+                return None
+        
+        error_calc = ErrorCalculator()
+        engine = ComparativeAnalyticsEngine(
+            daily_calculator=error_calc,
+            weekly_calculator=error_calc,
+            monthly_calculator=error_calc
+        )
+        
+        # Should return None without raising exception
+        result = engine.compare_to_historical("error_metric", datetime.now())
+        assert result is None

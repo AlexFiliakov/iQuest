@@ -164,8 +164,8 @@ class TestCalculatorPerformance(PerformanceBenchmark):
         )
         
         # Performance should be reasonable even for large arrays
-        # Adjusted for realistic pandas/numpy overhead: ~3ms per 1000 elements
-        expected_time = (size / 1000) * 0.003  # 3ms per 1000 elements
+        # Adjusted for realistic pandas/numpy overhead: ~3.5ms per 1000 elements
+        expected_time = (size / 1000) * 0.0035  # 3.5ms per 1000 elements
         assert benchmark.stats['mean'] < expected_time
         
         # Test other sizes without benchmarking

@@ -116,7 +116,7 @@ def generate_test_data():
     print("Generating test data samples...")
     
     try:
-        from tests.test_data_generator import TestDataGenerator
+        from tests.generators.test_data_generator import TestDataGenerator
         import pandas as pd
         
         generator = TestDataGenerator(seed=42)

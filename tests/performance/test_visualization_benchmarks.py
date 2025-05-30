@@ -24,9 +24,7 @@ from src.ui.charts.chart_performance_optimizer import ChartPerformanceOptimizer
 from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import QSize
 
-# Ensure Qt Application exists
-if not QApplication.instance():
-    app = QApplication([])
+# Qt Application will be created by pytest-qt fixtures when needed
 
 
 class VisualizationBenchmark(PerformanceBenchmark):

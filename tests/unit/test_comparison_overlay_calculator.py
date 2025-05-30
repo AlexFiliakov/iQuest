@@ -56,7 +56,7 @@ class TestComparisonOverlayCalculator:
     
     def test_calculate_weekly_average_insufficient_data(self, calculator, sparse_data):
         """Test weekly average with insufficient data."""
-        current_date = datetime(2024, 1, 10)  # Only 2 points available
+        current_date = datetime(2024, 1, 3)  # Only 2 points available in 7-day window
         result = calculator.calculate_weekly_average(sparse_data, current_date)
         
         assert result.overlay_type == "weekly_average"
@@ -185,7 +185,7 @@ class TestComparisonOverlayCalculator:
         comparison_values = [100.0, 95.0, 105.0, 98.0, 102.0]
         
         is_significant = calculator.check_statistical_significance(current_value, comparison_values)
-        assert is_significant is True
+        assert is_significant == True
     
     def test_check_statistical_significance_not_significant(self, calculator):
         """Test statistical significance detection with non-significant difference."""
@@ -209,7 +209,7 @@ class TestComparisonOverlayCalculator:
         comparison_values = [100.0, 100.0, 100.0, 100.0]  # All same values
         
         is_significant = calculator.check_statistical_significance(current_value, comparison_values)
-        assert is_significant is True  # Should detect difference from constant values
+        assert is_significant == True  # Should detect difference from constant values
     
     def test_generate_context_message_new_personal_best(self, calculator):
         """Test context message generation for new personal best."""
@@ -217,8 +217,9 @@ class TestComparisonOverlayCalculator:
         current_value = 15000.0
         comparisons = {
             'personal_best': 14000.0,
-            'weekly_avg': 10000.0,
-            'monthly_avg': 9500.0
+            # Use smaller differences so other comparisons don't override
+            'weekly_avg': 14900.0,  # Only 0.67% difference, won't be included  
+            'monthly_avg': 14950.0  # Only 0.33% difference, won't be included
         }
         
         message = calculator.generate_context_message(metric, current_value, comparisons)

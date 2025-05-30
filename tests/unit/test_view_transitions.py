@@ -32,9 +32,9 @@ def transition_manager(app):
 @pytest.fixture
 def test_widgets(qtbot):
     """Create test widgets."""
-    widget1 = QWidget(self)
+    widget1 = QWidget()
     widget1.resize(200, 100)
-    widget2 = QWidget(self)
+    widget2 = QWidget()
     widget2.resize(200, 100)
     
     # Register with qtbot for proper cleanup
