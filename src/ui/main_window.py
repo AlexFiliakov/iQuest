@@ -413,15 +413,10 @@ class MainWindow(QMainWindow):
     def _create_weekly_dashboard_tab(self):
         """Create the weekly dashboard tab."""
         try:
-            # Try modern version first
-            try:
-                from .weekly_dashboard_widget_modern import ModernWeeklyDashboardWidget
-                self.weekly_dashboard = ModernWeeklyDashboardWidget()
-                logger.info("Using ModernWeeklyDashboardWidget")
-            except ImportError:
-                from .weekly_dashboard_widget import WeeklyDashboardWidget
-                self.weekly_dashboard = WeeklyDashboardWidget()
-                logger.info("Using standard WeeklyDashboardWidget")
+            # Use standard version for now (modern version has display issues)
+            from .weekly_dashboard_widget import WeeklyDashboardWidget
+            self.weekly_dashboard = WeeklyDashboardWidget()
+            logger.info("Using standard WeeklyDashboardWidget")
             
             # Connect signals
             self.weekly_dashboard.week_changed.connect(self._on_week_changed)
@@ -1431,7 +1426,10 @@ class MainWindow(QMainWindow):
                 if data is not None and not data.empty:
                     # Create daily calculator with the data
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
-                    daily_calculator = DailyMetricsCalculator(data)
+                    import time
+                    # Get local timezone
+                    local_tz = time.tzname[0]
+                    daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     
                     # Set the calculator in the daily dashboard
                     self.daily_dashboard.set_daily_calculator(daily_calculator)
@@ -1494,8 +1492,11 @@ class MainWindow(QMainWindow):
                     # Create daily calculator first
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+                    import time
+                    # Get local timezone
+                    local_tz = time.tzname[0]
                     
-                    daily_calculator = DailyMetricsCalculator(data)
+                    daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     
                     # Create weekly calculator with the daily calculator
                     weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
@@ -1542,18 +1543,41 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'config_tab'):
                 # Get or create calculators
                 data = None
-                if hasattr(self.config_tab, 'get_filtered_data'):
-                    data = self.config_tab.get_filtered_data()
-                elif hasattr(self.config_tab, 'filtered_data'):
+                
+                # First check if we have filtered data
+                if hasattr(self.config_tab, 'filtered_data') and self.config_tab.filtered_data is not None:
                     data = self.config_tab.filtered_data
+                # Then check if we have loaded data
+                elif hasattr(self.config_tab, 'data') and self.config_tab.data is not None:
+                    data = self.config_tab.data
+                # Try to load data if not already loaded
+                else:
+                    try:
+                        # Check if database exists
+                        db_path = os.path.join(DATA_DIR, "health_data.db")
+                        if os.path.exists(db_path) and hasattr(self.config_tab, 'data_loader'):
+                            logger.info("Loading data from database for comparative analytics")
+                            # Ensure data is loaded
+                            if hasattr(self.config_tab, '_ensure_data_loaded'):
+                                self.config_tab._ensure_data_loaded()
+                                data = self.config_tab.data
+                            else:
+                                # Direct load if method doesn't exist
+                                self.config_tab.data = self.config_tab.data_loader.get_all_records()
+                                data = self.config_tab.data
+                    except Exception as e:
+                        logger.error(f"Failed to load data for comparative analytics: {e}")
                 
                 if data is not None and not data.empty:
                     # Create calculators
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                    import time
+                    # Get local timezone
+                    local_tz = time.tzname[0]
                     
-                    daily_calculator = DailyMetricsCalculator(data)
+                    daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
                     monthly_calculator = MonthlyMetricsCalculator(data)
                     
@@ -1567,7 +1591,7 @@ class MainWindow(QMainWindow):
                     
                     logger.info("Updated comparative analytics with new data")
                 else:
-                    logger.warning("No data available to refresh comparative analytics")
+                    logger.info("No data available yet - comparative analytics will update when data is loaded")
     
     def _on_filters_applied(self, filters):
         """Handle filters applied signal from configuration tab."""

@@ -100,6 +100,7 @@ class WeeklyStatCard(QFrame):
         """Update the displayed values."""
         self.value_label.setText(value)
         self.sub_label.setText(sub_label)
+        self.update()  # Force repaint
 
 
 class WeeklyDashboardWidget(QWidget):
@@ -551,13 +552,32 @@ class WeeklyDashboardWidget(QWidget):
     
     def _detect_available_metrics(self):
         """Detect available metrics from the data."""
-        if not self.weekly_calculator or not self.weekly_calculator.daily_calculator:
+        logger.info("Detecting available metrics...")
+        
+        if not self.weekly_calculator:
+            logger.warning("No weekly calculator available")
+            return
+            
+        if not self.weekly_calculator.daily_calculator:
+            logger.warning("No daily calculator available")
             return
             
         try:
             # Get unique metric types
             data = self.weekly_calculator.daily_calculator.data
+            if data is None or data.empty:
+                logger.warning("No data available in daily calculator")
+                return
+                
+            logger.info(f"Data shape: {data.shape}")
+            logger.info(f"Data columns: {data.columns.tolist()}")
+            
+            if 'type' not in data.columns:
+                logger.error("'type' column not found in data")
+                return
+                
             available_types = data['type'].unique()
+            logger.info(f"Available types: {available_types}")
             
             # Map to display names
             metric_mapping = {
@@ -578,10 +598,14 @@ class WeeklyDashboardWidget(QWidget):
                 if hk_type in available_types:
                     self._available_metrics.append((hk_type, metric_key))
                     self.metric_selector.addItem(display_name, hk_type)
+                    logger.info(f"Added metric: {display_name} ({hk_type})")
             
             if self._available_metrics:
                 self._selected_metric = self._available_metrics[0][0]
                 self.metric_selector.setCurrentIndex(0)
+                logger.info(f"Selected first metric: {self._selected_metric}")
+            else:
+                logger.warning("No available metrics found")
                 
         except Exception as e:
             logger.error(f"Error detecting available metrics: {e}", exc_info=True)
@@ -653,18 +677,37 @@ class WeeklyDashboardWidget(QWidget):
             
         except Exception as e:
             logger.error(f"Error loading weekly data: {e}", exc_info=True)
+            # Show error to user
+            self._show_no_data_message()
     
     def _update_summary_stats(self, metric_type: str):
         """Update the summary statistics cards."""
+        logger.info(f"Updating summary stats for metric: {metric_type}")
         try:
             # Get weekly data
-            weekly_data = self.weekly_calculator.get_weekly_metrics(
-                metric=metric_type,
-                week_start=self._current_week_start
+            logger.info(f"Getting weekly metrics for week starting: {self._current_week_start}")
+            
+            # Use the daily calculator data directly
+            data = self.weekly_calculator.daily_calculator.data.copy()
+            
+            # Ensure we have the right column names
+            if 'startDate' in data.columns and 'creationDate' not in data.columns:
+                data['creationDate'] = data['startDate']
+            
+            # Convert date to datetime for the calculator
+            week_start_datetime = datetime.combine(self._current_week_start, datetime.min.time())
+            
+            weekly_data = self.weekly_calculator.calculate_weekly_metrics(
+                data=data,
+                metric_type=metric_type,
+                week_start=week_start_datetime
             )
             
             if not weekly_data:
+                logger.warning(f"No weekly data found for metric: {metric_type}")
                 return
+            
+            logger.info(f"Got weekly data: avg={weekly_data.avg}, days={len(weekly_data.daily_values)}")
             
             # Hide no data message if showing
             self._hide_no_data_message()
@@ -714,9 +757,16 @@ class WeeklyDashboardWidget(QWidget):
                         f"{volatility:.1f}%",
                         "coefficient of variation"
                     )
+            
+            # Force UI update
+            self.update()
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+            
+            logger.info("Summary stats updated successfully")
                     
         except Exception as e:
-            logger.error(f"Error updating summary stats: {e}")
+            logger.error(f"Error updating summary stats: {e}", exc_info=True)
     
     def _update_wow_comparison(self, metric_type: str):
         """Update week-over-week comparison."""
@@ -893,10 +943,11 @@ class WeeklyDashboardWidget(QWidget):
     
     def _show_no_data_message(self):
         """Show message when no data is loaded."""
+        from PyQt6.QtCore import Qt
+        
         # Create or update no data overlay
         if not hasattr(self, 'no_data_overlay'):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
-            from PyQt6.QtCore import Qt
             
             self.no_data_overlay = QWidget(self)
             self.no_data_overlay.setStyleSheet("""
@@ -1053,6 +1104,9 @@ class WeeklyDashboardWidget(QWidget):
         super().showEvent(event)
         logger.info("Weekly dashboard shown")
         
+        # Ensure all widgets are visible
+        self._ensure_widgets_visible()
+        
         # Force a refresh when the widget is shown
         if self.weekly_calculator:
             logger.info("Weekly calculator available - loading data")
@@ -1064,3 +1118,20 @@ class WeeklyDashboardWidget(QWidget):
         else:
             logger.warning("No weekly calculator available on show event")
             self._show_no_data_message()
+            
+    def _ensure_widgets_visible(self):
+        """Ensure all main widgets are visible."""
+        # Make sure the main widget is visible
+        self.show()
+        
+        # Make sure stat cards are visible
+        if hasattr(self, 'stat_cards'):
+            for card in self.stat_cards.values():
+                card.show()
+        
+        # Make sure sections are visible
+        if hasattr(self, 'metric_selector'):
+            self.metric_selector.show()
+            
+        # Update geometry
+        self.updateGeometry()

@@ -116,7 +116,13 @@ class DailyMetricsCalculator:
                 self.data['creationDate'] = self.data['creationDate'].dt.tz_convert(self.timezone)
             
             # Add date column for daily aggregation
-            self.data['date'] = self.data['creationDate'].dt.date
+            # Use normalize() to ensure we get date at midnight for proper comparison
+            self.data['date'] = pd.to_datetime(self.data['creationDate']).dt.normalize().dt.date
+            
+            # Log some debug info
+            logger.debug(f"Prepared data with {len(self.data)} records")
+            if len(self.data) > 0:
+                logger.debug(f"Date range: {self.data['date'].min()} to {self.data['date'].max()}")
         
         # Ensure value is numeric and convert to float64 for consistency
         if 'value' in self.data.columns:
@@ -331,15 +337,26 @@ class DailyMetricsCalculator:
         
         metric_data = self.data[self.data['type'] == metric].copy()
         
+        # Log debug info
+        logger.debug(f"Filtering data for metric '{metric}', found {len(metric_data)} records")
+        
         # Filter by date range if provided
         if start_date or end_date:
             if 'date' not in metric_data.columns:
                 raise ValueError("Data must have 'date' column")
             
             if start_date:
+                # Ensure start_date is a date object for comparison
+                if isinstance(start_date, pd.Timestamp):
+                    start_date = start_date.date()
                 metric_data = metric_data[metric_data['date'] >= start_date]
+                logger.debug(f"After start_date filter ({start_date}): {len(metric_data)} records")
             if end_date:
+                # Ensure end_date is a date object for comparison
+                if isinstance(end_date, pd.Timestamp):
+                    end_date = end_date.date()
                 metric_data = metric_data[metric_data['date'] <= end_date]
+                logger.debug(f"After end_date filter ({end_date}): {len(metric_data)} records")
         
         return metric_data
     

@@ -780,6 +780,319 @@ class DataLoader:
             return "Sleep Apps"
         else:
             return "Other Apps"
+    
+    def get_statistics_summary(self) -> dict:
+        """Get summary statistics from the database using SQL aggregation.
+        
+        This method is optimized to avoid loading all records into memory.
+        Instead, it uses SQL queries to compute statistics directly in the database.
+        
+        Returns:
+            Dictionary with summary statistics:
+            - total_records: Total number of records
+            - unique_types: Number of unique health metric types
+            - unique_sources: Number of unique source devices
+            - date_range: Tuple of (earliest_date, latest_date)
+            - last_updated: When the statistics were computed
+            
+        Raises:
+            ValueError: If database path not set
+            FileNotFoundError: If database doesn't exist
+            sqlite3.Error: If database query fails
+        """
+        if not self.db_path:
+            raise ValueError("Database path not set")
+        
+        if not Path(self.db_path).exists():
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
+        
+        try:
+            self.logger.info("Computing statistics summary using SQL aggregation")
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check if health_records table exists
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='health_records'
+            """)
+            if not cursor.fetchone():
+                self.logger.warning("health_records table does not exist")
+                return {
+                    'total_records': 0,
+                    'unique_types': 0,
+                    'unique_sources': 0,
+                    'date_range': (None, None),
+                    'last_updated': datetime.now()
+                }
+            
+            # Get all statistics in a single efficient query
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_records,
+                    COUNT(DISTINCT type) as unique_types,
+                    COUNT(DISTINCT sourceName) as unique_sources,
+                    MIN(creationDate) as earliest_date,
+                    MAX(creationDate) as latest_date
+                FROM health_records
+            """)
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            return {
+                'total_records': result[0] or 0,
+                'unique_types': result[1] or 0,
+                'unique_sources': result[2] or 0,
+                'date_range': (result[3], result[4]) if result[3] and result[4] else (None, None),
+                'last_updated': datetime.now()
+            }
+            
+        except sqlite3.Error as e:
+            self.logger.error(f"Database error computing statistics: {e}")
+            raise DataImportError(f"Failed to compute statistics: {str(e)}") from e
+    
+    def get_type_counts(self) -> pd.DataFrame:
+        """Get counts of records by health metric type.
+        
+        Returns:
+            DataFrame with columns:
+            - type: Health metric type
+            - count: Number of records
+            - percentage: Percentage of total records
+            
+        Raises:
+            ValueError: If database path not set
+            FileNotFoundError: If database doesn't exist
+            sqlite3.Error: If database query fails
+        """
+        if not self.db_path:
+            raise ValueError("Database path not set")
+        
+        if not Path(self.db_path).exists():
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
+        
+        try:
+            self.logger.info("Getting type counts using SQL aggregation")
+            
+            conn = sqlite3.connect(self.db_path)
+            
+            # Get counts by type
+            df = pd.read_sql("""
+                SELECT 
+                    type,
+                    COUNT(*) as count
+                FROM health_records
+                GROUP BY type
+                ORDER BY count DESC
+            """, conn)
+            
+            # Get total for percentage calculation
+            total = df['count'].sum() if not df.empty else 1
+            df['percentage'] = (df['count'] / total * 100).round(1)
+            
+            conn.close()
+            return df
+            
+        except sqlite3.Error as e:
+            self.logger.error(f"Database error getting type counts: {e}")
+            raise DataImportError(f"Failed to get type counts: {str(e)}") from e
+    
+    def get_source_counts(self) -> pd.DataFrame:
+        """Get counts of records by source device.
+        
+        Returns:
+            DataFrame with columns:
+            - sourceName: Source device name
+            - count: Number of records
+            - percentage: Percentage of total records
+            
+        Raises:
+            ValueError: If database path not set
+            FileNotFoundError: If database doesn't exist
+            sqlite3.Error: If database query fails
+        """
+        if not self.db_path:
+            raise ValueError("Database path not set")
+        
+        if not Path(self.db_path).exists():
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
+        
+        try:
+            self.logger.info("Getting source counts using SQL aggregation")
+            
+            conn = sqlite3.connect(self.db_path)
+            
+            # Get counts by source
+            df = pd.read_sql("""
+                SELECT 
+                    sourceName,
+                    COUNT(*) as count
+                FROM health_records
+                GROUP BY sourceName
+                ORDER BY count DESC
+            """, conn)
+            
+            # Get total for percentage calculation
+            total = df['count'].sum() if not df.empty else 1
+            df['percentage'] = (df['count'] / total * 100).round(1)
+            
+            conn.close()
+            return df
+            
+        except sqlite3.Error as e:
+            self.logger.error(f"Database error getting source counts: {e}")
+            raise DataImportError(f"Failed to get source counts: {str(e)}") from e
+    
+    def get_record_statistics(self) -> dict:
+        """Get summary statistics using SQL aggregation queries.
+        
+        This method combines data from multiple aggregation queries for
+        efficient loading in the Configuration tab.
+        
+        Returns:
+            Dictionary with:
+            - total_records: Total number of records
+            - earliest_date: Earliest record date
+            - latest_date: Latest record date
+            - type_counts: Dictionary of type -> count
+            - source_counts: Dictionary of source -> count
+            
+        Raises:
+            ValueError: If database path not set
+            FileNotFoundError: If database doesn't exist
+            sqlite3.Error: If database query fails
+        """
+        if not self.db_path:
+            raise ValueError("Database path not set")
+        
+        if not Path(self.db_path).exists():
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
+        
+        try:
+            self.logger.info("Getting record statistics using SQL aggregation")
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check if health_records table exists
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='health_records'
+            """)
+            if not cursor.fetchone():
+                self.logger.warning("health_records table does not exist")
+                return {
+                    'total_records': 0,
+                    'earliest_date': None,
+                    'latest_date': None,
+                    'type_counts': {},
+                    'source_counts': {}
+                }
+            
+            # Total records and date range
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    MIN(creationDate) as earliest,
+                    MAX(creationDate) as latest
+                FROM health_records
+            """)
+            total, earliest, latest = cursor.fetchone()
+            
+            # Type counts
+            type_counts_result = cursor.execute("""
+                SELECT type, COUNT(*) as count 
+                FROM health_records 
+                GROUP BY type
+            """).fetchall()
+            type_counts = dict(type_counts_result)
+            
+            # Source counts
+            source_counts_result = cursor.execute("""
+                SELECT sourceName, COUNT(*) as count 
+                FROM health_records 
+                GROUP BY sourceName
+            """).fetchall()
+            source_counts = dict(source_counts_result)
+            
+            conn.close()
+            
+            return {
+                'total_records': total or 0,
+                'earliest_date': earliest,
+                'latest_date': latest,
+                'type_counts': type_counts,
+                'source_counts': source_counts
+            }
+            
+        except sqlite3.Error as e:
+            self.logger.error(f"Database error getting record statistics: {e}")
+            raise DataImportError(f"Failed to get record statistics: {str(e)}") from e
+    
+    def get_filter_options(self) -> dict:
+        """Get unique filter values without loading all data.
+        
+        Returns:
+            Dictionary with:
+            - types: List of unique health metric types
+            - sources: List of unique source names
+            
+        Raises:
+            ValueError: If database path not set
+            FileNotFoundError: If database doesn't exist
+            sqlite3.Error: If database query fails
+        """
+        if not self.db_path:
+            raise ValueError("Database path not set")
+        
+        if not Path(self.db_path).exists():
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
+        
+        try:
+            self.logger.info("Getting filter options using SQL queries")
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check if health_records table exists
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='health_records'
+            """)
+            if not cursor.fetchone():
+                self.logger.warning("health_records table does not exist")
+                return {'types': [], 'sources': []}
+            
+            # Get unique types
+            types_result = cursor.execute("""
+                SELECT DISTINCT type 
+                FROM health_records 
+                WHERE type IS NOT NULL
+                ORDER BY type
+            """).fetchall()
+            types = [row[0] for row in types_result]
+            
+            # Get unique sources
+            sources_result = cursor.execute("""
+                SELECT DISTINCT sourceName 
+                FROM health_records 
+                WHERE sourceName IS NOT NULL
+                ORDER BY sourceName
+            """).fetchall()
+            sources = [row[0] for row in sources_result]
+            
+            conn.close()
+            
+            return {
+                'types': types,
+                'sources': sources
+            }
+            
+        except sqlite3.Error as e:
+            self.logger.error(f"Database error getting filter options: {e}")
+            raise DataImportError(f"Failed to get filter options: {str(e)}") from e
 
 
 # Example usage and testing

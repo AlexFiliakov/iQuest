@@ -15,7 +15,8 @@ import numpy as np
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QGridLayout, QGroupBox, QProgressBar, QToolTip
+    QFrame, QGridLayout, QGroupBox, QProgressBar, QToolTip,
+    QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
@@ -360,14 +361,33 @@ class HistoricalComparisonWidget(QWidget):
         trend_layout = QHBoxLayout(self.trend_frame)
         
         self.trend_icon = QLabel(self)
-        self.trend_label = QLabel("Calculating trend...")
+        self.trend_label = QLabel("Initializing...")
         self.trend_label.setStyleSheet("color: #666666;")
+        
+        # Add a progress indicator
+        from PyQt6.QtWidgets import QProgressBar
+        self.trend_progress = QProgressBar()
+        self.trend_progress.setMaximumHeight(4)
+        self.trend_progress.setTextVisible(False)
+        self.trend_progress.setStyleSheet("""
+            QProgressBar {
+                border: none;
+                background-color: #E0E0E0;
+                border-radius: 2px;
+            }
+            QProgressBar::chunk {
+                background-color: #FF8C42;
+                border-radius: 2px;
+            }
+        """)
+        self.trend_progress.hide()
         
         trend_layout.addWidget(self.trend_icon)
         trend_layout.addWidget(self.trend_label)
         trend_layout.addStretch()
         
         layout.addWidget(self.trend_frame)
+        layout.addWidget(self.trend_progress)
         
     def on_metric_changed(self, metric_name: str):
         """Handle metric selection change."""
@@ -383,30 +403,55 @@ class HistoricalComparisonWidget(QWidget):
     def update_data(self):
         """Update the comparison data for current metric."""
         if not self.comparative_engine or not self.current_metric:
+            self._update_status("No data source available")
             return
             
         # Show loading state
+        self._update_status("Loading historical data...")
         self.week_card.set_loading(True)
         self.month_card.set_loading(True)
         self.quarter_card.set_loading(True)
         self.year_card.set_loading(True)
         
+        # Show progress bar
+        self.trend_progress.show()
+        self.trend_progress.setRange(0, 4)  # 4 time periods to calculate
+        self.trend_progress.setValue(0)
+        
         try:
             # Get comparison data
-            comparison = self.comparative_engine.compare_with_historical(
+            self._update_status("Checking for cached trends...")
+            comparison = self.comparative_engine.compare_to_historical(
                 self.current_metric,
                 datetime.now()
             )
             
             if comparison:
-                self.update_comparison(comparison.historical, comparison.current_value)
+                self._update_status("Processing comparison data...")
+                # compare_to_historical returns HistoricalComparison directly
+                self.update_comparison(comparison, 0)  # We'll get current value from the comparison
             else:
                 # Try to get basic statistics if comparison fails
+                self._update_status("Calculating statistics from raw data...")
                 self._update_from_basic_stats()
                 
         except Exception as e:
             logger.error(f"Error updating comparison data: {e}")
+            self._update_status(f"Error: {str(e)}", is_error=True)
             self._show_no_data()
+        finally:
+            # Hide progress bar after a short delay
+            QTimer.singleShot(500, self.trend_progress.hide)
+    
+    def _update_status(self, message: str, is_error: bool = False):
+        """Update the status message."""
+        self.trend_label.setText(message)
+        if is_error:
+            self.trend_label.setStyleSheet("color: #d32f2f;")
+            self.trend_icon.setText("❌")
+        else:
+            self.trend_label.setStyleSheet("color: #666666;")
+            self.trend_icon.setText("⏳")
     
     def _update_from_basic_stats(self):
         """Update cards with basic statistics."""
@@ -419,77 +464,124 @@ class HistoricalComparisonWidget(QWidget):
             now = datetime.now()
             
             # 7-day average
+            self._update_status("Calculating 7-day average...")
+            self.trend_progress.setValue(1)
+            QApplication.processEvents()  # Update UI
+            
             week_ago = now - timedelta(days=7)
             week_stats = self._get_period_stats(week_ago, now, "7-day")
             if week_stats:
                 self.week_card.set_value(week_stats['mean'], self._determine_trend(week_stats))
+            else:
+                self.week_card.set_loading(False)
+                self.week_card.value_label.setText("--")
                 
             # 30-day average
+            self._update_status("Calculating 30-day average...")
+            self.trend_progress.setValue(2)
+            QApplication.processEvents()
+            
             month_ago = now - timedelta(days=30)
             month_stats = self._get_period_stats(month_ago, now, "30-day")
             if month_stats:
                 self.month_card.set_value(month_stats['mean'], self._determine_trend(month_stats))
+            else:
+                self.month_card.set_loading(False)
+                self.month_card.value_label.setText("--")
                 
             # 90-day average
+            self._update_status("Calculating 90-day average...")
+            self.trend_progress.setValue(3)
+            QApplication.processEvents()
+            
             quarter_ago = now - timedelta(days=90)
             quarter_stats = self._get_period_stats(quarter_ago, now, "90-day")
             if quarter_stats:
                 self.quarter_card.set_value(quarter_stats['mean'], self._determine_trend(quarter_stats))
+            else:
+                self.quarter_card.set_loading(False)
+                self.quarter_card.value_label.setText("--")
                 
             # 365-day average
+            self._update_status("Calculating yearly average...")
+            self.trend_progress.setValue(4)
+            QApplication.processEvents()
+            
             year_ago = now - timedelta(days=365)
             year_stats = self._get_period_stats(year_ago, now, "365-day")
             if year_stats:
                 self.year_card.set_value(year_stats['mean'], self._determine_trend(year_stats))
+            else:
+                self.year_card.set_loading(False)
+                self.year_card.value_label.setText("--")
+            
+            # Update final status
+            self._update_status("Analysis complete")
+            self.trend_icon.setText("✓")
+            self.trend_label.setStyleSheet("color: #4CAF50;")
                 
         except Exception as e:
             logger.error(f"Error getting basic stats: {e}")
+            self._update_status(f"Calculation error: {str(e)}", is_error=True)
             self._show_no_data()
     
     def _get_period_stats(self, start_date, end_date, period_name):
         """Get statistics for a specific period."""
         try:
             if self.comparative_engine:
+                # Update status with period details
+                self._update_status(f"Accessing {period_name} data ({start_date.strftime('%m/%d')} to {end_date.strftime('%m/%d')})...")
+                
                 # Try to get stats from daily calculator
                 if hasattr(self.comparative_engine, 'daily_calculator') and self.comparative_engine.daily_calculator:
                     calc = self.comparative_engine.daily_calculator
                     
                     # Try different methods to get data
                     data = None
-                    if hasattr(calc, 'get_metric_stats'):
+                    if hasattr(calc, 'calculate_statistics'):
+                        self._update_status(f"Retrieving {period_name} aggregated statistics...")
                         # Get aggregated stats for the period
-                        stats = calc.get_metric_stats(self.current_metric, start_date, end_date)
-                        if stats:
-                            return {
-                                'mean': stats.get('mean', 0),
-                                'std': stats.get('std', 0),
-                                'count': stats.get('count', 0),
-                                'period': period_name
-                            }
+                        try:
+                            stats = calc.calculate_statistics(self.current_metric, start_date, end_date)
+                            if stats and hasattr(stats, 'mean'):
+                                return {
+                                    'mean': stats.mean,
+                                    'std': stats.std if hasattr(stats, 'std') else 0,
+                                    'count': stats.count if hasattr(stats, 'count') else 0,
+                                    'period': period_name
+                                }
+                        except Exception as e:
+                            logger.debug(f"calculate_statistics failed: {e}")
                     
                     if hasattr(calc, 'get_daily_summary'):
+                        self._update_status(f"Loading {period_name} daily summaries...")
                         # Get daily summaries and calculate average
-                        summaries = calc.get_daily_summary(start_date, end_date)
-                        if summaries and not summaries.empty:
-                            # Find the column for our metric
-                            metric_col = None
-                            for col in summaries.columns:
-                                if self.current_metric in col or col == self.current_metric:
-                                    metric_col = col
-                                    break
-                            
-                            if metric_col and metric_col in summaries.columns:
-                                valid_data = summaries[metric_col].dropna()
-                                if len(valid_data) > 0:
-                                    return {
-                                        'mean': valid_data.mean(),
-                                        'std': valid_data.std(),
-                                        'count': len(valid_data),
-                                        'period': period_name
-                                    }
+                        try:
+                            summaries = calc.get_daily_summary(start_date, end_date)
+                            if summaries and not summaries.empty:
+                                # Find the column for our metric
+                                metric_col = None
+                                for col in summaries.columns:
+                                    if self.current_metric in col or col == self.current_metric:
+                                        metric_col = col
+                                        break
+                                
+                                if metric_col and metric_col in summaries.columns:
+                                    valid_data = summaries[metric_col].dropna()
+                                    if len(valid_data) > 0:
+                                        self._update_status(f"Processing {len(valid_data)} days of {period_name} data...")
+                                        return {
+                                            'mean': valid_data.mean(),
+                                            'std': valid_data.std(),
+                                            'count': len(valid_data),
+                                            'period': period_name
+                                        }
+                        except Exception as e:
+                            logger.debug(f"get_daily_summary failed: {e}")
                     
                     # Fallback: try to get raw data
                     if hasattr(calc, 'data') and calc.data is not None:
+                        self._update_status(f"Analyzing raw {period_name} data...")
                         import pandas as pd
                         df = calc.data
                         if isinstance(df, pd.DataFrame) and 'type' in df.columns:
@@ -501,6 +593,7 @@ class HistoricalComparisonWidget(QWidget):
                             
                             metric_data = df[mask]
                             if len(metric_data) > 0 and 'value' in metric_data.columns:
+                                self._update_status(f"Processing {len(metric_data)} {period_name} records...")
                                 values = pd.to_numeric(metric_data['value'], errors='coerce').dropna()
                                 if len(values) > 0:
                                     return {
@@ -509,9 +602,12 @@ class HistoricalComparisonWidget(QWidget):
                                         'count': len(values),
                                         'period': period_name
                                     }
+                            else:
+                                self._update_status(f"No {period_name} data found for selected metric")
                     
         except Exception as e:
             logger.error(f"Error getting {period_name} stats: {e}")
+            self._update_status(f"Error processing {period_name}: {str(e)}", is_error=True)
         return None
     
     def _determine_trend(self, stats):
@@ -530,53 +626,60 @@ class HistoricalComparisonWidget(QWidget):
             card.insight_label.setText("")
         
     def update_comparison(self, historical: HistoricalComparison, 
-                         current_value: float):
+                         current_value: float = None):
         """Update the historical comparison display."""
+        self._update_status("Updating comparison displays...")
+        self.trend_progress.setValue(1)
+        
+        # Get current value from the most recent data if not provided
+        if current_value is None or current_value == 0:
+            if historical.rolling_7_day and historical.rolling_7_day.mean is not None:
+                current_value = historical.rolling_7_day.mean
+            elif historical.rolling_30_day and historical.rolling_30_day.mean is not None:
+                current_value = historical.rolling_30_day.mean
+            else:
+                current_value = 0
+        
         # Update 7-day
         if historical.rolling_7_day and historical.rolling_7_day.mean is not None:
-            self.week_card.set_comparison(
-                current_value, 
-                historical.rolling_7_day.mean
-            )
+            self.week_card.set_value(historical.rolling_7_day.mean, 'stable')
         else:
-            self.week_card.value_label.setText(f"{current_value:,.0f}")
+            self.week_card.value_label.setText("--")
             self.week_card.comparison_label.setText("No historical data")
-            
+        
+        self.trend_progress.setValue(2)
+        
         # Update 30-day
         if historical.rolling_30_day and historical.rolling_30_day.mean is not None:
-            self.month_card.set_comparison(
-                current_value,
-                historical.rolling_30_day.mean
-            )
+            self.month_card.set_value(historical.rolling_30_day.mean, 'stable')
         else:
-            self.month_card.value_label.setText(f"{current_value:,.0f}")
+            self.month_card.value_label.setText("--")
             self.month_card.comparison_label.setText("No historical data")
-            
+        
+        self.trend_progress.setValue(3)
+        
         # Update 90-day
         if historical.rolling_90_day and historical.rolling_90_day.mean is not None:
-            self.quarter_card.set_comparison(
-                current_value,
-                historical.rolling_90_day.mean
-            )
+            self.quarter_card.set_value(historical.rolling_90_day.mean, 'stable')
         else:
-            self.quarter_card.value_label.setText(f"{current_value:,.0f}")
+            self.quarter_card.value_label.setText("--")
             self.quarter_card.comparison_label.setText("No historical data")
-            
+        
+        self.trend_progress.setValue(4)
+        
         # Update 365-day
         if historical.rolling_365_day and historical.rolling_365_day.mean is not None:
-            self.year_card.set_comparison(
-                current_value,
-                historical.rolling_365_day.mean
-            )
+            self.year_card.set_value(historical.rolling_365_day.mean, 'stable')
             if historical.personal_best:
                 self.year_card.set_insight(
                     f"Personal best: {historical.personal_best[1]:,.0f}"
                 )
         else:
-            self.year_card.value_label.setText(f"{current_value:,.0f}")
+            self.year_card.value_label.setText("--")
             self.year_card.comparison_label.setText("No historical data")
-                
-        # Update trend
+        
+        # Update trend analysis
+        self._update_status("Analyzing trends...")
         if historical.trend_direction:
             if historical.trend_direction == "improving":
                 self.trend_icon.setText("📈")
@@ -605,7 +708,8 @@ class HistoricalComparisonWidget(QWidget):
                     border-radius: 4px;
                     padding: 10px;
                 """)
-
+        else:
+            self._update_status("Analysis complete")
 
 # PeerGroupComparisonWidget class removed - Group comparison feature no longer supported
 # class PeerGroupComparisonWidget(QWidget):

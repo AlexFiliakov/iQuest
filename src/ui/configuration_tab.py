@@ -31,6 +31,7 @@ from ..database import db_manager
 from ..filter_config_manager import FilterConfig, FilterConfigManager
 from ..statistics_calculator import StatisticsCalculator
 from ..utils.logging_config import get_logger
+from ..analytics.cache_manager import get_cache_manager
 from .component_factory import ComponentFactory
 from .enhanced_date_edit import EnhancedDateEdit
 from .import_progress_dialog import ImportProgressDialog
@@ -101,6 +102,7 @@ class ConfigurationTab(QWidget):
         self.data_loader = DataLoader()
         self.filter_config_manager = FilterConfigManager()
         self.statistics_calculator = StatisticsCalculator()
+        self.cache_manager = get_cache_manager()  # Get singleton cache manager for performance
         
         # Initialize metric calculators as None - they'll be created when data is loaded
         self.daily_calculator = None
@@ -110,6 +112,7 @@ class ConfigurationTab(QWidget):
         self.data = None
         self.filtered_data = None
         self.statistics_widget = None
+        self.data_available = False  # Track if data is available without loading it
         
         # UI elements that need to be accessed
         self.file_path_input = None
@@ -134,8 +137,12 @@ class ConfigurationTab(QWidget):
         # Set up keyboard navigation
         self._setup_keyboard_navigation()
         
-        # Check if data is already available in database on startup
-        QTimer.singleShot(100, self._check_existing_data)
+        # OPTIMIZATION: Disabled auto-load on startup to improve performance
+        # Data will be loaded on-demand when user applies filters
+        # QTimer.singleShot(100, self._check_existing_data)
+        
+        # Instead, just check if database exists and show appropriate message
+        QTimer.singleShot(100, self._check_database_availability)
         
         logger.info("Configuration tab initialized")
     
@@ -1147,6 +1154,9 @@ class ConfigurationTab(QWidget):
             # Initialize calculators with the loaded data
             self._initialize_calculators()
             
+            # Mark data as available
+            self.data_available = True
+            
             # Emit signal
             self.data_loaded.emit(self.data)
             
@@ -1169,29 +1179,45 @@ class ConfigurationTab(QWidget):
         self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
     
     def _load_from_sqlite(self):
-        """Load data from SQLite database."""
+        """Load data from SQLite database - OPTIMIZED VERSION.
+        
+        This method now uses SQL aggregation queries instead of loading all records
+        into memory. This significantly improves performance for large datasets.
+        """
         try:
-            logger.info("Loading data from SQLite database")
+            logger.info("Loading statistics from SQLite database (optimized)")
             
             # Set database path
             db_path = os.path.join(DATA_DIR, "health_data.db")
             self.data_loader.db_path = db_path
             
-            # Load data
-            self.data = self.data_loader.get_all_records()
+            # Use cache manager with compute function for record statistics
+            cache_key = f"config_tab_record_stats_{db_path}"
             
-            if self.data is None or self.data.empty:
+            # Define compute function for cache miss
+            def compute_stats():
+                logger.info("Computing fresh record statistics")
+                return self.data_loader.get_record_statistics()
+            
+            # Get from cache or compute
+            record_stats = self.cache_manager.get(
+                cache_key, 
+                compute_fn=compute_stats,
+                ttl=3600  # Cache for 1 hour
+            )
+            
+            if record_stats['total_records'] == 0:
                 raise ValueError("No data found in database")
             
-            row_count = len(self.data)
+            row_count = record_stats['total_records']
             
             # Update UI
             self.progress_bar.setVisible(False)
-            self.progress_label.setText("Data loaded from database!")
+            self.progress_label.setText("Data statistics loaded!")
             self.progress_label.setStyleSheet(f"color: {self.style_manager.ACCENT_SUCCESS};")
             
             # Update status
-            self._update_status(f"Loaded {row_count:,} records from database")
+            self._update_status(f"Database contains {row_count:,} records")
             
             # Update summary cards
             self.total_records_card.update_content({'value': f"{row_count:,}"})
@@ -1199,33 +1225,22 @@ class ConfigurationTab(QWidget):
             self.data_source_card.update_content({'value': "Database"})
             self.filter_status_card.update_content({'value': "Default"})
             
-            # Populate filters
-            self._populate_filters()
+            # Populate filters (using optimized SQL queries)
+            self._populate_filters_optimized()
             
             # Enable filter controls
             self._enable_filter_controls(True)
             
-            # Update data preview
-            self._update_data_preview()
-            
-            # Calculate and display statistics
-            try:
-                stats = self.statistics_calculator.calculate_from_dataframe(self.data)
-                self._update_custom_statistics(stats)
-            except AttributeError as e:
-                logger.warning(f"Error updating statistics: {e}")
-                # Continue without failing the entire load
+            # Update statistics display (using SQL-computed data)
+            self._update_statistics_from_sql()
             
             # Load last used filters if available
             self._load_last_used_filters()
             
-            # Initialize calculators
-            self._initialize_calculators()
+            # Mark data as available for filtering (but not loaded)
+            self.data_available = True
             
-            # Emit signal
-            self.data_loaded.emit(self.data)
-            
-            logger.info(f"Database load complete: {row_count} records")
+            logger.info(f"Database statistics loaded: {row_count:,} records")
             
         except Exception as e:
             logger.error(f"Failed to load from database: {e}")
@@ -1236,6 +1251,41 @@ class ConfigurationTab(QWidget):
                 "Load Error",
                 f"Failed to load from database: {str(e)}"
             )
+    
+    def _load_data_for_filtering(self):
+        """Load actual data only when filters are applied.
+        
+        This method is called when the user clicks 'Apply Filters' and we need
+        the actual data to filter. This defers the expensive data loading operation.
+        """
+        if self.data is None:
+            logger.info("Loading full data for filtering (first time)")
+            try:
+                # Show progress
+                self.progress_label.setText("Loading data for filtering...")
+                self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
+                self.progress_bar.setVisible(True)
+                self.progress_bar.setRange(0, 0)  # Indeterminate progress
+                
+                # Load data
+                self.data = self.data_loader.get_all_records()
+                
+                # Hide progress
+                self.progress_bar.setVisible(False)
+                self.progress_label.setText("Data loaded!")
+                
+                # Initialize calculators with the loaded data
+                self._initialize_calculators()
+                
+                # Emit data loaded signal
+                self.data_loaded.emit(self.data)
+                
+                logger.info(f"Loaded {len(self.data)} records for filtering")
+                
+            except Exception as e:
+                logger.error(f"Failed to load data for filtering: {e}")
+                self.progress_bar.setVisible(False)
+                raise
     
     def _populate_filters(self):
         """Populate filter options from loaded data."""
@@ -1273,11 +1323,29 @@ class ConfigurationTab(QWidget):
         self.metric_dropdown.setEnabled(enabled)
     
     def _on_apply_filters_clicked(self):
-        """Handle apply filters button click."""
-        if self.data is None:
+        """Handle apply filters button click - OPTIMIZED VERSION.
+        
+        This method now loads data on-demand when filters are first applied,
+        rather than loading all data when the tab is opened.
+        """
+        # Check if we have data available (either loaded or in database)
+        if not self.data_available and self.data is None:
+            QMessageBox.warning(self, "No Data", "Please import data before applying filters.")
             return
         
         logger.info("Applying filters")
+        
+        # Load data if not already loaded (deferred loading)
+        if self.data is None and self.data_available:
+            try:
+                self._load_data_for_filtering()
+            except Exception as e:
+                QMessageBox.critical(self, "Load Error", f"Failed to load data: {str(e)}")
+                return
+        
+        # Now proceed with filtering as before
+        if self.data is None:
+            return
         
         # Get filter settings
         filters = {
@@ -1877,3 +1945,146 @@ class ConfigurationTab(QWidget):
                 self._load_from_sqlite()
         except Exception as e:
             logger.warning(f"Could not load existing data on startup: {e}")
+    
+    def _populate_filters_optimized(self):
+        """Populate filter options using SQL queries for better performance."""
+        try:
+            # Use cache manager for filter options
+            cache_key = f"config_tab_filter_options_{self.data_loader.db_path}"
+            
+            # Define compute function for filter options
+            def compute_filter_options():
+                logger.info("Computing filter options from database")
+                return self.data_loader.get_filter_options()
+            
+            # Get from cache or compute
+            filter_options = self.cache_manager.get(
+                cache_key,
+                compute_fn=compute_filter_options,
+                ttl=3600  # Cache for 1 hour
+            )
+            
+            # Get unique devices and metrics from optimized method
+            unique_devices = filter_options.get('sources', [])
+            unique_metrics = filter_options.get('types', [])
+            
+            # Clear and repopulate device dropdown
+            self.device_dropdown.clear()
+            for device in unique_devices:
+                self.device_dropdown.addItem(str(device), checked=True)  # Default to all selected
+            
+            # Clear and repopulate metric dropdown
+            self.metric_dropdown.clear()
+            for metric in unique_metrics:
+                self.metric_dropdown.addItem(str(metric), checked=True)  # Default to all selected
+            
+            logger.info(f"Populated filters: {len(unique_devices)} devices, {len(unique_metrics)} metrics")
+            
+        except Exception as e:
+            logger.error(f"Error populating filters: {e}")
+            # Fall back to empty dropdowns
+            self.device_dropdown.clear()
+            self.metric_dropdown.clear()
+    
+    def _update_statistics_from_sql(self):
+        """Update statistics display using SQL-computed data with caching."""
+        try:
+            db_path = self.data_loader.db_path
+            
+            # Try to get cached data
+            type_counts_key = f"config_tab_type_counts_{db_path}"
+            source_counts_key = f"config_tab_source_counts_{db_path}"
+            
+            # Get type counts (with caching)
+            type_counts_df = self.cache_manager.get(
+                type_counts_key,
+                compute_fn=lambda: self.data_loader.get_type_counts(),
+                ttl=3600
+            )
+            
+            # Get source counts (with caching)
+            source_counts_df = self.cache_manager.get(
+                source_counts_key,
+                compute_fn=lambda: self.data_loader.get_source_counts(),
+                ttl=3600
+            )
+            
+            # Get summary stats (already cached in _load_from_sqlite)
+            stats_summary_key = f"config_tab_stats_{db_path}"
+            stats_summary = self.cache_manager.get(
+                stats_summary_key,
+                compute_fn=lambda: self.data_loader.get_statistics_summary(),
+                ttl=3600
+            )
+            
+            # Update the custom statistics display
+            if hasattr(self, 'stats_total_label'):
+                self.stats_total_label.setText(f"Total Records: {stats_summary['total_records']:,}")
+            
+            if hasattr(self, 'stats_date_label'):
+                date_range = stats_summary['date_range']
+                if date_range[0] and date_range[1]:
+                    try:
+                        # Parse dates
+                        start_date = pd.to_datetime(date_range[0])
+                        end_date = pd.to_datetime(date_range[1])
+                        date_str = f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
+                        self.stats_date_label.setText(f"Date Range: {date_str}")
+                    except:
+                        self.stats_date_label.setText("Date Range: Invalid dates")
+                else:
+                    self.stats_date_label.setText("Date Range: -")
+            
+            # Update record types table
+            if hasattr(self, 'record_types_table') and not type_counts_df.empty:
+                types_data = []
+                for _, row in type_counts_df.iterrows():
+                    types_data.append({
+                        'Type': row['type'],
+                        'Count': f"{row['count']:,}",
+                        'Percentage': f"{row['percentage']:.1f}%"
+                    })
+                if types_data:
+                    types_df = pd.DataFrame(types_data)
+                    self.record_types_table.load_data(types_df)
+                    self._apply_compact_table_styling(self.record_types_table)
+            
+            # Update data sources table
+            if hasattr(self, 'data_sources_table') and not source_counts_df.empty:
+                sources_data = []
+                for _, row in source_counts_df.iterrows():
+                    sources_data.append({
+                        'Source': row['sourceName'],
+                        'Count': f"{row['count']:,}",
+                        'Percentage': f"{row['percentage']:.1f}%"
+                    })
+                if sources_data:
+                    sources_df = pd.DataFrame(sources_data)
+                    self.data_sources_table.load_data(sources_df)
+                    self._apply_compact_table_styling(self.data_sources_table)
+            
+            logger.info("Statistics updated from SQL queries")
+            
+        except Exception as e:
+            logger.error(f"Error updating statistics from SQL: {e}")
+    
+    def _check_database_availability(self):
+        """Check if database exists and show statistics without loading all data."""
+        try:
+            # Check if database exists
+            db_path = os.path.join(DATA_DIR, "health_data.db")
+            if os.path.exists(db_path):
+                logger.info("Found existing database, loading statistics only")
+                
+                # Create performance optimization indexes if needed
+                try:
+                    db_manager.create_indexes()
+                except Exception as idx_err:
+                    logger.warning(f"Could not create indexes: {idx_err}")
+                
+                # Set the file path input to indicate database
+                self.file_path_input.setText(db_path)
+                # Load statistics from database (not full data)
+                self._load_from_sqlite()
+        except Exception as e:
+            logger.warning(f"Could not check database availability: {e}")

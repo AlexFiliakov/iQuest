@@ -152,11 +152,32 @@ class BackgroundTrendProcessor:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=365)  # Analyze last year
             
-            data = self.database.get_metric_data(
-                metric=metric,
-                start_date=start_date,
-                end_date=end_date
+            # Query health records from database
+            query = """
+                SELECT type, creationDate, value, unit, sourceName
+                FROM health_records
+                WHERE type = ?
+                AND creationDate >= ?
+                AND creationDate <= ?
+                ORDER BY creationDate
+            """
+            params = (
+                metric,
+                start_date.isoformat(),
+                end_date.isoformat()
             )
+            
+            rows = self.database.execute_query(query, params)
+            
+            # Convert to a format expected by trend engine
+            data = []
+            for row in rows:
+                data.append({
+                    'date': datetime.fromisoformat(row['creationDate']),
+                    'value': float(row['value']),
+                    'unit': row['unit'],
+                    'source': row['sourceName']
+                })
             
             if not data or len(data) < 7:
                 logger.warning(f"Insufficient data for trend analysis: {metric}")
@@ -171,7 +192,7 @@ class BackgroundTrendProcessor:
             
             # Calculate comparative analytics if engine is available
             if self.comparative_engine:
-                historical_comparison = self.comparative_engine.get_historical_comparison(
+                historical_comparison = self.comparative_engine.compare_to_historical(
                     metric=metric,
                     current_date=end_date
                 )

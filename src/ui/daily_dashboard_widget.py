@@ -16,7 +16,8 @@ import pandas as pd
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
     QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
-    QProgressBar, QGroupBox, QApplication, QGraphicsDropShadowEffect
+    QProgressBar, QGroupBox, QApplication, QGraphicsDropShadowEffect,
+    QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDateTime, QThread, pyqtSlot
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
@@ -764,7 +765,7 @@ class DailyDashboardWidget(QWidget):
         logger.info(f"Loading daily data for {self._current_date}")
         
         if not self.daily_calculator:
-            logger.warning("No daily calculator available")
+            logger.debug("No daily calculator available - data not loaded yet")
             self._show_no_data_message()
             return
             
@@ -1327,6 +1328,13 @@ class DailyDashboardWidget(QWidget):
     def _refresh_data(self):
         """Refresh all data displays."""
         logger.info(f"Refreshing daily dashboard data for {self._current_date}")
+        
+        # Check if calculator is available
+        if not self.daily_calculator:
+            logger.debug("No daily calculator available, skipping refresh")
+            self._show_no_data_message()
+            return
+            
         # For immediate response, update directly if no pending update
         if not self._pending_update:
             # Clear cache if date changed
@@ -1354,6 +1362,13 @@ class DailyDashboardWidget(QWidget):
         if self._pending_update:
             self._pending_update = False
             logger.info(f"Performing delayed update for {self._current_date}")
+            
+            # Check if calculator is available
+            if not self.daily_calculator:
+                logger.debug("No daily calculator available for delayed update")
+                self._show_no_data_message()
+                return
+                
             # Clear cache when date changes
             if self._cache_date != self._current_date:
                 self._stats_cache.clear()

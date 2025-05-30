@@ -523,6 +523,49 @@ class DatabaseManager:
         """
         result = self.execute_query(query, (table_name,))
         return len(result) > 0
+    
+    def create_indexes(self):
+        """Create performance optimization indexes for health_records table.
+        
+        This method creates additional indexes on the health_records table
+        to optimize query performance for the Configuration tab and other
+        data operations. It's safe to call multiple times as it uses
+        CREATE INDEX IF NOT EXISTS.
+        
+        Indexes created:
+            - idx_source: Index on sourceName for source filtering
+            - idx_source_type: Composite index on sourceName and type
+        
+        These indexes significantly improve performance for:
+            - Filtering by data source
+            - Getting distinct sources
+            - Combined source and type queries
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Only create indexes if health_records table exists
+            if not self.table_exists('health_records'):
+                logger.warning("health_records table doesn't exist, skipping index creation")
+                return
+            
+            logger.info("Creating performance optimization indexes")
+            
+            # Create indexes if not exists
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_source ON health_records(sourceName)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_source_type ON health_records(sourceName, type)"
+            )
+            
+            # Additional composite indexes for common query patterns
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_date_type_source ON health_records(creationDate, type, sourceName)"
+            )
+            
+            conn.commit()
+            logger.info("Performance optimization indexes created successfully")
 
 
 # Global database manager instance

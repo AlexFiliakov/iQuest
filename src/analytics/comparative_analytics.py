@@ -178,6 +178,10 @@ class ComparativeAnalyticsEngine:
         self.daily_calc = daily_calculator
         self.weekly_calc = weekly_calculator
         self.monthly_calc = monthly_calculator
+        # Also expose with expected names for compatibility
+        self.daily_calculator = daily_calculator
+        self.weekly_calculator = weekly_calculator
+        self.monthly_calculator = monthly_calculator
         self.privacy_manager = privacy_manager or PrivacyManager()
         self.insights_generator = InsightsGenerator()
         self.background_processor = background_processor
@@ -239,13 +243,22 @@ class ComparativeAnalyticsEngine:
                 raise ValueError(f"Lookback days must be between 1 and 3650, got {lookback_days}")
             
             logger.info(f"Generating historical comparison for {metric}")
+            
+            # Check if daily calculator is available
+            if not self.daily_calc:
+                logger.warning("No daily calculator available")
+                return HistoricalComparison()
         
             # Get current value
-            current_stats = self.daily_calc.calculate_statistics(
-                metric, 
-                current_date - timedelta(days=1), 
-                current_date
-            )
+            try:
+                current_stats = self.daily_calc.calculate_statistics(
+                    metric, 
+                    current_date - timedelta(days=1), 
+                    current_date
+                )
+            except AttributeError as e:
+                logger.error(f"Error calling calculate_statistics: {e}")
+                return HistoricalComparison()
             
             if not current_stats or current_stats.count == 0:
                 logger.warning(f"No current data for {metric}")
@@ -257,41 +270,61 @@ class ComparativeAnalyticsEngine:
             historical = HistoricalComparison()
             
             # 7-day rolling
-            historical.rolling_7_day = self.daily_calc.calculate_statistics(
-                metric,
-                current_date - timedelta(days=7),
-                current_date
-            )
+            try:
+                historical.rolling_7_day = self.daily_calc.calculate_statistics(
+                    metric,
+                    current_date - timedelta(days=7),
+                    current_date
+                )
+            except AttributeError as e:
+                logger.error(f"Error calculating 7-day rolling statistics: {e}")
+                historical.rolling_7_day = None
             
             # 30-day rolling
-            historical.rolling_30_day = self.daily_calc.calculate_statistics(
-                metric,
-                current_date - timedelta(days=30),
-                current_date
-            )
+            try:
+                historical.rolling_30_day = self.daily_calc.calculate_statistics(
+                    metric,
+                    current_date - timedelta(days=30),
+                    current_date
+                )
+            except AttributeError as e:
+                logger.error(f"Error calculating 30-day rolling statistics: {e}")
+                historical.rolling_30_day = None
             
             # 90-day rolling
-            historical.rolling_90_day = self.daily_calc.calculate_statistics(
-                metric,
-                current_date - timedelta(days=90),
-                current_date
-            )
+            try:
+                historical.rolling_90_day = self.daily_calc.calculate_statistics(
+                    metric,
+                    current_date - timedelta(days=90),
+                    current_date
+                )
+            except AttributeError as e:
+                logger.error(f"Error calculating 90-day rolling statistics: {e}")
+                historical.rolling_90_day = None
             
             # 365-day rolling
-            historical.rolling_365_day = self.daily_calc.calculate_statistics(
-                metric,
-                current_date - timedelta(days=365),
-                current_date
-            )
+            try:
+                historical.rolling_365_day = self.daily_calc.calculate_statistics(
+                    metric,
+                    current_date - timedelta(days=365),
+                    current_date
+                )
+            except AttributeError as e:
+                logger.error(f"Error calculating 365-day rolling statistics: {e}")
+                historical.rolling_365_day = None
             
             # Same period last year
             last_year_start = current_date - timedelta(days=365)
             last_year_end = last_year_start + timedelta(days=30)
-            historical.same_period_last_year = self.daily_calc.calculate_statistics(
-                metric,
-                last_year_start,
-                last_year_end
-            )
+            try:
+                historical.same_period_last_year = self.daily_calc.calculate_statistics(
+                    metric,
+                    last_year_start,
+                    last_year_end
+                )
+            except AttributeError as e:
+                logger.error(f"Error calculating same period last year statistics: {e}")
+                historical.same_period_last_year = None
             
             # Personal best (simplified - would need full data scan)
             if historical.rolling_365_day:

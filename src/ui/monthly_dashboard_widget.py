@@ -20,6 +20,7 @@ from .charts.calendar_heatmap import CalendarHeatmapComponent
 from .statistics_widget import StatisticsWidget
 from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
 from ..utils.logging_config import get_logger
+from ..health_database import HealthDatabase
 
 logger = get_logger(__name__)
 
@@ -46,14 +47,38 @@ class MonthlyDashboardWidget(QWidget):
         
         self.monthly_calculator = monthly_calculator
         
+        # Try to initialize HealthDatabase
+        try:
+            self.health_db = HealthDatabase()
+        except Exception as e:
+            logger.error(f"Failed to initialize HealthDatabase: {e}")
+            self.health_db = None
+        
         # Always initialize to current date
         now = datetime.now()
         self._current_year = now.year
         self._current_month = now.month
         logger.info(f"Initializing MonthlyDashboardWidget with date: {self._current_month}/{self._current_year}")
         
-        self._current_metric = "steps"
-        self._available_metrics = ["steps", "heart_rate", "sleep_hours", "distance"]
+        # Initialize metric mappings
+        self._init_metric_mappings()
+        
+        # Initialize with empty metrics list
+        self._available_metrics = []
+        
+        # Load available metrics from database
+        self._load_available_metrics()
+        
+        # Ensure we have at least some metrics
+        if not self._available_metrics:
+            logger.warning("No metrics available, using all defined metrics")
+            self._available_metrics = list(self._metric_display_names.keys())
+            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x, x))
+        
+        # Set default metric
+        self._current_metric = "StepCount" if "StepCount" in self._available_metrics else (
+            self._available_metrics[0] if self._available_metrics else "StepCount"
+        )
         
         # Data storage
         self._metric_data = {}
@@ -65,6 +90,162 @@ class MonthlyDashboardWidget(QWidget):
         # Load initial data
         self._load_month_data()
         
+    def _init_metric_mappings(self):
+        """Initialize comprehensive metric name mappings."""
+        # Map database metric types (without HK prefix) to display names
+        self._metric_display_names = {
+            # Activity & Fitness
+            "StepCount": "Steps",
+            "DistanceWalkingRunning": "Walking + Running Distance",
+            "FlightsClimbed": "Flights Climbed",
+            "ActiveEnergyBurned": "Active Calories",
+            "BasalEnergyBurned": "Resting Calories",
+            "AppleExerciseTime": "Exercise Minutes",
+            "AppleStandHour": "Stand Hours",
+            
+            # Cardiovascular
+            "HeartRate": "Heart Rate",
+            "RestingHeartRate": "Resting Heart Rate",
+            "WalkingHeartRateAverage": "Walking Heart Rate",
+            "HeartRateVariabilitySDNN": "Heart Rate Variability",
+            "BloodPressureSystolic": "Blood Pressure (Systolic)",
+            "BloodPressureDiastolic": "Blood Pressure (Diastolic)",
+            
+            # Body Measurements
+            "BodyMass": "Body Weight",
+            "LeanBodyMass": "Lean Body Mass",
+            "BodyMassIndex": "BMI",
+            "BodyFatPercentage": "Body Fat %",
+            "Height": "Height",
+            
+            # Mobility & Balance
+            "WalkingSpeed": "Walking Speed",
+            "WalkingStepLength": "Step Length",
+            "WalkingAsymmetryPercentage": "Walking Asymmetry",
+            "WalkingDoubleSupportPercentage": "Double Support %",
+            "AppleWalkingSteadiness": "Walking Steadiness",
+            
+            # Respiratory
+            "RespiratoryRate": "Respiratory Rate",
+            "VO2Max": "VO2 Max",
+            
+            # Sleep
+            "SleepAnalysis": "Sleep Analysis",
+            
+            # Nutrition
+            "DietaryEnergyConsumed": "Calories Consumed",
+            "DietaryProtein": "Protein",
+            "DietaryCarbohydrates": "Carbohydrates",
+            "DietaryFatTotal": "Total Fat",
+            "DietaryFatSaturated": "Saturated Fat",
+            "DietaryFatMonounsaturated": "Monounsaturated Fat",
+            "DietaryFatPolyunsaturated": "Polyunsaturated Fat",
+            "DietaryCholesterol": "Cholesterol",
+            "DietaryFiber": "Fiber",
+            "DietarySugar": "Sugar",
+            "DietarySodium": "Sodium",
+            "DietaryPotassium": "Potassium",
+            "DietaryCalcium": "Calcium",
+            "DietaryIron": "Iron",
+            "DietaryVitaminC": "Vitamin C",
+            "DietaryWater": "Water",
+            
+            # Environmental
+            "HeadphoneAudioExposure": "Headphone Audio Exposure",
+            
+            # Mindfulness
+            "MindfulSession": "Mindful Minutes"
+        }
+        
+        # Map database metric types to units for display
+        self._metric_units = {
+            "StepCount": "steps",
+            "DistanceWalkingRunning": "km",
+            "FlightsClimbed": "flights",
+            "ActiveEnergyBurned": "kcal",
+            "BasalEnergyBurned": "kcal",
+            "AppleExerciseTime": "min",
+            "AppleStandHour": "hours",
+            "HeartRate": "bpm",
+            "RestingHeartRate": "bpm",
+            "WalkingHeartRateAverage": "bpm",
+            "HeartRateVariabilitySDNN": "ms",
+            "BloodPressureSystolic": "mmHg",
+            "BloodPressureDiastolic": "mmHg",
+            "BodyMass": "kg",
+            "LeanBodyMass": "kg",
+            "BodyMassIndex": "",
+            "BodyFatPercentage": "%",
+            "Height": "cm",
+            "WalkingSpeed": "km/h",
+            "WalkingStepLength": "cm",
+            "WalkingAsymmetryPercentage": "%",
+            "WalkingDoubleSupportPercentage": "%",
+            "AppleWalkingSteadiness": "%",
+            "RespiratoryRate": "breaths/min",
+            "VO2Max": "mL/kg/min",
+            "SleepAnalysis": "hours",
+            "DietaryEnergyConsumed": "kcal",
+            "DietaryProtein": "g",
+            "DietaryCarbohydrates": "g",
+            "DietaryFatTotal": "g",
+            "DietaryWater": "mL",
+            "HeadphoneAudioExposure": "dB",
+            "MindfulSession": "min"
+        }
+        
+    def _load_available_metrics(self):
+        """Load available metrics from the database."""
+        # Start with default metrics
+        default_metrics = ["StepCount", "HeartRate", "SleepAnalysis", "DistanceWalkingRunning", 
+                          "ActiveEnergyBurned", "FlightsClimbed", "BodyMass", "BloodPressureSystolic"]
+        
+        # If no database connection, use all available metrics
+        if not self.health_db:
+            logger.warning("No database connection, showing all available metrics")
+            self._available_metrics = list(self._metric_display_names.keys())
+            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x, x))
+            return
+        
+        try:
+            # Get all available types from database
+            db_types = self.health_db.get_available_types()
+            logger.info(f"Found {len(db_types)} metric types in database")
+            
+            if db_types:
+                # Filter to only include types we have display names for
+                self._available_metrics = []
+                for db_type in db_types:
+                    # Remove HK prefixes if present
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                    
+                    # Only include metrics we have display names for
+                    if clean_type in self._metric_display_names:
+                        self._available_metrics.append(clean_type)
+                        logger.debug(f"Added metric: {clean_type} -> {self._metric_display_names[clean_type]}")
+                    else:
+                        # Log unknown metrics for future reference
+                        logger.debug(f"Unknown metric type in database: {db_type} (cleaned: {clean_type})")
+            else:
+                # No metrics in database, use all available display names
+                logger.info("No metrics found in database, showing all available metric types")
+                self._available_metrics = list(self._metric_display_names.keys())
+            
+            # Ensure we have at least the default metrics
+            if not self._available_metrics:
+                self._available_metrics = default_metrics
+            
+            # Sort metrics by display name for better UX
+            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x, x))
+            
+            logger.info(f"Loaded {len(self._available_metrics)} available metrics")
+            
+        except Exception as e:
+            logger.error(f"Error loading available metrics: {e}", exc_info=True)
+            # Fall back to showing all possible metrics
+            self._available_metrics = list(self._metric_display_names.keys())
+            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x, x))
+            
     def _setup_ui(self):
         """Set up the user interface."""
         # Main layout
@@ -184,9 +365,23 @@ class MonthlyDashboardWidget(QWidget):
         metric_layout.addWidget(metric_label)
         
         self.metric_combo = QComboBox(self)
-        self.metric_combo.addItems([
-            "Steps", "Heart Rate", "Sleep Hours", "Distance"
-        ])
+        # Populate with available metrics from database
+        logger.info(f"Populating combo box with {len(self._available_metrics)} metrics")
+        for metric in self._available_metrics:
+            display_name = self._metric_display_names.get(metric, metric)
+            self.metric_combo.addItem(display_name, metric)  # Display name as text, metric key as data
+            logger.debug(f"Added to combo: {display_name} ({metric})")
+        
+        # Set current metric
+        if self._current_metric in self._available_metrics:
+            index = self._available_metrics.index(self._current_metric)
+            self.metric_combo.setCurrentIndex(index)
+            logger.info(f"Set current metric to: {self._current_metric} at index {index}")
+        
+        # Ensure combo box is visible
+        self.metric_combo.setVisible(True)
+        self.metric_combo.setMinimumHeight(40)
+            
         self.metric_combo.setStyleSheet(self._get_combo_style())
         metric_layout.addWidget(self.metric_combo)
         
@@ -414,20 +609,34 @@ class MonthlyDashboardWidget(QWidget):
                 background-color: #FFFFFF;
                 border: 2px solid #E8DCC8;
                 border-radius: 6px;
-                padding: 8px 12px;
+                padding: 8px 32px 8px 12px;
                 color: #5D4E37;
                 font-size: 12px;
-                min-width: 120px;
+                min-width: 200px;
+                font-family: 'Inter', sans-serif;
             }
             QComboBox:hover {
                 border-color: #FF8C42;
             }
             QComboBox::drop-down {
-                border: none;
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid #E8DCC8;
             }
             QComboBox::down-arrow {
-                image: none;
-                border: none;
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #5D4E37;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #FFFFFF;
+                border: 2px solid #E8DCC8;
+                selection-background-color: #FFF8F0;
+                selection-color: #FF8C42;
+                padding: 4px;
             }
         """
         
@@ -497,17 +706,14 @@ class MonthlyDashboardWidget(QWidget):
         
     def _on_metric_changed(self, text: str):
         """Handle metric selection change."""
-        metric_map = {
-            "Steps": "steps",
-            "Heart Rate": "heart_rate", 
-            "Sleep Hours": "sleep_hours",
-            "Distance": "distance"
-        }
-        
-        if text in metric_map:
-            self._current_metric = metric_map[text]
-            self._load_month_data()
-            self.metric_changed.emit(self._current_metric)
+        # Get the metric key from the combo box data
+        current_index = self.metric_combo.currentIndex()
+        if current_index >= 0:
+            metric_key = self.metric_combo.itemData(current_index)
+            if metric_key:
+                self._current_metric = metric_key
+                self._load_month_data()
+                self.metric_changed.emit(self._current_metric)
             
     def _load_month_data(self):
         """Load data for the current month and metric."""
@@ -516,41 +722,32 @@ class MonthlyDashboardWidget(QWidget):
         if self.monthly_calculator:
             # Use real data from the calculator
             try:
-                # Map display metric names to HK types
-                metric_mapping = {
-                    "steps": "HKQuantityTypeIdentifierStepCount",
-                    "heart_rate": "HKQuantityTypeIdentifierHeartRate",
-                    "sleep_hours": "HKCategoryTypeIdentifierSleepAnalysis",
-                    "distance": "HKQuantityTypeIdentifierDistanceWalkingRunning"
-                }
+                # Add HK prefix back for database query
+                if self._current_metric == "SleepAnalysis" or self._current_metric == "MindfulSession":
+                    hk_type = f"HKCategoryTypeIdentifier{self._current_metric}"
+                else:
+                    hk_type = f"HKQuantityTypeIdentifier{self._current_metric}"
                 
-                hk_type = metric_mapping.get(self._current_metric)
-                if hk_type:
-                    # Get data for the entire month
-                    days_in_month = monthrange(self._current_year, self._current_month)[1]
-                    today = date.today()
+                # Get data for the entire month
+                days_in_month = monthrange(self._current_year, self._current_month)[1]
+                today = date.today()
+                
+                for day in range(1, days_in_month + 1):
+                    current_date = date(self._current_year, self._current_month, day)
                     
-                    for day in range(1, days_in_month + 1):
-                        current_date = date(self._current_year, self._current_month, day)
-                        
-                        # Skip future dates
-                        if current_date > today:
-                            continue
-                        
-                        # Get daily aggregate value
-                        daily_value = self.monthly_calculator.get_daily_aggregate(
-                            metric=hk_type,
-                            date=current_date
-                        )
-                        
-                        if daily_value is not None and daily_value > 0:
-                            # Convert values for display
-                            if self._current_metric == "distance" and daily_value:
-                                daily_value = daily_value / 1000  # Convert meters to km
-                            elif self._current_metric == "sleep_hours" and daily_value:
-                                daily_value = daily_value / 3600  # Convert seconds to hours
-                                
-                            data[current_date] = daily_value
+                    # Skip future dates
+                    if current_date > today:
+                        continue
+                    
+                    # Get daily aggregate value
+                    daily_value = self.monthly_calculator.get_daily_aggregate(
+                        metric=hk_type,
+                        date=current_date
+                    )
+                    
+                    if daily_value is not None and daily_value > 0:
+                        # Convert values for display based on metric type
+                        data[current_date] = self._convert_value_for_display(daily_value, self._current_metric)
                             
             except Exception as e:
                 logger.error(f"Error loading month data: {e}")
@@ -567,6 +764,27 @@ class MonthlyDashboardWidget(QWidget):
         # Update summary statistics
         self._update_summary_stats(data)
         
+    def _convert_value_for_display(self, value: float, metric: str) -> float:
+        """Convert raw value to display units based on metric type."""
+        if metric == "DistanceWalkingRunning":
+            return value / 1000  # Convert meters to km
+        elif metric == "SleepAnalysis":
+            return value / 3600  # Convert seconds to hours
+        elif metric == "BodyMass" or metric == "LeanBodyMass":
+            return value  # Already in kg
+        elif metric == "Height":
+            return value * 100  # Convert meters to cm
+        elif metric == "WalkingSpeed":
+            return value * 3.6  # Convert m/s to km/h
+        elif metric == "WalkingStepLength":
+            return value * 100  # Convert meters to cm
+        elif metric in ["AppleExerciseTime", "MindfulSession"]:
+            return value / 60  # Convert seconds to minutes
+        elif metric == "DietaryWater":
+            return value  # Already in mL
+        else:
+            return value  # Return as-is for other metrics
+        
     def _generate_sample_data(self) -> Dict[date, float]:
         """Generate sample data for demonstration."""
         # This is placeholder data - in production would come from monthly_calculator
@@ -576,6 +794,33 @@ class MonthlyDashboardWidget(QWidget):
         days_in_month = monthrange(self._current_year, self._current_month)[1]
         today = date.today()
         
+        # Define realistic ranges for each metric type
+        metric_ranges = {
+            "StepCount": (2000, 15000),
+            "DistanceWalkingRunning": (1.0, 10.0),  # km
+            "FlightsClimbed": (0, 30),
+            "ActiveEnergyBurned": (200, 800),  # kcal
+            "BasalEnergyBurned": (1200, 2000),  # kcal
+            "AppleExerciseTime": (0, 120),  # minutes
+            "AppleStandHour": (0, 16),  # hours
+            "HeartRate": (60, 100),  # bpm
+            "RestingHeartRate": (50, 80),  # bpm
+            "WalkingHeartRateAverage": (80, 120),  # bpm
+            "HeartRateVariabilitySDNN": (20, 80),  # ms
+            "BloodPressureSystolic": (100, 140),  # mmHg
+            "BloodPressureDiastolic": (60, 90),  # mmHg
+            "BodyMass": (50, 100),  # kg
+            "BodyFatPercentage": (10, 35),  # %
+            "WalkingSpeed": (3.0, 6.0),  # km/h
+            "RespiratoryRate": (12, 20),  # breaths/min
+            "VO2Max": (30, 60),  # mL/kg/min
+            "SleepAnalysis": (5.0, 9.0),  # hours
+            "DietaryEnergyConsumed": (1500, 3000),  # kcal
+            "DietaryProtein": (50, 150),  # g
+            "DietaryWater": (1000, 3000),  # mL
+            "MindfulSession": (0, 60)  # minutes
+        }
+        
         for day in range(1, days_in_month + 1):
             current_date = date(self._current_year, self._current_month, day)
             
@@ -584,14 +829,15 @@ class MonthlyDashboardWidget(QWidget):
                 continue
             
             # Generate realistic sample values based on metric type
-            if self._current_metric == "steps":
-                value = random.randint(2000, 15000)
-            elif self._current_metric == "heart_rate":
-                value = random.randint(60, 100)
-            elif self._current_metric == "sleep_hours":
-                value = random.uniform(5.0, 9.0)
-            else:  # distance
-                value = random.uniform(1.0, 10.0)
+            if self._current_metric in metric_ranges:
+                min_val, max_val = metric_ranges[self._current_metric]
+                if isinstance(min_val, int):
+                    value = random.randint(min_val, max_val)
+                else:
+                    value = random.uniform(min_val, max_val)
+            else:
+                # Default range for unknown metrics
+                value = random.uniform(0, 100)
                 
             sample_data[current_date] = value
             
@@ -617,22 +863,49 @@ class MonthlyDashboardWidget(QWidget):
         trend = "↑" if second_half_avg > first_half_avg else "↓"
         
         # Format values based on metric type
-        if self._current_metric == "steps":
+        unit = self._metric_units.get(self._current_metric, "")
+        
+        # Special formatting for certain metrics
+        if self._current_metric in ["StepCount", "FlightsClimbed", "AppleStandHour"]:
+            # Integer values with thousands separator
             avg_text = f"{int(average):,}"
             total_text = f"{int(total):,}"
             best_text = f"{int(best_value):,}"
-        elif self._current_metric == "heart_rate":
-            avg_text = f"{int(average)} bpm"
-            total_text = f"{int(average)} avg"  # Average makes more sense for heart rate
-            best_text = f"{int(best_value)} bpm"
-        elif self._current_metric == "sleep_hours":
-            avg_text = f"{average:.1f} hrs"
-            total_text = f"{total:.1f} hrs"
-            best_text = f"{best_value:.1f} hrs"
-        else:  # distance
-            avg_text = f"{average:.1f} km"
-            total_text = f"{total:.1f} km"
-            best_text = f"{best_value:.1f} km"
+            if unit:
+                avg_text = f"{avg_text} {unit}"
+                total_text = f"{total_text} {unit}"
+                best_text = f"{best_text} {unit}"
+        elif self._current_metric in ["HeartRate", "RestingHeartRate", "WalkingHeartRateAverage", 
+                                      "BloodPressureSystolic", "BloodPressureDiastolic"]:
+            # Integer values for heart rate and blood pressure
+            avg_text = f"{int(average)} {unit}"
+            total_text = f"{int(average)} avg"  # Average makes more sense than total
+            best_text = f"{int(best_value)} {unit}"
+        elif self._current_metric in ["BodyMass", "LeanBodyMass", "Height"]:
+            # One decimal place for body measurements
+            avg_text = f"{average:.1f} {unit}"
+            total_text = f"{average:.1f} avg"  # Average makes more sense
+            best_text = f"{best_value:.1f} {unit}"
+        elif self._current_metric in ["BodyFatPercentage", "WalkingAsymmetryPercentage", 
+                                      "WalkingDoubleSupportPercentage", "AppleWalkingSteadiness"]:
+            # Percentages with one decimal
+            avg_text = f"{average:.1f}{unit}"
+            total_text = f"{average:.1f} avg"
+            best_text = f"{best_value:.1f}{unit}"
+        elif self._current_metric == "BodyMassIndex":
+            # BMI with one decimal, no unit
+            avg_text = f"{average:.1f}"
+            total_text = f"{average:.1f} avg"
+            best_text = f"{best_value:.1f}"
+        else:
+            # Default: one decimal place with unit
+            avg_text = f"{average:.1f}"
+            total_text = f"{total:.1f}"
+            best_text = f"{best_value:.1f}"
+            if unit:
+                avg_text = f"{avg_text} {unit}"
+                total_text = f"{total_text} {unit}"
+                best_text = f"{best_text} {unit}"
             
         # Update cards
         self.stats_cards["average"].value_label.setText(avg_text)

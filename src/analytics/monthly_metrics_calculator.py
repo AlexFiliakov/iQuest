@@ -500,6 +500,33 @@ class MonthlyMetricsCalculator:
         # For now, return empty dict as placeholder
         return {}
     
+    def get_daily_aggregate(self, metric: str, date: date) -> Optional[float]:
+        """
+        Get daily aggregate value for a specific metric and date.
+        
+        Args:
+            metric: The metric type to analyze (e.g., 'HKQuantityTypeIdentifierStepCount')
+            date: The date to get data for
+            
+        Returns:
+            The daily aggregate value or None if no data exists
+        """
+        try:
+            # Use the daily calculator to get the value
+            daily_data = self.daily_calculator.calculate_daily_aggregates(
+                metric, 'mean', date, date
+            )
+            
+            if daily_data.empty:
+                return None
+                
+            # Return the first (and only) value
+            return float(daily_data.iloc[0])
+            
+        except Exception as e:
+            logger.warning(f"Error getting daily aggregate for {metric} on {date}: {e}")
+            return None
+    
     def calculate_multiple_months_parallel(self,
                                          metrics: List[str],
                                          year_month_pairs: List[Tuple[int, int]]) -> Dict[str, Dict[Tuple[int, int], MonthlyMetrics]]:

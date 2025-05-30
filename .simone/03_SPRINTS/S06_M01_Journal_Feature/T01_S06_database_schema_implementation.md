@@ -17,6 +17,7 @@ Implement the journal entries database schema as specified in SPECS_DB.md, inclu
 - Implement database indexes for performance
 - Create data access layer with CRUD operations
 - Ensure proper transaction handling and error recovery
+- Navbar File > Erase All Data... should also clear journal entries
 
 ## Acceptance Criteria
 - [ ] Journal entries table created with exact schema from SPECS_DB.md
