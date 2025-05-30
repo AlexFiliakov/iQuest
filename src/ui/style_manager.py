@@ -166,23 +166,23 @@ class StyleManager:
         if button_type == "primary":
             return f"""
                 QPushButton {{
-                    background-color: {self.ACCENT_PRIMARY};
+                    background-color: {self.ACCENT_SECONDARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 12px 28px;
+                    padding: 8px 20px;
                     border-radius: 6px;
                     font-weight: 600;
-                    font-size: 14px;
-                    min-height: 44px;
+                    font-size: 13px;
+                    min-height: 32px;
                     letter-spacing: 0.3px;
                 }}
                 
                 QPushButton:hover {{
-                    background-color: #333333;
+                    background-color: #1D4ED8;
                 }}
                 
                 QPushButton:pressed {{
-                    background-color: #000000;
+                    background-color: #1E40AF;
                 }}
                 
                 QPushButton:disabled {{
@@ -192,20 +192,20 @@ class StyleManager:
                 
                 QPushButton:focus {{
                     outline: none;
-                    border: 3px solid {self.FOCUS_SHADOW};
+                    border: 2px solid {self.FOCUS_SHADOW};
                 }}
             """
         elif button_type == "secondary":
             return f"""
                 QPushButton {{
                     background-color: {self.PRIMARY_BG};
-                    color: {self.ACCENT_PRIMARY};
-                    border: 1.5px solid {self.ACCENT_LIGHT};
-                    padding: 12px 28px;
+                    color: {self.TEXT_PRIMARY};
+                    border: 1px solid {self.ACCENT_LIGHT};
+                    padding: 8px 20px;
                     border-radius: 6px;
-                    font-weight: 600;
-                    font-size: 14px;
-                    min-height: 44px;
+                    font-weight: 500;
+                    font-size: 13px;
+                    min-height: 32px;
                     letter-spacing: 0.3px;
                 }}
                 
@@ -227,7 +227,7 @@ class StyleManager:
                 
                 QPushButton:focus {{
                     outline: none;
-                    border: 3px solid {self.FOCUS_SHADOW};
+                    border: 2px solid {self.FOCUS_SHADOW};
                 }}
             """
         elif button_type == "ghost":

@@ -134,6 +134,9 @@ class ConfigurationTab(QWidget):
         # Set up keyboard navigation
         self._setup_keyboard_navigation()
         
+        # Check if data is already available in database on startup
+        QTimer.singleShot(100, self._check_existing_data)
+        
         logger.info("Configuration tab initialized")
     
     def _create_ui(self):
@@ -147,40 +150,72 @@ class ConfigurationTab(QWidget):
         
         Uses consistent spacing, margins, and styling for a professional appearance.
         """
-        # Main layout with tighter spacing
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 12, 12, 12)  # Very tight margins
-        main_layout.setSpacing(12)  # Tighter spacing
+        # Create main scroll area for the entire page
+        main_scroll = QScrollArea(self)
+        main_scroll.setWidgetResizable(True)
+        main_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        main_scroll.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {self.style_manager.SECONDARY_BG};
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background-color: {self.style_manager.TERTIARY_BG};
+                width: 12px;
+                border-radius: 6px;
+            }}
+            QScrollBar::handle:vertical {{
+                background-color: {self.style_manager.ACCENT_SECONDARY};
+                border-radius: 6px;
+                min-height: 20px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background-color: {self.style_manager.ACCENT_PRIMARY};
+            }}
+        """)
         
-        # Title - smaller
+        # Main container widget
+        main_widget = QWidget()
+        main_widget.setObjectName("configurationContent")
+        main_widget.setStyleSheet(f"""
+            QWidget#configurationContent {{
+                background-color: {self.style_manager.SECONDARY_BG};
+            }}
+        """)
+        
+        # Main layout with appropriate spacing
+        main_layout = QVBoxLayout(main_widget)
+        main_layout.setContentsMargins(20, 16, 20, 16)  # Comfortable margins
+        main_layout.setSpacing(20)  # Good spacing between major sections
+        
+        # Title - smaller and more compact
         title = QLabel("Configuration")
-        title.setStyleSheet("""
-            QLabel {
-                font-size: 20px;
+        title.setStyleSheet(f"""
+            QLabel {{
+                font-size: 18px;
                 font-weight: 700;
-                color: #5D4E37;
-                margin-bottom: 4px;
-            }
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 0px;
+            }}
         """)
         main_layout.addWidget(title)
         
         # Create two-column layout for better space usage
         content_layout = QHBoxLayout()
-        content_layout.setSpacing(12)
+        content_layout.setSpacing(20)
         
         # Left column
         left_column = QVBoxLayout()
-        left_column.setSpacing(12)
+        left_column.setSpacing(20)
         left_column.addWidget(self._create_import_section())
         left_column.addWidget(self._create_filter_section())
         left_column.addStretch()
         
         # Right column
         right_column = QVBoxLayout()
-        right_column.setSpacing(12)
+        right_column.setSpacing(20)
         right_column.addWidget(self._create_summary_cards_section())
         right_column.addWidget(self._create_statistics_section())
-        right_column.addStretch()
         
         content_layout.addLayout(left_column, 1)
         content_layout.addLayout(right_column, 1)
@@ -188,18 +223,33 @@ class ConfigurationTab(QWidget):
         main_layout.addLayout(content_layout)
         main_layout.addWidget(self._create_status_section())
         main_layout.addStretch()
+        
+        # Set the main widget as the scroll area's content
+        main_scroll.setWidget(main_widget)
+        
+        # Create the tab's layout and add the scroll area
+        tab_layout = QVBoxLayout(self)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(main_scroll)
     
     def _create_import_section(self):
         """Create the data import section."""
         section = QFrame()
         section.setObjectName("importSection")
-        section.setStyleSheet(self.style_manager.get_modern_card_style(padding=16))
+        section.setStyleSheet(f"""
+            QFrame#importSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+        """)
         
-        # Add shadow effect
-        section.setGraphicsEffect(self.style_manager.create_shadow_effect())
+        # Add subtle shadow effect
+        section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
         
         layout = QVBoxLayout(section)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 12, 12, 12)
         
         # Section title
         title = QLabel("Import Data")
@@ -208,34 +258,16 @@ class ConfigurationTab(QWidget):
             QLabel#sectionTitle {{
                 font-size: 14px;
                 font-weight: 600;
-                color: {self.style_manager.TEXT_PRIMARY};
-                margin-bottom: 8px;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 4px;
             }}
         """)
         layout.addWidget(title)
         
-        # Create group box for file import
-        group = QGroupBox()
-        group.setStyleSheet(f"""
-            QGroupBox {{
-                background-color: {self.style_manager.SECONDARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 6px;
-                padding: 8px;
-                padding-top: 20px;
-                margin: 0px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 6px 0 6px;
-                color: {self.style_manager.ACCENT_PRIMARY};
-            }}
-        """)
-        
-        group_layout = QVBoxLayout(group)
-        group_layout.setSpacing(8)
-        group_layout.setContentsMargins(4, 4, 4, 4)
+        # Remove group box - use direct layout instead
+        group_layout = QVBoxLayout()
+        group_layout.setSpacing(10)
+        group_layout.setContentsMargins(0, 0, 0, 0)
         
         # File input in a more compact vertical layout
         file_label = QLabel("Data File:")
@@ -274,9 +306,10 @@ class ConfigurationTab(QWidget):
         import_button = QPushButton("Import")
         import_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
             QPushButton {
-                padding: 1px 8px;
-                font-size: 11px;
-                max-height: 22px;
+                padding: 4px 12px;
+                font-size: 12px;
+                min-height: 28px;
+                max-height: 28px;
             }
         """)
         import_button.clicked.connect(self._on_import_clicked)
@@ -289,7 +322,7 @@ class ConfigurationTab(QWidget):
         
         # Progress section
         progress_row = QVBoxLayout()
-        progress_row.setSpacing(8)
+        progress_row.setSpacing(12)
         
         self.progress_label = QLabel("Ready to import data")
         self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
@@ -315,39 +348,43 @@ class ConfigurationTab(QWidget):
         
         group_layout.addLayout(progress_row)
         
-        layout.addWidget(group)
+        layout.addLayout(group_layout)
         return section
     
     def _create_filter_section(self):
         """Create the data filtering section."""
-        group = QGroupBox("Filter Data")
-        group.setStyleSheet(f"""
-            QGroupBox {{
-                font-size: 14px;
-                font-weight: 600;
-                color: {self.style_manager.TEXT_PRIMARY};
-                background-color: {self.style_manager.SECONDARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 6px;
-                padding: 8px;
-                padding-top: 20px;
-                margin: 0px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 6px 0 6px;
-                color: {self.style_manager.ACCENT_PRIMARY};
+        section = QFrame()
+        section.setObjectName("filterSection")
+        section.setStyleSheet(f"""
+            QFrame#filterSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
         
-        layout = QVBoxLayout(group)
+        # Add subtle shadow effect
+        section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
+        
+        layout = QVBoxLayout(section)
         layout.setSpacing(8)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(12, 12, 12, 12)
+        
+        # Section title
+        title = QLabel("Filter Data")
+        title.setStyleSheet(f"""
+            QLabel {{
+                font-size: 14px;
+                font-weight: 600;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 4px;
+            }}
+        """)
+        layout.addWidget(title)
         
         # Date range section - compact
         date_label = QLabel("Date Range")
-        date_label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        date_label.setStyleSheet(f"font-weight: 500; font-size: 12px; color: {self.style_manager.TEXT_SECONDARY};")
         layout.addWidget(date_label)
         
         date_row = QHBoxLayout()
@@ -383,8 +420,8 @@ class ConfigurationTab(QWidget):
         date_row.addStretch()
         layout.addLayout(date_row)
         
-        # Add spacing instead of separator
-        layout.addSpacing(16)
+        # Add minimal spacing
+        layout.addSpacing(8)
         
         # Devices and metrics sections - stacked vertically for better space usage
         devices_section = self._create_devices_section()
@@ -394,15 +431,15 @@ class ConfigurationTab(QWidget):
         metrics_section = self._create_metrics_section()
         layout.addWidget(metrics_section)
         
-        # Add spacing instead of separator
-        layout.addSpacing(16)
+        # Add minimal spacing
+        layout.addSpacing(8)
         
         # Filter presets section
         presets_section = QVBoxLayout()
         presets_section.setSpacing(12)
         
         presets_label = QLabel("Filter Presets")
-        presets_label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        presets_label.setStyleSheet(f"font-weight: 500; font-size: 12px; color: {self.style_manager.TEXT_SECONDARY};")
         presets_section.addWidget(presets_label)
         
         presets_row = QHBoxLayout()
@@ -411,9 +448,10 @@ class ConfigurationTab(QWidget):
         self.save_preset_button = QPushButton("Save")
         self.save_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 1px 8px;
-                font-size: 11px;
-                max-height: 22px;
+                padding: 4px 12px;
+                font-size: 12px;
+                min-height: 28px;
+                max-height: 28px;
             }
         """)
         self.save_preset_button.clicked.connect(self._on_save_preset_clicked)
@@ -424,9 +462,10 @@ class ConfigurationTab(QWidget):
         self.load_preset_button = QPushButton("Load")
         self.load_preset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 1px 8px;
-                font-size: 11px;
-                max-height: 22px;
+                padding: 4px 12px;
+                font-size: 12px;
+                min-height: 28px;
+                max-height: 28px;
             }
         """)
         self.load_preset_button.clicked.connect(self._on_load_preset_clicked)
@@ -440,9 +479,10 @@ class ConfigurationTab(QWidget):
         self.reset_settings_button = QPushButton("Reset")
         self.reset_settings_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 1px 8px;
-                font-size: 11px;
-                max-height: 22px;
+                padding: 4px 12px;
+                font-size: 12px;
+                min-height: 28px;
+                max-height: 28px;
             }
         """)
         self.reset_settings_button.clicked.connect(self._on_reset_settings_clicked)
@@ -452,8 +492,8 @@ class ConfigurationTab(QWidget):
         presets_section.addLayout(presets_row)
         layout.addLayout(presets_section)
         
-        # Add spacing instead of separator
-        layout.addSpacing(16)
+        # Add minimal spacing
+        layout.addSpacing(8)
         
         # Action buttons - compact with reduced height
         button_row = QHBoxLayout()
@@ -463,9 +503,10 @@ class ConfigurationTab(QWidget):
         self.reset_button = QPushButton("Reset")
         self.reset_button.setStyleSheet(self.style_manager.get_button_style("secondary") + """
             QPushButton {
-                padding: 1px 10px;
-                font-size: 11px;
-                max-height: 22px;
+                padding: 4px 12px;
+                font-size: 12px;
+                min-height: 28px;
+                max-height: 28px;
             }
         """)
         self.reset_button.clicked.connect(self._on_reset_clicked)
@@ -476,9 +517,10 @@ class ConfigurationTab(QWidget):
         self.apply_button = QPushButton("Apply")
         self.apply_button.setStyleSheet(self.style_manager.get_button_style("primary") + """
             QPushButton {
-                padding: 1px 10px;
-                font-size: 11px;
-                max-height: 22px;
+                padding: 4px 12px;
+                font-size: 12px;
+                min-height: 28px;
+                max-height: 28px;
             }
         """)
         self.apply_button.clicked.connect(self._on_apply_filters_clicked)
@@ -488,7 +530,7 @@ class ConfigurationTab(QWidget):
         
         layout.addLayout(button_row)
         
-        return group
+        return section
     
     def _create_devices_section(self):
         """Create the devices selection section."""
@@ -498,7 +540,7 @@ class ConfigurationTab(QWidget):
         layout.setSpacing(4)
         
         label = QLabel("Source Devices")
-        label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        label.setStyleSheet(f"font-weight: 500; font-size: 12px; color: {self.style_manager.TEXT_SECONDARY};")
         layout.addWidget(label)
         
         # Multi-select dropdown for devices
@@ -532,7 +574,7 @@ class ConfigurationTab(QWidget):
         layout.setSpacing(4)
         
         label = QLabel("Metric Types")
-        label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        label.setStyleSheet(f"font-weight: 500; font-size: 12px; color: {self.style_manager.TEXT_SECONDARY};")
         layout.addWidget(label)
         
         # Multi-select dropdown for metrics
@@ -560,74 +602,62 @@ class ConfigurationTab(QWidget):
     
     def _create_statistics_section(self):
         """Create the statistics display section."""
-        # Create a scroll area for the statistics section
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setStyleSheet(f"""
-            QScrollArea {{
+        # Main container without scroll area
+        container = QWidget()
+        container.setObjectName("statisticsSection")
+        container.setStyleSheet(f"""
+            QWidget#statisticsSection {{
                 background-color: transparent;
-                border: none;
-            }}
-            QScrollBar:vertical {{
-                background-color: {self.style_manager.TERTIARY_BG};
-                width: 12px;
-                border-radius: 6px;
-            }}
-            QScrollBar::handle:vertical {{
-                background-color: {self.style_manager.ACCENT_SECONDARY};
-                border-radius: 6px;
-                min-height: 20px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background-color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
-        
-        # Main container for scroll content
-        container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(20)
+        layout.setSpacing(16)
         
         # Data Preview Section
-        preview_group = QGroupBox("Data Preview")
-        preview_group.setStyleSheet(f"""
-            QGroupBox {{
-                font-size: 16px;
-                font-weight: 600;
-                color: {self.style_manager.TEXT_PRIMARY};
-                background-color: {self.style_manager.SECONDARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.1);
+        preview_section = QFrame()
+        preview_section.setObjectName("dataPreviewSection")
+        preview_section.setStyleSheet(f"""
+            QFrame#dataPreviewSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
                 border-radius: 8px;
                 padding: 12px;
-                padding-top: 24px;
-                margin-bottom: 8px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 16px;
-                padding: 0 8px 0 8px;
-                color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
+        preview_section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
+        
+        preview_main_layout = QVBoxLayout(preview_section)
+        preview_main_layout.setSpacing(12)
+        preview_main_layout.setContentsMargins(16, 16, 16, 16)
+        
+        # Section title
+        preview_title = QLabel("Data Preview")
+        preview_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: 14px;
+                font-weight: 600;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 4px;
+            }}
+        """)
+        preview_main_layout.addWidget(preview_title)
         
         preview_layout = QVBoxLayout()
         preview_layout.setContentsMargins(4, 4, 4, 4)
         
-        # Create data preview table with smaller page size for compactness
+        # Create data preview table with appropriate page size
         self.data_preview_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=3,  # Further reduced for more compact display
+                page_size=10,  # Show 10 rows for better data visibility
                 alternating_rows=True,
                 grid_style='dotted'
             ),
             wsj_style=True
         )
         
-        # Set minimum height for better visibility
-        self.data_preview_table.setMinimumHeight(100)
-        self.data_preview_table.setMaximumHeight(150)
+        # Set proper height for data visibility
+        self.data_preview_table.setMinimumHeight(250)
+        self.data_preview_table.setMaximumHeight(400)
         
         # Apply custom styling for better readability
         self.data_preview_table.setStyleSheet(f"""
@@ -653,66 +683,70 @@ class ConfigurationTab(QWidget):
         """)
         
         preview_layout.addWidget(self.data_preview_table)
-        preview_group.setLayout(preview_layout)
-        layout.addWidget(preview_group)
+        preview_main_layout.addLayout(preview_layout)
+        layout.addWidget(preview_section)
         
         # Data Statistics Section
-        stats_group = QGroupBox("Data Statistics")
-        stats_group.setStyleSheet(f"""
-            QGroupBox {{
-                font-size: 16px;
-                font-weight: 600;
-                color: {self.style_manager.TEXT_PRIMARY};
-                background-color: {self.style_manager.SECONDARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.1);
+        stats_section = QFrame()
+        stats_section.setObjectName("dataStatsSection")
+        stats_section.setStyleSheet(f"""
+            QFrame#dataStatsSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
                 border-radius: 8px;
                 padding: 12px;
-                padding-top: 24px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 16px;
-                padding: 0 8px 0 8px;
-                color: {self.style_manager.ACCENT_PRIMARY};
             }}
         """)
+        stats_section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
+        
+        stats_main_layout = QVBoxLayout(stats_section)
+        stats_main_layout.setSpacing(12)
+        stats_main_layout.setContentsMargins(16, 16, 16, 16)
+        
+        # Section title
+        stats_title = QLabel("Data Statistics")
+        stats_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: 14px;
+                font-weight: 600;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 4px;
+            }}
+        """)
+        stats_main_layout.addWidget(stats_title)
         
         stats_layout = QVBoxLayout()
-        stats_layout.setContentsMargins(12, 12, 12, 12)
+        stats_layout.setContentsMargins(0, 0, 0, 0)
         
         # Create custom statistics widget without internal scroll
         self.statistics_widget = self._create_custom_statistics_widget()
         stats_layout.addWidget(self.statistics_widget)
         
-        stats_group.setLayout(stats_layout)
-        layout.addWidget(stats_group)
+        stats_main_layout.addLayout(stats_layout)
+        layout.addWidget(stats_section)
         
-        # Set the container as the scroll area's widget
-        scroll_area.setWidget(container)
-        
-        return scroll_area
+        return container
     
     def _create_custom_statistics_widget(self):
         """Create custom statistics widget without internal scrolling."""
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(20)
         
         # Summary section
         summary_layout = QHBoxLayout()
-        summary_layout.setSpacing(16)
+        summary_layout.setSpacing(12)
         
         # Total Records
         self.stats_total_label = QLabel("Total Records: -")
         self.stats_total_label.setStyleSheet(f"""
             QLabel {{
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
-                padding: 12px 20px;
+                padding: 8px 16px;
                 background-color: {self.style_manager.TERTIARY_BG};
-                border-radius: 8px;
+                border-radius: 6px;
             }}
         """)
         summary_layout.addWidget(self.stats_total_label)
@@ -721,12 +755,12 @@ class ConfigurationTab(QWidget):
         self.stats_date_label = QLabel("Date Range: -")
         self.stats_date_label.setStyleSheet(f"""
             QLabel {{
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.TEXT_PRIMARY};
-                padding: 12px 20px;
+                padding: 8px 16px;
                 background-color: {self.style_manager.TERTIARY_BG};
-                border-radius: 8px;
+                border-radius: 6px;
             }}
         """)
         summary_layout.addWidget(self.stats_date_label)
@@ -745,10 +779,10 @@ class ConfigurationTab(QWidget):
         types_title = QLabel("Record Types")
         types_title.setStyleSheet(f"""
             QLabel {{
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.ACCENT_PRIMARY};
-                margin-bottom: 8px;
+                margin-bottom: 4px;
             }}
         """)
         layout.addWidget(types_title)
@@ -756,7 +790,7 @@ class ConfigurationTab(QWidget):
         # Record types table - show all records without pagination if possible
         self.record_types_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=50,  # Show many more records
+                page_size=20,  # Show reasonable number of records with pagination
                 alternating_rows=True,
                 resizable_columns=True,
                 movable_columns=False,
@@ -765,8 +799,8 @@ class ConfigurationTab(QWidget):
             ),
             wsj_style=True
         )
-        self.record_types_table.setMinimumHeight(200)  # Reduced minimum height
-        self.record_types_table.setMaximumHeight(300)  # Reduced maximum height
+        self.record_types_table.setMinimumHeight(350)  # Proper height for data exploration
+        self.record_types_table.setMaximumHeight(500)  # Allow expansion if needed
         
         # Apply compact styling to record types table
         self.record_types_table.setStyleSheet(f"""
@@ -817,10 +851,10 @@ class ConfigurationTab(QWidget):
         sources_title = QLabel("Data Sources")
         sources_title.setStyleSheet(f"""
             QLabel {{
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 600;
                 color: {self.style_manager.ACCENT_PRIMARY};
-                margin-bottom: 8px;
+                margin-bottom: 4px;
             }}
         """)
         layout.addWidget(sources_title)
@@ -828,7 +862,7 @@ class ConfigurationTab(QWidget):
         # Data sources table - show all records without pagination if possible
         self.data_sources_table = self.component_factory.create_data_table(
             config=TableConfig(
-                page_size=50,  # Show many more records
+                page_size=15,  # Show reasonable number of sources
                 alternating_rows=True,
                 resizable_columns=True,
                 movable_columns=False,
@@ -837,8 +871,8 @@ class ConfigurationTab(QWidget):
             ),
             wsj_style=True
         )
-        self.data_sources_table.setMinimumHeight(200)  # Reduced minimum height
-        self.data_sources_table.setMaximumHeight(300)  # Reduced maximum height
+        self.data_sources_table.setMinimumHeight(300)  # Proper height for source list
+        self.data_sources_table.setMaximumHeight(450)  # Allow expansion if needed
         
         # Apply compact styling to data sources table
         self.data_sources_table.setStyleSheet(f"""
@@ -894,40 +928,37 @@ class ConfigurationTab(QWidget):
     
     def _create_summary_cards_section(self):
         """Create summary cards for data overview."""
-        section = QWidget(self)
+        section = QFrame()
         section.setObjectName("summaryCardsSection")
-        
-        # Create a frame for better visibility
-        frame = QFrame(section)
-        frame.setObjectName("summaryCardsFrame")
-        frame.setStyleSheet(f"""
-            QFrame#summaryCardsFrame {{
-                background-color: transparent;
-                border: none;
-                padding: 0px;
+        section.setStyleSheet(f"""
+            QFrame#summaryCardsSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border-radius: 8px;
+                padding: 12px;
             }}
         """)
+        section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
         
         section_layout = QVBoxLayout(section)
-        section_layout.setContentsMargins(0, 0, 0, 0)
-        section_layout.setSpacing(8)
+        section_layout.setContentsMargins(16, 16, 16, 16)
+        section_layout.setSpacing(12)
         
         # Add section title
         title_label = QLabel("Summary Cards")
         title_label.setStyleSheet(f"""
             QLabel {{
-                font-size: 16px;
+                font-size: 14px;
                 font-weight: 600;
-                color: {self.style_manager.TEXT_PRIMARY};
-                padding: 8px 0px 4px 0px;
+                color: {self.style_manager.ACCENT_PRIMARY};
+                margin-bottom: 4px;
             }}
         """)
         section_layout.addWidget(title_label)
-        section_layout.addWidget(frame)
         
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(0, 10, 0, 10)
-        layout.setSpacing(16)  # Add spacing between cards
+        # Cards layout
+        cards_layout = QHBoxLayout()
+        cards_layout.setContentsMargins(0, 0, 0, 0)
+        cards_layout.setSpacing(12)  # Reduced spacing between cards
         
         # Create summary cards with WSJ styling
         self.total_records_card = self.component_factory.create_metric_card(
@@ -962,14 +993,16 @@ class ConfigurationTab(QWidget):
             wsj_style=True
         )
         
-        layout.addWidget(self.total_records_card)
-        layout.addWidget(self.filtered_records_card)
-        layout.addWidget(self.data_source_card)
-        layout.addWidget(self.filter_status_card)
-        layout.addStretch()
+        cards_layout.addWidget(self.total_records_card)
+        cards_layout.addWidget(self.filtered_records_card)
+        cards_layout.addWidget(self.data_source_card)
+        cards_layout.addWidget(self.filter_status_card)
+        cards_layout.addStretch()
+        
+        section_layout.addLayout(cards_layout)
         
         # Ensure minimum height for the section
-        section.setMinimumHeight(180)
+        section.setMinimumHeight(160)  # Appropriate height for cards
         
         # Ensure cards are visible
         self.total_records_card.show()
@@ -981,18 +1014,24 @@ class ConfigurationTab(QWidget):
     
     def _create_status_section(self):
         """Create the status display section."""
-        section = QWidget(self)
+        section = QFrame()
+        section.setObjectName("statusSection")
+        section.setStyleSheet(f"""
+            QFrame#statusSection {{
+                background-color: {self.style_manager.PRIMARY_BG};
+                border-radius: 8px;
+                padding: 12px;
+            }}
+        """)
+        section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
+        
         layout = QHBoxLayout(section)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(12, 12, 12, 12)
         
         self.status_label = QLabel("No data loaded")
         self.status_label.setStyleSheet(f"""
             QLabel {{
-                background-color: {self.style_manager.TERTIARY_BG};
-                border: 1px solid rgba(139, 115, 85, 0.1);
-                border-radius: 8px;
-                padding: 16px;
-                font-size: 14px;
+                font-size: 13px;
                 color: {self.style_manager.TEXT_SECONDARY};
             }}
         """)
@@ -1777,3 +1816,64 @@ class ConfigurationTab(QWidget):
     def get_filtered_data(self):
         """Get the current filtered data or full data if no filters applied."""
         return self.filtered_data if self.filtered_data is not None else self.data
+    
+    def refresh_display(self):
+        """Refresh the display with current data."""
+        if self.data is None or self.data.empty:
+            return
+            
+        logger.info("Refreshing configuration tab display")
+        
+        # Update summary cards
+        row_count = len(self.data)
+        filtered_count = len(self.filtered_data) if self.filtered_data is not None else row_count
+        
+        self.total_records_card.update_content({'value': f"{row_count:,}"})
+        self.filtered_records_card.update_content({'value': f"{filtered_count:,}"})
+        
+        # Update data source
+        if hasattr(self.data_loader, 'db_path') and self.data_loader.db_path:
+            self.data_source_card.update_content({'value': "Database"})
+        else:
+            self.data_source_card.update_content({'value': "CSV File"})
+        
+        # Update filter status
+        if self.filtered_data is not None and len(self.filtered_data) != len(self.data):
+            percentage = f"{filtered_count/row_count*100:.1f}%"
+            self.filter_status_card.update_content({'value': f"Active ({percentage})"})
+        else:
+            self.filter_status_card.update_content({'value': "Default"})
+        
+        # Update data preview
+        self._update_data_preview()
+        
+        # Calculate and display statistics
+        data_to_analyze = self.filtered_data if self.filtered_data is not None else self.data
+        try:
+            stats = self.statistics_calculator.calculate_from_dataframe(data_to_analyze)
+            self._update_custom_statistics(stats)
+        except Exception as e:
+            logger.warning(f"Error updating statistics: {e}")
+        
+        # Update status
+        if self.filtered_data is not None:
+            self._update_status(
+                f"Showing {filtered_count:,} of {row_count:,} records "
+                f"({filtered_count/row_count*100:.1f}%)"
+            )
+        else:
+            self._update_status(f"Loaded {row_count:,} records")
+    
+    def _check_existing_data(self):
+        """Check if data already exists in the database on startup."""
+        try:
+            # Check if database exists
+            db_path = os.path.join(DATA_DIR, "health_data.db")
+            if os.path.exists(db_path):
+                logger.info("Found existing database, attempting to load data")
+                # Set the file path input to indicate database
+                self.file_path_input.setText(db_path)
+                # Load data from database
+                self._load_from_sqlite()
+        except Exception as e:
+            logger.warning(f"Could not load existing data on startup: {e}")

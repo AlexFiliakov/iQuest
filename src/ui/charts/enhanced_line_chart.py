@@ -783,6 +783,7 @@ class EnhancedLineChart(QWidget):
         """Handle mouse movement."""
         chart_rect = self._get_chart_rect()
         pos = event.position().toPoint()
+        posF = event.position()
         
         # Handle panning
         if self.is_panning and event.buttons() & Qt.MouseButton.MiddleButton:
@@ -797,7 +798,7 @@ class EnhancedLineChart(QWidget):
             return
             
         # Handle hover
-        if not chart_rect.contains(pos):
+        if not chart_rect.contains(posF):
             if self.hover_series is not None:
                 self.hover_series = None
                 self.hover_index = -1
@@ -847,6 +848,7 @@ class EnhancedLineChart(QWidget):
         """Handle mouse press."""
         chart_rect = self._get_chart_rect()
         pos = event.position().toPoint()
+        posF = event.position()
         
         if event.button() == Qt.MouseButton.LeftButton:
             if self.hover_series is not None and self.hover_index >= 0:
@@ -854,7 +856,7 @@ class EnhancedLineChart(QWidget):
                 series = self.series[self.hover_series]
                 point = series.data[self.hover_index]
                 self.dataPointClicked.emit(self.hover_series, point)
-            elif chart_rect.contains(pos) and self.config.enable_selection:
+            elif chart_rect.contains(posF) and self.config.enable_selection:
                 # Start selection
                 self.selection_rect = QRect(pos, pos)
                 self.rubber_band = QRubberBand(QRubberBand.Shape.Rectangle, self)

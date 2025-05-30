@@ -4,7 +4,8 @@ from typing import List
 from datetime import date
 from PyQt6.QtWidgets import (
     QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QMenuBar, QMenu, QStatusBar, QMessageBox, QComboBox, QScrollArea, QFrame
+    QMenuBar, QMenu, QStatusBar, QMessageBox, QComboBox, QScrollArea, QFrame,
+    QApplication
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon, QPalette, QColor, QKeyEvent
@@ -219,6 +220,15 @@ class MainWindow(QMainWindow):
         backup_action.setToolTip("Create a complete backup of all health data")
         backup_action.triggered.connect(self._on_create_backup)
         export_menu.addAction(backup_action)
+        
+        file_menu.addSeparator()
+        
+        # Erase All Data action
+        erase_data_action = QAction("&Erase All Data...", self)
+        erase_data_action.setStatusTip("Clear all data from the database and cache")
+        erase_data_action.setToolTip("Completely remove all imported health data and cached results")
+        erase_data_action.triggered.connect(self._on_erase_all_data)
+        file_menu.addAction(erase_data_action)
         
         file_menu.addSeparator()
         
@@ -526,7 +536,7 @@ class MainWindow(QMainWindow):
             # Try to import the comparative analytics widget
             from .comparative_visualization import ComparativeAnalyticsWidget
             from ..analytics.comparative_analytics import ComparativeAnalyticsEngine
-            from ..analytics.peer_group_comparison import PeerGroupManager
+            # from ..analytics.peer_group_comparison import PeerGroupManager  # Removed group comparison feature
             
             # Create the comparative analytics engine
             self.comparative_engine = ComparativeAnalyticsEngine(
@@ -540,15 +550,15 @@ class MainWindow(QMainWindow):
             if self.background_trend_processor and hasattr(self.background_trend_processor, 'set_comparative_engine'):
                 self.background_trend_processor.set_comparative_engine(self.comparative_engine)
             
-            # Create peer group manager
-            self.peer_group_manager = PeerGroupManager()
+            # Peer group manager removed
+            # self.peer_group_manager = PeerGroupManager()
             
             # Create the widget
             self.comparative_widget = ComparativeAnalyticsWidget()
             self.comparative_widget.set_comparative_engine(self.comparative_engine)
             
             self.tab_widget.addTab(self.comparative_widget, "Compare")
-            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and peer groups")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
             
         except ImportError as e:
             # Fallback to placeholder if import fails
@@ -573,7 +583,7 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(label)
         
-        placeholder = QLabel("Compare your health metrics with personal history, demographics, and peer groups")
+        placeholder = QLabel("Compare your health metrics with personal history and seasonal trends")
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         placeholder.setStyleSheet("""
             QLabel {
@@ -587,8 +597,7 @@ class MainWindow(QMainWindow):
         features = QLabel(
             "• Personal progress tracking\n"
             "• Anonymous demographic comparisons\n"
-            "• Seasonal trend analysis\n"
-            "• Private peer group challenges"
+            "• Seasonal trend analysis"
         )
         features.setAlignment(Qt.AlignmentFlag.AlignCenter)
         features.setStyleSheet("""
@@ -604,7 +613,7 @@ class MainWindow(QMainWindow):
         layout.addStretch()
         
         self.tab_widget.addTab(comparative_widget, "Compare")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and peer groups")
+        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
     
     def _create_health_insights_tab(self):
         """Create the health insights tab."""
@@ -612,7 +621,7 @@ class MainWindow(QMainWindow):
             from .health_insights_widget import HealthInsightsWidget
             from ..analytics.health_insights_engine import EnhancedHealthInsightsEngine
             from ..analytics.evidence_database import EvidenceDatabase
-            from ..analytics.wsj_style_manager import WSJStyleManager
+            from .charts.wsj_style_manager import WSJStyleManager
             
             # Create the insights engine
             evidence_db = EvidenceDatabase()
@@ -1051,6 +1060,10 @@ class MainWindow(QMainWindow):
                          from_widget is not None and 
                          to_widget is not None)
         
+        # Disable animations for Daily tab temporarily to fix refresh issue
+        if index == 1:  # Daily tab index
+            should_animate = False
+        
         if should_animate:
             # Perform animated transition
             self.transition_manager.transition_to(
@@ -1071,13 +1084,27 @@ class MainWindow(QMainWindow):
         # Save the current tab index immediately
         self.settings_manager.set_setting("MainWindow/lastActiveTab", index)
         
+        # Force the widget to become visible and process pending events
+        widget = self.tab_widget.widget(index)
+        if widget:
+            widget.show()
+            widget.raise_()
+            QApplication.processEvents()
+        
         # Refresh data for dashboard tabs when switching without animation
-        if index == 1:  # Daily tab
-            self._refresh_daily_data()
+        if index == 0:  # Config tab
+            # Refresh config tab display if data is loaded
+            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'refresh_display'):
+                self.config_tab.refresh_display()
+        elif index == 1:  # Daily tab
+            # Add a small delay to ensure tab is fully visible
+            QTimer.singleShot(50, self._refresh_daily_data)
         elif index == 2:  # Weekly tab
             self._refresh_weekly_data()
         elif index == 3:  # Monthly tab
             self._refresh_monthly_data()
+        elif index == 4:  # Compare tab
+            self._refresh_comparative_data()
     
     def _on_transition_started(self, from_view: ViewType, to_view: ViewType):
         """Handle transition start."""
@@ -1094,12 +1121,18 @@ class MainWindow(QMainWindow):
         self._complete_tab_change(current_index, tab_name)
         
         # Refresh data for dashboard tabs when transitioning to them
-        if current_index == 1:  # Daily tab index
+        if current_index == 0:  # Config tab index
+            # Refresh config tab display if data is loaded
+            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'refresh_display'):
+                self.config_tab.refresh_display()
+        elif current_index == 1:  # Daily tab index
             self._refresh_daily_data()
         elif current_index == 2:  # Weekly tab index
             self._refresh_weekly_data()
         elif current_index == 3:  # Monthly tab index
             self._refresh_monthly_data()
+        elif current_index == 4:  # Compare tab index
+            self._refresh_comparative_data()
     
     def _on_transition_interrupted(self):
         """Handle transition interruption."""
@@ -1217,6 +1250,118 @@ class MainWindow(QMainWindow):
             "<p>Built with PyQt6 and Python.</p>"
         )
     
+    def _on_erase_all_data(self):
+        """Handle erase all data action."""
+        logger.info("Erase all data action triggered")
+        
+        # Show warning dialog with Yes/No options
+        reply = QMessageBox.warning(
+            self,
+            "Erase All Data",
+            "<h3>Warning: This action cannot be undone!</h3>"
+            "<p>This will permanently delete:</p>"
+            "<ul>"
+            "<li>All imported health data from the database</li>"
+            "<li>All cached calculations and analytics</li>"
+            "<li>All filter presets and configurations</li>"
+            "</ul>"
+            "<p><b>Are you sure you want to continue?</b></p>",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                import os
+                import shutil
+                from ..config import DATA_DIR
+                # Create progress dialog
+                progress = QMessageBox(self)
+                progress.setWindowTitle("Erasing Data")
+                progress.setText("Erasing all data...")
+                progress.setStandardButtons(QMessageBox.StandardButton.NoButton)
+                progress.show()
+                QApplication.processEvents()
+                
+                # 1. Close database connections
+                if hasattr(db_manager, 'close'):
+                    db_manager.close()
+                    logger.info("Closed database connections")
+                
+                # 2. Delete database file
+                db_path = os.path.join(DATA_DIR, "health_data.db")
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+                    logger.info(f"Deleted database file: {db_path}")
+                
+                # 3. Delete analytics cache database
+                analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
+                if os.path.exists(analytics_cache_db):
+                    os.remove(analytics_cache_db)
+                    logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
+                
+                # Also check in current directory
+                if os.path.exists("analytics_cache.db"):
+                    os.remove("analytics_cache.db")
+                    logger.info("Deleted analytics cache database from current directory")
+                
+                # 4. Delete cache directory
+                cache_dir = os.path.join(DATA_DIR, "cache")
+                if os.path.exists(cache_dir):
+                    shutil.rmtree(cache_dir)
+                    logger.info(f"Deleted cache directory: {cache_dir}")
+                    
+                # Also check for cache in current directory
+                if os.path.exists("cache"):
+                    shutil.rmtree("cache")
+                    logger.info("Deleted cache directory from current directory")
+                
+                # 5. Clear filter configurations from database
+                if hasattr(self.config_tab, 'filter_config_manager'):
+                    # This will recreate the database but with empty tables
+                    self.config_tab.filter_config_manager.clear_all_presets()
+                    logger.info("Cleared filter configurations")
+                
+                # 6. Reset UI
+                if hasattr(self.config_tab, 'data'):
+                    self.config_tab.data = None
+                    self.config_tab.filtered_data = None
+                    
+                # Update UI to reflect empty state
+                if hasattr(self.config_tab, 'refresh_display'):
+                    self.config_tab.refresh_display()
+                    
+                # Disable other tabs since no data is loaded
+                for i in range(1, self.tab_widget.count()):
+                    self.tab_widget.setTabEnabled(i, False)
+                
+                # Switch to configuration tab
+                self.tab_widget.setCurrentIndex(0)
+                
+                progress.close()
+                
+                # Show success message
+                QMessageBox.information(
+                    self,
+                    "Data Erased",
+                    "All data has been successfully erased.\n\n"
+                    "You can now import new health data."
+                )
+                
+                # Update status bar
+                self.status_bar.showMessage("All data erased successfully")
+                logger.info("All data erased successfully")
+                
+            except Exception as e:
+                logger.error(f"Failed to erase data: {e}")
+                QMessageBox.critical(
+                    self,
+                    "Error",
+                    f"Failed to erase all data:\n\n{str(e)}"
+                )
+        else:
+            logger.info("User cancelled erase all data operation")
+    
     def resizeEvent(self, event):
         """Handle window resize events."""
         super().resizeEvent(event)
@@ -1251,6 +1396,9 @@ class MainWindow(QMainWindow):
             
             # Always refresh weekly data to ensure it's ready
             self._refresh_weekly_data()
+            
+            # Update comparative analytics engine with new calculators
+            self._refresh_comparative_data()
     
     def _handle_metric_selection(self, metric_name: str):
         """Handle metric selection from daily dashboard.
@@ -1335,8 +1483,13 @@ class MainWindow(QMainWindow):
         logger.debug("Refreshing weekly dashboard data")
         if hasattr(self, 'weekly_dashboard'):
             # Get current data from configuration tab
-            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
-                data = self.config_tab.filtered_data
+            data = None
+            if hasattr(self, 'config_tab'):
+                if hasattr(self.config_tab, 'get_filtered_data'):
+                    data = self.config_tab.get_filtered_data()
+                elif hasattr(self.config_tab, 'filtered_data'):
+                    data = self.config_tab.filtered_data
+                    
                 if data is not None and not data.empty:
                     # Create daily calculator first
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
@@ -1360,8 +1513,13 @@ class MainWindow(QMainWindow):
         logger.debug("Refreshing monthly dashboard data")
         if hasattr(self, 'monthly_dashboard'):
             # Get current data from configuration tab
-            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'filtered_data'):
-                data = self.config_tab.filtered_data
+            data = None
+            if hasattr(self, 'config_tab'):
+                if hasattr(self.config_tab, 'get_filtered_data'):
+                    data = self.config_tab.get_filtered_data()
+                elif hasattr(self.config_tab, 'filtered_data'):
+                    data = self.config_tab.filtered_data
+                    
                 if data is not None and not data.empty:
                     # Create monthly calculator with the data
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
@@ -1374,6 +1532,42 @@ class MainWindow(QMainWindow):
                     logger.info(f"Set monthly calculator with {len(data)} records")
                 else:
                     logger.warning("No data available to refresh monthly dashboard")
+    
+    def _refresh_comparative_data(self):
+        """Refresh the comparative analytics tab with new data."""
+        logger.debug("Refreshing comparative analytics data")
+        
+        if hasattr(self, 'comparative_engine') and hasattr(self, 'comparative_widget'):
+            # Update the comparative engine with new calculators
+            if hasattr(self, 'config_tab'):
+                # Get or create calculators
+                data = None
+                if hasattr(self.config_tab, 'get_filtered_data'):
+                    data = self.config_tab.get_filtered_data()
+                elif hasattr(self.config_tab, 'filtered_data'):
+                    data = self.config_tab.filtered_data
+                
+                if data is not None and not data.empty:
+                    # Create calculators
+                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+                    from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+                    from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                    
+                    daily_calculator = DailyMetricsCalculator(data)
+                    weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
+                    monthly_calculator = MonthlyMetricsCalculator(data)
+                    
+                    # Update comparative engine
+                    self.comparative_engine.daily_calculator = daily_calculator
+                    self.comparative_engine.weekly_calculator = weekly_calculator
+                    self.comparative_engine.monthly_calculator = monthly_calculator
+                    
+                    # Re-set the engine in the widget to trigger updates
+                    self.comparative_widget.set_comparative_engine(self.comparative_engine)
+                    
+                    logger.info("Updated comparative analytics with new data")
+                else:
+                    logger.warning("No data available to refresh comparative analytics")
     
     def _on_filters_applied(self, filters):
         """Handle filters applied signal from configuration tab."""

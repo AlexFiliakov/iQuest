@@ -23,7 +23,7 @@ from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
 from ..analytics.comparative_analytics import (
     ComparisonResult, HistoricalComparison, ComparisonType
 )
-from ..analytics.peer_group_comparison import GroupComparison
+# from ..analytics.peer_group_comparison import GroupComparison  # Removed group comparison feature
 
 logger = logging.getLogger(__name__)
 
@@ -279,13 +279,29 @@ class ComparisonCard(QFrame):
 class HistoricalComparisonWidget(QWidget):
     """Widget for displaying historical comparisons."""
     
+    metric_changed = pyqtSignal(str)
+    
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.comparative_engine = None
+        self.current_metric = None
+        self.metric_mapping = {
+            "Steps": "HKQuantityTypeIdentifierStepCount",
+            "Active Energy": "HKQuantityTypeIdentifierActiveEnergyBurned",
+            "Heart Rate": "HKQuantityTypeIdentifierRestingHeartRate",
+            "Sleep": "HKCategoryTypeIdentifierSleepAnalysis",
+            "Exercise Minutes": "HKQuantityTypeIdentifierAppleExerciseTime",
+            "Stand Hours": "HKQuantityTypeIdentifierAppleStandHour",
+            "Walking Speed": "HKQuantityTypeIdentifierWalkingSpeed"
+        }
         self.setup_ui()
         
     def setup_ui(self):
         """Initialize the UI."""
         layout = QVBoxLayout(self)
+        
+        # Header with title and metric selector
+        header_layout = QHBoxLayout()
         
         # Title
         title = QLabel("Personal Progress")
@@ -295,7 +311,25 @@ class HistoricalComparisonWidget(QWidget):
             color: #333333;
             padding: 10px 0;
         """)
-        layout.addWidget(title)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        
+        # Metric selector
+        metric_label = QLabel("Metric:")
+        metric_label.setStyleSheet("font-size: 12px; color: #666666;")
+        header_layout.addWidget(metric_label)
+        
+        from PyQt6.QtWidgets import QComboBox
+        self.metric_selector = QComboBox()
+        self.metric_selector.setMinimumWidth(200)
+        self.metric_selector.addItems([
+            "Steps", "Active Energy", "Heart Rate", "Sleep",
+            "Exercise Minutes", "Stand Hours", "Walking Speed"
+        ])
+        self.metric_selector.currentTextChanged.connect(self.on_metric_changed)
+        header_layout.addWidget(self.metric_selector)
+        
+        layout.addLayout(header_layout)
         
         # Cards grid
         self.cards_layout = QGridLayout()
@@ -334,6 +368,166 @@ class HistoricalComparisonWidget(QWidget):
         trend_layout.addStretch()
         
         layout.addWidget(self.trend_frame)
+        
+    def on_metric_changed(self, metric_name: str):
+        """Handle metric selection change."""
+        if metric_name in self.metric_mapping:
+            self.current_metric = self.metric_mapping[metric_name]
+            self.metric_changed.emit(self.current_metric)
+            self.update_data()
+    
+    def set_comparative_engine(self, engine):
+        """Set the comparative analytics engine."""
+        self.comparative_engine = engine
+        
+    def update_data(self):
+        """Update the comparison data for current metric."""
+        if not self.comparative_engine or not self.current_metric:
+            return
+            
+        # Show loading state
+        self.week_card.set_loading(True)
+        self.month_card.set_loading(True)
+        self.quarter_card.set_loading(True)
+        self.year_card.set_loading(True)
+        
+        try:
+            # Get comparison data
+            comparison = self.comparative_engine.compare_with_historical(
+                self.current_metric,
+                datetime.now()
+            )
+            
+            if comparison:
+                self.update_comparison(comparison.historical, comparison.current_value)
+            else:
+                # Try to get basic statistics if comparison fails
+                self._update_from_basic_stats()
+                
+        except Exception as e:
+            logger.error(f"Error updating comparison data: {e}")
+            self._show_no_data()
+    
+    def _update_from_basic_stats(self):
+        """Update cards with basic statistics."""
+        if not self.comparative_engine:
+            return
+            
+        try:
+            # Get data for different periods
+            from datetime import datetime, timedelta
+            now = datetime.now()
+            
+            # 7-day average
+            week_ago = now - timedelta(days=7)
+            week_stats = self._get_period_stats(week_ago, now, "7-day")
+            if week_stats:
+                self.week_card.set_value(week_stats['mean'], self._determine_trend(week_stats))
+                
+            # 30-day average
+            month_ago = now - timedelta(days=30)
+            month_stats = self._get_period_stats(month_ago, now, "30-day")
+            if month_stats:
+                self.month_card.set_value(month_stats['mean'], self._determine_trend(month_stats))
+                
+            # 90-day average
+            quarter_ago = now - timedelta(days=90)
+            quarter_stats = self._get_period_stats(quarter_ago, now, "90-day")
+            if quarter_stats:
+                self.quarter_card.set_value(quarter_stats['mean'], self._determine_trend(quarter_stats))
+                
+            # 365-day average
+            year_ago = now - timedelta(days=365)
+            year_stats = self._get_period_stats(year_ago, now, "365-day")
+            if year_stats:
+                self.year_card.set_value(year_stats['mean'], self._determine_trend(year_stats))
+                
+        except Exception as e:
+            logger.error(f"Error getting basic stats: {e}")
+            self._show_no_data()
+    
+    def _get_period_stats(self, start_date, end_date, period_name):
+        """Get statistics for a specific period."""
+        try:
+            if self.comparative_engine:
+                # Try to get stats from daily calculator
+                if hasattr(self.comparative_engine, 'daily_calculator') and self.comparative_engine.daily_calculator:
+                    calc = self.comparative_engine.daily_calculator
+                    
+                    # Try different methods to get data
+                    data = None
+                    if hasattr(calc, 'get_metric_stats'):
+                        # Get aggregated stats for the period
+                        stats = calc.get_metric_stats(self.current_metric, start_date, end_date)
+                        if stats:
+                            return {
+                                'mean': stats.get('mean', 0),
+                                'std': stats.get('std', 0),
+                                'count': stats.get('count', 0),
+                                'period': period_name
+                            }
+                    
+                    if hasattr(calc, 'get_daily_summary'):
+                        # Get daily summaries and calculate average
+                        summaries = calc.get_daily_summary(start_date, end_date)
+                        if summaries and not summaries.empty:
+                            # Find the column for our metric
+                            metric_col = None
+                            for col in summaries.columns:
+                                if self.current_metric in col or col == self.current_metric:
+                                    metric_col = col
+                                    break
+                            
+                            if metric_col and metric_col in summaries.columns:
+                                valid_data = summaries[metric_col].dropna()
+                                if len(valid_data) > 0:
+                                    return {
+                                        'mean': valid_data.mean(),
+                                        'std': valid_data.std(),
+                                        'count': len(valid_data),
+                                        'period': period_name
+                                    }
+                    
+                    # Fallback: try to get raw data
+                    if hasattr(calc, 'data') and calc.data is not None:
+                        import pandas as pd
+                        df = calc.data
+                        if isinstance(df, pd.DataFrame) and 'type' in df.columns:
+                            # Filter by metric type and date range
+                            mask = (df['type'] == self.current_metric)
+                            if 'creationDate' in df.columns:
+                                dates = pd.to_datetime(df['creationDate'])
+                                mask &= (dates >= pd.to_datetime(start_date)) & (dates <= pd.to_datetime(end_date))
+                            
+                            metric_data = df[mask]
+                            if len(metric_data) > 0 and 'value' in metric_data.columns:
+                                values = pd.to_numeric(metric_data['value'], errors='coerce').dropna()
+                                if len(values) > 0:
+                                    return {
+                                        'mean': values.mean(),
+                                        'std': values.std(),
+                                        'count': len(values),
+                                        'period': period_name
+                                    }
+                    
+        except Exception as e:
+            logger.error(f"Error getting {period_name} stats: {e}")
+        return None
+    
+    def _determine_trend(self, stats):
+        """Determine trend based on statistics."""
+        # Simple trend determination - could be enhanced
+        if stats and stats.get('count', 0) > 3:
+            return 'stable'
+        return 'stable'
+    
+    def _show_no_data(self):
+        """Show no data state for all cards."""
+        for card in [self.week_card, self.month_card, self.quarter_card, self.year_card]:
+            card.set_loading(False)
+            card.value_label.setText("--")
+            card.comparison_label.setText("No data available")
+            card.insight_label.setText("")
         
     def update_comparison(self, historical: HistoricalComparison, 
                          current_value: float):
@@ -413,176 +607,177 @@ class HistoricalComparisonWidget(QWidget):
                 """)
 
 
-class PeerGroupComparisonWidget(QWidget):
-    """Widget for displaying peer group comparisons."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setup_ui()
-        
-    def setup_ui(self):
-        """Initialize the UI."""
-        layout = QVBoxLayout(self)
-        
-        # Title section
-        title_layout = QHBoxLayout()
-        
-        title = QLabel("Group Comparison")
-        title.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            color: #333333;
-        """)
-        title_layout.addWidget(title)
-        
-        # Privacy indicator
-        self.privacy_label = QLabel("🔒 Anonymous")
-        self.privacy_label.setStyleSheet("""
-            font-size: 12px;
-            color: #666666;
-            background-color: #F5F5F5;
-            padding: 4px 8px;
-            border-radius: 4px;
-        """)
-        title_layout.addWidget(self.privacy_label)
-        title_layout.addStretch()
-        
-        layout.addLayout(title_layout)
-        
-        # Main content
-        content_layout = QHBoxLayout()
-        
-        # Percentile gauge
-        self.gauge = PercentileGauge()
-        content_layout.addWidget(self.gauge)
-        
-        # Stats panel
-        stats_frame = QFrame(self)
-        stats_frame.setFrameStyle(QFrame.Shape.Box)
-        stats_frame.setStyleSheet("""
-            background-color: #FAFAFA;
-            border: 1px solid #E0E0E0;
-            border-radius: 4px;
-            padding: 10px;
-        """)
-        
-        stats_layout = QVBoxLayout(stats_frame)
-        
-        self.group_name_label = QLabel("Group: --")
-        self.group_name_label.setStyleSheet("font-weight: bold;")
-        stats_layout.addWidget(self.group_name_label)
-        
-        self.members_label = QLabel("Members: --")
-        stats_layout.addWidget(self.members_label)
-        
-        stats_layout.addSpacing(10)
-        
-        self.avg_label = QLabel("Group Average: --")
-        stats_layout.addWidget(self.avg_label)
-        
-        self.range_label = QLabel("Range: --")
-        stats_layout.addWidget(self.range_label)
-        
-        stats_layout.addStretch()
-        
-        content_layout.addWidget(stats_frame)
-        
-        layout.addLayout(content_layout)
-        
-        # Insights
-        self.insights_frame = QGroupBox("Insights")
-        self.insights_frame.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                border: 1px solid #E0E0E0;
-                border-radius: 4px;
-                margin-top: 10px;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        self.insights_layout = QVBoxLayout(self.insights_frame)
-        layout.addWidget(self.insights_frame)
-        
-    def update_comparison(self, comparison: GroupComparison, group_name: str):
-        """Update the peer group comparison display."""
-        if comparison.error:
-            # Show error state
-            self.gauge.set_value(0)
-            self.gauge.set_label("No Data")
-            self.gauge.set_subtitle(comparison.error)
-            return
-            
-        # Update group info
-        self.group_name_label.setText(f"Group: {group_name}")
-        self.members_label.setText(
-            f"Members: {comparison.group_stats.get('member_count', 0)}"
-        )
-        
-        # Update stats
-        stats = comparison.group_stats
-        self.avg_label.setText(f"Group Average: {stats.get('mean', 0):,.0f}")
-        self.range_label.setText(
-            f"Range: {stats.get('min', 0):,.0f} - {stats.get('max', 0):,.0f}"
-        )
-        
-        # Calculate and update percentile
-        if comparison.user_value and stats.get('mean'):
-            # Simple percentile calculation
-            percentile = self._estimate_percentile(
-                comparison.user_value, stats
-            )
-            self.gauge.set_value(percentile)
-            
-            # Set color based on ranking
-            if comparison.anonymous_ranking == "top quarter":
-                self.gauge.set_color('#4CAF50')
-            elif comparison.anonymous_ranking == "upper half":
-                self.gauge.set_color('#2196F3')
-            elif comparison.anonymous_ranking == "middle range":
-                self.gauge.set_color('#FF9800')
-            else:
-                self.gauge.set_color('#9C27B0')
-                
-            self.gauge.set_label(comparison.anonymous_ranking.title())
-            
-        # Update insights
-        # Clear old insights
-        while self.insights_layout.count():
-            child = self.insights_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-                
-        # Add new insights
-        for insight in comparison.insights[:3]:  # Show top 3
-            insight_label = QLabel(f"• {insight}")
-            insight_label.setWordWrap(True)
-            insight_label.setStyleSheet("""
-                color: #666666;
-                padding: 2px 0;
-            """)
-            self.insights_layout.addWidget(insight_label)
-            
-    def _estimate_percentile(self, value: float, stats: Dict) -> float:
-        """Estimate percentile from stats."""
-        # Simple linear interpolation
-        if value <= stats.get('min', 0):
-            return 5
-        elif value >= stats.get('max', 0):
-            return 95
-        elif value <= stats.get('percentile_25', 0):
-            return 25 * (value - stats['min']) / (stats['percentile_25'] - stats['min'])
-        elif value <= stats.get('median', 0):
-            return 25 + 25 * (value - stats['percentile_25']) / (stats['median'] - stats['percentile_25'])
-        elif value <= stats.get('percentile_75', 0):
-            return 50 + 25 * (value - stats['median']) / (stats['percentile_75'] - stats['median'])
-        else:
-            return 75 + 20 * (value - stats['percentile_75']) / (stats['max'] - stats['percentile_75'])
+# PeerGroupComparisonWidget class removed - Group comparison feature no longer supported
+# class PeerGroupComparisonWidget(QWidget):
+#     """Widget for displaying peer group comparisons."""
+#     
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setup_ui()
+#         
+#     def setup_ui(self):
+#         """Initialize the UI."""
+#         layout = QVBoxLayout(self)
+#         
+#         # Title section
+#         title_layout = QHBoxLayout()
+#         
+#         title = QLabel("Group Comparison")
+#         title.setStyleSheet("""
+#             font-size: 16px;
+#             font-weight: bold;
+#             color: #333333;
+#         """)
+#         title_layout.addWidget(title)
+#         
+#         # Privacy indicator
+#         self.privacy_label = QLabel("🔒 Anonymous")
+#         self.privacy_label.setStyleSheet("""
+#             font-size: 12px;
+#             color: #666666;
+#             background-color: #F5F5F5;
+#             padding: 4px 8px;
+#             border-radius: 4px;
+#         """)
+#         title_layout.addWidget(self.privacy_label)
+#         title_layout.addStretch()
+#         
+#         layout.addLayout(title_layout)
+#         
+#         # Main content
+#         content_layout = QHBoxLayout()
+#         
+#         # Percentile gauge
+#         self.gauge = PercentileGauge()
+#         content_layout.addWidget(self.gauge)
+#         
+#         # Stats panel
+#         stats_frame = QFrame(self)
+#         stats_frame.setFrameStyle(QFrame.Shape.Box)
+#         stats_frame.setStyleSheet("""
+#             background-color: #FAFAFA;
+#             border: 1px solid #E0E0E0;
+#             border-radius: 4px;
+#             padding: 10px;
+#         """)
+#         
+#         stats_layout = QVBoxLayout(stats_frame)
+#         
+#         self.group_name_label = QLabel("Group: --")
+#         self.group_name_label.setStyleSheet("font-weight: bold;")
+#         stats_layout.addWidget(self.group_name_label)
+#         
+#         self.members_label = QLabel("Members: --")
+#         stats_layout.addWidget(self.members_label)
+#         
+#         stats_layout.addSpacing(10)
+#         
+#         self.avg_label = QLabel("Group Average: --")
+#         stats_layout.addWidget(self.avg_label)
+#         
+#         self.range_label = QLabel("Range: --")
+#         stats_layout.addWidget(self.range_label)
+#         
+#         stats_layout.addStretch()
+#         
+#         content_layout.addWidget(stats_frame)
+#         
+#         layout.addLayout(content_layout)
+#         
+#         # Insights
+#         self.insights_frame = QGroupBox("Insights")
+#         self.insights_frame.setStyleSheet("""
+#             QGroupBox {
+#                 font-weight: bold;
+#                 border: 1px solid #E0E0E0;
+#                 border-radius: 4px;
+#                 margin-top: 10px;
+#                 padding-top: 10px;
+#             }
+#             QGroupBox::title {
+#                 subcontrol-origin: margin;
+#                 left: 10px;
+#                 padding: 0 5px 0 5px;
+#             }
+#         """)
+#         
+#         self.insights_layout = QVBoxLayout(self.insights_frame)
+#         layout.addWidget(self.insights_frame)
+#         
+#     def update_comparison(self, comparison: GroupComparison, group_name: str):
+#         """Update the peer group comparison display."""
+#         if comparison.error:
+#             # Show error state
+#             self.gauge.set_value(0)
+#             self.gauge.set_label("No Data")
+#             self.gauge.set_subtitle(comparison.error)
+#             return
+#             
+#         # Update group info
+#         self.group_name_label.setText(f"Group: {group_name}")
+#         self.members_label.setText(
+#             f"Members: {comparison.group_stats.get('member_count', 0)}"
+#         )
+#         
+#         # Update stats
+#         stats = comparison.group_stats
+#         self.avg_label.setText(f"Group Average: {stats.get('mean', 0):,.0f}")
+#         self.range_label.setText(
+#             f"Range: {stats.get('min', 0):,.0f} - {stats.get('max', 0):,.0f}"
+#         )
+#         
+#         # Calculate and update percentile
+#         if comparison.user_value and stats.get('mean'):
+#             # Simple percentile calculation
+#             percentile = self._estimate_percentile(
+#                 comparison.user_value, stats
+#             )
+#             self.gauge.set_value(percentile)
+#             
+#             # Set color based on ranking
+#             if comparison.anonymous_ranking == "top quarter":
+#                 self.gauge.set_color('#4CAF50')
+#             elif comparison.anonymous_ranking == "upper half":
+#                 self.gauge.set_color('#2196F3')
+#             elif comparison.anonymous_ranking == "middle range":
+#                 self.gauge.set_color('#FF9800')
+#             else:
+#                 self.gauge.set_color('#9C27B0')
+#                 
+#             self.gauge.set_label(comparison.anonymous_ranking.title())
+#             
+#         # Update insights
+#         # Clear old insights
+#         while self.insights_layout.count():
+#             child = self.insights_layout.takeAt(0)
+#             if child.widget():
+#                 child.widget().deleteLater()
+#                 
+#         # Add new insights
+#         for insight in comparison.insights[:3]:  # Show top 3
+#             insight_label = QLabel(f"• {insight}")
+#             insight_label.setWordWrap(True)
+#             insight_label.setStyleSheet("""
+#                 color: #666666;
+#                 padding: 2px 0;
+#             """)
+#             self.insights_layout.addWidget(insight_label)
+#             
+#     def _estimate_percentile(self, value: float, stats: Dict) -> float:
+#         """Estimate percentile from stats."""
+#         # Simple linear interpolation
+#         if value <= stats.get('min', 0):
+#             return 5
+#         elif value >= stats.get('max', 0):
+#             return 95
+#         elif value <= stats.get('percentile_25', 0):
+#             return 25 * (value - stats['min']) / (stats['percentile_25'] - stats['min'])
+#         elif value <= stats.get('median', 0):
+#             return 25 + 25 * (value - stats['percentile_25']) / (stats['median'] - stats['percentile_25'])
+#         elif value <= stats.get('percentile_75', 0):
+#             return 50 + 25 * (value - stats['median']) / (stats['percentile_75'] - stats['median'])
+#         else:
+#             return 75 + 20 * (value - stats['percentile_75']) / (stats['max'] - stats['percentile_75'])
 
 
 class SeasonalTrendsWidget(QWidget):
@@ -802,14 +997,15 @@ class ComparativeAnalyticsWidget(QWidget):
         self.personal_btn.setCheckable(True)
         self.personal_btn.setChecked(True)
         
-        self.group_btn = QPushButton("Group Comparison")
-        self.group_btn.setCheckable(True)
+        # Group comparison button removed
+        # self.group_btn = QPushButton("Group Comparison")
+        # self.group_btn.setCheckable(True)
         
         self.seasonal_btn = QPushButton("Seasonal Trends")
         self.seasonal_btn.setCheckable(True)
         
         nav_layout.addWidget(self.personal_btn)
-        nav_layout.addWidget(self.group_btn)
+        # nav_layout.addWidget(self.group_btn)  # Group comparison removed
         nav_layout.addWidget(self.seasonal_btn)
         nav_layout.addStretch()
         
@@ -820,49 +1016,51 @@ class ComparativeAnalyticsWidget(QWidget):
         
         # Personal comparison
         self.historical_widget = HistoricalComparisonWidget()
+        self.historical_widget.metric_changed.connect(self.on_metric_changed)
         
-        # Group comparison
-        self.group_widget = PeerGroupComparisonWidget()
-        self.group_widget.hide()
+        # Group comparison removed
+        # self.group_widget = PeerGroupComparisonWidget()
+        # self.group_widget.hide()
         
         self.content_stack.addWidget(self.historical_widget)
-        self.content_stack.addWidget(self.group_widget)
+        # self.content_stack.addWidget(self.group_widget)  # Group comparison removed
         
         layout.addLayout(self.content_stack)
         layout.addStretch()
         
         # Connect buttons
         self.personal_btn.clicked.connect(self.show_personal)
-        self.group_btn.clicked.connect(self.show_group)
+        # self.group_btn.clicked.connect(self.show_group)  # Group comparison removed
         self.seasonal_btn.clicked.connect(self.show_seasonal)
         
     def show_personal(self):
         """Show personal comparison view."""
         self.personal_btn.setChecked(True)
-        self.group_btn.setChecked(False)
+        # self.group_btn.setChecked(False)  # Group comparison removed
         self.seasonal_btn.setChecked(False)
         
         self.historical_widget.show()
-        self.group_widget.hide()
+        # self.group_widget.hide()  # Group comparison removed
         
-    def show_group(self):
-        """Show group comparison view."""
-        self.personal_btn.setChecked(False)
-        self.group_btn.setChecked(True)
-        self.seasonal_btn.setChecked(False)
-        
-        self.historical_widget.hide()
-        self.group_widget.show()
+    # Group comparison method removed
+    # def show_group(self):
+    #     """Show group comparison view."""
+    #     self.personal_btn.setChecked(False)
+    #     self.group_btn.setChecked(True)
+    #     self.seasonal_btn.setChecked(False)
+    #     
+    #     self.historical_widget.hide()
+    #     self.group_widget.show()
         
     def show_seasonal(self):
         """Show seasonal trends view."""
         self.personal_btn.setChecked(False)
-        self.group_btn.setChecked(False)
+        # self.group_btn.setChecked(False)  # Group comparison removed
         self.seasonal_btn.setChecked(True)
         
         # Hide other widgets
         self.historical_widget.hide()
-        self.group_widget.hide()
+        # self.group_widget.hide()  # Group comparison removed
         
         # Check if seasonal widget exists
         if not hasattr(self, 'seasonal_widget'):
@@ -882,10 +1080,18 @@ class ComparativeAnalyticsWidget(QWidget):
         if hasattr(self, 'current_metric'):
             self.seasonal_widget.update_metric(self.current_metric)
     
+    def on_metric_changed(self, metric: str):
+        """Handle metric change from historical widget."""
+        self.current_metric = metric
+        self.set_current_metric(metric)
+    
     def set_comparative_engine(self, engine):
         """Set the comparative analytics engine."""
         self.comparative_engine = engine
         logger.info("Comparative engine set for visualization widget")
+        
+        # Pass engine to historical widget
+        self.historical_widget.set_comparative_engine(engine)
         
         # Pass engine to seasonal widget if it exists
         if hasattr(self, 'seasonal_widget'):
@@ -894,6 +1100,9 @@ class ComparativeAnalyticsWidget(QWidget):
         # Trigger initial trend calculation for default metric
         if engine and hasattr(engine, 'background_processor') and engine.background_processor:
             engine.background_processor.queue_trend_calculation(self.current_metric, priority=10)
+            
+        # Initialize historical widget with default metric
+        self.historical_widget.on_metric_changed("Steps")
             
     def set_current_metric(self, metric: str):
         """Set the current metric and update display."""

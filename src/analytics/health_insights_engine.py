@@ -18,7 +18,7 @@ from .health_insights_models import (
     PersonalizedGoal, InsightBatch, InsightEvidence
 )
 from .evidence_database import EvidenceDatabase
-from .wsj_style_manager import WSJStyleManager
+from ..ui.charts.wsj_style_manager import WSJStyleManager
 from .medical_evidence_validator import MedicalEvidenceValidator
 
 

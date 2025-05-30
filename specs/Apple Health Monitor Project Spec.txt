@@ -434,4 +434,42 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 ### Bugs ###
 
+1. Evaluate the screenshots of `ad hoc/records_subtab.png`, which shows the Records > Records subtab, and `ad hoc/badges_subtab.png`, which shows the Records > Badges subtab. Right now the records and badges don’t display properly.
+
+2. I think the overall structure of the layout is good, but it’s missing the content of the records and badges.
+
+3. Identify needed repairs to display the content correctly.
+
+4. Display the content in a visually appealing manner so that it fits within the cards allocated, be mindful of the padding and keep it small.
+
+-----------
+
+1. Evaluate the screenshots of `ad hoc/config_window.png`, which shows the data section of the Config tab. Right now the UI is too cramped vertically and does not allow for any exploration or data manipulation at all. The user can’t even see most of this UI.
+
+2. I think the overall structure of the layout is good, but it needs to be expanded vertically a lot to make space for the content.
+
+3. Identify needed repairs to display the content correctly vertically with a vertical scrollbar to accommodate the increased window visible height.
+
+4. Display the content and UI in a visually appealing manner and usable, so that it fits within the cards allocated, be mindful of the padding and keep it small. Adhere to the spec `UI_SPEC.md`
+
+--------------
+
+1. Evaluate the screenshots of `ad hoc/badges_subtab.png`, which shows a section of the Records > Badges subtab. Right now the badge subtext gets cropped above and below.
+
+2. I think the overall structure of the layout is good, but the badge top and bottom padding needs to be made smaller so that the badge subtext can expand accordingly.
+
+3. Identify needed repairs to display the content correctly.
+
+4. Display the content in a visually appealing manner so that it fits within the cards allocated, be mindful of the padding and keep it small.
+
+
+#### Future #####
+
+the Monthly tab still shows steps into the future. For example, it’s 5/29/2025 and it shows that I have steps on 5/30/25 and 5/31/2025. Fix this data pull error.
+
+Weekly tab is completely broken and doesn’t display properly. It mostly doesn’t display anything.
+
+Daily tab doesn’t display properly. It doesn’t pull anything for days that should have data, and the UI doesn’t refresh properly.
+
+Personal Progress subtab in the Compare tab doesn’t display any data. See the screenshot at `ad hoc/personal_progress_subtab.png`, all the averages are blank, and there is no way to select which stat to show progress for. Please fix the average displays, and let the user select which stat to display from a dropdown on top right.
 

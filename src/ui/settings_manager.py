@@ -81,9 +81,26 @@ class SettingsManager:
             # Restore last active tab
             if hasattr(window, 'tab_widget'):
                 last_tab = self.settings.value("lastActiveTab", 0, type=int)
+                # Validate tab index and default to Configuration tab (0) if invalid
                 if 0 <= last_tab < window.tab_widget.count():
-                    window.tab_widget.setCurrentIndex(last_tab)
-                    logger.debug(f"Restored active tab to index: {last_tab}")
+                    try:
+                        # Check if the tab widget exists and is accessible
+                        tab_widget = window.tab_widget.widget(last_tab)
+                        if tab_widget is not None:
+                            window.tab_widget.setCurrentIndex(last_tab)
+                            logger.debug(f"Restored active tab to index: {last_tab}")
+                        else:
+                            # Tab widget is None, default to Configuration
+                            window.tab_widget.setCurrentIndex(0)
+                            logger.warning(f"Tab at index {last_tab} is not accessible, defaulting to Configuration tab")
+                    except Exception as e:
+                        # Any error, default to Configuration tab
+                        window.tab_widget.setCurrentIndex(0)
+                        logger.error(f"Error restoring tab {last_tab}: {e}, defaulting to Configuration tab")
+                else:
+                    # Invalid tab index, default to Configuration
+                    window.tab_widget.setCurrentIndex(0)
+                    logger.warning(f"Invalid tab index {last_tab}, defaulting to Configuration tab")
             
             self.settings.endGroup()
             

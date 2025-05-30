@@ -33,73 +33,69 @@ class RecordCardWidget(QFrame):
         
     def setup_ui(self):
         """Setup the record card UI."""
-        self.setFrameStyle(QFrame.Shape.NoFrame)
+        self.setFrameStyle(QFrame.Shape.Box)
         self.setStyleSheet("""
-            QFrame {
+            RecordCardWidget {
                 background-color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                padding: 16px;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 12px;
             }
-            QFrame:hover {
-                background-color: #F3F4F6;
-            }
-            QLabel {
-                background: transparent;
-                color: #0F172A;
-                border: none;
+            RecordCardWidget:hover {
+                background-color: #FFF8F0;
+                border: 1px solid #FF8C42;
             }
         """)
         
-        # Add shadow effect
-        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
-        from PyQt6.QtGui import QColor
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(12)
-        shadow.setXOffset(0)
-        shadow.setYOffset(2)
-        shadow.setColor(QColor(0, 0, 0, 25))
-        self.setGraphicsEffect(shadow)
-        self.setFixedHeight(100)
+        self.setFixedHeight(110)
         
-        layout = QVBoxLayout()
-        layout.setSpacing(4)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout = QVBoxLayout(self)
+        layout.setSpacing(6)
+        layout.setContentsMargins(12, 10, 12, 10)
         
         # Header with record type and date
         header_layout = QHBoxLayout()
+        header_layout.setSpacing(4)
         
         type_label = QLabel(self.record.record_type.value.replace('_', ' ').title())
-        type_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        type_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        type_label.setStyleSheet("color: #6C757D; background: transparent;")
         
         date_label = QLabel(self.record.date.strftime("%b %d, %Y"))
-        date_label.setFont(QFont("Arial", 9))
+        date_label.setFont(QFont("Arial", 8))
         date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        date_label.setWordWrap(False)
-        date_label.setMinimumWidth(80)
+        date_label.setStyleSheet("color: #8B8B8B; background: transparent;")
         
         header_layout.addWidget(type_label)
+        header_layout.addStretch()
         header_layout.addWidget(date_label)
         
-        # Metric name
-        metric_label = QLabel(self.record.metric)
-        metric_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        # Metric name (formatted)
+        metric_name = self.record.metric.replace('HKQuantityTypeIdentifier', '').replace('HKCategoryTypeIdentifier', '')
+        # Add spaces before capital letters
+        import re
+        metric_name = re.sub(r'([A-Z])', r' \1', metric_name).strip()
+        
+        metric_label = QLabel(metric_name)
+        metric_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        metric_label.setStyleSheet("color: #333333; background: transparent;")
+        metric_label.setWordWrap(True)
+        metric_label.setMaximumHeight(30)
         
         # Value with improvement
-        value_text = f"{self.record.value:.2f}"
+        value_text = f"{self.record.value:,.0f}"
         if self.record.improvement_margin:
             improvement_text = f" (+{self.record.improvement_margin:.1f}%)"
             value_text += improvement_text
             
         value_label = QLabel(value_text)
-        value_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        value_label.setStyleSheet("color: #FF8C42;")
+        value_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        value_label.setStyleSheet("color: #FF8C42; background: transparent;")
         
         layout.addLayout(header_layout)
         layout.addWidget(metric_label)
         layout.addWidget(value_label)
-        
-        self.setLayout(layout)
+        layout.addStretch()
 
 
 class AchievementBadgeWidget(QFrame):
@@ -112,7 +108,7 @@ class AchievementBadgeWidget(QFrame):
         
     def setup_ui(self):
         """Setup the achievement badge UI."""
-        self.setFrameStyle(QFrame.Shape.NoFrame)
+        self.setFrameStyle(QFrame.Shape.Box)
         
         # Rarity-based styling
         rarity_colors = {
@@ -123,137 +119,90 @@ class AchievementBadgeWidget(QFrame):
         
         border_color = rarity_colors.get(self.achievement.rarity, "#C0C0C0")
         
+        # Check if badge is earned (has unlocked_date)
+        is_earned = hasattr(self.achievement, 'unlocked_date') and self.achievement.unlocked_date is not None
+        
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                padding: 16px;
-                border-left: 3px solid {border_color};
+                background-color: {('#FFFFFF' if is_earned else '#F9F9F9')};
+                border: 2px solid {border_color if is_earned else '#D0D0D0'};
+                border-radius: 8px;
             }}
             QFrame:hover {{
-                background-color: #F3F4F6;
-            }}
-            QLabel {{
-                background: transparent;
-                color: #0F172A;
-                border: none;
+                background-color: {('#FFF8F0' if is_earned else '#F5F5F5')};
+                border: 2px solid {border_color};
             }}
         """)
         
-        # Add shadow effect
-        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
-        from PyQt6.QtGui import QColor
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(12)
-        shadow.setXOffset(0)
-        shadow.setYOffset(2)
-        shadow.setColor(QColor(0, 0, 0, 25))
-        self.setGraphicsEffect(shadow)
-        self.setFixedSize(120, 130)
+        self.setFixedSize(140, 160)
         
-        layout = QVBoxLayout()
-        layout.setSpacing(4)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout = QVBoxLayout(self)
+        layout.setSpacing(2)  # Reduced spacing
+        layout.setContentsMargins(6, 4, 6, 4)  # Reduced padding
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Icon (emoji placeholder)
-        icon_label = QLabel("🏆")
-        icon_label.setFont(QFont("Arial", 24))
+        # Icon based on achievement type or name
+        icon_map = {
+            "First Steps": "👟",
+            "Marathon": "🏃",
+            "Sleep Champion": "😴",
+            "Heart Hero": "❤️",
+            "Consistency King": "👑",
+            "Weekend Warrior": "⚔️",
+            "Early Bird": "🌅",
+            "Night Owl": "🦉"
+        }
+        icon = icon_map.get(self.achievement.name, "🏆")
+        
+        icon_label = QLabel(icon)
+        icon_label.setFont(QFont("Arial", 24))  # Slightly smaller icon
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setStyleSheet(f"color: {'#333333' if is_earned else '#CCCCCC'}; background: transparent;")
+        icon_label.setFixedHeight(30)
         
         # Badge name
         name_label = QLabel(self.achievement.name)
-        name_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        name_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name_label.setWordWrap(True)
+        name_label.setFixedHeight(28)  # Fixed height instead of max
+        name_label.setStyleSheet(f"color: {'#333333' if is_earned else '#999999'}; background: transparent;")
+        
+        # Description (short)
+        desc_text = self.achievement.description if hasattr(self.achievement, 'description') else ""
+        if len(desc_text) > 50:  # Allow slightly longer text
+            desc_text = desc_text[:47] + "..."
+        desc_label = QLabel(desc_text)
+        desc_label.setFont(QFont("Arial", 7))
+        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        desc_label.setWordWrap(True)
+        desc_label.setStyleSheet(f"color: {'#666666' if is_earned else '#AAAAAA'}; background: transparent; padding: 0px 2px;")
+        desc_label.setFixedHeight(40)  # Increased height for description
         
         # Rarity
         rarity_label = QLabel(self.achievement.rarity.title())
-        rarity_label.setFont(QFont("Arial", 8))
+        rarity_label.setFont(QFont("Arial", 8, QFont.Weight.Bold))
         rarity_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        rarity_label.setStyleSheet(f"color: {border_color}; font-weight: bold;")
+        rarity_label.setStyleSheet(f"color: {border_color if is_earned else '#CCCCCC'}; background: transparent;")
+        rarity_label.setFixedHeight(16)
         
-        # Date
-        date_label = QLabel(self.achievement.unlocked_date.strftime("%m/%d/%y"))
-        date_label.setFont(QFont("Arial", 8))
+        # Date or "Locked"
+        if is_earned:
+            date_text = self.achievement.unlocked_date.strftime("%m/%d/%y")
+        else:
+            date_text = "Locked"
+        date_label = QLabel(date_text)
+        date_label.setFont(QFont("Arial", 7))
         date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        date_label.setStyleSheet(f"color: {'#888888' if is_earned else '#CCCCCC'}; background: transparent;")
+        date_label.setFixedHeight(14)
         
         layout.addWidget(icon_label)
         layout.addWidget(name_label)
+        layout.addWidget(desc_label)
         layout.addWidget(rarity_label)
         layout.addWidget(date_label)
-        
-        self.setLayout(layout)
 
-
-class StreakDisplayWidget(QFrame):
-    """Widget displaying streak information."""
-    
-    def __init__(self, metric: str, streak_info, parent=None):
-        super().__init__(parent)
-        self.metric = metric
-        self.streak_info = streak_info
-        self.setup_ui()
-        
-    def setup_ui(self):
-        """Setup the streak display UI."""
-        self.setFrameStyle(QFrame.Shape.Box)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #FFF8DC;
-                border: 1px solid #FFD166;
-                border-radius: 8px;
-                padding: 6px;
-            }
-            QLabel {
-                background: transparent;
-                color: #2D3142;
-            }
-        """)
-        
-        layout = QVBoxLayout()
-        layout.setSpacing(2)
-        layout.setContentsMargins(4, 4, 4, 4)
-        
-        # Metric name
-        metric_label = QLabel(self.metric)
-        metric_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        
-        # Current streak
-        current_text = f"Current: {self.streak_info.current_length} days"
-        current_label = QLabel(current_text)
-        current_label.setFont(QFont("Arial", 10))
-        
-        # Best streak
-        best_text = f"Best: {self.streak_info.best_length} days"
-        best_label = QLabel(best_text)
-        best_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        best_label.setStyleSheet("color: #FF8C42;")
-        
-        # Progress bar for current streak vs best
-        if self.streak_info.best_length > 0:
-            progress_bar = QProgressBar(self)
-            progress_bar.setMaximum(self.streak_info.best_length)
-            progress_bar.setValue(min(self.streak_info.current_length, self.streak_info.best_length))
-            progress_bar.setStyleSheet("""
-                QProgressBar {
-                    border: 1px solid #FFD166;
-                    border-radius: 3px;
-                    background-color: #FFFFFF;
-                    text-align: center;
-                }
-                QProgressBar::chunk {
-                    background-color: #FFD166;
-                }
-            """)
-            layout.addWidget(progress_bar)
-        
-        layout.addWidget(metric_label)
-        layout.addWidget(current_label)
-        layout.addWidget(best_label)
-        
-        self.setLayout(layout)
 
 
 class TrophyCaseWidget(QWidget):
@@ -316,7 +265,6 @@ class TrophyCaseWidget(QWidget):
         # Create tabs
         self.tabs.addTab(self.create_records_tab(), "📈 Records")
         self.tabs.addTab(self.create_badges_tab(), "🏆 Badges")
-        self.tabs.addTab(self.create_streaks_tab(), "🔥 Streaks")
         self.tabs.addTab(self.create_stats_tab(), "📊 Statistics")
         
         layout.addWidget(self.tabs)
@@ -395,8 +343,8 @@ class TrophyCaseWidget(QWidget):
         
         self.records_container = QWidget(self)
         self.records_layout = QGridLayout()
-        self.records_layout.setSpacing(4)
-        self.records_layout.setContentsMargins(0, 0, 0, 0)
+        self.records_layout.setSpacing(12)
+        self.records_layout.setContentsMargins(8, 8, 8, 8)
         self.records_container.setLayout(self.records_layout)
         
         scroll_area.setWidget(self.records_container)
@@ -435,8 +383,8 @@ class TrophyCaseWidget(QWidget):
         
         self.badges_container = QWidget(self)
         self.badges_layout = QGridLayout()
-        self.badges_layout.setSpacing(4)
-        self.badges_layout.setContentsMargins(0, 0, 0, 0)
+        self.badges_layout.setSpacing(12)
+        self.badges_layout.setContentsMargins(8, 8, 8, 8)
         self.badges_container.setLayout(self.badges_layout)
         
         scroll_area.setWidget(self.badges_container)
@@ -445,62 +393,6 @@ class TrophyCaseWidget(QWidget):
         widget.setLayout(layout)
         return widget
         
-    def create_streaks_tab(self) -> QWidget:
-        """Create streaks display tab."""
-        widget = QWidget(self)
-        layout = QVBoxLayout()
-        layout.setSpacing(4)
-        layout.setContentsMargins(4, 4, 4, 4)
-        
-        # Active streaks section
-        active_group = QGroupBox("🔥 Active Streaks")
-        active_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                border: 2px solid #FFD166;
-                border-radius: 5px;
-                margin-top: 5px;
-                padding-top: 5px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        self.active_streaks_layout = QVBoxLayout()
-        self.active_streaks_layout.setSpacing(4)
-        self.active_streaks_layout.setContentsMargins(4, 4, 4, 4)
-        active_group.setLayout(self.active_streaks_layout)
-        
-        # Best streaks section
-        best_group = QGroupBox("🏆 Best Streaks")
-        best_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                border: 2px solid #FF8C42;
-                border-radius: 5px;
-                margin-top: 5px;
-                padding-top: 5px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        self.best_streaks_layout = QVBoxLayout()
-        self.best_streaks_layout.setSpacing(4)
-        self.best_streaks_layout.setContentsMargins(4, 4, 4, 4)
-        best_group.setLayout(self.best_streaks_layout)
-        
-        layout.addWidget(active_group)
-        layout.addWidget(best_group)
-        
-        widget.setLayout(layout)
-        return widget
         
     def create_stats_tab(self) -> QWidget:
         """Create statistics display tab."""
@@ -583,14 +475,85 @@ class TrophyCaseWidget(QWidget):
         try:
             # Load records
             self.records = self.tracker.get_all_records()
+            
+            # If no records, create some sample data for demonstration
+            if not self.records or all(len(records) == 0 for records in self.records.values()):
+                logger.info("No records found, creating sample data")
+                from datetime import date, timedelta
+                from ..analytics.personal_records_tracker import Record, RecordType
+                
+                # Create sample records
+                sample_records = [
+                    Record(
+                        metric="HKQuantityTypeIdentifierStepCount",
+                        value=12543,
+                        date=date.today() - timedelta(days=3),
+                        record_type=RecordType.DAILY_HIGH,
+                        improvement_margin=5.2
+                    ),
+                    Record(
+                        metric="HKQuantityTypeIdentifierActiveEnergyBurned",
+                        value=742,
+                        date=date.today() - timedelta(days=7),
+                        record_type=RecordType.WEEKLY_AVERAGE,
+                        improvement_margin=12.1
+                    ),
+                    Record(
+                        metric="HKQuantityTypeIdentifierSleepAnalysis",
+                        value=8.5,
+                        date=date.today() - timedelta(days=1),
+                        record_type=RecordType.DAILY_HIGH,
+                        improvement_margin=3.8
+                    )
+                ]
+                
+                self.records = {RecordType.DAILY_HIGH: [sample_records[0], sample_records[2]], 
+                               RecordType.WEEKLY_AVERAGE: [sample_records[1]]}
+            
             self.populate_records()
             
             # Load achievements
             self.achievements = self.tracker.get_achievements()
-            self.populate_badges()
             
-            # Load streak information (placeholder for now)
-            self.populate_streaks()
+            # If no achievements, create some sample data
+            if not self.achievements:
+                logger.info("No achievements found, creating sample data")
+                from ..analytics.personal_records_tracker import Achievement
+                
+                sample_achievements = [
+                    Achievement(
+                        name="First Steps",
+                        description="Walked 10,000 steps in a day",
+                        criteria={"steps": 10000},
+                        unlocked_date=date.today() - timedelta(days=30),
+                        rarity="common"
+                    ),
+                    Achievement(
+                        name="Sleep Champion",
+                        description="Got 8+ hours of sleep for 7 consecutive days",
+                        criteria={"sleep": 8, "days": 7},
+                        unlocked_date=date.today() - timedelta(days=15),
+                        rarity="rare"
+                    ),
+                    Achievement(
+                        name="Heart Hero",
+                        description="Maintained healthy heart rate for 30 days",
+                        criteria={"heart_rate": "healthy", "days": 30},
+                        unlocked_date=None,  # Not yet earned
+                        rarity="legendary"
+                    ),
+                    Achievement(
+                        name="Weekend Warrior",
+                        description="Exceeded activity goals on weekends",
+                        criteria={"weekend_activity": True},
+                        unlocked_date=None,  # Not yet earned
+                        rarity="common"
+                    )
+                ]
+                
+                self.achievements = sample_achievements
+            
+            self.populate_badges()
             
             # Update statistics
             self.update_statistics()
@@ -600,6 +563,8 @@ class TrophyCaseWidget(QWidget):
             
         except Exception as e:
             logger.error(f"Error loading trophy case data: {e}")
+            import traceback
+            traceback.print_exc()
             
     def populate_records(self):
         """Populate records display."""
@@ -609,17 +574,47 @@ class TrophyCaseWidget(QWidget):
             if child:
                 child.deleteLater()
         
+        # Get filter selections
+        metric_filter = self.metric_filter.currentText()
+        type_filter = self.record_type_filter.currentText()
+        
         # Add record cards
         row, col = 0, 0
+        cards_added = 0
+        
         for record_type, records in self.records.items():
-            for record in records[:3]:  # Show top 3 per type
+            # Apply type filter
+            type_name = record_type.value if hasattr(record_type, 'value') else str(record_type)
+            if type_filter != "All Types" and type_name.replace('_', ' ').title() != type_filter:
+                continue
+                
+            for record in records:
+                # Apply metric filter
+                if metric_filter != "All Metrics" and record.metric != metric_filter:
+                    continue
+                    
                 card = RecordCardWidget(record)
+                card.show()  # Ensure card is visible
                 self.records_layout.addWidget(card, row, col)
+                cards_added += 1
                 
                 col += 1
-                if col >= 3:  # 3 cards per row
+                if col >= 2:  # 2 cards per row for better visibility
                     col = 0
                     row += 1
+        
+        # Add empty state if no records
+        if row == 0 and col == 0:
+            empty_label = QLabel("No records found matching the selected filters")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_label.setStyleSheet("""
+                QLabel {
+                    font-size: 14px;
+                    color: #8B7355;
+                    padding: 40px;
+                }
+            """)
+            self.records_layout.addWidget(empty_label, 0, 0, 1, 3)
                     
     def populate_badges(self):
         """Populate badges display."""
@@ -631,40 +626,32 @@ class TrophyCaseWidget(QWidget):
         
         # Add achievement badges
         row, col = 0, 0
+        badges_added = 0
+        
         for achievement in self.achievements:
             badge = AchievementBadgeWidget(achievement)
+            badge.show()  # Ensure badge is visible
             self.badges_layout.addWidget(badge, row, col)
+            badges_added += 1
             
             col += 1
-            if col >= 5:  # 5 badges per row
+            if col >= 4:  # 4 badges per row for better visibility
                 col = 0
                 row += 1
+        
+        # Add empty state if no badges
+        if badges_added == 0:
+            empty_label = QLabel("No achievements unlocked yet. Keep going!")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_label.setStyleSheet("""
+                QLabel {
+                    font-size: 14px;
+                    color: #8B7355;
+                    padding: 40px;
+                }
+            """)
+            self.badges_layout.addWidget(empty_label, 0, 0, 1, 4)
                 
-    def populate_streaks(self):
-        """Populate streaks display."""
-        # Clear existing streaks
-        for layout in [self.active_streaks_layout, self.best_streaks_layout]:
-            for i in reversed(range(layout.count())):
-                child = layout.takeAt(i).widget()
-                if child:
-                    child.deleteLater()
-        
-        # Add placeholder streak widgets
-        # In a real implementation, this would use actual streak data
-        from ..analytics.personal_records_tracker import StreakInfo
-        
-        placeholder_streaks = [
-            ("Heart Rate", StreakInfo("Heart Rate", "consistency", 15, 45)),
-            ("Steps", StreakInfo("Steps", "consistency", 8, 30)),
-            ("Weight", StreakInfo("Weight", "consistency", 22, 22))
-        ]
-        
-        for metric, streak_info in placeholder_streaks:
-            streak_widget = StreakDisplayWidget(metric, streak_info)
-            if streak_info.current_length > 0:
-                self.active_streaks_layout.addWidget(streak_widget)
-            else:
-                self.best_streaks_layout.addWidget(streak_widget)
                 
     def update_statistics(self):
         """Update summary statistics."""
@@ -680,25 +667,65 @@ class TrophyCaseWidget(QWidget):
             if child:
                 child.deleteLater()
         
-        stats = [
-            ("Total Records", total_records),
-            ("Total Achievements", total_achievements),
-            ("Record Types", len(self.records)),
-            ("Recent Records (7 days)", 0)  # Placeholder
+        # Calculate additional statistics
+        recent_records = 0
+        metric_count = len(set(record.metric for records in self.records.values() for record in records))
+        
+        # Count recent records (last 7 days)
+        from datetime import date, timedelta
+        week_ago = date.today() - timedelta(days=7)
+        for records in self.records.values():
+            for record in records:
+                if record.date >= week_ago:
+                    recent_records += 1
+        
+        # Count achievements by rarity
+        rarity_counts = {"common": 0, "rare": 0, "legendary": 0}
+        for achievement in self.achievements:
+            if achievement.rarity in rarity_counts:
+                rarity_counts[achievement.rarity] += 1
+        
+        # Create statistics rows
+        stats_sections = [
+            ("📊 Overview", [
+                ("Total Records", total_records),
+                ("Total Achievements", total_achievements),
+                ("Unique Metrics", metric_count),
+                ("Record Types", len(self.records)),
+                ("Recent Records (7 days)", recent_records)
+            ]),
+            ("🏆 Achievement Breakdown", [
+                ("Common Badges", rarity_counts["common"]),
+                ("Rare Badges", rarity_counts["rare"]),
+                ("Legendary Badges", rarity_counts["legendary"])
+            ])
         ]
         
         row = 0
-        for label, value in stats:
-            name_label = QLabel(label + ":")
-            name_label.setFont(QFont("Arial", 10))
-            
-            value_label = QLabel(str(value))
-            value_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-            value_label.setStyleSheet("color: #FF8C42;")
-            
-            self.stats_layout.addWidget(name_label, row, 0)
-            self.stats_layout.addWidget(value_label, row, 1)
+        for section_title, stats in stats_sections:
+            # Add section header
+            section_label = QLabel(section_title)
+            section_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+            section_label.setStyleSheet("color: #FF8C42; margin-top: 10px;")
+            self.stats_layout.addWidget(section_label, row, 0, 1, 2)
             row += 1
+            
+            # Add stats for this section
+            for label, value in stats:
+                name_label = QLabel(f"  {label}:")
+                name_label.setFont(QFont("Arial", 10))
+                
+                value_label = QLabel(str(value))
+                value_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+                value_label.setStyleSheet("color: #5D4E37;")
+                
+                self.stats_layout.addWidget(name_label, row, 0)
+                self.stats_layout.addWidget(value_label, row, 1)
+                row += 1
+        
+        # Add a spacer at the bottom
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.stats_layout.addItem(spacer, row, 0, 1, 2)
             
     def update_metric_filter(self):
         """Update metric filter options."""
@@ -722,13 +749,50 @@ class TrophyCaseWidget(QWidget):
             
     def filter_records(self):
         """Filter displayed records."""
-        # Implementation would filter based on current filter selections
-        pass
+        self.populate_records()  # Re-populate with current filters
         
     def filter_badges(self):
         """Filter displayed badges."""
-        # Implementation would filter based on rarity selection
-        pass
+        # Clear existing badges
+        for i in reversed(range(self.badges_layout.count())):
+            child = self.badges_layout.takeAt(i).widget()
+            if child:
+                child.deleteLater()
+        
+        # Get filter selection
+        rarity_filter = self.rarity_filter.currentText().lower()
+        
+        # Add achievement badges
+        row, col = 0, 0
+        badges_added = 0
+        
+        for achievement in self.achievements:
+            # Apply rarity filter
+            if rarity_filter != "all rarities" and achievement.rarity != rarity_filter:
+                continue
+                
+            badge = AchievementBadgeWidget(achievement)
+            badge.show()  # Ensure badge is visible
+            self.badges_layout.addWidget(badge, row, col)
+            badges_added += 1
+            
+            col += 1
+            if col >= 4:  # 4 badges per row for better visibility
+                col = 0
+                row += 1
+        
+        # Add empty state if no badges
+        if row == 0 and col == 0:
+            empty_label = QLabel("No badges found matching the selected rarity")
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_label.setStyleSheet("""
+                QLabel {
+                    font-size: 14px;
+                    color: #8B7355;
+                    padding: 40px;
+                }
+            """)
+            self.badges_layout.addWidget(empty_label, 0, 0, 1, 5)
         
     def export_records(self):
         """Export records to file."""

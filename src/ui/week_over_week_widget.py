@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QScrollArea, QPushButton, QProgressBar,
     QSizePolicy
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect, QPoint
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QLinearGradient
 from typing import List, Optional, Dict
 import numpy as np
@@ -79,7 +79,7 @@ class MomentumIndicatorWidget(QWidget):
                 (center_x + 8, center_y - 2),
                 (center_x, center_y - 10)
             ]
-            painter.drawPolygon([self.mapToParent(x, y) for x, y in points])
+            painter.drawPolygon([self.mapToParent(QPoint(x, y)) for x, y in points])
             
             points2 = [
                 (center_x, center_y + 2),
@@ -87,7 +87,7 @@ class MomentumIndicatorWidget(QWidget):
                 (center_x + 6, center_y + 8),
                 (center_x, center_y + 2)
             ]
-            painter.drawPolygon([self.mapToParent(x, y) for x, y in points2])
+            painter.drawPolygon([self.mapToParent(QPoint(x, y)) for x, y in points2])
             
         elif arrow_type == "down_double":
             # Double down arrow
@@ -97,7 +97,7 @@ class MomentumIndicatorWidget(QWidget):
                 (center_x + 8, center_y + 2),
                 (center_x, center_y + 10)
             ]
-            painter.drawPolygon([self.mapToParent(x, y) for x, y in points])
+            painter.drawPolygon([self.mapToParent(QPoint(x, y)) for x, y in points])
             
             points2 = [
                 (center_x, center_y - 2),
@@ -105,7 +105,7 @@ class MomentumIndicatorWidget(QWidget):
                 (center_x + 6, center_y - 8),
                 (center_x, center_y - 2)
             ]
-            painter.drawPolygon([self.mapToParent(x, y) for x, y in points2])
+            painter.drawPolygon([self.mapToParent(QPoint(x, y)) for x, y in points2])
             
         elif arrow_type == "right":
             # Right arrow
@@ -115,7 +115,7 @@ class MomentumIndicatorWidget(QWidget):
                 (center_x, center_y + 6),
                 (center_x + 8, center_y)
             ]
-            painter.drawPolygon([self.mapToParent(x, y) for x, y in points])
+            painter.drawPolygon([self.mapToParent(QPoint(x, y)) for x, y in points])
 
 
 class StreakTrackerWidget(QWidget):

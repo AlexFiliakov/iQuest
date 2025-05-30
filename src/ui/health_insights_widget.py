@@ -23,7 +23,7 @@ from ..analytics.health_insights_models import (
     HealthInsight, InsightCategory, Priority, EvidenceLevel,
     InsightBatch
 )
-from ..analytics.wsj_style_manager import WSJStyleManager
+from .charts.wsj_style_manager import WSJStyleManager
 from ..analytics.progressive_loader import ProgressiveLoaderCallbacks, ProgressiveResult, LoadingStage
 from .style_manager import StyleManager
 

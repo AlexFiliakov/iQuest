@@ -139,10 +139,17 @@ class WeeklyDashboardWidget(QWidget):
         self._setup_ui()
         self._setup_connections()
         
+        # Update week labels
+        self._update_week_labels()
+        
         # Load initial data
         if self.weekly_calculator:
             self._detect_available_metrics()
-            self._load_weekly_data()
+            if self._available_metrics:
+                self._load_weekly_data()
+        else:
+            # Show no data message if no calculator
+            self._show_no_data_message()
     
     def _setup_ui(self):
         """Set up the user interface."""
@@ -574,9 +581,10 @@ class WeeklyDashboardWidget(QWidget):
             
             if self._available_metrics:
                 self._selected_metric = self._available_metrics[0][0]
+                self.metric_selector.setCurrentIndex(0)
                 
         except Exception as e:
-            logger.error(f"Error detecting available metrics: {e}")
+            logger.error(f"Error detecting available metrics: {e}", exc_info=True)
     
     def _update_week_labels(self):
         """Update the week display labels."""
@@ -615,10 +623,16 @@ class WeeklyDashboardWidget(QWidget):
             return
             
         try:
+            # Hide no data message first
+            self._hide_no_data_message()
+            
             # Get selected metric
             metric_type = self.metric_selector.currentData()
             if not metric_type:
+                logger.warning("No metric type selected")
                 return
+            
+            logger.info(f"Loading data for metric: {metric_type}")
             
             # Calculate weekly statistics
             self._update_summary_stats(metric_type)
@@ -632,8 +646,13 @@ class WeeklyDashboardWidget(QWidget):
             # Update trend chart
             self._update_trend_chart()
             
+            # Force UI update
+            self.update()
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+            
         except Exception as e:
-            logger.error(f"Error loading weekly data: {e}")
+            logger.error(f"Error loading weekly data: {e}", exc_info=True)
     
     def _update_summary_stats(self, metric_type: str):
         """Update the summary statistics cards."""
@@ -1004,15 +1023,25 @@ class WeeklyDashboardWidget(QWidget):
     
     def set_weekly_calculator(self, weekly_calculator: WeeklyMetricsCalculator):
         """Set the weekly metrics calculator."""
+        logger.info("Setting weekly calculator")
         self.weekly_calculator = weekly_calculator
         self.daily_calculator = weekly_calculator.daily_calculator if weekly_calculator else None
         
         self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
         self.dow_analyzer = DayOfWeekAnalyzer(self.daily_calculator.data if hasattr(self.daily_calculator, 'data') else self.daily_calculator) if self.daily_calculator else None
         
+        # Detect metrics first
         self._detect_available_metrics()
-        self._hide_no_data_message()  # Hide no data message when calculator is set
-        self._load_weekly_data()
+        
+        # Hide no data message
+        self._hide_no_data_message()
+        
+        # Update week labels
+        self._update_week_labels()
+        
+        # Load data after everything is set up
+        if self._available_metrics:
+            self._load_weekly_data()
         
         # Force UI refresh
         self.update()

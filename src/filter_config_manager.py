@@ -416,3 +416,24 @@ class FilterConfigManager:
         except Exception as e:
             logger.error(f"Error during JSON migration: {e}")
             return 0
+    
+    def clear_all_presets(self) -> bool:
+        """
+        Clear all filter presets from the database.
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            query = "DELETE FROM filter_configs"
+            result = self.db_manager.execute_command(query)
+            
+            if result:
+                logger.info("Cleared all filter presets")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error clearing all presets: {e}")
+            return False

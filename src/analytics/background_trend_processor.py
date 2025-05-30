@@ -216,8 +216,9 @@ class BackgroundTrendProcessor:
         cache_key = f"trend_{metric}"
         
         # Check in-memory cache first
-        cached = self.cache_manager.get(cache_key)
-        if cached:
+        # Use a dummy compute function since we're only checking for existence
+        cached = self.cache_manager.get(cache_key, lambda: None)
+        if cached is not None:
             return cached
         
         # Check disk cache

@@ -492,9 +492,14 @@ class ModernMonthlyDashboardWidget(QWidget):
                 if hk_type:
                     # Get data for the entire month
                     days_in_month = monthrange(self._current_year, self._current_month)[1]
+                    today = date.today()
                     
                     for day in range(1, days_in_month + 1):
                         current_date = date(self._current_year, self._current_month, day)
+                        
+                        # Skip future dates
+                        if current_date > today:
+                            continue
                         
                         # Get daily aggregate value
                         daily_value = self.monthly_calculator.get_daily_aggregate(
@@ -532,9 +537,14 @@ class ModernMonthlyDashboardWidget(QWidget):
         
         sample_data = {}
         days_in_month = monthrange(self._current_year, self._current_month)[1]
+        today = date.today()
         
         for day in range(1, days_in_month + 1):
             current_date = date(self._current_year, self._current_month, day)
+            
+            # Skip future dates
+            if current_date > today:
+                continue
             
             # Generate realistic sample values based on metric type
             if self._current_metric == "steps":

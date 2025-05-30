@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
     QProgressBar, QGroupBox, QApplication, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDateTime
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDateTime, QThread, pyqtSlot
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
 
 from .summary_cards import SummaryCard
@@ -176,6 +176,16 @@ class DailyDashboardWidget(QWidget):
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self._auto_refresh)
         self.refresh_timer.start(60000)  # Refresh every minute
+        
+        # Debounce timer for updates
+        self._update_timer = QTimer()
+        self._update_timer.setSingleShot(True)
+        self._update_timer.timeout.connect(self._perform_delayed_update)
+        self._pending_update = False
+        
+        # Cache for metric stats
+        self._stats_cache = {}
+        self._cache_date = None
         
         self._setup_ui()
         self._setup_connections()
@@ -655,12 +665,21 @@ class DailyDashboardWidget(QWidget):
     
     def _setup_connections(self):
         """Set up signal connections."""
-        self.today_btn.clicked.connect(self._go_to_today)
-        self.refresh_btn.clicked.connect(self._refresh_data)
-        self.prev_day_btn.clicked.connect(self._go_to_previous_day)
-        self.next_day_btn.clicked.connect(self._go_to_next_day)
-        self.view_selector.currentTextChanged.connect(self._filter_metric_cards)
-        self.detail_metric_selector.currentTextChanged.connect(self._update_detail_chart)
+        try:
+            if hasattr(self, 'today_btn'):
+                self.today_btn.clicked.connect(self._go_to_today)
+            if hasattr(self, 'refresh_btn'):
+                self.refresh_btn.clicked.connect(self._refresh_data)
+            if hasattr(self, 'prev_day_btn'):
+                self.prev_day_btn.clicked.connect(self._go_to_previous_day)
+            if hasattr(self, 'next_day_btn'):
+                self.next_day_btn.clicked.connect(self._go_to_next_day)
+            if hasattr(self, 'view_selector'):
+                self.view_selector.currentTextChanged.connect(self._filter_metric_cards)
+            if hasattr(self, 'detail_metric_selector'):
+                self.detail_metric_selector.currentTextChanged.connect(self._update_detail_chart)
+        except Exception as e:
+            logger.error(f"Error setting up connections: {e}", exc_info=True)
     
     def _detect_available_metrics(self):
         """Detect which metrics are available in the data."""
@@ -709,9 +728,18 @@ class DailyDashboardWidget(QWidget):
     
     def _create_metric_cards(self):
         """Create metric cards for available metrics."""
+        # Only recreate if metrics have changed
+        current_metrics = set(self._metric_cards.keys())
+        new_metrics = set(self._available_metrics[:8])
+        
+        if current_metrics == new_metrics:
+            return  # No need to recreate
+            
         # Clear existing cards
         for i in reversed(range(self.cards_grid.count())):
-            self.cards_grid.itemAt(i).widget().deleteLater()
+            widget = self.cards_grid.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
         self._metric_cards.clear()
         
         # Create cards for up to 8 metrics
@@ -741,47 +769,54 @@ class DailyDashboardWidget(QWidget):
             return
             
         try:
-            # Create metric cards if not already done
-            if not self._metric_cards:
-                logger.info("Creating metric cards")
-                self._create_metric_cards()
-                self._populate_detail_selector()
+            # Clear cache if date changed
+            if self._cache_date != self._current_date:
+                logger.info(f"Date changed from {self._cache_date} to {self._current_date}, clearing cache")
+                self._stats_cache.clear()
+                self._cache_date = self._current_date
+                if hasattr(self, '_hourly_cache'):
+                    self._hourly_cache.clear()
+            
+            # Create metric cards if needed
+            logger.info("Checking metric cards")
+            self._create_metric_cards()
+            self._populate_detail_selector()
             
             # Check if we have any data for this date
             has_any_data = False
             metrics_with_data = []
             
-            logger.info(f"Getting stats for {len(self._metric_cards)} metric cards")
-            
-            # Get today's data for each metric
+            # Process metrics immediately without batching
             for metric_name, card in self._metric_cards.items():
-                stats = self._get_metric_stats(metric_name)
-                if stats and stats['value'] is not None:
-                    logger.debug(f"Got stats for {metric_name}: value={stats['value']}")
-                    card.update_value(stats['value'], stats.get('trend'))
-                    has_any_data = True
-                    metrics_with_data.append(metric_name)
-                else:
-                    logger.debug(f"No stats for {metric_name}")
+                try:
+                    stats = self._get_metric_stats(metric_name)
+                    if stats and stats['value'] is not None:
+                        card.update_value(stats['value'], stats.get('trend'))
+                        has_any_data = True
+                        metrics_with_data.append(metric_name)
+                        logger.debug(f"Updated {metric_name} with value {stats['value']}")
+                    else:
+                        card.update_value(None, None)
+                        logger.debug(f"No data for {metric_name} on {self._current_date}")
+                except Exception as e:
+                    logger.error(f"Error getting stats for {metric_name}: {e}")
                     card.update_value(None, None)
             
-            logger.info(f"Found data for {len(metrics_with_data)} metrics: {metrics_with_data}")
+            logger.info(f"Found data for {len(metrics_with_data)} metrics on {self._current_date}")
             
             if not has_any_data:
-                logger.warning("No data found for current date")
+                logger.warning(f"No data found for date {self._current_date}")
                 self._show_no_data_for_date()
             else:
                 # Hide no data message if it exists
                 self._hide_no_data_message()
                 
-                # Update summary cards
+                # Update other components immediately
                 self._update_summary_cards()
-                
-                # Update timeline
                 self._update_timeline()
                 
                 # Update detail chart if metric selected
-                if self.detail_metric_selector.currentText():
+                if hasattr(self, 'detail_metric_selector') and self.detail_metric_selector.currentText():
                     self._update_detail_chart()
                 
         except Exception as e:
@@ -789,9 +824,14 @@ class DailyDashboardWidget(QWidget):
             self._show_error_message(str(e))
     
     def _get_metric_stats(self, metric_name: str) -> Optional[Dict]:
-        """Get statistics for a specific metric."""
+        """Get statistics for a specific metric with caching."""
         if not self.daily_calculator:
             return None
+            
+        # Check cache first
+        cache_key = f"{metric_name}_{self._current_date}"
+        if self._cache_date == self._current_date and cache_key in self._stats_cache:
+            return self._stats_cache[cache_key]
             
         try:
             # Map metric name to HK type
@@ -811,42 +851,53 @@ class DailyDashboardWidget(QWidget):
             if not hk_type:
                 return None
             
-            # Get today's value
+            # Get value for the current date
+            logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
             today_stats = self.daily_calculator.calculate_daily_statistics(
                 metric=hk_type,
                 date=self._current_date
             )
             
+            logger.debug(f"Stats for {metric_name}: {today_stats}")
+            
             if today_stats and today_stats.count > 0:
-                # Get yesterday's value for trend
-                yesterday = self._current_date - timedelta(days=1)
-                yesterday_stats = self.daily_calculator.calculate_daily_statistics(
-                    metric=hk_type,
-                    date=yesterday
-                )
-                
-                # Calculate trend
+                # Calculate trend only for visible metrics
                 trend_data = None
-                if yesterday_stats and yesterday_stats.count > 0:
-                    change = today_stats.mean - yesterday_stats.mean
-                    pct_change = (change / yesterday_stats.mean * 100) if yesterday_stats.mean else 0
+                if metric_name in ['steps', 'active_calories']:  # Only for key metrics
+                    yesterday = self._current_date - timedelta(days=1)
+                    yesterday_stats = self.daily_calculator.calculate_daily_statistics(
+                        metric=hk_type,
+                        date=yesterday
+                    )
                     
-                    trend_data = {
-                        'direction': 'up' if change > 0 else 'down' if change < 0 else 'stable',
-                        'percentage': abs(pct_change),
-                        'label': f"{pct_change:+.1f}% vs yesterday"
-                    }
+                    if yesterday_stats and yesterday_stats.count > 0:
+                        change = today_stats.mean - yesterday_stats.mean
+                        pct_change = (change / yesterday_stats.mean * 100) if yesterday_stats.mean else 0
+                        
+                        trend_data = {
+                            'direction': 'up' if change > 0 else 'down' if change < 0 else 'stable',
+                            'percentage': abs(pct_change),
+                            'label': f"{pct_change:+.1f}% vs yesterday"
+                        }
                 
                 # Convert distance to km
                 value = today_stats.mean
                 if metric_name == 'distance' and value:
                     value = value / 1000  # Convert meters to km
                 
-                return {
+                result = {
                     'value': value,
                     'count': today_stats.count,
                     'trend': trend_data
                 }
+                
+                # Cache the result
+                if self._cache_date != self._current_date:
+                    self._stats_cache.clear()
+                    self._cache_date = self._current_date
+                self._stats_cache[cache_key] = result
+                
+                return result
                 
         except Exception as e:
             logger.error(f"Error getting stats for {metric_name}: {e}")
@@ -855,6 +906,11 @@ class DailyDashboardWidget(QWidget):
     
     def _update_summary_cards(self):
         """Update the summary cards with calculated scores."""
+        # Check if summary cards exist before updating
+        if not hasattr(self, 'activity_score') or not hasattr(self, 'goals_progress'):
+            logger.warning("Summary cards not initialized yet")
+            return
+            
         try:
             # Activity Score (based on steps and active calories)
             activity_score = self._calculate_activity_score()
@@ -1014,24 +1070,42 @@ class DailyDashboardWidget(QWidget):
         if not self.daily_calculator:
             return
             
+        # Check if timeline widget exists and is visible
+        if not hasattr(self, 'timeline'):
+            logger.warning("Timeline widget not initialized yet")
+            return
+            
+        if not self.timeline.isVisible():
+            return  # Skip update if not visible
+            
         try:
             # Get hourly data for steps
             hourly_data = self._get_hourly_data('steps')
-            if hourly_data:
-                self.timeline.set_activity_data(hourly_data)
+            if hourly_data is not None and not hourly_data.empty:
+                # Simplify data before sending to timeline
+                simplified_data = hourly_data[hourly_data['value'] > 0]
+                if not simplified_data.empty:
+                    self.timeline.set_activity_data(simplified_data)
                 
         except Exception as e:
             logger.error(f"Error updating timeline: {e}")
     
     def _get_hourly_data(self, metric_name: str) -> Optional[pd.DataFrame]:
-        """Get hourly data for a metric."""
+        """Get hourly data for a metric with caching."""
         if not self.daily_calculator:
             return None
+            
+        # Check cache
+        cache_key = f"hourly_{metric_name}_{self._current_date}"
+        if hasattr(self, '_hourly_cache') and cache_key in self._hourly_cache:
+            return self._hourly_cache[cache_key]
             
         try:
             type_mapping = {
                 'steps': 'HKQuantityTypeIdentifierStepCount',
-                'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned'
+                'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned',
+                'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+                'flights_climbed': 'HKQuantityTypeIdentifierFlightsClimbed'
             }
             
             hk_type = type_mapping.get(metric_name)
@@ -1039,21 +1113,28 @@ class DailyDashboardWidget(QWidget):
                 return None
             
             # Filter data for current date and metric
-            data = self.daily_calculator.data[
-                (self.daily_calculator.data['type'] == hk_type) &
-                (pd.to_datetime(self.daily_calculator.data['creationDate']).dt.date == self._current_date)
-            ].copy()
+            mask = (self.daily_calculator.data['type'] == hk_type) & \
+                   (pd.to_datetime(self.daily_calculator.data['creationDate']).dt.date == self._current_date)
+            data = self.daily_calculator.data.loc[mask].copy()
             
             if data.empty:
                 return None
             
-            # Group by hour
+            # Group by hour - more efficient
             data['hour'] = pd.to_datetime(data['creationDate']).dt.hour
             hourly = data.groupby('hour')['value'].sum().reset_index()
             
-            # Fill missing hours with 0
-            all_hours = pd.DataFrame({'hour': range(24)})
-            hourly = all_hours.merge(hourly, on='hour', how='left').fillna(0)
+            # Only fill hours with actual data range
+            if not hourly.empty:
+                min_hour = hourly['hour'].min()
+                max_hour = hourly['hour'].max()
+                hour_range = pd.DataFrame({'hour': range(min_hour, max_hour + 1)})
+                hourly = hour_range.merge(hourly, on='hour', how='left').fillna(0)
+            
+            # Cache result
+            if not hasattr(self, '_hourly_cache'):
+                self._hourly_cache = {}
+            self._hourly_cache[cache_key] = hourly
             
             return hourly
             
@@ -1072,6 +1153,11 @@ class DailyDashboardWidget(QWidget):
     
     def _update_detail_chart(self):
         """Update the detailed metric chart."""
+        # Check if required widgets exist
+        if not hasattr(self, 'detail_metric_selector') or not hasattr(self, 'detail_chart'):
+            logger.warning("Detail chart widgets not initialized yet")
+            return
+            
         if not self.daily_calculator or not self.detail_metric_selector.count():
             return
             
@@ -1081,36 +1167,45 @@ class DailyDashboardWidget(QWidget):
             if not metric_name:
                 return
             
-            # Get hourly data
-            hourly_data = self._get_hourly_data(metric_name)
-            if hourly_data is None or hourly_data.empty:
-                return
+            # Defer heavy chart update
+            def update_chart():
+                hourly_data = self._get_hourly_data(metric_name)
+                if hourly_data is None or hourly_data.empty:
+                    return
+                
+                # Simplify data - only show hours with data
+                hourly_data = hourly_data[hourly_data['value'] > 0]
+                
+                if hourly_data.empty:
+                    return
+                
+                x_data = hourly_data['hour'].tolist()
+                y_data = hourly_data['value'].tolist()
+                
+                # Update chart
+                config = self.METRIC_CONFIG.get(metric_name, {})
+                self.detail_chart.set_labels(
+                    title=f"{config.get('display', metric_name)} - Today",
+                    x_label="Hour",
+                    y_label=config.get('unit', 'Value')
+                )
+                
+                # Prepare data points for LineChart
+                data_points = [
+                    {'x': i, 'y': y, 'label': f"{x}:00"}
+                    for i, (x, y) in enumerate(zip(x_data, y_data))
+                ]
+                
+                # Set y-range based on data
+                if y_data:
+                    y_min = min(y_data) * 0.9
+                    y_max = max(y_data) * 1.1
+                    self.detail_chart.set_y_range(y_min, y_max)
+                
+                self.detail_chart.set_data(data_points)
             
-            # Prepare data for chart
-            x_data = hourly_data['hour'].tolist()
-            y_data = hourly_data['value'].tolist()
-            
-            # Update chart
-            config = self.METRIC_CONFIG.get(metric_name, {})
-            self.detail_chart.set_labels(
-                title=f"{config.get('display', metric_name)} - Today",
-                x_label="Hour",
-                y_label=config.get('unit', 'Value')
-            )
-            
-            # Prepare data points for LineChart
-            data_points = [
-                {'x': i, 'y': y, 'label': str(x)}
-                for i, (x, y) in enumerate(zip(x_data, y_data))
-            ]
-            
-            # Set y-range based on data
-            if y_data:
-                y_min = min(y_data) * 0.9
-                y_max = max(y_data) * 1.1
-                self.detail_chart.set_y_range(y_min, y_max)
-            
-            self.detail_chart.set_data(data_points)
+            # Run update in next event loop iteration
+            QTimer.singleShot(0, update_chart)
             
         except Exception as e:
             logger.error(f"Error updating detail chart: {e}")
@@ -1131,11 +1226,15 @@ class DailyDashboardWidget(QWidget):
     
     def _go_to_today(self):
         """Navigate to today's date."""
-        self._current_date = date.today()
-        self.today_btn.setEnabled(False)
-        self._update_date_display()
-        self._refresh_data()
-        self.date_changed.emit(self._current_date)
+        try:
+            self._current_date = date.today()
+            self.today_btn.setEnabled(False)
+            self._update_date_display()
+            self._refresh_data()
+            self.date_changed.emit(self._current_date)
+        except Exception as e:
+            logger.error(f"Error navigating to today: {e}", exc_info=True)
+            QMessageBox.warning(self, "Navigation Error", f"Failed to navigate to today: {e}")
     
     def _update_date_display(self):
         """Update the date display labels."""
@@ -1144,19 +1243,27 @@ class DailyDashboardWidget(QWidget):
             title_text = "Today's Summary"
         else:
             title_text = self._current_date.strftime("%A")
-        self.date_label.setText(title_text)
+        
+        if hasattr(self, 'date_label'):
+            self.date_label.setText(title_text)
         
         # Update relative date
         relative_text = self._get_relative_date_text()
-        self.relative_date_label.setText(relative_text)
+        if hasattr(self, 'relative_date_label'):
+            self.relative_date_label.setText(relative_text)
         
-        # Update date picker
-        from PyQt6.QtCore import QDate
-        self.date_picker.setDate(QDate(self._current_date))
+        # Update date picker without triggering signal
+        if hasattr(self, 'date_picker'):
+            from PyQt6.QtCore import QDate
+            self.date_picker.blockSignals(True)
+            self.date_picker.setDate(QDate(self._current_date))
+            self.date_picker.blockSignals(False)
         
         # Update navigation buttons
-        self.today_btn.setEnabled(self._current_date != date.today())
-        self.next_day_btn.setEnabled(self._current_date < date.today())
+        if hasattr(self, 'today_btn'):
+            self.today_btn.setEnabled(self._current_date != date.today())
+        if hasattr(self, 'next_day_btn'):
+            self.next_day_btn.setEnabled(self._current_date < date.today())
         
         # Update summary section title
         if hasattr(self, 'summary_section'):
@@ -1183,37 +1290,79 @@ class DailyDashboardWidget(QWidget):
     
     def _go_to_previous_day(self):
         """Navigate to the previous day."""
-        self._current_date = self._current_date - timedelta(days=1)
-        self._update_date_display()
-        self._refresh_data()
-        self.date_changed.emit(self._current_date)
+        try:
+            self._current_date = self._current_date - timedelta(days=1)
+            self._update_date_display()
+            self._refresh_data()
+            self.date_changed.emit(self._current_date)
+        except Exception as e:
+            logger.error(f"Error navigating to previous day: {e}", exc_info=True)
+            QMessageBox.warning(self, "Navigation Error", f"Failed to navigate to previous day: {e}")
     
     def _go_to_next_day(self):
         """Navigate to the next day."""
-        if self._current_date < date.today():
-            self._current_date = self._current_date + timedelta(days=1)
-            self._update_date_display()
-            self._refresh_data()
-            self.date_changed.emit(self._current_date)
+        try:
+            if self._current_date < date.today():
+                self._current_date = self._current_date + timedelta(days=1)
+                self._update_date_display()
+                self._refresh_data()
+                self.date_changed.emit(self._current_date)
+        except Exception as e:
+            logger.error(f"Error navigating to next day: {e}", exc_info=True)
+            QMessageBox.warning(self, "Navigation Error", f"Failed to navigate to next day: {e}")
     
     def _on_date_picked(self, qdate):
         """Handle date selection from the date picker."""
-        new_date = qdate.toPyDate()
-        if new_date != self._current_date and new_date <= date.today():
-            self._current_date = new_date
-            self._update_date_display()
-            self._refresh_data()
-            self.date_changed.emit(self._current_date)
+        try:
+            new_date = qdate.toPyDate()
+            if new_date != self._current_date and new_date <= date.today():
+                self._current_date = new_date
+                self._update_date_display()
+                self._refresh_data()
+                self.date_changed.emit(self._current_date)
+        except Exception as e:
+            logger.error(f"Error handling date selection: {e}", exc_info=True)
+            QMessageBox.warning(self, "Date Selection Error", f"Failed to change date: {e}")
     
     def _refresh_data(self):
         """Refresh all data displays."""
-        self._load_daily_data()
-        self.refresh_requested.emit()
+        logger.info(f"Refreshing daily dashboard data for {self._current_date}")
+        # For immediate response, update directly if no pending update
+        if not self._pending_update:
+            # Clear cache if date changed
+            if self._cache_date != self._current_date:
+                self._stats_cache.clear()
+                self._cache_date = self._current_date
+                if hasattr(self, '_hourly_cache'):
+                    self._hourly_cache.clear()
+            # Load data immediately
+            self._load_daily_data()
+            self.refresh_requested.emit()
+        else:
+            # Use debounced update if already pending
+            self._pending_update = True
+            self._update_timer.stop()
+            self._update_timer.start(50)  # Reduced to 50ms for better responsiveness
     
     def _auto_refresh(self):
         """Auto-refresh data if viewing today."""
         if self._current_date == date.today():
             self._refresh_data()
+    
+    def _perform_delayed_update(self):
+        """Perform the actual update after debounce delay."""
+        if self._pending_update:
+            self._pending_update = False
+            logger.info(f"Performing delayed update for {self._current_date}")
+            # Clear cache when date changes
+            if self._cache_date != self._current_date:
+                self._stats_cache.clear()
+                self._cache_date = self._current_date
+                if hasattr(self, '_hourly_cache'):
+                    self._hourly_cache.clear()
+            # Then reload data
+            self._load_daily_data()
+            self.refresh_requested.emit()
     
     def _on_metric_card_clicked(self, metric_name: str):
         """Handle metric card click."""
@@ -1232,31 +1381,31 @@ class DailyDashboardWidget(QWidget):
         logger.info("Setting daily calculator")
         self.daily_calculator = calculator
         
+        # Clear caches when calculator changes
+        self._stats_cache.clear()
+        self._cache_date = None
+        if hasattr(self, '_hourly_cache'):
+            self._hourly_cache.clear()
+        
+        # Clear any existing metric cards before creating new ones
+        self._metric_cards.clear()
+        self._available_metrics = []
+        
         # Prepare data for DayOfWeekAnalyzer
         if calculator and hasattr(calculator, 'data'):
             logger.info(f"Calculator has data with {len(calculator.data)} records")
-            # Transform the data to match DayOfWeekAnalyzer's expected format
-            analyzer_data = calculator.data.copy()
-            # Rename columns to match expected format
-            if 'type' in analyzer_data.columns:
-                analyzer_data['metric_type'] = analyzer_data['type']
-            if 'creationDate' in analyzer_data.columns and 'date' not in analyzer_data.columns:
-                analyzer_data['date'] = analyzer_data['creationDate']
-            # Add unit column if not present
-            if 'unit' not in analyzer_data.columns:
-                analyzer_data['unit'] = ''
-                
-            self.day_analyzer = DayOfWeekAnalyzer(analyzer_data)
+            # Skip DayOfWeekAnalyzer for now to improve performance
+            self.day_analyzer = None
         else:
             logger.warning("Calculator has no data attribute")
             self.day_analyzer = None
             
+        # Hide any existing no data message
+        self._hide_no_data_message()
+        
+        # Detect metrics and load data immediately
         self._detect_available_metrics()
         self._load_daily_data()
-        
-        # Force UI refresh
-        self.update()
-        QApplication.processEvents()
     
     def set_personal_records(self, tracker: PersonalRecordsTracker):
         """Set the personal records tracker."""
@@ -1320,7 +1469,8 @@ class DailyDashboardWidget(QWidget):
     
     def _show_no_data_for_date(self):
         """Show message when no data exists for selected date."""
-        if not hasattr(self, 'no_data_overlay'):
+        # Create overlay if it doesn't exist
+        if not hasattr(self, 'no_data_overlay') or not hasattr(self, 'no_data_message'):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
             from PyQt6.QtCore import Qt
             
@@ -1389,8 +1539,9 @@ class DailyDashboardWidget(QWidget):
     def _show_error_message(self, error: str):
         """Show error message overlay."""
         logger.error(f"Showing error: {error}")
-        # For now, just log the error
-        # Could implement a proper error overlay if needed
+        # For now, just log the error and show a simple message box
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.warning(self, "Error Loading Data", f"Failed to load daily data:\n{error}")
     
     def _position_overlay(self):
         """Position the overlay to cover the content area."""
@@ -1420,22 +1571,27 @@ class DailyDashboardWidget(QWidget):
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""
         super().showEvent(event)
-        # Force a refresh when the widget is shown
+        # Clear any leftover content from other tabs
+        self._hide_no_data_message()
+        # Force immediate refresh when widget is shown
         if self.daily_calculator:
+            # Clear cache to ensure fresh data
+            self._stats_cache.clear()
+            if hasattr(self, '_hourly_cache'):
+                self._hourly_cache.clear()
+            # Load data immediately
             self._load_daily_data()
-            self.update()
-            QApplication.processEvents()
-            # Schedule another update after a short delay to ensure complete rendering
-            QTimer.singleShot(100, self._delayed_refresh)
         else:
             self._show_no_data_message()
     
     def _delayed_refresh(self):
         """Delayed refresh to ensure complete rendering."""
-        if hasattr(self, 'timeline'):
+        # Force full refresh of all visible widgets
+        if hasattr(self, 'timeline') and self.timeline.isVisible():
             self.timeline.update()
-        if hasattr(self, 'detail_chart'):
+        if hasattr(self, 'detail_chart') and self.detail_chart.isVisible():
             self.detail_chart.update()
+        # Update all metric cards
         for card in self._metric_cards.values():
-            card.update()
-        self.update()
+            if card.isVisible():
+                card.update()
