@@ -8,6 +8,8 @@ claude config --help
 claude config get --global parallelTasksCount
 claude config set --global parallelTasksCount 5
 
+# Update Claude Code:
+npm i -g @anthropic-ai/claude-code
 
 
 how would you approach creating a Windows executable dashboard with Python to analyze Apple Health Data? The data is processed into a Pandas table and stored as a CSV. I'd like to have the EXE take the CSV file and generate a collection of tabs that have different dashboards on them.
@@ -431,6 +433,5 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 --------
 
 ### Bugs ###
-
 
 
