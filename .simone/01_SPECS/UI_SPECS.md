@@ -540,8 +540,8 @@ def _setup_accessibility(self):
 - [Web Content Accessibility Guidelines (WCAG)](https://www.w3.org/WAI/WCAG21/quickref/)
 - [PyQt6 Documentation](https://www.riverbankcomputing.com/static/Docs/PyQt6/)
 - Good UI Examples:
-  - examples/wall street journal chart example 1.jpg
-  - examples/wall street journal chart example 2.jpg
+  - `examples/wall street journal chart example 1.jpg`
+  - `examples/wall street journal chart example 2.jpg`
 
 ---
 
