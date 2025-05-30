@@ -467,3 +467,48 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 when switching from Weekly tab to Monthly tab, the UI doesn’t refresh completely. Please fix this.
 
+fix this error: ERROR - monthly_dashboard_widget.py:556 - _load_month_data() - Error loading month data: 'MonthlyMetricsCalculator' object has no attribute 'get_daily_aggregate'
+
+fix this error: apple_health_monitor.src.ui.weekly_dashboard_widget - ERROR - weekly_dashboard_widget.py:759 - _update_summary_stats() - Error updating summary stats: Invalid comparison between dtype=datetime64[ns, UTC] and datetime
+
+
+---------
+
+fix this error: CRITICAL - main.py:48 - exception_hook() - Uncaught exception
+Traceback (most recent call last):
+  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\ui\comparative_visualization.py", line 1086, in on_metric_changed
+    self.set_current_metric(metric)
+  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\ui\comparative_visualization.py", line 1110, in set_current_metric
+    self.update_comparisons()
+  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\ui\comparative_visualization.py", line 1123, in update_comparisons
+    trend_data = self.comparative_engine.get_trend_analysis(self.current_metric, use_cache=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\analytics\comparative_analytics.py", line 203, in get_trend_analysis
+    trend_result = self.background_processor.get_trend(metric, wait=False)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\analytics\background_trend_processor.py", line 292, in get_trend
+    cached_result = self._get_cached_trend(metric)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\analytics\background_trend_processor.py", line 219, in _get_cached_trend
+    cached = self.cache_manager.get(cache_key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: AnalyticsCacheManager.get() missing 1 required positional argument: 'compute_fn'
+
+
+---------
+
+fix this error: ERROR - test_weekly_comprehensive.py:154 - load_test_data() - Error loading test data
+Traceback (most recent call last):
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/test_weekly_comprehensive.py", line 138, in load_test_data
+    daily_calc = DailyMetricsCalculator(data, timezone=local_tz)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/daily_metrics_calculator.py", line 91, in __init__
+    adapter = DataFrameAdapter(data)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 36, in __init__
+    self._load_data()
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 59, in _load_data
+    self._validate_dataframe()
+  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 67, in _validate_dataframe
+    raise ValueError(
+ValueError: DataFrame missing required columns: {'creationDate'}. Required columns are: {'creationDate', 'type', 'value'}
