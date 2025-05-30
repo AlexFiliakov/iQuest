@@ -54,6 +54,7 @@ Attributes:
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import math
+import numpy as np
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt, QPointF, QRectF, pyqtSignal as Signal, QPropertyAnimation, QEasingCurve, pyqtProperty
@@ -153,7 +154,7 @@ class LineChart(QWidget):
     dataPointHovered = Signal(dict)  # Emits data point info on hover
     dataPointClicked = Signal(dict)  # Emits data point info on click
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, data=None):
         """Initialize the line chart widget with professional styling.
         
         Sets up a complete line chart widget with professional WSJ-inspired
@@ -172,6 +173,8 @@ class LineChart(QWidget):
         Args:
             parent (QWidget, optional): Parent widget for the chart.
                 Defaults to None for standalone usage.
+            data (pandas.DataFrame or list, optional): Initial data to display.
+                Can be a DataFrame or list of data points. Defaults to None.
         
         Professional styling:
             - WSJ-inspired color palette with slate gray primary colors
@@ -240,6 +243,10 @@ class LineChart(QWidget):
         # Setup
         self._setup_ui()
         self._setup_animations()
+        
+        # Set initial data if provided
+        if data is not None:
+            self.set_data(data)
         
     def _setup_ui(self):
         """Set up the widget UI."""
@@ -317,7 +324,26 @@ class LineChart(QWidget):
                     })
         else:
             # Original single parameter call
-            self.data_points = data_points or []
+            if data_points is None:
+                self.data_points = []
+            else:
+                # Handle DataFrame input - convert to appropriate format
+                import pandas as pd
+                if isinstance(data_points, pd.DataFrame):
+                    # Convert DataFrame to list of dictionaries
+                    self.data_points = []
+                    for idx, row in data_points.iterrows():
+                        # Use first numeric column as y value, index as x
+                        numeric_cols = data_points.select_dtypes(include=[np.number]).columns
+                        if len(numeric_cols) > 0:
+                            y_val = row[numeric_cols[0]]
+                            self.data_points.append({
+                                'x': idx,
+                                'y': float(y_val),
+                                'label': str(idx)
+                            })
+                else:
+                    self.data_points = data_points
         
         if animate and self.animate:
             self.animation.setStartValue(0.0)

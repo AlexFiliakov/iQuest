@@ -977,7 +977,7 @@ class MonthlyDashboardWidget(QWidget):
                 SELECT SUM(value) as total_value
                 FROM health_records
                 WHERE type = ? 
-                AND DATE(start_date) = ?
+                AND DATE(startDate) = ?
             """
             
             with db_manager.get_connection() as conn:

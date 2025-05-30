@@ -1205,6 +1205,48 @@ class CalendarHeatmapComponent(QWidget):
         # This is for testing compatibility
         pass
         
+    def set_data(self, dates=None, values=None, animate: bool = True):
+        """Set calendar heatmap data for testing compatibility.
+        
+        Args:
+            dates: Date values (pandas Series or iterable)
+            values: Metric values (pandas Series or iterable)
+            animate: Whether to animate the data change (ignored)
+        """
+        # For testing compatibility - simplified data handling
+        if dates is not None and values is not None:
+            # Convert to internal data format
+            import pandas as pd
+            if hasattr(dates, 'iloc') and hasattr(values, 'iloc'):
+                # Both are pandas Series
+                self._test_data = {}
+                for i in range(len(dates)):
+                    date_val = dates.iloc[i]
+                    value_val = values.iloc[i]
+                    
+                    # Convert date if needed
+                    if hasattr(date_val, 'date'):
+                        date_key = date_val.date()
+                    elif isinstance(date_val, str):
+                        date_key = datetime.strptime(date_val, '%Y-%m-%d').date()
+                    else:
+                        date_key = date_val
+                        
+                    self._test_data[date_key] = float(value_val)
+            else:
+                # Handle other iterable types
+                self._test_data = {}
+                for date_val, value_val in zip(dates, values):
+                    if hasattr(date_val, 'date'):
+                        date_key = date_val.date()
+                    elif isinstance(date_val, str):
+                        date_key = datetime.strptime(date_val, '%Y-%m-%d').date()
+                    else:
+                        date_key = date_val
+                    self._test_data[date_key] = float(value_val)
+        else:
+            self._test_data = {}
+        
     def render_to_image(self, width: int = None, height: int = None, dpi: int = 100):
         """Render calendar heatmap to image for testing.
         
@@ -1243,11 +1285,12 @@ class CalendarHeatmapComponent(QWidget):
     def _draw_calendar_heatmap(self, painter: QPainter, rect: QRect):
         """Draw calendar heatmap to a specific painter and rect."""
         # Use the current view mode to draw the appropriate visualization
-        if self.view_mode == ViewMode.MONTH_GRID:
+        view_mode = getattr(self, '_view_mode', ViewMode.MONTH_GRID)
+        if view_mode == ViewMode.MONTH_GRID:
             self._draw_month_grid_to_painter(painter, rect)
-        elif self.view_mode == ViewMode.GITHUB_STYLE:
+        elif view_mode == ViewMode.GITHUB_STYLE:
             self._draw_github_style_to_painter(painter, rect)
-        elif self.view_mode == ViewMode.CIRCULAR:
+        elif view_mode == ViewMode.CIRCULAR:
             self._draw_circular_to_painter(painter, rect)
             
     def _draw_month_grid_to_painter(self, painter: QPainter, rect: QRect):
