@@ -1,4 +1,42 @@
-"""Configuration tab implementation for data import and filtering."""
+"""Configuration tab implementation for data import and filtering.
+
+This module provides the main configuration interface for the Apple Health
+Monitor Dashboard. It handles all aspects of data management including import,
+filtering, and statistical analysis with optimized performance for large
+datasets.
+
+The configuration tab serves as the primary entry point for users to:
+    - Import Apple Health data from CSV or XML files
+    - Apply sophisticated filtering to focus on specific data subsets
+    - View real-time statistics and data previews
+    - Manage filter presets for recurring analysis patterns
+    - Monitor data loading and processing progress
+
+Key features:
+    - Deferred data loading for improved startup performance
+    - SQL-optimized queries for large dataset handling
+    - Comprehensive caching system for frequently accessed data
+    - Modern responsive UI with accessibility support
+    - Real-time progress tracking for long-running operations
+
+Example:
+    Basic usage:
+        
+        >>> config_tab = ConfigurationTab()
+        >>> config_tab.data_loaded.connect(handle_data_loaded)
+        >>> config_tab.filters_applied.connect(handle_filters_applied)
+        
+    Accessing filtered data:
+        
+        >>> filtered_data = config_tab.get_filtered_data()
+        >>> if filtered_data is not None:
+        ...     print(f"Loaded {len(filtered_data)} records")
+
+Attributes:
+    DATA_DIR (str): Directory for storing application data files
+    ORGANIZATION_NAME (str): Organization name for settings storage
+    APP_NAME (str): Application name for settings storage
+"""
 
 import json
 import os
@@ -48,31 +86,70 @@ logger = get_logger(__name__)
 class ConfigurationTab(QWidget):
     """Configuration tab for importing data and setting filters.
     
-    This tab provides the main interface for data management in the Apple Health
-    Monitor Dashboard. It handles:
+    This tab provides the comprehensive interface for data management in the
+    Apple Health Monitor Dashboard. It implements a modern, responsive design
+    with optimized performance for handling large Apple Health datasets.
     
-    - CSV and XML data import with progress tracking
-    - Date range filtering for data analysis
-    - Device/source filtering to focus on specific data sources
-    - Health metric type filtering
-    - Filter preset saving and loading
-    - Real-time statistics display
-    - Database integration for persistent settings
+    Core functionality:
+        - Multi-format data import (CSV, XML) with progress tracking
+        - Advanced filtering system with date ranges and multi-select options
+        - Real-time statistics computation and display
+        - Filter preset management for recurring analysis patterns
+        - Deferred loading for improved performance
+        - Comprehensive caching system for frequently accessed data
     
-    The tab features a clean, organized layout with distinct sections for
-    import operations, filtering controls, and data statistics. It provides
-    immediate feedback through progress bars, status messages, and summary cards.
+    UI organization:
+        The tab uses a two-column responsive layout:
+        - Left column: Import controls and filtering options
+        - Right column: Summary cards and data statistics
+        - Bottom section: Status information and progress tracking
+    
+    Performance optimizations:
+        - SQL-based statistics computation for large datasets
+        - Deferred data loading only when filters are applied
+        - Comprehensive caching with TTL for frequently accessed data
+        - Background processing for non-blocking operations
+    
+    Accessibility features:
+        - Comprehensive keyboard navigation with shortcuts
+        - Descriptive tooltips and status messages
+        - Logical tab order for screen readers
+        - High contrast styling for visual accessibility
     
     Signals:
-        data_loaded (object): Emitted when data is successfully loaded with the DataFrame.
-        filters_applied (dict): Emitted when filters are applied with filter parameters.
+        data_loaded (object): Emitted when data is successfully loaded.
+            Args:
+                data (pandas.DataFrame): The loaded health data
+        filters_applied (dict): Emitted when filters are applied.
+            Args:
+                filters (dict): Applied filter parameters including dates,
+                    devices, and metrics
     
     Attributes:
-        data_loader (DataLoader): Handles CSV and database loading operations.
+        data_loader (DataLoader): Handles CSV and database operations.
         filter_config_manager (FilterConfigManager): Manages filter presets.
         statistics_calculator (StatisticsCalculator): Computes data statistics.
-        data (DataFrame): Currently loaded health data.
+        cache_manager (CacheManager): Handles performance caching.
+        daily_calculator (DailyMetricsCalculator): Daily metrics computation.
+        weekly_calculator (WeeklyMetricsCalculator): Weekly metrics computation.
+        monthly_calculator (MonthlyMetricsCalculator): Monthly metrics computation.
+        data (DataFrame): Currently loaded health data (lazy-loaded).
         filtered_data (DataFrame): Data after applying current filters.
+        data_available (bool): Whether data exists without loading it.
+        
+    Example:
+        Basic configuration tab usage:
+        
+        >>> config_tab = ConfigurationTab()
+        >>> 
+        >>> # Connect to data loading signal
+        >>> config_tab.data_loaded.connect(lambda data: print(f"Loaded {len(data)} records"))
+        >>> 
+        >>> # Connect to filter application signal
+        >>> config_tab.filters_applied.connect(lambda filters: print(f"Applied filters: {filters}"))
+        >>> 
+        >>> # Get currently filtered data
+        >>> filtered_data = config_tab.get_filtered_data()
     """
     
     # Signals
@@ -80,18 +157,40 @@ class ConfigurationTab(QWidget):
     filters_applied = pyqtSignal(dict)  # Emitted when filters are applied
     
     def __init__(self):
-        """Initialize the configuration tab.
+        """Initialize the configuration tab with comprehensive data management.
         
-        Sets up the user interface, initializes data management components,
-        creates filter controls, configures keyboard navigation, and loads
-        any existing filter presets from the database.
+        Sets up the complete user interface and initializes all data management
+        components with performance optimizations. The initialization process
+        is designed for fast startup while providing full functionality.
         
-        The initialization process:
-        1. Initialize managers and data components
-        2. Create the main UI layout with import and filter sections
-        3. Set up signal connections for user interactions
-        4. Configure keyboard navigation and accessibility
-        5. Migrate legacy filter presets if they exist
+        Initialization sequence:
+            1. Initialize core managers (style, components, data loading)
+            2. Initialize filtering and statistics components
+            3. Initialize performance caching system
+            4. Set up metric calculators (lazy initialization)
+            5. Create responsive UI layout with accessibility features
+            6. Configure comprehensive keyboard navigation
+            7. Set up database availability checking (deferred data loading)
+            8. Migrate legacy filter presets if they exist
+        
+        Performance features:
+            - Deferred data loading for faster startup
+            - Cache manager integration for frequently accessed data
+            - SQL-optimized queries for large dataset handling
+            - Background database availability checking
+        
+        Accessibility features:
+            - Comprehensive keyboard shortcuts (Alt+B, Alt+I, Alt+A, Alt+R)
+            - Logical tab order for screen reader navigation
+            - Descriptive tooltips and status messages
+            - High contrast styling for visual accessibility
+        
+        Raises:
+            Exception: If critical components cannot be initialized
+            
+        Note:
+            Data is not automatically loaded on startup for performance.
+            Use _check_database_availability() to check for existing data.
         """
         super().__init__()
         logger.info("Initializing Configuration tab")
@@ -147,15 +246,37 @@ class ConfigurationTab(QWidget):
         logger.info("Configuration tab initialized")
     
     def _create_ui(self):
-        """Create the configuration tab UI.
+        """Create the comprehensive configuration tab UI.
         
-        Builds the complete user interface with the following sections:
-        - Title header with application branding
-        - Data import section with file selection and progress tracking
-        - Filter controls section with date ranges and multi-select options
-        - Statistics display section with summary cards and metrics table
+        Builds the complete user interface using a modern, responsive design
+        with professional styling and accessibility features. The layout is
+        optimized for both efficiency and visual appeal.
         
-        Uses consistent spacing, margins, and styling for a professional appearance.
+        UI structure:
+            Main scroll area containing:
+                - Clean title header with professional typography
+                - Two-column responsive layout for optimal space usage
+                - Left column: Import and filtering controls
+                - Right column: Summary cards and data statistics
+                - Status section: Progress tracking and messages
+        
+        Design features:
+            - Consistent spacing and margins for professional appearance
+            - Modern card-based layout with subtle shadows
+            - Responsive design that adapts to different screen sizes
+            - Professional color palette with high contrast ratios
+            - Smooth scrolling with custom styled scroll bars
+        
+        Accessibility features:
+            - Logical visual hierarchy with proper heading structure
+            - High contrast colors for visual accessibility
+            - Keyboard-accessible interactive elements
+            - Descriptive labels and tooltips for screen readers
+        
+        Performance optimizations:
+            - Efficient layout management to minimize redraws
+            - Lazy loading of complex widgets
+            - Optimized styling to reduce rendering overhead
         """
         # Create main scroll area for the entire page
         main_scroll = QScrollArea(self)
@@ -1628,7 +1749,7 @@ class ConfigurationTab(QWidget):
     def _load_last_used_filters(self):
         """Load and apply last used filter configuration."""
         try:
-            config = self.filter_config_manager.get_last_used()
+            config = self.filter_config_manager.get_last_used_config()
             
             if config:
                 # Apply last used values

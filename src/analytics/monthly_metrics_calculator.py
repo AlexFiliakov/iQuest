@@ -531,14 +531,56 @@ class MonthlyMetricsCalculator:
                                          metrics: List[str],
                                          year_month_pairs: List[Tuple[int, int]]) -> Dict[str, Dict[Tuple[int, int], MonthlyMetrics]]:
         """
-        Calculate monthly statistics for multiple metrics and months in parallel.
+        Calculate monthly statistics for multiple metrics and months using parallel processing.
+        
+        This method efficiently processes large batch calculations by utilizing parallel
+        processing when beneficial, with automatic fallback to sequential processing
+        for smaller workloads.
         
         Args:
-            metrics: List of metric types to analyze
-            year_month_pairs: List of (year, month) tuples
-            
+            metrics: List of health metric type identifiers to analyze
+            year_month_pairs: List of (year, month) tuples representing the time periods
+                             to analyze. Each tuple should contain valid year and month values.
+                             
         Returns:
-            Dictionary mapping metric names to monthly results
+            Nested dictionary structure: {metric_name: {(year, month): MonthlyMetrics}}
+            Failed calculations return MonthlyMetrics with zero values and appropriate flags.
+            
+        Example:
+            >>> # Analyze multiple metrics for Q1 2024
+            >>> metrics = [
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     'HKQuantityTypeIdentifierDistanceWalkingRunning'
+            ... ]
+            >>> months = [(2024, 1), (2024, 2), (2024, 3)]
+            >>> 
+            >>> results = calc.calculate_multiple_months_parallel(metrics, months)
+            >>> 
+            >>> # Process results
+            >>> for metric in metrics:
+            ...     print(f"\\n{metric}:")
+            ...     for (year, month), stats in results[metric].items():
+            ...         if stats.count > 0:
+            ...             print(f"  {year}-{month:02d}: {stats.avg:.1f} avg, {stats.count} days")
+            ...         else:
+            ...             print(f"  {year}-{month:02d}: No data")
+            
+            # Performance comparison
+            >>> import time
+            >>> start = time.time()
+            >>> results = calc.calculate_multiple_months_parallel(
+            ...     ['steps', 'heart_rate'], 
+            ...     [(2024, m) for m in range(1, 13)]  # Full year
+            ... )
+            >>> parallel_time = time.time() - start
+            >>> print(f"Parallel processing: {parallel_time:.2f} seconds")
+            
+        Note:
+            - Automatically chooses between parallel and sequential processing
+            - Uses process pool for CPU-intensive calculations
+            - Gracefully handles individual calculation failures
+            - Performance benefits appear with >6 metric-month combinations
         """
         if not self.use_parallel or len(metrics) * len(year_month_pairs) < 6:
             # Use sequential processing for small workloads
@@ -605,15 +647,57 @@ class MonthlyMetricsCalculator:
                           year: int,
                           month: int) -> Dict[str, Dict[str, Union[float, bool]]]:
         """
-        Get comprehensive monthly summary for multiple metrics.
+        Generate comprehensive monthly summary for multiple health metrics.
+        
+        This method provides a consolidated view of multiple metrics for a specific
+        month, combining basic statistics, comparative analysis, and trend information
+        into a single, easy-to-consume summary.
         
         Args:
-            metrics: List of metric types
-            year: Year
-            month: Month number (1-12)
+            metrics: List of health metric type identifiers to summarize
+            year: Year of the target month
+            month: Month number (1-12) to summarize
             
         Returns:
-            Dictionary with summary statistics for each metric
+            Dictionary mapping metric names to their summary statistics, including:
+            - Basic statistics (avg, median, std, min, max, count)
+            - Year-over-year comparison metrics
+            - Growth rate analysis
+            - Distribution characteristics (when available)
+            - Calculation mode information
+            
+        Example:
+            >>> # Get comprehensive summary for January 2024
+            >>> metrics = [
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     'HKQuantityTypeIdentifierSleepAnalysis'
+            ... ]
+            >>> summary = calc.get_monthly_summary(metrics, 2024, 1)
+            >>> 
+            >>> # Display summary for each metric
+            >>> for metric, stats in summary.items():
+            ...     print(f"\\n{metric}:")
+            ...     print(f"  Average: {stats['avg']:,.1f}")
+            ...     print(f"  Data quality: {stats['count']} days")
+            ...     print(f"  YoY change: {stats['yoy_percent_change']:+.1f}%")
+            ...     if stats['yoy_significant']:
+            ...         print("  \u2192 Statistically significant change")
+            ...     
+            ...     if stats['growth_significant']:
+            ...         trend = "increasing" if stats['monthly_growth_rate'] > 0 else "decreasing"
+            ...         print(f"  Trend: {trend} ({stats['monthly_growth_rate']:+.2%}/month)")
+            ...     
+            ...     # Distribution insights
+            ...     if 'is_normal' in stats:
+            ...         dist_type = "normal" if stats['is_normal'] else "skewed"
+            ...         print(f"  Distribution: {dist_type}")
+            
+        Note:
+            - Gracefully handles missing data for individual metrics
+            - Combines multiple analytical perspectives in one call
+            - Suitable for dashboard displays and reports
+            - Performance is optimized through internal caching
         """
         results = {}
         

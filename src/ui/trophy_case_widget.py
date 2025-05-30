@@ -236,6 +236,7 @@ class TrophyCaseWidget(QWidget):
         self.tracker = records_tracker
         self.celebration_manager = CelebrationManager(self)
         self.social_manager = SocialShareManager()
+        self.record_map = {}  # Initialize record map
         self.setup_ui()
         self.load_data()
         
@@ -665,7 +666,14 @@ class TrophyCaseWidget(QWidget):
         badges_added = 0
         
         for achievement in self.achievements:
-            badge = AchievementBadgeWidget(achievement)
+            # Get the metric name from the associated record
+            metric_name = None
+            if hasattr(achievement, 'trigger_record_id') and achievement.trigger_record_id:
+                if achievement.trigger_record_id in self.record_map:
+                    record = self.record_map[achievement.trigger_record_id]
+                    metric_name = record.metric
+            
+            badge = AchievementBadgeWidget(achievement, metric_name)
             badge.show()  # Ensure badge is visible
             self.badges_layout.addWidget(badge, row, col)
             badges_added += 1
@@ -806,8 +814,15 @@ class TrophyCaseWidget(QWidget):
             # Apply rarity filter
             if rarity_filter != "all rarities" and achievement.rarity != rarity_filter:
                 continue
-                
-            badge = AchievementBadgeWidget(achievement)
+            
+            # Get the metric name from the associated record
+            metric_name = None
+            if hasattr(achievement, 'trigger_record_id') and achievement.trigger_record_id:
+                if achievement.trigger_record_id in self.record_map:
+                    record = self.record_map[achievement.trigger_record_id]
+                    metric_name = record.metric
+                    
+            badge = AchievementBadgeWidget(achievement, metric_name)
             badge.show()  # Ensure badge is visible
             self.badges_layout.addWidget(badge, row, col)
             badges_added += 1

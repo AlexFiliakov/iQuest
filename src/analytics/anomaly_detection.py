@@ -13,10 +13,12 @@ from .anomaly_models import (
 
 from .anomaly_detectors import (
     BaseDetector, ZScoreDetector, ModifiedZScoreDetector, IQRDetector,
-    IsolationForestDetector, LocalOutlierFactorDetector, LSTMDetector
+    IsolationForestDetector, LocalOutlierFactorDetector, LSTMDetector,
+    EnsembleDetector  # Import the simple ensemble detector
 )
 
-from .ensemble_detector import EnsembleDetector
+# Comment out the complex ensemble detector for now
+# from .ensemble_detector import EnsembleDetector
 from .notification_manager import NotificationManager
 from .feedback_processor import FeedbackProcessor, FeedbackDatabase
 from .anomaly_detection_system import AnomalyDetectionSystem

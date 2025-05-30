@@ -1,6 +1,67 @@
 """
-Multi-tier analytics caching layer for health data analysis.
-Provides L1 in-memory LRU cache, L2 SQLite cache, and L3 disk cache with monitoring.
+Multi-Tier Analytics Caching System for High-Performance Health Data Analysis.
+
+This module implements a sophisticated three-tier caching architecture designed to
+optimize performance for computationally expensive health analytics operations.
+The system provides automatic cache management, performance monitoring, and
+intelligent cache promotion strategies.
+
+Cache Architecture:
+- L1 Cache: In-memory LRU cache for immediate access to frequently used results
+- L2 Cache: SQLite-based persistent cache for medium-term storage
+- L3 Cache: Compressed disk-based cache for long-term storage
+
+Key Features:
+- Automatic tier promotion for cache hits
+- TTL-based expiration with configurable timeouts
+- Memory usage monitoring and automatic eviction
+- Dependency-based cache invalidation
+- Thread-safe operations with proper locking
+- Comprehensive performance metrics and monitoring
+- Compressed storage for efficient disk usage
+
+Example:
+    Basic caching usage:
+    
+    >>> cache = get_cache_manager()
+    >>> 
+    >>> # Cache expensive calculation
+    >>> def expensive_calculation():
+    ...     # Simulate complex health analytics
+    ...     return calculate_monthly_trends()
+    >>> 
+    >>> # Get result with automatic caching
+    >>> result = cache.get(
+    ...     'monthly_trends_2024_01',
+    ...     expensive_calculation,
+    ...     cache_tiers=['l1', 'l2'],
+    ...     ttl=3600  # 1 hour
+    ... )
+    
+    Advanced usage with dependencies:
+    
+    >>> # Cache with dependency tracking
+    >>> cache.set(
+    ...     'user_123_daily_stats',
+    ...     daily_statistics,
+    ...     dependencies=['user_123_data'],
+    ...     ttl=1800
+    ... )
+    >>> 
+    >>> # Invalidate when source data changes
+    >>> cache.invalidate_dependencies('user_123_data')
+    
+    Performance monitoring:
+    
+    >>> # Get cache performance metrics
+    >>> metrics = cache.get_metrics()
+    >>> print(f"L1 hit rate: {metrics.l1_hit_rate:.2%}")
+    >>> print(f"Overall hit rate: {metrics.overall_hit_rate:.2%}")
+    >>> print(f"Memory usage: {metrics.memory_usage_mb:.1f} MB")
+
+Note:
+    This module is optimized for health analytics workloads with patterns of
+    repeated expensive calculations and moderate cache invalidation rates.
 """
 
 import hashlib

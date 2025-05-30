@@ -1,8 +1,53 @@
-"""
-Centralized error handling utilities for Apple Health Monitor Dashboard
+"""Centralized error handling utilities for Apple Health Monitor Dashboard.
 
-This module provides error handling decorators, custom exceptions,
-and error reporting utilities.
+This module provides comprehensive error handling infrastructure for the Apple Health
+Monitor Dashboard application, including custom exception classes, error handling
+decorators, context managers, and utility functions for consistent error management.
+
+Key Components:
+    - Custom exception hierarchy based on AppleHealthError
+    - Decorators for safe file and database operations
+    - Context managers for detailed error tracking
+    - Error formatting utilities for user-friendly messages
+    - Comprehensive logging integration
+
+Exception Hierarchy:
+    AppleHealthError (base)
+    ├── DataImportError (file import failures)
+    ├── DataValidationError (data validation failures)
+    ├── DatabaseError (database operation failures)
+    └── ConfigurationError (configuration issues)
+
+Features:
+    - Automatic error logging with detailed context
+    - Exception type conversion for consistent handling
+    - Safe operation wrappers for common failure points
+    - User-friendly error message formatting
+    - Traceback capture and formatting
+    - Operation-specific error context tracking
+
+Example:
+    Basic error handling with decorators:
+    
+    >>> from src.utils.error_handler import safe_file_operation, DataImportError
+    >>> 
+    >>> @safe_file_operation
+    ... def load_health_data(file_path):
+    ...     return pd.read_csv(file_path)
+    >>> 
+    >>> try:
+    ...     data = load_health_data('nonexistent.csv')
+    ... except DataImportError as e:
+    ...     print(f"Import failed: {e}")
+    
+    Using error context for complex operations:
+    
+    >>> from src.utils.error_handler import ErrorContext
+    >>> 
+    >>> with ErrorContext("Processing health data batch"):
+    ...     validate_data_format(data)
+    ...     transform_health_records(data)
+    ...     save_to_database(data)
 """
 
 import logging

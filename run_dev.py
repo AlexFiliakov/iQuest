@@ -40,7 +40,7 @@ class DevRunner:
         print(f"🧪 Running {test_type} tests...")
         try:
             # Import and run the test runner
-            sys.path.insert(0, str(self.project_root))
+            sys.path.insert(0, str(self.project_root / "tests"))
             from run_tests import (
                 run_unit_tests, run_integration_tests, run_performance_tests,
                 run_visual_tests, run_chaos_tests, run_all_tests, check_test_environment
@@ -74,6 +74,62 @@ class DevRunner:
             print(f"❌ Test execution failed: {e}")
             return False
     
+    def run_performance_benchmarks(self):
+        """Run performance benchmarks."""
+        print("📊 Running performance benchmarks...")
+        try:
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "tests/performance/run_benchmarks.py"],
+                cwd=str(self.project_root)
+            )
+            return result.returncode == 0
+        except Exception as e:
+            print(f"❌ Failed to run benchmarks: {e}")
+            return False
+    
+    def run_visual_tests(self):
+        """Run visual regression tests."""
+        print("🎨 Running visual regression tests...")
+        try:
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "tests/visual/run_visual_tests.py"],
+                cwd=str(self.project_root)
+            )
+            return result.returncode == 0
+        except Exception as e:
+            print(f"❌ Failed to run visual tests: {e}")
+            return False
+    
+    def verify_imports(self):
+        """Verify all critical imports are working."""
+        print("🔍 Verifying imports...")
+        try:
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "tests/helpers/verify_imports.py"],
+                cwd=str(self.project_root)
+            )
+            return result.returncode == 0
+        except Exception as e:
+            print(f"❌ Failed to verify imports: {e}")
+            return False
+    
+    def verify_syntax(self):
+        """Check Python syntax validity of key files."""
+        print("✓ Verifying syntax...")
+        try:
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "tests/helpers/verify_syntax.py"],
+                cwd=str(self.project_root)
+            )
+            return result.returncode == 0
+        except Exception as e:
+            print(f"❌ Failed to verify syntax: {e}")
+            return False
+    
     def run_demo(self, demo_name):
         """Run a specific demo application."""
         demos = {
@@ -96,6 +152,26 @@ class DevRunner:
             'month_over_month': {
                 'path': 'src/ui/month_over_month_demo.py',
                 'description': 'Month-over-month trends analysis'
+            },
+            'annotation': {
+                'path': 'examples/annotation_demo.py',
+                'description': 'Chart annotation system demo'
+            },
+            'dashboard': {
+                'path': 'examples/dashboard_demo.py',
+                'description': 'Dashboard layout demo'
+            },
+            'interactive': {
+                'path': 'examples/interactive_chart_example.py',
+                'description': 'Interactive chart features demo'
+            },
+            'reactive': {
+                'path': 'examples/reactive_data_binding_demo.py',
+                'description': 'Reactive data binding demo'
+            },
+            'temporal': {
+                'path': 'examples/temporal_anomaly_example.py',
+                'description': 'Temporal anomaly detection demo'
             }
         }
         
@@ -127,35 +203,25 @@ class DevRunner:
     def list_demos(self):
         """List all available demos."""
         print("📋 Available Demo Applications:")
-        print("-" * 40)
+        print("-" * 50)
         
         demos = [
             ('bar_chart', 'Interactive bar chart component demo'),
             ('line_chart', 'Enhanced line chart with WSJ styling'),
             ('table', 'Metric table component with pagination'),
             ('journal', 'General-purpose journaling system'),
-            ('month_over_month', 'Month-over-month trends analysis')
+            ('month_over_month', 'Month-over-month trends analysis'),
+            ('annotation', 'Chart annotation system demo'),
+            ('dashboard', 'Dashboard layout demo'),
+            ('interactive', 'Interactive chart features demo'),
+            ('reactive', 'Reactive data binding demo'),
+            ('temporal', 'Temporal anomaly detection demo')
         ]
         
         for name, description in demos:
             print(f"  {name:<18} {description}")
         
         print(f"\nUsage: python run_dev.py demo <demo_name>")
-    
-    def fix_environment(self):
-        """Run environment fixes and setup."""
-        print("🔧 Running environment fixes...")
-        try:
-            sys.path.insert(0, str(self.project_root))
-            from fix_remaining_test_errors import main as fix_main
-            fix_main()
-            return True
-        except ImportError as e:
-            print(f"❌ Failed to import fix script: {e}")
-            return False
-        except Exception as e:
-            print(f"❌ Environment fix failed: {e}")
-            return False
     
     def show_status(self):
         """Show development environment status."""
@@ -165,14 +231,17 @@ class DevRunner:
         # Check main components
         components = [
             ('Main Application', 'src/main.py'),
-            ('Test Runner', 'run_tests.py'),
-            ('Environment Fixer', 'fix_remaining_test_errors.py'),
+            ('Test Runner', 'tests/run_tests.py'),
+            ('Performance Benchmarks', 'tests/performance/run_benchmarks.py'),
+            ('Visual Tests', 'tests/visual/run_visual_tests.py'),
+            ('Import Verifier', 'tests/helpers/verify_imports.py'),
+            ('Syntax Verifier', 'tests/helpers/verify_syntax.py'),
         ]
         
         for name, path in components:
             file_path = self.project_root / path
             status = "✅" if file_path.exists() else "❌"
-            print(f"{status} {name:<20} {path}")
+            print(f"{status} {name:<25} {path}")
         
         # Check demo files
         print("\n📁 Demo Applications:")
@@ -181,18 +250,49 @@ class DevRunner:
             'src/examples/line_chart_demo.py',
             'examples/table_usage_example.py', 
             'examples/journal_example.py',
-            'src/ui/month_over_month_demo.py'
+            'src/ui/month_over_month_demo.py',
+            'examples/annotation_demo.py',
+            'examples/dashboard_demo.py',
+            'examples/interactive_chart_example.py',
+            'examples/reactive_data_binding_demo.py',
+            'examples/temporal_anomaly_example.py'
         ]
         
         for path in demo_paths:
             file_path = self.project_root / path
             status = "✅" if file_path.exists() else "❌"
-            demo_name = Path(path).stem
+            demo_name = Path(path).stem.replace('_demo', '').replace('_example', '')
             print(f"{status} {demo_name:<20} {path}")
         
         # Check Python environment
         print(f"\n🐍 Python: {sys.version}")
         print(f"📁 Project Root: {self.project_root}")
+        
+        # Check key dependencies
+        print("\n📦 Key Dependencies:")
+        try:
+            import PyQt6
+            print(f"✅ PyQt6: {PyQt6.QtCore.PYQT_VERSION_STR}")
+        except ImportError:
+            print("❌ PyQt6 not installed")
+        
+        try:
+            import pandas as pd
+            print(f"✅ pandas: {pd.__version__}")
+        except ImportError:
+            print("❌ pandas not installed")
+        
+        try:
+            import matplotlib
+            print(f"✅ matplotlib: {matplotlib.__version__}")
+        except ImportError:
+            print("❌ matplotlib not installed")
+        
+        try:
+            import numpy as np
+            print(f"✅ numpy: {np.__version__}")
+        except ImportError:
+            print("❌ numpy not installed")
 
 
 def main():
@@ -205,9 +305,12 @@ Examples:
   python run_dev.py app                    # Run main application
   python run_dev.py test unit              # Run unit tests
   python run_dev.py test all               # Run all tests
+  python run_dev.py benchmark              # Run performance benchmarks
+  python run_dev.py visual                 # Run visual regression tests
   python run_dev.py demo bar_chart         # Run bar chart demo
   python run_dev.py demos                  # List available demos
-  python run_dev.py fix                    # Fix environment issues
+  python run_dev.py verify-imports         # Verify all imports
+  python run_dev.py verify-syntax          # Check syntax validity
   python run_dev.py status                 # Show environment status
         """
     )
@@ -228,6 +331,12 @@ Examples:
     test_parser.add_argument('--coverage-threshold', type=int, default=90, help='Coverage threshold')
     test_parser.add_argument('--save-baseline', action='store_true', help='Save performance baseline')
     
+    # Benchmark command
+    subparsers.add_parser('benchmark', help='Run performance benchmarks')
+    
+    # Visual tests command
+    subparsers.add_parser('visual', help='Run visual regression tests')
+    
     # Demo command
     demo_parser = subparsers.add_parser('demo', help='Run a demo application')
     demo_parser.add_argument('demo_name', help='Name of demo to run')
@@ -235,8 +344,9 @@ Examples:
     # Demos command (list demos)
     subparsers.add_parser('demos', help='List available demos')
     
-    # Fix command
-    subparsers.add_parser('fix', help='Fix environment issues')
+    # Verify commands
+    subparsers.add_parser('verify-imports', help='Verify all critical imports')
+    subparsers.add_parser('verify-syntax', help='Check Python syntax validity')
     
     # Status command
     subparsers.add_parser('status', help='Show environment status')
@@ -261,6 +371,12 @@ Examples:
             }
             success = runner.run_tests(args.test_type, **kwargs)
             
+        elif args.command == 'benchmark':
+            success = runner.run_performance_benchmarks()
+            
+        elif args.command == 'visual':
+            success = runner.run_visual_tests()
+            
         elif args.command == 'demo':
             success = runner.run_demo(args.demo_name)
             
@@ -268,8 +384,11 @@ Examples:
             runner.list_demos()
             success = True
             
-        elif args.command == 'fix':
-            success = runner.fix_environment()
+        elif args.command == 'verify-imports':
+            success = runner.verify_imports()
+            
+        elif args.command == 'verify-syntax':
+            success = runner.verify_syntax()
             
         elif args.command == 'status':
             runner.show_status()

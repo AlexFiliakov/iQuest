@@ -1,7 +1,23 @@
 """Configuration file for the Sphinx documentation builder.
 
-This file only contains a selection of the most common options. For a full
-list see the documentation:
+This configuration file is specifically tailored for the Apple Health Monitor Dashboard
+project, providing comprehensive documentation generation with Google-style docstring
+support, modern themes, and advanced features for API documentation.
+
+Key Features:
+    - Google-style docstring support via Napoleon extension
+    - Modern responsive theme with customizable options
+    - Automatic API documentation generation from source code
+    - Cross-referencing with external Python libraries
+    - Support for Markdown files alongside reStructuredText
+    - Copy-button support for code examples
+    - Mathematical notation support via MathJax
+    - Interactive design elements and admonitions
+
+The configuration automatically detects and includes optional extensions for enhanced
+functionality while maintaining compatibility when they're not available.
+
+For complete Sphinx configuration options, see:
 https://www.sphinx-doc.org/en/master/usage/configuration.html
 """
 

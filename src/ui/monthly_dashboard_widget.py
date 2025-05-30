@@ -11,7 +11,8 @@ from calendar import monthrange
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy, QButtonGroup
+    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy, QButtonGroup,
+    QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 from PyQt6.QtGui import QFont, QIcon
@@ -94,6 +95,9 @@ class MonthlyDashboardWidget(QWidget):
         
         self._setup_ui()
         self._setup_connections()
+        
+        # Refresh combo box to ensure it has latest metrics
+        self._refresh_metric_combo()
         
         # Load initial data
         self._load_month_data()
@@ -223,37 +227,46 @@ class MonthlyDashboardWidget(QWidget):
             # Build list of (metric, source) tuples
             self._available_metrics = []
             
-            # For each source, get its available types
-            for source in sources:
-                types_for_source = self.health_db.get_types_for_source(source)
-                
-                for db_type in types_for_source:
-                    # Remove HK prefixes if present
-                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+            # If no sources in database, just use default metrics without sources
+            if not sources:
+                logger.info("No sources in database, using default metrics")
+                # Use default metrics without specific sources
+                for metric in default_metrics:
+                    if metric in self._metric_display_names:
+                        self._available_metrics.append((metric, None))
+            else:
+                # Use real data from database
+                # For each source, get its available types
+                for source in sources:
+                    types_for_source = self.health_db.get_types_for_source(source)
                     
-                    # Only include metrics we have display names for
+                    for db_type in types_for_source:
+                        # Remove HK prefixes if present
+                        clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                        
+                        # Only include metrics we have display names for
+                        if clean_type in self._metric_display_names:
+                            self._available_metrics.append((clean_type, source))
+                            logger.debug(f"Added metric: {clean_type} from {source}")
+                
+                # Also get metrics without specific source filtering (aggregated view)
+                db_types = self.health_db.get_available_types()
+                for db_type in db_types:
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
                     if clean_type in self._metric_display_names:
-                        self._available_metrics.append((clean_type, source))
-                        logger.debug(f"Added metric: {clean_type} from {source}")
+                        # Add aggregated option (no source specified)
+                        if (clean_type, None) not in self._available_metrics:
+                            self._available_metrics.append((clean_type, None))
             
-            # Also get metrics without specific source filtering (aggregated view)
-            db_types = self.health_db.get_available_types()
-            for db_type in db_types:
-                clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
-                if clean_type in self._metric_display_names:
-                    # Add aggregated option (no source specified)
-                    if (clean_type, None) not in self._available_metrics:
-                        self._available_metrics.append((clean_type, None))
-            
-            # If no metrics found, use defaults
+            # If still no metrics, use defaults
             if not self._available_metrics:
-                logger.info("No metrics found in database, using defaults")
+                logger.info("No metrics found, using defaults")
                 self._available_metrics = [(metric, None) for metric in default_metrics]
             
             # Sort by display name and source for better UX
             self._available_metrics.sort(key=lambda x: (
                 self._metric_display_names.get(x[0], x[0]), 
-                x[1] if x[1] else "All Sources"
+                x[1] if x[1] else "zzz"  # Put "All Sources" at the end
             ))
             
             logger.info(f"Loaded {len(self._available_metrics)} metric-source combinations")
@@ -263,6 +276,40 @@ class MonthlyDashboardWidget(QWidget):
             # Fall back to showing all possible metrics without sources
             self._available_metrics = [(metric, None) for metric in self._metric_display_names.keys()]
             self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+    
+    def _refresh_metric_combo(self):
+        """Refresh the metric combo box with current available metrics."""
+        if not hasattr(self, 'metric_combo'):
+            return
+            
+        # Save current selection
+        current_index = self.metric_combo.currentIndex()
+        current_data = self.metric_combo.itemData(current_index) if current_index >= 0 else None
+        
+        # Clear and repopulate
+        self.metric_combo.clear()
+        logger.info(f"Refreshing combo box with {len(self._available_metrics)} metrics")
+        
+        for metric_tuple in self._available_metrics:
+            metric, source = metric_tuple
+            display_name = self._metric_display_names.get(metric, metric)
+            
+            # Format display text based on source
+            if source:
+                display_text = f"{display_name} - {source}"
+            else:
+                display_text = f"{display_name} (All Sources)"
+                
+            self.metric_combo.addItem(display_text, metric_tuple)
+            logger.debug(f"Added to combo: {display_text}")
+        
+        # Restore selection if possible
+        if current_data and current_data in self._available_metrics:
+            index = self._available_metrics.index(current_data)
+            self.metric_combo.setCurrentIndex(index)
+        elif self._current_metric in self._available_metrics:
+            index = self._available_metrics.index(self._current_metric)
+            self.metric_combo.setCurrentIndex(index)
             
     def _setup_ui(self):
         """Set up the user interface."""
@@ -762,6 +809,8 @@ class MonthlyDashboardWidget(QWidget):
                 days_in_month = monthrange(self._current_year, self._current_month)[1]
                 today = date.today()
                 
+                logger.info(f"Loading data for {hk_type} in {self._current_month}/{self._current_year}")
+                
                 for day in range(1, days_in_month + 1):
                     current_date = date(self._current_year, self._current_month, day)
                     
@@ -783,13 +832,17 @@ class MonthlyDashboardWidget(QWidget):
                     if daily_value is not None and daily_value > 0:
                         # Convert values for display based on metric type
                         data[current_date] = self._convert_value_for_display(daily_value, metric_type)
+                        logger.debug(f"Loaded {metric_type} for {current_date}: {daily_value}")
+                
+                logger.info(f"Loaded {len(data)} days of data for {metric_type}")
                             
             except Exception as e:
-                logger.error(f"Error loading month data: {e}")
-                # Fall back to sample data
+                logger.error(f"Error loading month data: {e}", exc_info=True)
+                # Try to generate sample data as fallback
                 data = self._generate_sample_data()
         else:
             # Use sample data if no calculator available
+            logger.warning("No monthly calculator available, generating sample data")
             data = self._generate_sample_data()
         
         # Update calendar heatmap with metric type and source
@@ -810,10 +863,11 @@ class MonthlyDashboardWidget(QWidget):
         try:
             # Query the database directly for source-specific data
             if not self.health_db:
+                logger.warning("No health database connection available")
                 return None
                 
-            from ..database import DatabaseManager
-            db = DatabaseManager()
+            # Use the existing database manager from health_db
+            db = self.health_db.db_manager
             
             # Query for sum of values for this metric, date, and source
             query = """
@@ -828,12 +882,15 @@ class MonthlyDashboardWidget(QWidget):
             result = db.execute_query(query, (metric_type, date.isoformat(), source))
             
             if result and result[0][0] is not None:
-                return float(result[0][0])
+                value = float(result[0][0])
+                logger.debug(f"Got value {value} for {metric_type} on {date} from {source}")
+                return value
             else:
+                logger.debug(f"No data found for {metric_type} on {date} from {source}")
                 return None
                 
         except Exception as e:
-            logger.error(f"Error getting source-specific daily value: {e}")
+            logger.error(f"Error getting source-specific daily value: {e}", exc_info=True)
             return None
         
     def _convert_value_for_display(self, value: float, metric: str) -> float:
@@ -858,40 +915,38 @@ class MonthlyDashboardWidget(QWidget):
             return value  # Return as-is for other metrics
         
     def _generate_sample_data(self) -> Dict[date, float]:
-        """Generate sample data for demonstration."""
-        # This is placeholder data - in production would come from monthly_calculator
-        import random
+        """Generate sample data for demonstration when no real data is available."""
+        logger.info("Generating sample data for demonstration")
         
-        sample_data = {}
+        # Generate realistic sample data based on metric type
+        metric_type = self._current_metric[0] if isinstance(self._current_metric, tuple) else self._current_metric
+        
         days_in_month = monthrange(self._current_year, self._current_month)[1]
         today = date.today()
+        data = {}
         
-        # Define realistic ranges for each metric type
+        # Define reasonable ranges for different metrics
         metric_ranges = {
-            "StepCount": (2000, 15000),
-            "DistanceWalkingRunning": (1.0, 10.0),  # km
-            "FlightsClimbed": (0, 30),
-            "ActiveEnergyBurned": (200, 800),  # kcal
-            "BasalEnergyBurned": (1200, 2000),  # kcal
-            "AppleExerciseTime": (0, 120),  # minutes
-            "AppleStandHour": (0, 16),  # hours
-            "HeartRate": (60, 100),  # bpm
-            "RestingHeartRate": (50, 80),  # bpm
-            "WalkingHeartRateAverage": (80, 120),  # bpm
-            "HeartRateVariabilitySDNN": (20, 80),  # ms
-            "BloodPressureSystolic": (100, 140),  # mmHg
-            "BloodPressureDiastolic": (60, 90),  # mmHg
-            "BodyMass": (50, 100),  # kg
-            "BodyFatPercentage": (10, 35),  # %
-            "WalkingSpeed": (3.0, 6.0),  # km/h
-            "RespiratoryRate": (12, 20),  # breaths/min
-            "VO2Max": (30, 60),  # mL/kg/min
-            "SleepAnalysis": (5.0, 9.0),  # hours
-            "DietaryEnergyConsumed": (1500, 3000),  # kcal
-            "DietaryProtein": (50, 150),  # g
-            "DietaryWater": (1000, 3000),  # mL
-            "MindfulSession": (0, 60)  # minutes
+            "StepCount": (3000, 15000),
+            "HeartRate": (60, 80),
+            "DistanceWalkingRunning": (2.0, 10.0),  # km
+            "ActiveEnergyBurned": (200, 600),
+            "SleepAnalysis": (6, 9),  # hours
+            "BodyMass": (65, 75),
+            "BloodPressureSystolic": (110, 130),
+            "BloodPressureDiastolic": (70, 85),
+            "FlightsClimbed": (5, 30),
+            "RespiratoryRate": (12, 20),
+            "RestingHeartRate": (55, 70),
+            "BodyFatPercentage": (15, 25),
+            "AppleExerciseTime": (15, 60),  # minutes
         }
+        
+        # Get range for current metric
+        min_val, max_val = metric_ranges.get(metric_type, (50, 100))
+        
+        # Generate data with some realistic patterns
+        import random
         
         for day in range(1, days_in_month + 1):
             current_date = date(self._current_year, self._current_month, day)
@@ -899,28 +954,28 @@ class MonthlyDashboardWidget(QWidget):
             # Skip future dates
             if current_date > today:
                 continue
-            
-            # Extract metric type from tuple if needed
-            metric_type = self._current_metric[0] if isinstance(self._current_metric, tuple) else self._current_metric
-            
-            # Generate realistic sample values based on metric type
-            if metric_type in metric_ranges:
-                min_val, max_val = metric_ranges[metric_type]
-                if isinstance(min_val, int):
-                    value = random.randint(min_val, max_val)
-                else:
-                    value = random.uniform(min_val, max_val)
-            else:
-                # Default range for unknown metrics
-                value = random.uniform(0, 100)
                 
-            sample_data[current_date] = value
+            # Add some weekly patterns (lower values on weekends)
+            weekday = current_date.weekday()
+            weekend_factor = 0.8 if weekday >= 5 else 1.0
             
-        return sample_data
+            # Generate value with some randomness
+            base_value = random.uniform(min_val, max_val)
+            value = base_value * weekend_factor
+            
+            # Add some noise
+            value += random.uniform(-0.1, 0.1) * (max_val - min_val)
+            
+            data[current_date] = max(min_val, min(max_val, value))
+        
+        return data
         
     def _update_summary_stats(self, data: Dict[date, float]):
         """Update the summary statistics cards."""
         if not data:
+            # Set empty state for stats cards
+            for card in self.stats_cards.values():
+                card.value_label.setText("--")
             return
             
         values = list(data.values())
@@ -1004,7 +1059,20 @@ class MonthlyDashboardWidget(QWidget):
     def set_data_source(self, monthly_calculator):
         """Set the monthly metrics calculator data source."""
         self.monthly_calculator = monthly_calculator
+        
+        # Reload available metrics when data source changes
+        self._load_available_metrics()
+        self._refresh_metric_combo()
+        
+        # Update month label
+        self._update_month_label()
+        
+        # Load data for current month
         self._load_month_data()
+        
+        # Force UI update
+        self.update()
+        QApplication.processEvents()
         
     def get_current_month(self) -> tuple[int, int]:
         """Get the current year and month being displayed."""
@@ -1037,6 +1105,10 @@ class MonthlyDashboardWidget(QWidget):
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""
         super().showEvent(event)
+        
+        # Reload available metrics when widget is shown
+        self._load_available_metrics()
+        self._refresh_metric_combo()
         
         # Check if we're showing a future month and reset if needed
         now = datetime.now()

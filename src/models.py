@@ -1,4 +1,30 @@
-"""Data models for Apple Health Monitor database entities as per SPECS_DB.md."""
+"""Data models for Apple Health Monitor database entities as per SPECS_DB.md.
+
+This module defines all data model classes used by the Apple Health Monitor Dashboard
+for database persistence and data transfer. All models are implemented as dataclasses
+with validation, serialization, and type conversion methods.
+
+The models correspond to the database schema defined in SPECS_DB.md and include:
+- JournalEntry: Daily, weekly, and monthly journal entries
+- UserPreference: User preferences with type information
+- RecentFile: Recently accessed file tracking
+- CachedMetric: Health metrics cache for performance
+- HealthMetricsMetadata: Display metadata for health metrics
+- DataSource: Data source tracking and management
+- ImportHistory: Import operation history tracking
+
+Example:
+    Creating and using a journal entry:
+    
+    >>> from datetime import date
+    >>> entry = JournalEntry(
+    ...     entry_date=date.today(),
+    ...     entry_type='daily',
+    ...     content='Feeling great today!'
+    ... )
+    >>> data = entry.to_dict()
+    >>> restored = JournalEntry.from_dict(data)
+"""
 
 from dataclasses import dataclass, field
 from datetime import datetime, date
@@ -8,7 +34,32 @@ import json
 
 @dataclass
 class JournalEntry:
-    """Model for journal entries supporting daily, weekly, and monthly entries."""
+    """Model for journal entries supporting daily, weekly, and monthly entries.
+    
+    This dataclass represents journal entries that can be daily, weekly, or monthly.
+    It includes validation to ensure proper data structure based on entry type.
+    
+    Attributes:
+        entry_date (date): The primary date for this entry.
+        entry_type (str): Type of entry ('daily', 'weekly', 'monthly').
+        content (str): The actual journal content text.
+        week_start_date (Optional[date]): Start date for weekly entries.
+        month_year (Optional[str]): Year-month in YYYY-MM format for monthly entries.
+        id (Optional[int]): Database primary key.
+        created_at (Optional[datetime]): Record creation timestamp.
+        updated_at (Optional[datetime]): Record last update timestamp.
+    
+    Raises:
+        ValueError: If entry_type is invalid or required fields are missing.
+    
+    Example:
+        >>> from datetime import date
+        >>> entry = JournalEntry(
+        ...     entry_date=date(2024, 1, 15),
+        ...     entry_type='daily',
+        ...     content='Today was productive'
+        ... )
+    """
     
     entry_date: date
     entry_type: str  # 'daily', 'weekly', 'monthly'
@@ -20,7 +71,14 @@ class JournalEntry:
     updated_at: Optional[datetime] = None
     
     def __post_init__(self):
-        """Validate data after initialization."""
+        """Validate data after initialization.
+        
+        Ensures that entry_type is valid and required fields are present
+        based on the entry type.
+        
+        Raises:
+            ValueError: If entry_type is not valid or required fields are missing.
+        """
         valid_types = ['daily', 'weekly', 'monthly']
         if self.entry_type not in valid_types:
             raise ValueError(f"Entry type must be one of {valid_types}")
@@ -34,7 +92,16 @@ class JournalEntry:
             raise ValueError("month_year is required for monthly entries")
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for database storage."""
+        """Convert to dictionary for database storage.
+        
+        Returns:
+            Dict[str, Any]: Dictionary representation suitable for database storage.
+            
+        Example:
+            >>> entry = JournalEntry(date.today(), 'daily', 'Test content')
+            >>> data = entry.to_dict()
+            >>> print(data['entry_type'])  # 'daily'
+        """
         return {
             'id': self.id,
             'entry_date': self.entry_date.isoformat() if isinstance(self.entry_date, date) else self.entry_date,
@@ -48,7 +115,18 @@ class JournalEntry:
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'JournalEntry':
-        """Create instance from dictionary."""
+        """Create instance from dictionary.
+        
+        Args:
+            data (Dict[str, Any]): Dictionary containing journal entry data.
+            
+        Returns:
+            JournalEntry: New JournalEntry instance.
+            
+        Example:
+            >>> data = {'entry_date': '2024-01-15', 'entry_type': 'daily', 'content': 'Test'}
+            >>> entry = JournalEntry.from_dict(data)
+        """
         entry_date = data.get('entry_date')
         if isinstance(entry_date, str):
             entry_date = date.fromisoformat(entry_date)

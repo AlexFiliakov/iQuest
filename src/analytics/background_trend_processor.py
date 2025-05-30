@@ -142,7 +142,7 @@ class BackgroundTrendProcessor:
             # Check cache first
             if not force_refresh:
                 cached_result = self._get_cached_trend(metric)
-                if cached_result:
+                if cached_result is not None:
                     logger.debug(f"Using cached trend for {metric}")
                     return cached_result
             
@@ -153,28 +153,53 @@ class BackgroundTrendProcessor:
             start_date = end_date - timedelta(days=365)  # Analyze last year
             
             # Query health records from database
-            # First, let's check what format dates are stored in
-            sample_query = "SELECT creationDate FROM health_records WHERE type = ? LIMIT 1"
+            # First, let's check what format dates are stored in and if the metric exists
+            sample_query = "SELECT COUNT(*) as count FROM health_records WHERE type = ?"
             sample_rows = self.database.execute_query(sample_query, (metric,))
             if sample_rows:
-                logger.debug(f"Sample date format for {metric}: {sample_rows[0]['creationDate']}")
+                total_count = sample_rows[0]['count']
+                logger.info(f"Total records for {metric}: {total_count}")
+            else:
+                logger.warning(f"No records found for metric type: {metric}")
+                return None
             
-            query = """
+            # Check date format
+            date_sample_query = "SELECT creationDate FROM health_records WHERE type = ? LIMIT 1"
+            date_sample = self.database.execute_query(date_sample_query, (metric,))
+            if date_sample:
+                logger.debug(f"Sample date format for {metric}: {date_sample[0]['creationDate']}")
+            
+            # Try a simpler query first without date filtering to ensure we get data
+            simple_query = """
                 SELECT type, creationDate, value, unit, sourceName
                 FROM health_records
                 WHERE type = ?
-                AND datetime(creationDate) >= datetime(?)
-                AND datetime(creationDate) <= datetime(?)
-                ORDER BY datetime(creationDate)
+                ORDER BY creationDate DESC
+                LIMIT 1000
             """
-            params = (
-                metric,
-                start_date.strftime('%Y-%m-%d %H:%M:%S'),
-                end_date.strftime('%Y-%m-%d %H:%M:%S')
-            )
             
-            rows = self.database.execute_query(query, params)
-            logger.info(f"Query returned {len(rows) if rows else 0} records for {metric}")
+            rows = self.database.execute_query(simple_query, (metric,))
+            logger.info(f"Simple query returned {len(rows) if rows else 0} records for {metric}")
+            
+            # Filter by date in Python if we got results
+            if rows:
+                filtered_rows = []
+                for row in rows:
+                    try:
+                        # Parse the date
+                        date_str = row['creationDate']
+                        if isinstance(date_str, str):
+                            # Try to parse the date
+                            parsed_date = pd.to_datetime(date_str).to_pydatetime()
+                            # Check if within our date range
+                            if start_date <= parsed_date <= end_date:
+                                filtered_rows.append(row)
+                    except Exception as e:
+                        logger.debug(f"Error parsing date {row.get('creationDate')}: {e}")
+                        continue
+                
+                rows = filtered_rows
+                logger.info(f"After date filtering: {len(rows)} records for {metric} between {start_date} and {end_date}")
             
             # Convert to a format expected by trend engine
             data = []
@@ -273,8 +298,9 @@ class BackgroundTrendProcessor:
         cache_key = f"trend_{metric}"
         
         # Check in-memory cache first
-        # Use a dummy compute function since we're only checking for existence
-        cached = self.cache_manager.get(cache_key, lambda: None)
+        # The cache manager requires a compute_fn, so we provide a dummy one that returns None
+        # This effectively makes it only check the cache without computing
+        cached = self.cache_manager.get(cache_key, compute_fn=lambda: None)
         if cached is not None:
             return cached
         
@@ -348,7 +374,7 @@ class BackgroundTrendProcessor:
         """
         # Check cache first
         cached_result = self._get_cached_trend(metric)
-        if cached_result:
+        if cached_result is not None:
             return cached_result
         
         # Queue for calculation if not being processed

@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Test script to check the calendar heatmap method issue."""
+
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+# Mock PyQt6 to avoid GUI issues
+class MockQWidget:
+    def __init__(self, parent=None):
+        pass
+    def setMouseTracking(self, val): pass
+    def setFocusPolicy(self, val): pass
+    def setMinimumSize(self, w, h): pass
+    def update(self): pass
+    def rect(self): return MockQRect()
+    def width(self): return 800
+    def height(self): return 600
+    def show(self): pass
+    def showEvent(self, event): pass
+
+class MockQRect:
+    def adjusted(self, *args): return self
+    def x(self): return 0
+    def y(self): return 0
+    def width(self): return 800
+    def height(self): return 600
+    def center(self): return MockQPoint()
+
+class MockQPoint:
+    def x(self): return 400
+    def y(self): return 300
+
+class MockQPropertyAnimation:
+    def __init__(self, obj, prop): pass
+    def setDuration(self, d): pass
+    def setEasingCurve(self, c): pass
+    def setLoopCount(self, c): pass
+    def setStartValue(self, v): pass
+    def setEndValue(self, v): pass
+    def start(self): pass
+
+class MockSignal:
+    def emit(self, *args): pass
+    def connect(self, *args): pass
+
+# Patch PyQt6 modules
+sys.modules['PyQt6.QtWidgets'] = type(sys)('mock')
+sys.modules['PyQt6.QtCore'] = type(sys)('mock')
+sys.modules['PyQt6.QtGui'] = type(sys)('mock')
+
+sys.modules['PyQt6.QtWidgets'].QWidget = MockQWidget
+sys.modules['PyQt6.QtWidgets'].QVBoxLayout = lambda p: None
+sys.modules['PyQt6.QtWidgets'].QHBoxLayout = lambda p: None
+sys.modules['PyQt6.QtWidgets'].QButtonGroup = lambda p: None
+sys.modules['PyQt6.QtWidgets'].QPushButton = lambda t: type('MockButton', (), {'clicked': MockSignal(), 'setCheckable': lambda s,v: None, 'setChecked': lambda s,v: None})()
+sys.modules['PyQt6.QtWidgets'].QLabel = lambda t: None
+sys.modules['PyQt6.QtWidgets'].QToolTip = type('MockTooltip', (), {'showText': lambda *a: None, 'hideText': lambda: None})()
+sys.modules['PyQt6.QtWidgets'].QComboBox = lambda p: type('MockCombo', (), {'addItems': lambda s,i: None, 'currentTextChanged': MockSignal()})()
+sys.modules['PyQt6.QtWidgets'].QSlider = lambda p: None
+sys.modules['PyQt6.QtWidgets'].QCheckBox = lambda t: type('MockCheck', (), {'toggled': MockSignal()})()
+sys.modules['PyQt6.QtWidgets'].QFrame = lambda p: type('MockFrame', (), {'setStyleSheet': lambda s,v: None, 'setFrameStyle': lambda s,v: None, 'Shape': type('Shape', (), {'VLine': 1})})()
+
+sys.modules['PyQt6.QtCore'].Qt = type('Qt', (), {
+    'FocusPolicy': type('FocusPolicy', (), {'StrongFocus': 1})(),
+    'AlignmentFlag': type('AlignmentFlag', (), {'AlignCenter': 1})(),
+    'MouseButton': type('MouseButton', (), {'LeftButton': 1})(),
+    'PenStyle': type('PenStyle', (), {'DashLine': 1})(),
+})()
+sys.modules['PyQt6.QtCore'].QRect = MockQRect
+sys.modules['PyQt6.QtCore'].QPoint = MockQPoint
+sys.modules['PyQt6.QtCore'].QSize = lambda w,h: None
+sys.modules['PyQt6.QtCore'].QTimer = type('MockTimer', (), {'singleShot': lambda t,f: f()})()
+sys.modules['PyQt6.QtCore'].pyqtSignal = lambda *args: MockSignal()
+sys.modules['PyQt6.QtCore'].QPropertyAnimation = MockQPropertyAnimation
+sys.modules['PyQt6.QtCore'].QEasingCurve = type('QEasingCurve', (), {'Type': type('Type', (), {'InOutSine': 1})})()
+sys.modules['PyQt6.QtCore'].pyqtProperty = lambda t: lambda f: property(f)
+
+sys.modules['PyQt6.QtGui'].QPainter = lambda p: type('MockPainter', (), {
+    'setRenderHint': lambda s,h: None,
+    'fillRect': lambda s,r,c: None,
+    'RenderHint': type('RenderHint', (), {'Antialiasing': 1})
+})()
+sys.modules['PyQt6.QtGui'].QPen = lambda *args: None
+sys.modules['PyQt6.QtGui'].QBrush = lambda *args: None
+sys.modules['PyQt6.QtGui'].QColor = lambda *args: type('MockColor', (), {
+    'name': lambda s: '#FFFFFF',
+    'red': lambda s: 255,
+    'green': lambda s: 255,
+    'blue': lambda s: 255
+})()
+sys.modules['PyQt6.QtGui'].QFont = lambda *args: None
+sys.modules['PyQt6.QtGui'].QFontMetrics = lambda f: None
+sys.modules['PyQt6.QtGui'].QLinearGradient = lambda *args: None
+sys.modules['PyQt6.QtGui'].QRadialGradient = lambda *args: None
+sys.modules['PyQt6.QtGui'].QPainterPath = lambda: None
+sys.modules['PyQt6.QtGui'].QPolygonF = lambda: None
+
+# Now try to import and test
+from ui.charts.calendar_heatmap import CalendarHeatmapComponent, ViewMode
+
+# Create instance
+widget = CalendarHeatmapComponent()
+
+# Check method existence
+print(f"Instance type: {type(widget)}")
+print(f"Instance class: {widget.__class__.__name__}")
+print(f"Has animate_update: {hasattr(widget, 'animate_update')}")
+
+# List all methods
+methods = [attr for attr in dir(widget) if not attr.startswith('__')]
+print(f"\nAll attributes ({len(methods)} total):")
+for method in sorted(methods):
+    attr = getattr(widget, method, None)
+    if callable(attr):
+        print(f"  - {method} (callable)")
+    else:
+        print(f"  - {method} (property)")
+
+# Try to access the method
+try:
+    method = getattr(widget, 'animate_update', None)
+    print(f"\ngetattr(widget, 'animate_update'): {method}")
+    print(f"Type: {type(method)}")
+except Exception as e:
+    print(f"\nError getting animate_update: {e}")
+
+# Try calling it
+try:
+    widget.animate_update()
+    print("\nDirect call to animate_update() succeeded")
+except AttributeError as e:
+    print(f"\nDirect call to animate_update() failed: {e}")
+    
+# Try calling _change_view_mode
+try:
+    widget._change_view_mode(ViewMode.CIRCULAR)
+    print("Call to _change_view_mode() succeeded")
+except AttributeError as e:
+    print(f"Call to _change_view_mode() failed: {e}")

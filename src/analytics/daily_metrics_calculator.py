@@ -1,6 +1,62 @@
 """
-Daily metrics calculator for health data analysis.
-Provides statistical calculations for daily health metrics.
+Daily Metrics Calculator for Apple Health Data Analysis.
+
+This module provides comprehensive statistical analysis for daily health metrics including
+mean, median, standard deviation, percentiles, and outlier detection. It supports multiple
+interpolation methods for missing data and flexible aggregation strategies.
+
+The calculator processes health data through the DataFrameAdapter pattern for flexibility
+and provides extensive validation and error handling for robust analysis.
+
+Example:
+    Basic usage for calculating daily statistics:
+
+    >>> import pandas as pd
+    >>> from datetime import date, datetime
+    >>> 
+    >>> # Create sample health data
+    >>> data = pd.DataFrame({
+    ...     'creationDate': pd.date_range('2024-01-01', periods=30),
+    ...     'type': 'HKQuantityTypeIdentifierStepCount',
+    ...     'value': [8000, 7500, 9200, 6800, 10500] * 6
+    ... })
+    >>> 
+    >>> calculator = DailyMetricsCalculator(data)
+    >>> stats = calculator.calculate_statistics('HKQuantityTypeIdentifierStepCount')
+    >>> print(f"Average daily steps: {stats.mean:.0f}")
+    Average daily steps: 8400
+    
+    Advanced usage with date filtering and interpolation:
+    
+    >>> # Calculate statistics for specific date range with missing data handling
+    >>> start_date = date(2024, 1, 1)
+    >>> end_date = date(2024, 1, 15)
+    >>> stats = calculator.calculate_statistics(
+    ...     'HKQuantityTypeIdentifierStepCount',
+    ...     start_date=start_date,
+    ...     end_date=end_date,
+    ...     interpolation=InterpolationMethod.LINEAR
+    ... )
+    >>> 
+    >>> # Get percentiles for distribution analysis
+    >>> percentiles = calculator.calculate_percentiles(
+    ...     'HKQuantityTypeIdentifierStepCount',
+    ...     [25, 50, 75, 90, 95]
+    ... )
+    >>> print(f"90th percentile: {percentiles[90]:.0f}")
+    
+    Outlier detection:
+    
+    >>> # Detect outliers using IQR method
+    >>> outliers = calculator.detect_outliers(
+    ...     'HKQuantityTypeIdentifierStepCount',
+    ...     method=OutlierMethod.IQR
+    ... )
+    >>> print(f"Found {outliers.sum()} outlier days")
+
+Note:
+    This module uses deprecation warnings for direct DataFrame usage.
+    Use DataSourceProtocol implementations for new code.
 """
 
 from typing import Dict, List, Optional, Tuple, Union
@@ -20,7 +76,21 @@ logger = logging.getLogger(__name__)
 
 
 class InterpolationMethod(Enum):
-    """Supported interpolation methods for missing data."""
+    """Enumeration of supported interpolation methods for handling missing data.
+    
+    Attributes:
+        NONE: No interpolation - missing values remain as NaN
+        LINEAR: Linear interpolation between adjacent values
+        FORWARD_FILL: Forward fill using last valid observation
+        BACKWARD_FILL: Backward fill using next valid observation
+        
+    Example:
+        >>> # Use linear interpolation for missing data
+        >>> stats = calculator.calculate_statistics(
+        ...     'steps',
+        ...     interpolation=InterpolationMethod.LINEAR
+        ... )
+    """
     NONE = "none"
     LINEAR = "linear"
     FORWARD_FILL = "forward_fill"
@@ -28,7 +98,20 @@ class InterpolationMethod(Enum):
 
 
 class OutlierMethod(Enum):
-    """Supported outlier detection methods."""
+    """Enumeration of supported outlier detection methods.
+    
+    Attributes:
+        IQR: Interquartile Range method (Q3 + 1.5*IQR, Q1 - 1.5*IQR)
+        Z_SCORE: Z-score method (threshold typically 3.0)
+        ISOLATION_FOREST: Isolation Forest algorithm (not yet implemented)
+        
+    Example:
+        >>> # Detect outliers using IQR method
+        >>> outliers = calculator.detect_outliers(
+        ...     'heart_rate',
+        ...     method=OutlierMethod.IQR
+        ... )
+    """
     IQR = "iqr"
     Z_SCORE = "z_score"
     ISOLATION_FOREST = "isolation_forest"
@@ -36,7 +119,42 @@ class OutlierMethod(Enum):
 
 @dataclass
 class MetricStatistics:
-    """Container for calculated statistics of a metric."""
+    """Container for comprehensive statistical measures of a health metric.
+    
+    This dataclass holds all calculated statistics for a specific metric including
+    central tendency measures, dispersion measures, percentiles, and data quality indicators.
+    
+    Attributes:
+        metric_name: Name of the health metric (e.g., 'HKQuantityTypeIdentifierStepCount')
+        count: Number of valid observations used in calculations
+        mean: Arithmetic mean of the metric values
+        median: Middle value when data is sorted (50th percentile)
+        std: Sample standard deviation (using ddof=1)
+        min: Minimum observed value
+        max: Maximum observed value
+        percentile_25: 25th percentile (Q1)
+        percentile_75: 75th percentile (Q3)
+        percentile_95: 95th percentile
+        outlier_count: Number of detected outliers (default: 0)
+        missing_data_count: Number of missing/interpolated data points (default: 0)
+        insufficient_data: Whether there was insufficient data for reliable statistics (default: False)
+        
+    Example:
+        >>> stats = MetricStatistics(
+        ...     metric_name='steps',
+        ...     count=30,
+        ...     mean=8500.0,
+        ...     median=8200.0,
+        ...     std=1200.0,
+        ...     min=5500.0,
+        ...     max=12000.0,
+        ...     percentile_25=7500.0,
+        ...     percentile_75=9500.0,
+        ...     percentile_95=11200.0
+        ... )
+        >>> print(f"CV: {stats.std / stats.mean:.2%}")
+        CV: 14.12%
+    """
     metric_name: str
     count: int
     mean: Optional[float]
@@ -52,7 +170,19 @@ class MetricStatistics:
     insufficient_data: bool = False
     
     def to_dict(self) -> Dict[str, Union[str, int, float, bool, None]]:
-        """Convert statistics to dictionary."""
+        """Convert statistics to dictionary format for serialization or API responses.
+        
+        Returns:
+            Dictionary containing all statistics fields with their values.
+            
+        Example:
+            >>> stats = MetricStatistics(metric_name='steps', count=10, mean=8000.0, 
+            ...                          median=7800.0, std=1000.0, min=6000.0, max=10000.0,
+            ...                          percentile_25=7200.0, percentile_75=8800.0, percentile_95=9500.0)
+            >>> data = stats.to_dict()
+            >>> print(data['mean'])
+            8000.0
+        """
         return {
             'metric_name': self.metric_name,
             'count': self.count,
@@ -72,20 +202,94 @@ class MetricStatistics:
 
 class DailyMetricsCalculator:
     """
-    Calculator for daily health metrics statistics.
+    Comprehensive calculator for daily health metrics with advanced statistical analysis.
     
-    Provides statistical analysis including mean, median, standard deviation,
-    percentiles, and outlier detection for health data metrics.
+    This class provides robust statistical analysis for health data including descriptive
+    statistics, percentile calculations, outlier detection, and time-series aggregation.
+    It handles missing data through multiple interpolation methods and provides extensive
+    validation and error handling.
+    
+    The calculator is designed to work with Apple Health data but can handle any time-series
+    health data that follows the expected schema (creationDate, type, value columns).
+    
+    Attributes:
+        data: Processed DataFrame with health data
+        timezone: Timezone used for date handling
+        
+    Example:
+        Basic statistical analysis:
+        
+        >>> import pandas as pd
+        >>> from datetime import date
+        >>> 
+        >>> # Create sample data
+        >>> data = pd.DataFrame({
+        ...     'creationDate': pd.date_range('2024-01-01', periods=30),
+        ...     'type': 'HKQuantityTypeIdentifierStepCount',
+        ...     'value': range(8000, 11000, 100)
+        ... })
+        >>> 
+        >>> calculator = DailyMetricsCalculator(data)
+        >>> stats = calculator.calculate_statistics('HKQuantityTypeIdentifierStepCount')
+        >>> print(f"Mean: {stats.mean:.0f}, Std: {stats.std:.0f}")
+        
+        Advanced analysis with date filtering:
+        
+        >>> # Analyze specific time period
+        >>> recent_stats = calculator.calculate_statistics(
+        ...     'HKQuantityTypeIdentifierStepCount',
+        ...     start_date=date(2024, 1, 15),
+        ...     end_date=date(2024, 1, 30)
+        ... )
+        >>> 
+        >>> # Get multiple metrics summary
+        >>> summary = calculator.get_metrics_summary([
+        ...     'HKQuantityTypeIdentifierStepCount',
+        ...     'HKQuantityTypeIdentifierDistanceWalkingRunning'
+        ... ])
+        
+        Outlier detection:
+        
+        >>> # Detect unusual days
+        >>> outliers = calculator.detect_outliers(
+        ...     'HKQuantityTypeIdentifierStepCount',
+        ...     method=OutlierMethod.IQR
+        ... )
+        >>> outlier_dates = outliers[outliers].index
+        >>> print(f"Outlier dates: {list(outlier_dates)}")
     """
     
     def __init__(self, data: Union[pd.DataFrame, DataSourceProtocol], timezone: str = 'UTC'):
         """
-        Initialize the calculator with health data.
+        Initialize the calculator with health data and configuration.
         
         Args:
-            data: Either a DataFrame or DataSourceProtocol implementation
-                  Must have columns: 'creationDate', 'type', 'value'
-            timezone: Timezone for date handling (default: 'UTC')
+            data: Health data source. Can be either:
+                - pandas.DataFrame with columns: 'creationDate', 'type', 'value'
+                - DataSourceProtocol implementation for advanced data sources
+                DataFrame usage is deprecated - use DataSourceProtocol for new code.
+            timezone: Timezone for date handling and calculations. Defaults to 'UTC'.
+                     Common values: 'UTC', 'US/Eastern', 'Europe/London', etc.
+                     
+        Raises:
+            ValueError: If data doesn't contain required columns
+            TypeError: If data is not DataFrame or DataSourceProtocol
+            
+        Example:
+            >>> import pandas as pd
+            >>> 
+            >>> # Using DataFrame (deprecated but supported)
+            >>> data = pd.DataFrame({
+            ...     'creationDate': pd.date_range('2024-01-01', periods=10),
+            ...     'type': 'steps',
+            ...     'value': range(8000, 9000, 100)
+            ... })
+            >>> calculator = DailyMetricsCalculator(data, timezone='US/Eastern')
+            >>> 
+            >>> # Using DataSourceProtocol (recommended)
+            >>> from .dataframe_adapter import DataFrameAdapter
+            >>> adapter = DataFrameAdapter(data)
+            >>> calculator = DailyMetricsCalculator(adapter)
         """
         # Use adapter for flexibility
         adapter = DataFrameAdapter(data)
@@ -103,7 +307,21 @@ class DailyMetricsCalculator:
         self._prepare_data()
         
     def _prepare_data(self):
-        """Prepare data for analysis by ensuring proper types and indexing."""
+        """Prepare data for analysis by ensuring proper types and indexing.
+        
+        This method performs essential data preprocessing including:
+        - Converting creationDate to datetime with timezone handling
+        - Creating normalized date column for daily aggregation
+        - Converting values to consistent float64 format
+        - Sorting data chronologically for time-based operations
+        
+        Raises:
+            ValueError: If required columns are missing or invalid
+            
+        Note:
+            This method modifies self.data in place and adds a 'date' column
+            for daily aggregation operations.
+        """
         # Ensure creationDate is datetime
         if 'creationDate' in self.data.columns:
             self.data['creationDate'] = pd.to_datetime(
@@ -138,16 +356,53 @@ class DailyMetricsCalculator:
                            end_date: Optional[date] = None,
                            interpolation: InterpolationMethod = InterpolationMethod.NONE) -> MetricStatistics:
         """
-        Calculate all statistical measures for a metric.
+        Calculate comprehensive statistical measures for a specific health metric.
+        
+        This method computes descriptive statistics including measures of central tendency,
+        dispersion, and distribution shape. It handles missing data through interpolation
+        and provides robust error handling for edge cases.
         
         Args:
-            metric: The metric type to analyze
-            start_date: Start date for analysis (inclusive)
-            end_date: End date for analysis (inclusive)
-            interpolation: Method for handling missing data
-            
+            metric: The health metric type identifier to analyze.
+                   Examples: 'HKQuantityTypeIdentifierStepCount', 'HKQuantityTypeIdentifierHeartRate'
+            start_date: Start date for analysis window (inclusive). If None, uses all available data.
+            end_date: End date for analysis window (inclusive). If None, uses all available data.
+            interpolation: Method for handling missing data points. Options:
+                          - NONE: Leave missing values as NaN
+                          - LINEAR: Linear interpolation between points
+                          - FORWARD_FILL: Use last valid observation
+                          - BACKWARD_FILL: Use next valid observation
+                          
         Returns:
-            MetricStatistics object with calculated values
+            MetricStatistics object containing:
+            - Basic statistics (count, mean, median, std, min, max)
+            - Percentiles (25th, 75th, 95th)
+            - Data quality indicators (missing data count, insufficient data flag)
+            
+        Raises:
+            ValueError: If metric type is not found in data
+            TypeError: If date parameters are not date objects
+            
+        Example:
+            >>> from datetime import date
+            >>> 
+            >>> # Calculate basic statistics
+            >>> stats = calculator.calculate_statistics('HKQuantityTypeIdentifierStepCount')
+            >>> print(f"Average: {stats.mean:.0f} ± {stats.std:.0f}")
+            >>> 
+            >>> # Calculate for specific time period with interpolation
+            >>> stats = calculator.calculate_statistics(
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     start_date=date(2024, 1, 1),
+            ...     end_date=date(2024, 1, 31),
+            ...     interpolation=InterpolationMethod.LINEAR
+            ... )
+            >>> 
+            >>> # Check data quality
+            >>> if stats.insufficient_data:
+            ...     print("Warning: Insufficient data for reliable statistics")
+            >>> if stats.missing_data_count > 0:
+            ...     print(f"Note: {stats.missing_data_count} missing data points interpolated")
         """
         # Filter data for the specific metric
         metric_data = self._filter_metric_data(metric, start_date, end_date)
@@ -254,16 +509,45 @@ class DailyMetricsCalculator:
                             start_date: Optional[date] = None,
                             end_date: Optional[date] = None) -> Dict[int, float]:
         """
-        Calculate specified percentiles for a metric.
+        Calculate specified percentiles for detailed distribution analysis.
+        
+        This method computes percentiles using numpy's percentile function with
+        linear interpolation. It's useful for understanding data distribution
+        and identifying threshold values for analysis.
         
         Args:
-            metric: The metric type to analyze
-            percentiles: List of percentiles to calculate (0-100)
-            start_date: Start date for analysis
-            end_date: End date for analysis
+            metric: The health metric type identifier to analyze
+            percentiles: List of percentiles to calculate, values must be between 0-100.
+                        Common values: [25, 50, 75, 90, 95, 99]
+            start_date: Start date for analysis window (inclusive). None for all data.
+            end_date: End date for analysis window (inclusive). None for all data.
             
         Returns:
-            Dictionary mapping percentile to value
+            Dictionary mapping percentile values to their calculated values.
+            Returns {percentile: None} for any percentiles that couldn't be calculated.
+            
+        Raises:
+            ValueError: If any percentile is not between 0-100
+            ValueError: If metric is not found in data
+            
+        Example:
+            >>> # Calculate common percentiles
+            >>> percentiles = calculator.calculate_percentiles(
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     [25, 50, 75, 90, 95]
+            ... )
+            >>> print(f"Median (50th): {percentiles[50]:.0f}")
+            >>> print(f"90th percentile: {percentiles[90]:.0f}")
+            >>> 
+            >>> # Calculate extreme percentiles
+            >>> extremes = calculator.calculate_percentiles(
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     [1, 5, 95, 99],
+            ...     start_date=date(2024, 1, 1),
+            ...     end_date=date(2024, 1, 31)
+            ... )
+            >>> if extremes[99] is not None:
+            ...     print(f"99th percentile heart rate: {extremes[99]:.1f} BPM")
         """
         # Validate percentiles
         for p in percentiles:
@@ -299,16 +583,53 @@ class DailyMetricsCalculator:
                        start_date: Optional[date] = None,
                        end_date: Optional[date] = None) -> pd.Series:
         """
-        Detect outliers using specified method.
+        Detect outliers in health data using statistical methods.
+        
+        This method identifies data points that significantly deviate from the
+        normal pattern using established statistical techniques. Useful for
+        data quality assessment and identifying unusual health events.
         
         Args:
-            metric: The metric type to analyze
-            method: Outlier detection method
-            start_date: Start date for analysis
-            end_date: End date for analysis
+            metric: The health metric type identifier to analyze
+            method: Outlier detection method to use:
+                   - IQR: Interquartile Range (values outside Q1-1.5*IQR, Q3+1.5*IQR)
+                   - Z_SCORE: Z-score method (values with |z-score| > 3.0)
+                   - ISOLATION_FOREST: Not yet implemented
+            start_date: Start date for analysis window (inclusive). None for all data.
+            end_date: End date for analysis window (inclusive). None for all data.
             
         Returns:
-            Boolean Series indicating outliers (True = outlier)
+            Boolean pandas Series with datetime index where True indicates an outlier.
+            Returns empty Series if no data available or method fails.
+            
+        Raises:
+            ValueError: If metric is not found in data
+            NotImplementedError: If unsupported outlier method is specified
+            
+        Example:
+            >>> # Detect outliers using IQR method
+            >>> outliers = calculator.detect_outliers(
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     method=OutlierMethod.IQR
+            ... )
+            >>> outlier_dates = outliers[outliers].index
+            >>> print(f"Found {len(outlier_dates)} outlier days")
+            >>> 
+            >>> # Get outlier values
+            >>> daily_data = calculator.calculate_daily_aggregates(
+            ...     'HKQuantityTypeIdentifierStepCount'
+            ... )
+            >>> outlier_values = daily_data[outliers]
+            >>> for date, value in outlier_values.items():
+            ...     print(f"{date.date()}: {value:.0f} steps (outlier)")
+            >>> 
+            >>> # Detect outliers in specific time period
+            >>> recent_outliers = calculator.detect_outliers(
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     method=OutlierMethod.Z_SCORE,
+            ...     start_date=date(2024, 1, 1),
+            ...     end_date=date(2024, 1, 31)
+            ... )
         """
         # Filter data
         metric_data = self._filter_metric_data(metric, start_date, end_date)
@@ -330,7 +651,26 @@ class DailyMetricsCalculator:
                            metric: str,
                            start_date: Optional[date] = None,
                            end_date: Optional[date] = None) -> pd.DataFrame:
-        """Filter data for specific metric and date range."""
+        """
+        Filter health data for specific metric and optional date range.
+        
+        This internal method handles data filtering with proper validation
+        and logging for debugging purposes.
+        
+        Args:
+            metric: The health metric type identifier to filter for
+            start_date: Start date for filtering (inclusive). None for no start limit.
+            end_date: End date for filtering (inclusive). None for no end limit.
+            
+        Returns:
+            Filtered DataFrame containing only the specified metric and date range.
+            
+        Raises:
+            ValueError: If required 'type' or 'date' columns are missing
+            
+        Note:
+            This method logs debug information about filtering results.
+        """
         # Filter by metric type
         if 'type' not in self.data.columns:
             raise ValueError("Data must have 'type' column")
@@ -364,7 +704,25 @@ class DailyMetricsCalculator:
                            values: np.ndarray,
                            dates: pd.Index,
                            method: InterpolationMethod) -> np.ndarray:
-        """Interpolate missing values in time series data."""
+        """
+        Interpolate missing values in time series data using specified method.
+        
+        This method handles gaps in daily data by applying different interpolation
+        strategies to maintain data continuity for statistical analysis.
+        
+        Args:
+            values: Array of metric values with potential NaN gaps
+            dates: DatetimeIndex corresponding to the values
+            method: Interpolation method to apply
+            
+        Returns:
+            Array with interpolated values. Original array returned if interpolation fails.
+            
+        Note:
+            - Creates complete date range for interpolation
+            - Handles edge cases where interpolation is not possible
+            - LINEAR method uses pandas interpolate with both directions
+        """
         # Create a complete date range
         if len(dates) < 2:
             return values
@@ -386,7 +744,22 @@ class DailyMetricsCalculator:
         return series.values
     
     def _detect_outliers_iqr(self, data: pd.Series) -> pd.Series:
-        """Detect outliers using Interquartile Range (IQR) method."""
+        """
+        Detect outliers using Interquartile Range (IQR) method.
+        
+        This method identifies outliers as values that fall outside the range
+        [Q1 - 1.5*IQR, Q3 + 1.5*IQR] where IQR = Q3 - Q1.
+        
+        Args:
+            data: Time series data to analyze for outliers
+            
+        Returns:
+            Boolean Series indicating outlier status for each data point.
+            
+        Note:
+            This is a robust method that works well for most distributions
+            and is less sensitive to extreme values than z-score methods.
+        """
         q1 = data.quantile(0.25)
         q3 = data.quantile(0.75)
         iqr = q3 - q1
@@ -401,7 +774,27 @@ class DailyMetricsCalculator:
         return outliers
     
     def _detect_outliers_zscore(self, data: pd.Series, threshold: float = 3.0) -> pd.Series:
-        """Detect outliers using Z-score method."""
+        """
+        Detect outliers using Z-score method with configurable threshold.
+        
+        This method identifies outliers as values with absolute z-scores exceeding
+        the specified threshold. Z-score = (value - mean) / standard_deviation.
+        
+        Args:
+            data: Time series data to analyze for outliers
+            threshold: Z-score threshold for outlier detection. Common values:
+                      - 2.0: More sensitive (identifies ~5% of normal data as outliers)
+                      - 3.0: Standard threshold (identifies ~0.3% of normal data)
+                      - 4.0: Conservative threshold
+                      
+        Returns:
+            Boolean Series indicating outlier status for each data point.
+            Returns all False if standard deviation is zero.
+            
+        Note:
+            This method assumes normal distribution and may not work well
+            for highly skewed data. Consider IQR method for non-normal distributions.
+        """
         # Calculate z-scores
         mean = data.mean()
         std = data.std()
@@ -419,15 +812,46 @@ class DailyMetricsCalculator:
                           start_date: Optional[date] = None,
                           end_date: Optional[date] = None) -> Dict[str, MetricStatistics]:
         """
-        Calculate statistics for multiple metrics.
+        Calculate comprehensive statistics for multiple health metrics efficiently.
+        
+        This method provides a convenient way to analyze multiple metrics simultaneously
+        with consistent parameters and error handling for each metric.
         
         Args:
-            metrics: List of metric types (None = all metrics)
-            start_date: Start date for analysis
-            end_date: End date for analysis
+            metrics: List of metric type identifiers to analyze. If None, analyzes
+                    all unique metric types found in the data.
+            start_date: Start date for analysis window (inclusive). None for all data.
+            end_date: End date for analysis window (inclusive). None for all data.
             
         Returns:
-            Dictionary mapping metric name to statistics
+            Dictionary mapping metric names to their MetricStatistics objects.
+            Failed calculations return MetricStatistics with insufficient_data=True.
+            
+        Example:
+            >>> # Analyze all available metrics
+            >>> summary = calculator.get_metrics_summary()
+            >>> for metric, stats in summary.items():
+            ...     if not stats.insufficient_data:
+            ...         print(f"{metric}: {stats.mean:.1f} ± {stats.std:.1f}")
+            >>> 
+            >>> # Analyze specific metrics for a time period
+            >>> metrics_of_interest = [
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     'HKQuantityTypeIdentifierDistanceWalkingRunning'
+            ... ]
+            >>> monthly_summary = calculator.get_metrics_summary(
+            ...     metrics=metrics_of_interest,
+            ...     start_date=date(2024, 1, 1),
+            ...     end_date=date(2024, 1, 31)
+            ... )
+            >>> 
+            >>> # Check data quality across metrics
+            >>> for metric, stats in monthly_summary.items():
+            ...     if stats.insufficient_data:
+            ...         print(f"Warning: Insufficient data for {metric}")
+            ...     elif stats.missing_data_count > 0:
+            ...         print(f"Note: {metric} has {stats.missing_data_count} missing days")
         """
         if metrics is None:
             metrics = self.data['type'].unique().tolist()
@@ -461,16 +885,55 @@ class DailyMetricsCalculator:
                                  start_date: Optional[date] = None,
                                  end_date: Optional[date] = None) -> pd.Series:
         """
-        Calculate daily aggregates for a metric.
+        Calculate daily aggregated values for time series analysis and visualization.
+        
+        This method aggregates multiple readings per day into single daily values
+        using the specified aggregation method. Essential for daily trend analysis
+        and preparing data for further statistical processing.
         
         Args:
-            metric: The metric type to analyze
-            aggregation: Aggregation method ('mean', 'sum', 'min', 'max', 'count')
-            start_date: Start date for analysis
-            end_date: End date for analysis
+            metric: The health metric type identifier to aggregate
+            aggregation: Aggregation method to apply:
+                        - 'mean': Average of all readings (default, good for most metrics)
+                        - 'sum': Total of all readings (good for cumulative metrics like steps)
+                        - 'min': Minimum reading (useful for resting heart rate)
+                        - 'max': Maximum reading (useful for peak values)
+                        - 'count': Number of readings per day
+            start_date: Start date for analysis window (inclusive). None for all data.
+            end_date: End date for analysis window (inclusive). None for all data.
             
         Returns:
-            Series with daily aggregated values
+            pandas Series with date index and aggregated daily values.
+            Returns empty Series if no data available.
+            
+        Raises:
+            ValueError: If aggregation method is not supported
+            ValueError: If metric is not found in data
+            
+        Example:
+            >>> # Get daily average step counts
+            >>> daily_steps = calculator.calculate_daily_aggregates(
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     aggregation='sum'  # Sum all step readings per day
+            ... )
+            >>> print(f"Steps on {daily_steps.index[0].date()}: {daily_steps.iloc[0]:.0f}")
+            >>> 
+            >>> # Get daily minimum heart rate (resting heart rate proxy)
+            >>> daily_min_hr = calculator.calculate_daily_aggregates(
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     aggregation='min',
+            ...     start_date=date(2024, 1, 1),
+            ...     end_date=date(2024, 1, 31)
+            ... )
+            >>> print(f"Average resting HR: {daily_min_hr.mean():.1f} BPM")
+            >>> 
+            >>> # Count readings per day for data quality assessment
+            >>> reading_counts = calculator.calculate_daily_aggregates(
+            ...     'HKQuantityTypeIdentifierHeartRate',
+            ...     aggregation='count'
+            ... )
+            >>> low_data_days = reading_counts[reading_counts < 10]
+            >>> print(f"Days with <10 readings: {len(low_data_days)}")
         """
         # Filter data
         metric_data = self._filter_metric_data(metric, start_date, end_date)
@@ -486,18 +949,55 @@ class DailyMetricsCalculator:
         
         return daily_data
     
-    def calculate_daily_statistics(self, metric: str, date: date) -> Optional[MetricStatistics]:
-        """Calculate statistics for a specific metric on a specific date.
+    def calculate_daily_statistics(self, metric: str, target_date: date) -> Optional[MetricStatistics]:
+        """
+        Calculate comprehensive statistics for a specific metric on a single date.
+        
+        This method provides detailed statistical analysis for a single day's data,
+        useful for investigating specific days or understanding daily variation patterns.
         
         Args:
-            metric: The metric type to analyze
-            date: The specific date to analyze
+            metric: The health metric type identifier to analyze
+            target_date: The specific date to analyze
             
         Returns:
-            MetricStatistics object with calculated values for that date
+            MetricStatistics object with calculated values for that date, or None if
+            no data exists for the specified date and metric.
+            
+        Note:
+            - Standard deviation is 0.0 for single readings
+            - All percentiles equal the mean for single readings
+            - Multiple readings per day will have proper statistical calculations
+            
+        Example:
+            >>> from datetime import date
+            >>> 
+            >>> # Analyze a specific day
+            >>> day_stats = calculator.calculate_daily_statistics(
+            ...     'HKQuantityTypeIdentifierStepCount',
+            ...     date(2024, 1, 15)
+            ... )
+            >>> 
+            >>> if day_stats:
+            ...     print(f"Steps on Jan 15: {day_stats.mean:.0f}")
+            ...     print(f"Readings taken: {day_stats.count}")
+            ...     if day_stats.count > 1:
+            ...         print(f"Range: {day_stats.min:.0f} - {day_stats.max:.0f}")
+            ... else:
+            ...     print("No data available for this date")
+            >>> 
+            >>> # Compare multiple days
+            >>> dates_to_check = [date(2024, 1, 10), date(2024, 1, 11), date(2024, 1, 12)]
+            >>> for check_date in dates_to_check:
+            ...     stats = calculator.calculate_daily_statistics(
+            ...         'HKQuantityTypeIdentifierHeartRate',
+            ...         check_date
+            ...     )
+            ...     if stats:
+            ...         print(f"{check_date}: {stats.mean:.1f} BPM ({stats.count} readings)")
         """
         # Filter data for the specific metric and date
-        metric_data = self._filter_metric_data(metric, date, date)
+        metric_data = self._filter_metric_data(metric, target_date, target_date)
         
         if metric_data.empty:
             return None

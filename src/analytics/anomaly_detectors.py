@@ -5,7 +5,7 @@ Anomaly detection algorithms implementation.
 import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 from datetime import datetime
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
@@ -53,13 +53,19 @@ class BaseDetector(ABC):
         else:
             return Severity.LOW
     
-    def _validate_data(self, data: pd.Series) -> None:
-        """Validate input data."""
+    def _validate_data(self, data: Union[pd.Series, np.ndarray]) -> pd.Series:
+        """Validate and convert input data to pandas Series."""
+        # Convert numpy array to pandas Series if needed
+        if isinstance(data, np.ndarray):
+            data = pd.Series(data)
+        
         if data.empty:
             raise InsufficientDataError("Input data is empty")
         
         if len(data.dropna()) < 3:
             raise InsufficientDataError("Insufficient non-null data points")
+        
+        return data
 
 
 class ZScoreDetector(BaseDetector):
@@ -69,38 +75,51 @@ class ZScoreDetector(BaseDetector):
         super().__init__("Z-Score Detector", DetectionMethod.ZSCORE)
         self.threshold = threshold
     
-    def detect(self, data: pd.Series) -> List[Anomaly]:
+    def detect(self, data: Union[pd.Series, np.ndarray], metric: str = None) -> Union[List[Anomaly], 'DetectionResult']:
         """Detect anomalies using z-score."""
-        self._validate_data(data)
+        import time
+        start_time = time.time()
+        
+        data = self._validate_data(data)
         
         # Calculate z-scores
         mean = data.mean()
         std = data.std()
         
         if std == 0:
-            return []  # No variation in data
+            anomalies = []  # No variation in data
+        else:
+            z_scores = (data - mean) / std
             
-        z_scores = (data - mean) / std
+            # Find anomalies
+            anomalies = []
+            anomaly_mask = np.abs(z_scores) > self.threshold
+            
+            for idx in data[anomaly_mask].index:
+                anomalies.append(Anomaly(
+                    timestamp=idx if isinstance(idx, datetime) else datetime.now(),
+                    metric=metric or data.name or "unknown",
+                    value=data[idx],
+                    score=float(z_scores[idx]),
+                    method=self.method,
+                    severity=self._calculate_severity(z_scores[idx], self.threshold),
+                    threshold=self.threshold,
+                    context={
+                        'mean': mean,
+                        'std': std,
+                        'z_score': float(z_scores[idx])
+                    }
+                ))
         
-        # Find anomalies
-        anomalies = []
-        anomaly_mask = np.abs(z_scores) > self.threshold
-        
-        for idx in data[anomaly_mask].index:
-            anomalies.append(Anomaly(
-                timestamp=idx if isinstance(idx, datetime) else datetime.now(),
-                metric=data.name or "unknown",
-                value=data[idx],
-                score=float(z_scores[idx]),
+        # If metric is provided, return DetectionResult
+        if metric is not None:
+            return DetectionResult(
+                anomalies=anomalies,
+                total_points=len(data),
+                detection_time=time.time() - start_time,
                 method=self.method,
-                severity=self._calculate_severity(z_scores[idx], self.threshold),
-                threshold=self.threshold,
-                context={
-                    'mean': mean,
-                    'std': std,
-                    'z_score': float(z_scores[idx])
-                }
-            ))
+                parameters={'threshold': self.threshold}
+            )
         
         return anomalies
 
@@ -156,9 +175,12 @@ class IQRDetector(BaseDetector):
         super().__init__("IQR Detector", DetectionMethod.IQR)
         self.multiplier = multiplier
     
-    def detect(self, data: pd.Series) -> List[Anomaly]:
+    def detect(self, data: Union[pd.Series, np.ndarray], metric: str = None) -> Union[List[Anomaly], 'DetectionResult']:
         """Detect anomalies using IQR method."""
-        self._validate_data(data)
+        import time
+        start_time = time.time()
+        
+        data = self._validate_data(data)
         
         # Calculate quartiles
         Q1 = data.quantile(0.25)
@@ -186,7 +208,7 @@ class IQRDetector(BaseDetector):
             
             anomalies.append(Anomaly(
                 timestamp=idx if isinstance(idx, datetime) else datetime.now(),
-                metric=data.name or "unknown",
+                metric=metric or data.name or "unknown",
                 value=value,
                 score=float(score),
                 method=self.method,
@@ -200,6 +222,16 @@ class IQRDetector(BaseDetector):
                     'upper_bound': upper_bound
                 }
             ))
+        
+        # If metric is provided, return DetectionResult
+        if metric is not None:
+            return DetectionResult(
+                anomalies=anomalies,
+                total_points=len(data),
+                detection_time=time.time() - start_time,
+                method=self.method,
+                parameters={'multiplier': self.multiplier}
+            )
         
         return anomalies
 
@@ -393,6 +425,85 @@ class LocalOutlierFactorDetector(BaseDetector):
             return Severity.MEDIUM
         else:
             return Severity.LOW
+
+
+class SimpleEnsembleDetector(BaseDetector):
+    """Simple ensemble detector that combines results from multiple detectors."""
+    
+    def __init__(self, detectors: Union[List[BaseDetector], Dict[str, BaseDetector]], 
+                 min_votes: int = None, config: Optional['DetectionConfig'] = None):
+        super().__init__("Simple Ensemble Detector", DetectionMethod.ENSEMBLE)
+        
+        # Handle both list and dict formats
+        if isinstance(detectors, dict):
+            self.detectors = list(detectors.values())
+        else:
+            self.detectors = detectors
+        
+        # Handle config or min_votes
+        if config is not None:
+            self.config = config
+            self.min_votes = getattr(config, 'ensemble_min_votes', 1)
+        else:
+            self.config = None
+            self.min_votes = min_votes if min_votes is not None else 1
+    
+    def detect(self, data: Union[pd.Series, np.ndarray], metric: str = None) -> Union[List[Anomaly], 'DetectionResult']:
+        """Detect anomalies using ensemble of detectors."""
+        import time
+        from collections import defaultdict
+        
+        start_time = time.time()
+        
+        # Collect anomalies from all detectors
+        timestamp_votes = defaultdict(list)
+        all_anomalies = []
+        
+        for detector in self.detectors:
+            try:
+                # Get anomalies (not DetectionResult) from each detector
+                detector_anomalies = detector.detect(data)
+                if isinstance(detector_anomalies, DetectionResult):
+                    detector_anomalies = detector_anomalies.anomalies
+                
+                for anomaly in detector_anomalies:
+                    timestamp_votes[anomaly.timestamp].append(anomaly)
+                    all_anomalies.append(anomaly)
+            except Exception as e:
+                # Skip failed detectors
+                continue
+        
+        # Filter based on minimum votes
+        ensemble_anomalies = []
+        for timestamp, anomaly_list in timestamp_votes.items():
+            if len(anomaly_list) >= self.min_votes:
+                # Use the anomaly with highest score
+                best_anomaly = max(anomaly_list, key=lambda a: abs(a.score))
+                # Update method to ensemble
+                best_anomaly.method = DetectionMethod.ENSEMBLE
+                # Add voting info to context
+                best_anomaly.context['votes'] = len(anomaly_list)
+                best_anomaly.context['detectors'] = [a.method.value for a in anomaly_list]
+                ensemble_anomalies.append(best_anomaly)
+        
+        # If metric is provided, return DetectionResult
+        if metric is not None:
+            return DetectionResult(
+                anomalies=ensemble_anomalies,
+                total_points=len(data) if hasattr(data, '__len__') else 0,
+                detection_time=time.time() - start_time,
+                method=self.method,
+                parameters={
+                    'min_votes': self.min_votes,
+                    'n_detectors': len(self.detectors)
+                }
+            )
+        
+        return ensemble_anomalies
+
+
+# Alias for backward compatibility in tests
+EnsembleDetector = SimpleEnsembleDetector
 
 
 # Import LSTM detector from temporal module

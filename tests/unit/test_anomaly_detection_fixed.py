@@ -115,7 +115,7 @@ class TestZScoreDetector:
         data[25] = 200  # Spike
         data[50] = 20   # Drop
         data[75] = 180  # Another spike
-        return data
+        return pd.Series(data, index=pd.date_range('2023-01-01', periods=100))
     
     def test_detector_initialization(self):
         """Test detector initialization."""
@@ -127,9 +127,9 @@ class TestZScoreDetector:
         """Test basic anomaly detection."""
         detector = ZScoreDetector(threshold=3.0)
         
-        result = detector.detect(sample_data, metric="test_metric")
-        assert isinstance(result, DetectionResult)
-        assert len(result.anomalies) >= 2  # Should detect at least the spike and drop
+        anomalies = detector.detect(sample_data)
+        assert isinstance(anomalies, list)
+        assert len(anomalies) >= 2  # Should detect at least the spike and drop
         
     def test_detect_with_dataframe(self):
         """Test detection with pandas DataFrame."""
@@ -141,8 +141,9 @@ class TestZScoreDetector:
         
         df = pd.DataFrame({'timestamp': dates, 'value': values})
         
-        # Test with DataFrame input
-        result = detector.detect(df, metric="test_metric")
+        # Test with Series input (ZScoreDetector expects univariate data)
+        value_series = pd.Series(values, index=dates, name='value')
+        result = detector.detect(value_series, metric="test_metric")
         assert isinstance(result, DetectionResult)
         assert len(result.anomalies) > 0
 
@@ -168,11 +169,13 @@ class TestIsolationForestDetector:
         # Add outliers
         values[10:15] = np.random.normal(200, 5, 5)
         
-        result = detector.detect(values, metric="test_metric")
+        # IsolationForestDetector expects Series
+        series = pd.Series(values, index=pd.date_range('2023-01-01', periods=100), name='test_metric')
+        anomalies = detector.detect(series)
         
-        assert isinstance(result, DetectionResult)
-        assert len(result.anomalies) > 0
-        assert all(isinstance(a, Anomaly) for a in result.anomalies)
+        assert isinstance(anomalies, list)
+        assert len(anomalies) > 0
+        assert all(isinstance(a, Anomaly) for a in anomalies)
 
 
 class TestIQRDetector:
@@ -207,16 +210,25 @@ class TestEnsembleDetector:
     @pytest.fixture
     def detector(self):
         """Create ensemble detector."""
-        detectors = [
-            ZScoreDetector(threshold=3.0),
-            IsolationForestDetector(contamination=0.1)
-        ]
-        return EnsembleDetector(detectors=detectors, min_votes=1)
+        zscore_detector = ZScoreDetector(threshold=3.0)
+        isolation_detector = IsolationForestDetector(contamination=0.1)
+        
+        detectors = {
+            'zscore': zscore_detector,
+            'isolation': isolation_detector
+        }
+        
+        config = DetectionConfig(
+            enabled_methods=[DetectionMethod.ZSCORE, DetectionMethod.ISOLATION_FOREST],
+            ensemble_min_votes=1
+        )
+        
+        return EnsembleDetector(detectors=detectors, config=config)
     
     def test_initialization(self, detector):
         """Test detector initialization."""
         assert len(detector.detectors) == 2
-        assert detector.min_votes == 1
+        assert detector.config.ensemble_min_votes == 1
         
     def test_ensemble_detection(self, detector):
         """Test ensemble detection."""
@@ -269,7 +281,7 @@ class TestAnomalyDetectionSystem:
         assert system.config is not None
         assert len(system.config.enabled_methods) >= 1
         
-    @patch('src.analytics.anomaly_detection_system.AnomalyDetectionSystem.detect')
+    @patch('src.analytics.anomaly_detection_system.AnomalyDetectionSystem.detect_anomalies')
     def test_detect_anomalies(self, mock_detect, system, health_data):
         """Test anomaly detection on health data."""
         # Mock the detect method to return sample anomalies
@@ -283,17 +295,17 @@ class TestAnomalyDetectionSystem:
                 severity=Severity.HIGH
             )
         ]
-        mock_detect.return_value = DetectionResult(
-            anomalies=mock_anomalies,
-            total_points=len(health_data),
-            detection_time=0.1,
-            method=DetectionMethod.ENSEMBLE
-        )
+        mock_detect.return_value = mock_anomalies
         
-        result = system.detect(health_data, metric='steps')
+        # Convert health_data to Series for detect_anomalies
+        values_series = pd.Series(health_data['value'].values, 
+                                 index=health_data['timestamp'].values,
+                                 name='steps')
+        result = system.detect_anomalies(values_series)
         
-        assert isinstance(result, DetectionResult)
-        assert len(result.anomalies) > 0
+        assert isinstance(result, list)
+        assert len(result) > 0
+        assert all(isinstance(a, Anomaly) for a in result)
         mock_detect.assert_called_once()
 
 

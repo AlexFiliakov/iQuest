@@ -224,11 +224,12 @@ class TestDataAvailabilityService:
         assert not availability_service._is_cache_valid()
         
         # After scan, should be valid
-        availability_service.last_scan = availability_service.datetime.now()
+        from datetime import datetime
+        availability_service.last_scan = datetime.now()
         assert availability_service._is_cache_valid()
         
         # After expiry time, should be invalid
-        old_time = availability_service.datetime.now() - availability_service.cache_expiry - timedelta(minutes=1)
+        old_time = datetime.now() - availability_service.cache_expiry - timedelta(minutes=1)
         availability_service.last_scan = old_time
         assert not availability_service._is_cache_valid()
 

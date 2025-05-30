@@ -1,8 +1,54 @@
 """
 Line chart component for visualizing time-series health data.
 
-This module provides a customizable line chart widget that follows
-the Apple Health Monitor design specifications.
+This module provides a highly customizable line chart widget specifically
+designed for health data visualization in the Apple Health Monitor Dashboard.
+It implements professional WSJ-inspired styling with smooth animations and
+interactive features.
+
+The LineChart widget is optimized for time-series health data and provides:
+    - Smooth line rendering with anti-aliasing for professional appearance
+    - Interactive hover tooltips with data point information
+    - Animated transitions for engaging user experience
+    - Responsive design that adapts to different screen sizes
+    - Professional color scheme following design system guidelines
+    - Accessibility features for inclusive design
+
+Key features:
+    - High-performance rendering using QPainterPath for smooth lines
+    - Interactive data point hovering with visual feedback
+    - Customizable grid system for better data reading
+    - Professional typography and color schemes
+    - Smooth animations with configurable timing
+    - Export capabilities for reporting and sharing
+
+Example:
+    Basic line chart usage:
+    
+    >>> chart = LineChart()
+    >>> chart.set_labels("Daily Steps", "Date", "Steps")
+    >>> 
+    >>> data_points = [
+    ...     {"x": 1, "y": 8500, "label": "Jan 1"},
+    ...     {"x": 2, "y": 9200, "label": "Jan 2"},
+    ...     {"x": 3, "y": 7800, "label": "Jan 3"}
+    ... ]
+    >>> chart.set_data(data_points, animate=True)
+    >>> chart.set_y_range(0, 15000)
+    
+    Interactive features:
+    
+    >>> # Connect to interaction signals
+    >>> chart.dataPointHovered.connect(on_hover)
+    >>> chart.dataPointClicked.connect(on_click)
+    >>> 
+    >>> def on_hover(data_point):
+    ...     print(f"Hovering over: {data_point['label']} = {data_point['y']}")
+
+Attributes:
+    WSJ_SLATE (str): Professional slate color for lines and text
+    BACKGROUND_WHITE (str): Clean white background
+    GRID_LIGHT_GRAY (str): Subtle grid line color
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -19,14 +65,88 @@ from PyQt6.QtGui import (
 
 class LineChart(QWidget):
     """
-    A custom line chart widget for displaying time-series health data.
+    A professional line chart widget for time-series health data visualization.
     
-    Features:
-    - Smooth line rendering with anti-aliasing
-    - Interactive hover tooltips
-    - Animated transitions
-    - Responsive design
-    - Customizable colors following design system
+    This widget provides a comprehensive line chart implementation specifically
+    designed for health data visualization. It combines professional styling
+    with interactive features and smooth animations to create an engaging
+    data exploration experience.
+    
+    Core features:
+        - High-quality line rendering with anti-aliasing for smooth curves
+        - Interactive hover system with visual feedback and tooltips
+        - Smooth animated transitions for data updates and initial display
+        - Responsive design that adapts to various screen sizes
+        - Professional WSJ-inspired color scheme and typography
+        - Accessibility features including keyboard navigation support
+    
+    Visualization capabilities:
+        - Time-series data with configurable date formatting
+        - Customizable Y-axis ranges for different data scales
+        - Optional data point markers for precise value identification
+        - Grid system for improved data reading and estimation
+        - Professional axis labeling with automatic formatting
+        - Title and subtitle support for context and description
+    
+    Interaction features:
+        - Hover detection with 20-pixel tolerance for easy targeting
+        - Visual highlighting of hovered data points
+        - Click handling for data point selection
+        - Tooltip display with formatted data values
+        - Mouse tracking for smooth interaction feedback
+    
+    Animation system:
+        - Configurable animation duration and easing curves
+        - Smooth entrance animations for initial chart display
+        - Data update animations for seamless transitions
+        - Performance-optimized rendering during animations
+    
+    Signals:
+        dataPointHovered (dict): Emitted when mouse hovers over a data point.
+            Args:
+                data_point (dict): The hovered data point with 'x', 'y', and
+                    optional 'label' keys
+        dataPointClicked (dict): Emitted when a data point is clicked.
+            Args:
+                data_point (dict): The clicked data point with complete data
+    
+    Attributes:
+        data_points (List[Dict[str, Any]]): Chart data with x, y, and label values
+        x_labels (List[str]): Custom X-axis labels for better formatting
+        y_range (Tuple[float, float]): Y-axis range as (min, max) values
+        title (str): Chart title displayed at the top
+        x_axis_label (str): X-axis label for context
+        y_axis_label (str): Y-axis label for units and description
+        show_grid (bool): Whether to display background grid lines
+        show_dots (bool): Whether to show data point markers
+        animate (bool): Whether to enable smooth animations
+        colors (Dict[str, QColor]): Professional color scheme
+        margins (Dict[str, int]): Chart margins for proper spacing
+        hover_index (int): Index of currently hovered data point (-1 if none)
+        animation_progress (float): Current animation progress (0.0 to 1.0)
+    
+    Example:
+        Creating a health metrics line chart:
+        
+        >>> chart = LineChart()
+        >>> chart.set_labels(
+        ...     title="Daily Heart Rate Trends",
+        ...     x_label="Date",
+        ...     y_label="BPM"
+        ... )
+        >>> 
+        >>> # Set up data points
+        >>> heart_rate_data = [
+        ...     {"x": 1, "y": 72, "label": "Mon"},
+        ...     {"x": 2, "y": 68, "label": "Tue"},
+        ...     {"x": 3, "y": 75, "label": "Wed"}
+        ... ]
+        >>> chart.set_data(heart_rate_data, animate=True)
+        >>> chart.set_y_range(60, 90)
+        >>> 
+        >>> # Connect interaction handlers
+        >>> chart.dataPointHovered.connect(show_heart_rate_details)
+        >>> chart.dataPointClicked.connect(drill_down_to_hourly_data)
     """
     
     # Signals
@@ -34,7 +154,50 @@ class LineChart(QWidget):
     dataPointClicked = Signal(dict)  # Emits data point info on click
     
     def __init__(self, parent=None):
-        """Initialize the line chart widget."""
+        """Initialize the line chart widget with professional styling.
+        
+        Sets up a complete line chart widget with professional WSJ-inspired
+        styling, interactive capabilities, and smooth animation support.
+        The initialization configures all necessary components for immediate use.
+        
+        Initialization process:
+            1. Initialize Qt widget with parent relationship
+            2. Set up data storage for chart points and labels
+            3. Configure chart display properties and styling
+            4. Apply professional color scheme and typography
+            5. Set up layout configuration with proper margins
+            6. Initialize interaction state tracking
+            7. Configure animation system with smooth transitions
+        
+        Args:
+            parent (QWidget, optional): Parent widget for the chart.
+                Defaults to None for standalone usage.
+        
+        Professional styling:
+            - WSJ-inspired color palette with slate gray primary colors
+            - Clean white background for optimal readability
+            - Subtle grid lines for data reference without distraction
+            - Professional typography using Inter font family
+            - Proper margins and spacing for clean layout
+        
+        Interactive features:
+            - Mouse tracking enabled for hover detection
+            - Hover tolerance configured for easy data point targeting
+            - Click handling for data point selection
+            - Visual feedback for hovered elements
+        
+        Animation setup:
+            - Smooth animation system with OutCubic easing
+            - 500ms duration for optimal user experience
+            - Property-based animations for data updates
+            - Performance-optimized rendering during transitions
+        
+        Default configuration:
+            - Minimum size: 400x300 pixels for readability
+            - Grid and dots enabled for complete functionality
+            - Animations enabled for engaging experience
+            - Professional margins: 40/20/60/80 (top/right/bottom/left)
+        """
         super().__init__(parent)
         
         # Chart data

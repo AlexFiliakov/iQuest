@@ -234,12 +234,18 @@ class WSJHealthVisualizationSuite(QWidget):
                                config: Dict[str, Any]) -> QWidget:
         """Create interactive chart optimized for dashboard use."""
         # Apply WSJ styling to config
-        config.update({
-            'colors': self.style_manager.get_warm_palette(),
+        # Don't overwrite colors if it's already a dictionary mapping metrics to colors
+        wsj_config = {
             'typography': self.style_manager.get_typography_config(),
             'spacing': self.style_manager.get_spacing_config(),
             'accessibility': self.style_manager.get_accessibility_config()
-        })
+        }
+        
+        # Only set palette if colors is not already a dict of metric->color mappings
+        if not isinstance(config.get('colors'), dict):
+            wsj_config['colors'] = self.style_manager.get_warm_palette()
+        
+        config.update(wsj_config)
         
         # Performance optimization for large datasets
         if isinstance(data, pd.DataFrame) and len(data) > 10000:

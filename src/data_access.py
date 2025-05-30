@@ -1,4 +1,62 @@
-"""Data Access Objects for Apple Health Monitor as per SPECS_DB.md."""
+"""Data Access Objects for Apple Health Monitor application.
+
+This module provides comprehensive data access layer implementation for the Apple Health
+Monitor application, following the database specification outlined in SPECS_DB.md.
+It implements the Data Access Object (DAO) pattern to provide clean separation
+between business logic and data persistence.
+
+The module includes specialized DAO classes for:
+    - Journal entries (daily, weekly, monthly)
+    - User preferences with type-safe storage
+    - Recent files tracking with validation
+    - Cached metrics for performance optimization
+    - Health metrics metadata for UI customization
+    - Data sources tracking and management
+    - Import history and audit logging
+
+All DAO classes provide:
+    - Type-safe data operations with proper validation
+    - Comprehensive error handling and logging
+    - Optimized SQL queries for performance
+    - Consistent API patterns across all operations
+    - Full CRUD operations where applicable
+    - Search and filtering capabilities
+
+Key features:
+    - Automatic type conversion for preferences
+    - Upsert logic for conflict resolution
+    - Cache management with expiration
+    - File tracking with validity checking
+    - Import deduplication using file hashes
+    - Full-text search in journal entries
+
+Examples:
+    Journal operations:
+        >>> entry_id = JournalDAO.save_journal_entry(
+        ...     date(2024, 1, 15),
+        ...     'daily',
+        ...     'Had a great workout today!'
+        ... )
+        >>> entries = JournalDAO.get_journal_entries(
+        ...     date(2024, 1, 1),
+        ...     date(2024, 1, 31)
+        ... )
+        
+    Preference management:
+        >>> PreferenceDAO.set_preference('theme_mode', 'dark')
+        >>> theme = PreferenceDAO.get_preference('theme_mode', 'light')
+        
+    Cache operations:
+        >>> cache_key = CacheDAO.cache_metrics(
+        ...     'daily_steps',
+        ...     {'data': [1000, 2000, 3000]},
+        ...     date(2024, 1, 1),
+        ...     date(2024, 1, 31)
+        ... )
+
+Attributes:
+    logger: Module-level logger for DAO operations.
+"""
 
 import logging
 from typing import List, Optional, Dict, Any
@@ -16,20 +74,54 @@ logger = logging.getLogger(__name__)
 
 
 class JournalDAO:
-    """Data Access Object for journal entries.
+    """Data Access Object for journal entries with comprehensive CRUD operations.
     
-    Provides database operations for managing journal entries in the Apple Health
+    Provides complete database operations for managing journal entries in the Apple Health
     Monitor application. Supports daily, weekly, and monthly journal entries with
-    full CRUD operations, search functionality, and proper error handling.
+    intelligent upsert logic, advanced search capabilities, and robust error handling.
     
-    This DAO handles:
-    - Creating and updating journal entries with upsert logic
-    - Retrieving journal entries by date range and type
-    - Full-text searching within journal content
-    - Proper date handling and validation
+    This DAO implements the complete journal management system including:
+        - Smart upsert operations to prevent duplicates while allowing updates
+        - Flexible date range queries with optional type filtering
+        - Full-text search capabilities across journal content
+        - Proper date handling and timezone management
+        - Comprehensive validation and error reporting
+        - Performance-optimized queries with proper indexing
     
-    All methods are static to allow usage without instantiation and follow
-    the database specification requirements from SPECS_DB.md.
+    Journal entry types supported:
+        - 'daily': Individual day entries with specific dates
+        - 'weekly': Week-based entries with week start dates
+        - 'monthly': Month-based entries with YYYY-MM identifiers
+    
+    All methods are static to enable usage without instantiation and follow
+    the database specification requirements from SPECS_DB.md. Each operation
+    includes comprehensive logging and error handling.
+    
+    Examples:
+        Create daily journal entry:
+        >>> entry_id = JournalDAO.save_journal_entry(
+        ...     date(2024, 1, 15),
+        ...     'daily', 
+        ...     'Today I walked 10,000 steps and felt great!'
+        ... )
+        
+        Create weekly journal entry:
+        >>> weekly_id = JournalDAO.save_journal_entry(
+        ...     date(2024, 1, 15),
+        ...     'weekly',
+        ...     'This week I focused on cardio workouts.',
+        ...     week_start_date=date(2024, 1, 14)
+        ... )
+        
+        Retrieve entries for date range:
+        >>> entries = JournalDAO.get_journal_entries(
+        ...     date(2024, 1, 1),
+        ...     date(2024, 1, 31),
+        ...     entry_type='daily'
+        ... )
+        
+        Search journal content:
+        >>> workout_entries = JournalDAO.search_journal_entries('workout')
     """
     
     @staticmethod

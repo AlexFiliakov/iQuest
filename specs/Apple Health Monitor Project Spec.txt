@@ -432,7 +432,9 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 --------
 
-### Bugs ###
+### Bug Templates ###
+
+--- Template 1 ------
 
 1. Evaluate the screenshots of `ad hoc/records_subtab.png`, which shows the Records > Records subtab, and `ad hoc/badges_subtab.png`, which shows the Records > Badges subtab. Right now the records and badges don’t display properly.
 
@@ -442,7 +444,7 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 4. Display the content in a visually appealing manner so that it fits within the cards allocated, be mindful of the padding and keep it small.
 
------------
+--- Template 2 --------
 
 1. Evaluate the screenshots of `ad hoc/config_window.png`, which shows the data section of the Config tab. Right now the UI is too cramped vertically and does not allow for any exploration or data manipulation at all. The user can’t even see most of this UI.
 
@@ -452,7 +454,7 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 4. Display the content and UI in a visually appealing manner and usable, so that it fits within the cards allocated, be mindful of the padding and keep it small. Adhere to the spec `UI_SPEC.md`
 
---------------
+---- Template 3 ----------
 
 1. Evaluate the screenshots of `ad hoc/badges_subtab.png`, which shows a section of the Records > Badges subtab. Right now the badge subtext gets cropped above and below.
 
@@ -462,55 +464,22 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 4. Display the content in a visually appealing manner so that it fits within the cards allocated, be mindful of the padding and keep it small.
 
+---- Templates 4: Testing ----------
+
+pytest --tb=long -v --cov > tests\pytest_failure_summaries_cov.txt 2>&1
+
+run below command at the project root and fix errors until the command passes all tests.
+`pytest --tb=long -v -x > tests\pytest_failure_summaries_1.txt 2>&1`
+Look for test status in file `tests\pytest_failure_summaries_1.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
+
+run below command at the project root and fix errors until the command passes all tests.
+`pytest --tb=long -v -x --reverse > tests\pytest_failure_summaries_1_rev.txt 2>&1`
+Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
 
 #### Future #####
 
-fix this error: apple_health_monitor.src.ui.weekly_dashboard_widget - ERROR - weekly_dashboard_widget.py:759 - _update_summary_stats() - Error updating summary stats: Invalid comparison between dtype=datetime64[ns, UTC] and datetime
+the Monthly tab still doesn't display any data. Error is `apple_health_monitor.src.ui.monthly_dashboard_widget - WARNING - monthly_dashboard_widget.py:914 - _generate_sample_data() - No real data available for display`. Please come up with an approach to correct the data feed and proper metrics by type, review the changes, implement the corrections, and create automated tests in `tests/` to validate. Make sure all new tests pass and the Monthly tab has data flowing through.  
 
 
----------
-
-fix this error: CRITICAL - main.py:48 - exception_hook() - Uncaught exception
-Traceback (most recent call last):
-  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\ui\comparative_visualization.py", line 1086, in on_metric_changed
-    self.set_current_metric(metric)
-  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\ui\comparative_visualization.py", line 1110, in set_current_metric
-    self.update_comparisons()
-  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\ui\comparative_visualization.py", line 1123, in update_comparisons
-    trend_data = self.comparative_engine.get_trend_analysis(self.current_metric, use_cache=True)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\analytics\comparative_analytics.py", line 203, in get_trend_analysis
-    trend_result = self.background_processor.get_trend(metric, wait=False)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\analytics\background_trend_processor.py", line 292, in get_trend
-    cached_result = self._get_cached_trend(metric)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\analytics\background_trend_processor.py", line 219, in _get_cached_trend
-    cached = self.cache_manager.get(cache_key)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: AnalyticsCacheManager.get() missing 1 required positional argument: 'compute_fn'
 
 
----------
-
-fix this error: ERROR - test_weekly_comprehensive.py:154 - load_test_data() - Error loading test data
-Traceback (most recent call last):
-  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/test_weekly_comprehensive.py", line 138, in load_test_data
-    daily_calc = DailyMetricsCalculator(data, timezone=local_tz)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/daily_metrics_calculator.py", line 91, in __init__
-    adapter = DataFrameAdapter(data)
-              ^^^^^^^^^^^^^^^^^^^^^^
-  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 36, in __init__
-    self._load_data()
-  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 59, in _load_data
-    self._validate_dataframe()
-  File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 67, in _validate_dataframe
-    raise ValueError(
-ValueError: DataFrame missing required columns: {'creationDate'}. Required columns are: {'creationDate', 'type', 'value'}
-
-
-------
-
-
-when switching from Weekly tab to Monthly tab, the UI doesn’t refresh completely. Please fix this.

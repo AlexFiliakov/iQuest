@@ -1,4 +1,51 @@
-"""Settings manager for persisting application state using QSettings."""
+"""Settings manager for persisting application state using QSettings.
+
+This module provides comprehensive application state persistence using Qt's
+QSettings framework. It manages window geometry, user preferences, and
+application state across sessions with proper error handling and fallback
+behavior.
+
+The SettingsManager handles:
+    - Main window state persistence (size, position, maximized state)
+    - Active tab restoration for seamless user experience
+    - Cross-platform settings storage with proper organization
+    - Screen bounds validation for multi-monitor setups
+    - Graceful fallback to defaults when settings are corrupted
+    - User preference management for application behavior
+
+Key features:
+    - Automatic screen bounds validation for multi-monitor environments
+    - Graceful handling of missing or corrupted settings
+    - Platform-appropriate settings storage locations
+    - Tab state restoration with validation and fallbacks
+    - Window centering with proper screen detection
+    - Complete settings reset functionality
+
+Example:
+    Basic settings management:
+    
+    >>> settings_manager = SettingsManager()
+    >>> 
+    >>> # Save window state when closing
+    >>> settings_manager.save_window_state(main_window)
+    >>> 
+    >>> # Restore window state on startup
+    >>> settings_manager.restore_window_state(main_window)
+    
+    Custom preference management:
+    
+    >>> # Save user preferences
+    >>> settings_manager.set_setting("analytics/show_predictions", True)
+    >>> settings_manager.set_setting("ui/dark_mode", False)
+    >>> 
+    >>> # Retrieve preferences with defaults
+    >>> show_predictions = settings_manager.get_setting("analytics/show_predictions", False)
+    >>> theme = settings_manager.get_setting("ui/theme", "light")
+
+Attributes:
+    ORGANIZATION_NAME (str): Organization identifier for settings storage
+    APP_NAME (str): Application identifier for settings storage
+"""
 
 from PyQt6.QtCore import QSettings, QPoint, QSize, Qt
 from PyQt6.QtWidgets import QMainWindow
@@ -9,7 +56,67 @@ logger = get_logger(__name__)
 
 
 class SettingsManager:
-    """Manages application settings persistence using QSettings."""
+    """Manages comprehensive application settings persistence using QSettings.
+    
+    This class provides a robust interface for persisting application state
+    across sessions using Qt's QSettings framework. It handles window state,
+    user preferences, and application configuration with proper error handling
+    and cross-platform compatibility.
+    
+    Core functionality:
+        - Main window state persistence (geometry, position, maximized state)
+        - Active tab restoration with validation and fallback handling
+        - User preference storage with type-safe retrieval
+        - Multi-monitor screen bounds validation
+        - Graceful error handling for corrupted settings
+        - Complete settings reset for troubleshooting
+    
+    Platform support:
+        - Windows: Registry-based storage
+        - macOS: Plist files in user preferences
+        - Linux: Configuration files in user home directory
+        - Automatic platform detection and appropriate storage method
+    
+    Error handling:
+        - Graceful fallback to defaults when settings are missing
+        - Validation of restored window positions for current screen setup
+        - Safe handling of corrupted or invalid settings data
+        - Comprehensive logging for troubleshooting
+    
+    Settings organization:
+        - Hierarchical organization using groups (e.g., "MainWindow/geometry")
+        - Type-safe setting retrieval with default value support
+        - Automatic synchronization to persistent storage
+        - Namespace isolation using organization and application names
+    
+    Attributes:
+        settings (QSettings): Qt settings object for persistent storage.
+            Configured with organization and application names for proper
+            namespace isolation.
+    
+    Example:
+        Complete settings management workflow:
+        
+        >>> # Initialize settings manager
+        >>> settings_mgr = SettingsManager()
+        >>> 
+        >>> # Save application state during shutdown
+        >>> def on_application_exit():
+        ...     settings_mgr.save_window_state(main_window)
+        ...     settings_mgr.set_setting("app/last_session", datetime.now().isoformat())
+        >>> 
+        >>> # Restore application state during startup
+        >>> def on_application_startup():
+        ...     settings_mgr.restore_window_state(main_window)
+        ...     last_session = settings_mgr.get_setting("app/last_session")
+        ...     if last_session:
+        ...         print(f"Last session: {last_session}")
+        >>> 
+        >>> # Manage user preferences
+        >>> settings_mgr.set_setting("ui/show_tooltips", True)
+        >>> settings_mgr.set_setting("analytics/cache_duration", 3600)
+        >>> show_tips = settings_mgr.get_setting("ui/show_tooltips", True)
+    """
     
     def __init__(self):
         """Initialize the settings manager."""

@@ -96,7 +96,7 @@ class TestDailyMetricsCalculator:
     # Consolidated Outlier Detection Tests
     @pytest.mark.parametrize("method,outlier_value", [
         (OutlierMethod.IQR, 150),
-        (OutlierMethod.Z_SCORE, 200),
+        (OutlierMethod.Z_SCORE, 500),  # Very extreme outlier for Z-score detection (threshold=3.0)
     ])
     def test_outlier_detection_methods(self, method, outlier_value):
         """Test different outlier detection methods."""

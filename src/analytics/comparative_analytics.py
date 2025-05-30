@@ -205,7 +205,11 @@ class ComparativeAnalyticsEngine:
         if use_cache:
             # Try to get from cache first
             trend_result = self.background_processor.get_trend(metric, wait=False)
-            if trend_result:
+            # Check if trend_result is a DataFrame and handle properly
+            if trend_result is not None and (
+                not isinstance(trend_result, pd.DataFrame) or 
+                (isinstance(trend_result, pd.DataFrame) and not trend_result.empty)
+            ):
                 return trend_result
                 
         # Queue for background calculation

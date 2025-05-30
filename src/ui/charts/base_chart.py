@@ -1,7 +1,49 @@
 """
 Base chart class for all visualization components.
 
-This module provides the foundation for chart widgets in the Apple Health Monitor.
+This module provides the foundational framework for chart widgets in the
+Apple Health Monitor Dashboard. It implements a comprehensive base class
+that standardizes chart behavior, styling, and functionality across all
+visualization components.
+
+The BaseChart class serves as the foundation for all chart implementations,
+providing:
+    - Consistent design system integration with professional color palettes
+    - Smooth animation system with configurable easing curves
+    - Common chart properties and data management
+    - Standardized margins, fonts, and styling
+    - Export functionality for sharing and reporting
+    - Accessibility features for screen readers
+
+Key features:
+    - WSJ-inspired professional color palette
+    - Configurable animation system with smooth transitions
+    - Consistent typography using Inter and Poppins fonts
+    - Standardized chart margins and layout system
+    - PNG export functionality with customizable dimensions
+    - Abstract interface ensuring consistent implementation
+
+Example:
+    Creating a custom chart by extending BaseChart:
+    
+    >>> class MyChart(BaseChart):
+    ...     def _on_data_changed(self):
+    ...         self.update()  # Refresh display when data changes
+    ...     
+    ...     def paintEvent(self, event):
+    ...         painter = QPainter(self)
+    ...         self._draw_title(painter)  # Use base class title rendering
+    ...         # Custom chart rendering logic here
+    
+    >>> chart = MyChart()
+    >>> chart.title = "Sample Chart"
+    >>> chart.data = [{"x": 1, "y": 10}, {"x": 2, "y": 20}]
+    >>> chart.animate_in()
+
+Attributes:
+    PRIMARY_BG (str): Primary background color from design system
+    ACCENT_PRIMARY (str): Primary accent color for highlights
+    TEXT_PRIMARY (str): Primary text color for readability
 """
 
 from typing import Dict, List, Any, Optional, Tuple
@@ -14,13 +56,71 @@ from PyQt6.QtGui import QColor, QPainter, QFont
 
 class BaseChart(QWidget):
     """
-    Abstract base class for all chart widgets.
+    Abstract base class for all chart widgets in the Apple Health Monitor.
     
-    Provides common functionality for:
-    - Color management using design system
-    - Animation support
-    - Data management
-    - Common chart properties
+    This class provides a comprehensive foundation for creating consistent,
+    professional chart visualizations. It implements the design system,
+    animation framework, and common functionality required by all chart types.
+    
+    Core functionality:
+        - Design system integration with professional color palettes
+        - Smooth animation system with configurable timing and easing
+        - Standardized data management with change notifications
+        - Common chart properties (title, subtitle, margins)
+        - Export functionality for sharing and reporting
+        - Accessibility features for inclusive design
+    
+    Design system features:
+        - WSJ-inspired professional color palette
+        - Consistent typography using Inter and Poppins fonts
+        - Standardized margins and layout system
+        - High contrast ratios for accessibility
+        - Smooth shadow effects and modern styling
+    
+    Animation system:
+        - Configurable animation duration and easing curves
+        - Smooth transitions for data updates
+        - Accessibility-aware animation controls
+        - Property-based animation using Qt's animation framework
+    
+    Data management:
+        - Type-safe data storage with validation
+        - Automatic change notifications via signals
+        - Efficient update handling to minimize redraws
+        - Support for various data formats and structures
+    
+    Signals:
+        dataChanged: Emitted when chart data is modified
+        animationFinished: Emitted when animations complete
+    
+    Attributes:
+        _data (List[Dict[str, Any]]): Chart data storage
+        _title (str): Chart title text
+        _subtitle (str): Chart subtitle text
+        _animation_enabled (bool): Whether animations are enabled
+        _animation_progress (float): Current animation progress (0.0-1.0)
+        _colors (Dict[str, QColor]): Design system color palette
+        _fonts (Dict[str, QFont]): Typography system fonts
+        _margins (Dict[str, int]): Chart margin configuration
+    
+    Example:
+        Implementing a custom chart:
+        
+        >>> class CustomChart(BaseChart):
+        ...     def _on_data_changed(self):
+        ...         # Handle data updates
+        ...         self.animate_update()
+        ...     
+        ...     def paintEvent(self, event):
+        ...         painter = QPainter(self)
+        ...         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        ...         
+        ...         # Use base class helper methods
+        ...         self._draw_title(painter)
+        ...         chart_rect = self._get_chart_rect()
+        ...         
+        ...         # Custom chart rendering
+        ...         self._render_custom_content(painter, chart_rect)
     """
     
     # Signals
@@ -28,7 +128,36 @@ class BaseChart(QWidget):
     animationFinished = Signal()
     
     def __init__(self, parent=None):
-        """Initialize the base chart."""
+        """Initialize the base chart with design system and animation setup.
+        
+        Sets up the foundational components required by all chart widgets
+        including the design system, animation framework, and basic properties.
+        The initialization ensures consistency across all chart implementations.
+        
+        Initialization process:
+            1. Initialize Qt widget with parent relationship
+            2. Set up data storage and basic chart properties
+            3. Configure animation system with smooth easing
+            4. Apply design system colors and typography
+            5. Set standard chart margins and layout
+            6. Configure basic chart styling and behavior
+        
+        Args:
+            parent (QWidget, optional): Parent widget for the chart.
+                Defaults to None for top-level chart widgets.
+        
+        Design system setup:
+            - Professional color palette with high contrast ratios
+            - Typography system using Inter and Poppins fonts
+            - Standardized margins for consistent layout
+            - Modern styling with rounded corners and subtle shadows
+        
+        Animation configuration:
+            - 500ms duration with OutCubic easing for smooth transitions
+            - Property-based animations for data updates
+            - Accessibility-aware animation controls
+            - Automatic animation progress tracking
+        """
         super().__init__(parent)
         
         # Data storage
@@ -62,7 +191,47 @@ class BaseChart(QWidget):
         self._setup_chart()
         
     def _get_default_colors(self) -> Dict[str, QColor]:
-        """Get default color scheme from design system."""
+        """Get default color scheme from the design system.
+        
+        Returns the professional color palette used throughout the Apple Health
+        Monitor Dashboard. The colors are carefully selected for accessibility,
+        readability, and professional appearance.
+        
+        Color categories:
+            Background colors:
+                - Clean white backgrounds for clarity
+                - Subtle gray alternatives for visual hierarchy
+                
+            Grid and axis colors:
+                - Light gray grid lines for subtle guidance
+                - Medium gray axis lines for clear boundaries
+                
+            Data visualization colors:
+                - Orange primary for emphasis and highlights
+                - Complementary colors for multi-series data
+                - Success/warning/error states for status indication
+                
+            Text colors:
+                - High contrast primary text for readability
+                - Secondary text for supporting information
+                - Inverse text for dark backgrounds
+                
+            Interactive states:
+                - Hover effects for user feedback
+                - Active states for pressed elements
+                - Disabled states for inactive elements
+        
+        Returns:
+            Dict[str, QColor]: Comprehensive color palette with semantic names.
+                Keys include 'background', 'grid', 'axis', 'primary', 'text',
+                'hover', 'active', 'disabled', and chart-specific colors.
+        
+        Example:
+            >>> chart = BaseChart()
+            >>> colors = chart._get_default_colors()
+            >>> background_color = colors['background']
+            >>> primary_color = colors['primary']
+        """
         return {
             # Background colors
             'background': QColor('#FFFFFF'),
@@ -99,7 +268,47 @@ class BaseChart(QWidget):
         }
         
     def _get_default_fonts(self) -> Dict[str, QFont]:
-        """Get default fonts from design system."""
+        """Get default typography from the design system.
+        
+        Returns the standardized font system used throughout the dashboard
+        for consistent typography and professional appearance. The fonts
+        are selected for optimal readability across different screen sizes.
+        
+        Typography hierarchy:
+            title (QFont): Large, bold font for chart titles
+                - Poppins, 18px, Bold weight
+                - Used for main chart titles and headings
+                
+            subtitle (QFont): Medium font for chart subtitles
+                - Inter, 14px, Normal weight
+                - Used for descriptive subtitles and secondary headings
+                
+            label (QFont): Standard font for axis labels
+                - Inter, 11px, Normal weight
+                - Used for axis labels and general text
+                
+            label_small (QFont): Small font for detailed labels
+                - Inter, 10px, Normal weight
+                - Used for tick marks and fine details
+                
+            value (QFont): Medium font for data values
+                - Inter, 13px, Medium weight
+                - Used for displaying data values and metrics
+                
+            value_large (QFont): Large font for prominent values
+                - Poppins, 16px, Bold weight
+                - Used for key metrics and highlighted values
+        
+        Returns:
+            Dict[str, QFont]: Complete typography system with semantic names.
+                Each font is configured with appropriate size, weight, and family.
+        
+        Example:
+            >>> chart = BaseChart()
+            >>> fonts = chart._get_default_fonts()
+            >>> title_font = fonts['title']
+            >>> painter.setFont(title_font)
+        """
         return {
             'title': QFont('Poppins', 18, QFont.Weight.Bold),
             'subtitle': QFont('Inter', 14, QFont.Weight.Normal),
@@ -203,7 +412,30 @@ class BaseChart(QWidget):
         
     # Public methods
     def animate_in(self):
-        """Animate the chart appearance."""
+        """Animate the chart's initial appearance with smooth transition.
+        
+        Provides a smooth entrance animation for the chart when it first
+        appears or becomes visible. The animation enhances user experience
+        by drawing attention to the new content.
+        
+        Animation behavior:
+            - Starts from 0% progress (invisible/minimal)
+            - Animates to 100% progress (fully visible)
+            - Uses OutCubic easing for natural movement
+            - Respects accessibility settings for animation preferences
+        
+        If animations are disabled (for accessibility or performance),
+        the chart immediately appears at full opacity without transition.
+        
+        Example:
+            >>> chart = BaseChart()
+            >>> chart.data = sample_data
+            >>> chart.animate_in()  # Smooth entrance animation
+            
+        Note:
+            This method is typically called when showing a chart for the
+            first time or when switching between different chart views.
+        """
         if self._animation_enabled:
             self._animation.setStartValue(0.0)
             self._animation.setEndValue(1.0)
@@ -238,7 +470,47 @@ class BaseChart(QWidget):
         self.update()
         
     def export_image(self, filename: str, width: int = 800, height: int = 600):
-        """Export chart as an image."""
+        """Export chart as a high-quality PNG image.
+        
+        Creates a high-quality image export of the current chart for sharing,
+        reporting, or documentation purposes. The export maintains the chart's
+        visual quality and styling at the specified resolution.
+        
+        Export process:
+            1. Create a high-resolution pixmap at specified dimensions
+            2. Fill with chart's background color for consistency
+            3. Set up high-quality rendering with antialiasing
+            4. Scale chart content to fit the export dimensions
+            5. Render the complete chart to the image
+            6. Save to the specified filename in PNG format
+        
+        Args:
+            filename (str): Output filename for the exported image.
+                Should include .png extension for proper format.
+            width (int, optional): Export image width in pixels.
+                Defaults to 800 for high quality.
+            height (int, optional): Export image height in pixels.
+                Defaults to 600 for standard aspect ratio.
+        
+        Quality features:
+            - High-resolution rendering for crisp text and lines
+            - Antialiasing for smooth curves and edges
+            - Proper scaling to maintain visual proportions
+            - Background color preservation for consistency
+        
+        Raises:
+            IOError: If the file cannot be written to the specified location
+            
+        Example:
+            >>> chart = BaseChart()
+            >>> chart.title = "Sample Chart"
+            >>> chart.data = sample_data
+            >>> chart.export_image("my_chart.png", width=1200, height=800)
+        
+        Note:
+            The exported image captures the chart's current state including
+            all styling, colors, and data visualization elements.
+        """
         from PyQt6.QtGui import QPixmap
         
         pixmap = QPixmap(width, height)

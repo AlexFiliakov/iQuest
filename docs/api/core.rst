@@ -2,7 +2,18 @@ Core API Reference
 ==================
 
 This section documents the core modules that provide fundamental functionality
-for the Apple Health Monitor application.
+for the Apple Health Monitor Dashboard application. These modules form the
+backbone of the application, handling data management, processing, configuration,
+and core business logic.
+
+The core API is organized into several functional areas:
+
+- **Database Management**: SQLite database operations and health data storage
+- **Data Loading and Processing**: XML import, streaming processing, and data transformation
+- **Data Access and Availability**: Data access objects (DAOs) and availability services
+- **Configuration and Models**: Application configuration and data models
+- **Statistics and Analytics**: Core statistical calculations and predictive analytics
+- **Filter Management**: Data filtering and query configuration
 
 Database Management
 -------------------

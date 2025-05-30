@@ -1,8 +1,23 @@
 Analytics API Reference
 =======================
 
-The analytics package provides comprehensive health data analysis capabilities,
-including metric calculations, trend analysis, anomaly detection, and health scoring.
+The analytics package provides comprehensive health data analysis capabilities for the
+Apple Health Monitor Dashboard. This extensive collection of modules enables sophisticated
+analysis of health data including metric calculations, trend analysis, anomaly detection,
+health scoring, and predictive analytics.
+
+The analytics package is organized into several key functional areas:
+
+- **Core Calculators**: Daily, weekly, and monthly metric calculations
+- **Trend Analysis**: Time-based trend detection and pattern analysis
+- **Advanced Analytics**: Machine learning-based analysis and prediction
+- **Health Scoring**: Comprehensive health assessment and scoring
+- **Caching and Performance**: High-performance data processing and caching
+- **Specialized Analytics**: Domain-specific analysis capabilities
+- **Reporting and Export**: Data visualization and export functionality
+
+All modules in this package implement Google-style docstrings with comprehensive
+examples and detailed parameter documentation.
 
 Analytics Package Overview
 ---------------------------

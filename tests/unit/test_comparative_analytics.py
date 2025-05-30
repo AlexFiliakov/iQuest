@@ -48,8 +48,8 @@ class TestPrivacyManager:
         """Test value anonymization methods."""
         manager = PrivacyManager()
         
-        # Test rounding anonymization
-        assert manager.anonymize_value(12345, 'rounding') == 12350
+        # Test rounding anonymization (rounds to nearest 10)
+        assert manager.anonymize_value(12345, 'rounding') == 12340
         assert manager.anonymize_value(678, 'rounding') == 680
         
         # Test differential privacy adds noise
@@ -94,6 +94,7 @@ class TestComparativeAnalyticsEngine:
         
         # Mock return values
         mock_stats = MetricStatistics(
+            metric_name='steps',
             count=30,
             mean=8000,
             median=7900,
@@ -102,8 +103,10 @@ class TestComparativeAnalyticsEngine:
             max=12000,
             percentile_25=6500,
             percentile_75=9500,
-            missing_count=0,
-            outlier_count=1
+            percentile_95=11000,
+            missing_data_count=0,
+            outlier_count=1,
+            insufficient_data=False
         )
         
         daily_calc.calculate_statistics.return_value = mock_stats
@@ -128,15 +131,21 @@ class TestComparativeAnalyticsEngine:
         
         # Mock improving trend
         mock_30_day = MetricStatistics(
+            metric_name='steps',
             count=30, mean=9000, median=9000, std=1000,
             min=7000, max=11000, percentile_25=8000,
-            percentile_75=10000, missing_count=0, outlier_count=0
+            percentile_75=10000, percentile_95=10500,
+            missing_data_count=0, outlier_count=0,
+            insufficient_data=False
         )
         
         mock_90_day = MetricStatistics(
+            metric_name='steps',
             count=90, mean=8000, median=8000, std=1000,
             min=6000, max=10000, percentile_25=7000,
-            percentile_75=9000, missing_count=0, outlier_count=0
+            percentile_75=9000, percentile_95=9500,
+            missing_data_count=0, outlier_count=0,
+            insufficient_data=False
         )
         
         # Set up mock returns
@@ -156,7 +165,7 @@ class TestComparativeAnalyticsEngine:
         
     def test_demographic_comparison_no_permission(self, engine):
         """Test demographic comparison without permission."""
-        result = engine.compare_to_demographic('steps', 35, 'male', 'moderate')
+        result = engine.compare_to_demographic('steps', 35, 'male', 'moderately_active')
         assert result is None
         
     def test_demographic_comparison_with_permission(self, engine):
@@ -166,7 +175,7 @@ class TestComparativeAnalyticsEngine:
             'granted': True
         }
         
-        result = engine.compare_to_demographic('steps', 35, 'male', 'moderate')
+        result = engine.compare_to_demographic('steps', 35, 'male', 'moderately_active')
         
         assert result is not None
         assert result.comparison_type == ComparisonType.DEMOGRAPHIC
@@ -180,9 +189,12 @@ class TestComparativeAnalyticsEngine:
         
         # Mock current stats
         mock_stats = MetricStatistics(
+            metric_name='steps',
             count=30, mean=8500, median=8400, std=1200,
             min=6000, max=11000, percentile_25=7500,
-            percentile_75=9500, missing_count=0, outlier_count=0
+            percentile_75=9500, percentile_95=10500,
+            missing_data_count=0, outlier_count=0,
+            insufficient_data=False
         )
         
         daily_calc.calculate_statistics.return_value = mock_stats
@@ -277,9 +289,12 @@ class TestDemographicCohort:
             activity_level="high",
             cohort_size=75,
             stats=MetricStatistics(
+                metric_name='steps',
                 count=75, mean=9000, median=8800, std=1800,
                 min=5000, max=15000, percentile_25=7500,
-                percentile_75=10500, missing_count=0, outlier_count=3
+                percentile_75=10500, percentile_95=13000,
+                missing_data_count=0, outlier_count=3,
+                insufficient_data=False
             ),
             last_updated=datetime.now()
         )
@@ -293,9 +308,12 @@ class TestDemographicCohort:
             activity_level="high",
             cohort_size=25,
             stats=MetricStatistics(
+                metric_name='steps',
                 count=25, mean=9000, median=8800, std=1800,
                 min=5000, max=15000, percentile_25=7500,
-                percentile_75=10500, missing_count=0, outlier_count=1
+                percentile_75=10500, percentile_95=13000,
+                missing_data_count=0, outlier_count=1,
+                insufficient_data=False
             ),
             last_updated=datetime.now()
         )

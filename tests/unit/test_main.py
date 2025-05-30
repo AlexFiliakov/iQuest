@@ -30,7 +30,7 @@ class TestMain:
     
     def test_setup_logging(self):
         """Test logging setup."""
-        with patch('src.main.logging.basicConfig') as mock_config:
+        with patch('src.utils.logging_config.logging.basicConfig') as mock_config:
             setup_logging()
             mock_config.assert_called_once()
             

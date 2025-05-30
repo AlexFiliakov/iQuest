@@ -1,5 +1,38 @@
-"""Main window implementation with tab navigation for Apple Health Monitor Dashboard."""
+"""Main window implementation with tab navigation for Apple Health Monitor Dashboard.
 
+This module provides the primary application window that serves as the main
+interface for the Apple Health Monitor Dashboard. It implements a modern,
+accessible tab-based navigation system with comprehensive functionality.
+
+The main window manages:
+    - Multi-tab interface for different dashboard views
+    - Menu system with keyboard shortcuts
+    - Window state persistence
+    - View transitions with smooth animations
+    - Personal records tracking integration
+    - Export and backup functionality
+
+Example:
+    Basic usage:
+        
+        >>> app = QApplication(sys.argv)
+        >>> window = MainWindow()
+        >>> window.show()
+        >>> app.exec()
+        
+    Custom initialization:
+        
+        >>> window = MainWindow()
+        >>> window.toggle_accessibility_mode(True)  # Disable animations
+        >>> window.show()
+
+Attributes:
+    WINDOW_TITLE (str): Application window title from config
+    WINDOW_MIN_WIDTH (int): Minimum window width from config
+    WINDOW_MIN_HEIGHT (int): Minimum window height from config
+"""
+
+import os
 from typing import List
 from datetime import date
 from PyQt6.QtWidgets import (
@@ -33,40 +66,74 @@ class MainWindow(QMainWindow):
     """Main application window with tab-based navigation.
     
     This is the primary window of the Apple Health Monitor Dashboard application.
-    It provides a tab-based interface for different views and functionalities:
+    It provides a comprehensive tab-based interface for different views and
+    functionalities including data configuration, visualization dashboards,
+    analytics, and user records.
     
-    - Configuration: Data import and filtering settings
-    - Daily Dashboard: Daily health metrics visualization
-    - Weekly Dashboard: Weekly aggregated health data
-    - Monthly Dashboard: Monthly health trends and patterns
-    - Comparative Analytics: Cross-metric analysis and comparisons
-    - Trophy Case: Personal records and achievements
-    - Journal: Daily, weekly, and monthly reflection entries
-    - Help: Application documentation and shortcuts
+    The window implements modern UI patterns with:
+        - Accessible keyboard navigation with shortcuts
+        - Smooth view transitions and animations
+        - Persistent window state management
+        - Professional theming and styling
+        - Personal health records tracking
+        - Export and backup capabilities
+        - Comprehensive help system
     
-    The window supports keyboard navigation, view transitions, theming,
-    and persistent window state management.
+    Available tabs:
+        - Configuration: Data import and filtering settings
+        - Daily Dashboard: Daily health metrics visualization
+        - Weekly Dashboard: Weekly aggregated health data
+        - Monthly Dashboard: Monthly health trends and patterns
+        - Comparative Analytics: Cross-metric analysis and comparisons
+        - Health Insights: AI-powered health recommendations
+        - Trophy Case: Personal records and achievements
+        - Journal: Daily, weekly, and monthly reflection entries
+        - Help: Application documentation and keyboard shortcuts
     
     Attributes:
         style_manager (StyleManager): Manages application styling and themes.
         settings_manager (SettingsManager): Handles window state persistence.
         transition_manager (ViewTransitionManager): Manages smooth view transitions.
         personal_records_tracker (PersonalRecordsTracker): Tracks health achievements.
+        background_trend_processor (BackgroundTrendProcessor): Processes trend data.
         tab_widget (QTabWidget): The main tab container widget.
         config_tab (ConfigurationTab): The configuration tab instance.
+        tab_to_view_map (dict): Maps tab indices to ViewType enums.
+        previous_tab_index (int): Index of the previously active tab.
+        status_update_timer (QTimer): Timer for updating status bar information.
+        
+    Example:
+        Creating and displaying the main window:
+        
+        >>> app = QApplication(sys.argv)
+        >>> window = MainWindow()
+        >>> window.show()
+        >>> app.exec()
     """
     
     def __init__(self):
         """Initialize the main window.
         
-        Sets up the window structure, applies theming, creates all tabs,
-        configures keyboard navigation, and restores the previous window state.
-        The initialization follows this sequence:
-        1. Initialize managers (style, settings, transitions, records)
-        2. Set window properties (title, size, minimum dimensions)
-        3. Apply warm color theme
-        4. Create UI components (menu bar, tabs, status bar)
-        5. Restore previous window state
+        Sets up the complete window structure including theming, tab navigation,
+        keyboard shortcuts, and restores the previous session state. The
+        initialization process is carefully ordered to ensure proper dependency
+        resolution and optimal startup performance.
+        
+        The initialization sequence:
+            1. Initialize core managers (style, settings, transitions)
+            2. Initialize data tracking components (records, trends)
+            3. Set window properties and default dimensions
+            4. Apply professional theming and color palette
+            5. Create UI components (menu bar, tabs, status bar)
+            6. Configure keyboard navigation and shortcuts
+            7. Restore previous window state and active tab
+            8. Start background status monitoring
+        
+        Raises:
+            ImportError: If required background trend processor cannot be imported.
+            
+        Note:
+            The window is created but not shown. Call show() to display it.
         """
         super().__init__()
         logger.info("Initializing main window with tab navigation")
@@ -116,14 +183,22 @@ class MainWindow(QMainWindow):
         logger.info("Main window initialization complete")
     
     def _apply_theme(self):
-        """Apply the warm color theme to the window.
+        """Apply the professional color theme to the window.
         
-        Sets up the application's visual styling with a warm, welcoming
-        color palette. The theme includes:
-        - Warm background colors (light beige/cream tones)
-        - Earth tone text colors (brown)
-        - Orange accent colors for highlights
-        - Consistent styling across all UI elements
+        Sets up the application's visual styling with a modern, professional
+        color palette that follows WSJ-inspired design principles. The theme
+        provides excellent readability and accessibility.
+        
+        Theme features:
+            - Clean background colors (light beige/cream tones)
+            - Professional text colors (earth tones)
+            - Orange accent colors for highlights and CTAs
+            - Consistent styling across all UI components
+            - High contrast ratios for accessibility
+            - Warm, inviting appearance that reduces eye strain
+        
+        The theme is applied through both stylesheets and QPalette settings
+        to ensure consistency across all Qt widgets and custom components.
         """
         logger.debug("Applying warm color theme")
         
@@ -144,15 +219,32 @@ class MainWindow(QMainWindow):
         self.setPalette(palette)
     
     def _create_menu_bar(self):
-        """Create the application menu bar.
+        """Create the application menu bar with comprehensive functionality.
         
-        Sets up the main menu structure with the following menus:
-        - File: Import, Save, Exit
-        - View: Refresh and view options
-        - Help: Keyboard shortcuts, About
+        Sets up a complete menu system with keyboard shortcuts, tooltips,
+        and status tips for enhanced accessibility and user experience.
         
-        All menu items include keyboard shortcuts, tooltips, and status tips
-        for better accessibility and user experience.
+        Menu structure:
+            File menu:
+                - Import: Data import with Ctrl+O shortcut
+                - Save Configuration: Save current settings with Ctrl+S
+                - Export submenu: Generate reports, quick exports (PDF/Excel/CSV)
+                - Create Backup: Complete data backup functionality
+                - Erase All Data: Secure data removal with confirmation
+                - Exit: Close application with Ctrl+Q
+                
+            View menu:
+                - Refresh: Refresh current view with F5 shortcut
+                
+            Help menu:
+                - Keyboard Shortcuts: Reference dialog with Ctrl+?
+                - About: Application information dialog
+        
+        All menu items include:
+            - Keyboard shortcuts for power users
+            - Descriptive tooltips with shortcut information
+            - Status bar tips explaining functionality
+            - Proper mnemonics for keyboard navigation
         """
         logger.debug("Creating menu bar")
         
@@ -272,12 +364,31 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about_action)
     
     def _create_central_widget(self):
-        """Create the central widget with tab navigation.
+        """Create the central widget with comprehensive tab navigation.
         
-        Sets up the main tab widget containing all application views.
-        Establishes tab-to-view mappings for transition management,
-        connects signal handlers for tab changes and transitions,
-        and configures keyboard navigation for the tab system.
+        Sets up the main tab widget that serves as the primary interface
+        for all application functionality. This includes creating all
+        dashboard tabs, establishing transition mappings, and configuring
+        the complete navigation system.
+        
+        Components created:
+            - QTabWidget as the central container
+            - All dashboard tabs (Config, Daily, Weekly, Monthly, etc.)
+            - Tab-to-view mappings for transition management
+            - Signal connections for tab change events
+            - Keyboard navigation shortcuts (Ctrl+1-8, Alt+C/D/W/M/etc.)
+            - View transition system with smooth animations
+        
+        Tab organization:
+            0: Configuration - Data import and filtering
+            1: Daily - Daily metrics and trends
+            2: Weekly - Weekly aggregated data
+            3: Monthly - Monthly patterns and calendar view
+            4: Compare - Comparative analytics
+            5: Insights - AI-powered health insights
+            6: Trophy Case - Personal records and achievements
+            7: Journal - Personal health journal
+            8: Help - Keyboard shortcuts and documentation
         """
         logger.debug("Creating central widget with tabs")
         
@@ -325,12 +436,28 @@ class MainWindow(QMainWindow):
         self._setup_keyboard_navigation()
     
     def _create_configuration_tab(self):
-        """Create the configuration tab.
+        """Create the configuration tab with data management functionality.
         
-        Initializes the configuration tab which handles data import,
-        filtering options, and data source management. Connects the
-        tab's signals to main window handlers for data loading and
-        filter changes.
+        Initializes the configuration tab which serves as the primary interface
+        for data import, filtering, and source management. The tab is wrapped
+        in a scroll area to accommodate varying content sizes and screen
+        resolutions.
+        
+        Features implemented:
+            - CSV and XML data import with progress tracking
+            - Date range filtering with calendar widgets
+            - Device/source filtering with multi-select dropdowns
+            - Health metric type filtering
+            - Filter preset saving and loading
+            - Real-time data statistics display
+            
+        Signal connections:
+            - data_loaded: Emitted when data is successfully imported
+            - filters_applied: Emitted when filters are applied to data
+            
+        The configuration tab uses the standard ConfigurationTab class
+        which provides comprehensive data management functionality with
+        optimized performance for large datasets.
         """
         # Use standard ConfigurationTab for now
         # The modern version is incomplete and doesn't have summary cards implemented
@@ -353,7 +480,28 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(0, "Import data and configure filters")
     
     def _create_daily_dashboard_tab(self):
-        """Create the daily dashboard tab."""
+        """Create the daily dashboard tab with comprehensive daily metrics.
+        
+        Initializes the daily dashboard which provides detailed views of
+        daily health metrics, trends, and personal records. Includes
+        fallback handling if the dashboard widget cannot be imported.
+        
+        Features:
+            - Daily metric visualization with interactive charts
+            - Personal records tracking and display
+            - Date navigation for historical data exploration
+            - Metric selection and filtering capabilities
+            - Refresh functionality for real-time updates
+            
+        Signal connections:
+            - metric_selected: Handles metric selection events
+            - date_changed: Responds to date navigation
+            - refresh_requested: Handles manual refresh requests
+            
+        Fallback behavior:
+            If DailyDashboardWidget import fails, creates a placeholder
+            tab with appropriate messaging to maintain UI consistency.
+        """
         try:
             from .daily_dashboard_widget import DailyDashboardWidget
             
@@ -411,7 +559,31 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View your daily health metrics and trends")
     
     def _create_weekly_dashboard_tab(self):
-        """Create the weekly dashboard tab."""
+        """Create the weekly dashboard tab with aggregated weekly metrics.
+        
+        Initializes the weekly dashboard which provides comprehensive views
+        of weekly health summaries, patterns, and trends. Uses the standard
+        WeeklyDashboardWidget for consistent functionality.
+        
+        Features:
+            - Weekly metric aggregation and visualization
+            - Week-over-week comparison capabilities
+            - Pattern analysis and trend identification
+            - Interactive charts with drill-down functionality
+            - Week navigation with calendar integration
+            
+        Signal connections:
+            - week_changed: Handles week navigation events
+            - metric_selected: Responds to metric selection
+            
+        Fallback behavior:
+            If WeeklyDashboardWidget import fails, creates a placeholder
+            tab with descriptive messaging to maintain UI consistency.
+            
+        Note:
+            Uses the standard version of WeeklyDashboardWidget as the
+            modern version has known display issues.
+        """
         try:
             # Use standard version for now (modern version has display issues)
             from .weekly_dashboard_widget import WeeklyDashboardWidget
@@ -465,7 +637,32 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Analyze weekly health summaries and patterns")
     
     def _create_monthly_dashboard_tab(self):
-        """Create the monthly dashboard tab with calendar heatmap."""
+        """Create the monthly dashboard tab with calendar heatmap visualization.
+        
+        Initializes the monthly dashboard which provides comprehensive monthly
+        health trend analysis with an interactive calendar heatmap. This tab
+        offers high-level pattern recognition and long-term trend analysis.
+        
+        Features:
+            - Monthly health trend visualization
+            - Interactive calendar heatmap with daily data points
+            - Month-over-month comparison capabilities
+            - Seasonal pattern analysis
+            - Long-term trend identification
+            - Month navigation with year-level overview
+            
+        Signal connections:
+            - month_changed: Handles month navigation events
+            - metric_changed: Responds to metric type changes
+            
+        Fallback behavior:
+            If MonthlyDashboardWidget import fails, creates a placeholder
+            tab with appropriate messaging about the calendar heatmap
+            functionality to maintain user expectations.
+            
+        The monthly dashboard is particularly useful for identifying
+        seasonal patterns and long-term health trends.
+        """
         try:
             # Try the modern version first
             try:
@@ -526,7 +723,38 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and progress")
     
     def _create_comparative_analytics_tab(self):
-        """Create the comparative analytics tab."""
+        """Create the comparative analytics tab with advanced comparison features.
+        
+        Initializes the comparative analytics tab which provides sophisticated
+        analysis capabilities including personal history comparisons, seasonal
+        trend analysis, and demographic insights (anonymized).
+        
+        Features:
+            - Personal progress tracking over time
+            - Historical data comparison with multiple time periods
+            - Seasonal trend analysis and pattern recognition
+            - Metric correlation analysis
+            - Background trend processing integration
+            - Interactive comparison visualizations
+            
+        Components initialized:
+            - ComparativeAnalyticsEngine: Core analysis functionality
+            - Background trend processor integration
+            - ComparativeAnalyticsWidget: User interface components
+            
+        Signal connections:
+            - Engine connections for real-time analysis updates
+            - Background processor integration for trend calculations
+            
+        Fallback behavior:
+            If imports fail, creates a placeholder tab explaining the
+            comparative analytics features (personal progress tracking,
+            seasonal trends) to maintain user understanding.
+            
+        Note:
+            Peer group comparison features have been removed to focus
+            on personal health analytics.
+        """
         try:
             # Try to import the comparative analytics widget
             from .comparative_visualization import ComparativeAnalyticsWidget
@@ -611,7 +839,38 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
     
     def _create_health_insights_tab(self):
-        """Create the health insights tab."""
+        """Create the health insights tab with AI-powered recommendations.
+        
+        Initializes the health insights tab which provides personalized health
+        insights, recommendations, and evidence-based analysis of health patterns.
+        This tab leverages advanced analytics and medical evidence databases.
+        
+        Features:
+            - AI-powered health insights generation
+            - Evidence-based recommendations
+            - Personalized health pattern analysis
+            - Interactive insight exploration
+            - WSJ-style professional visualizations
+            - Refresh functionality for updated insights
+            
+        Components initialized:
+            - EvidenceDatabase: Medical evidence and research integration
+            - WSJStyleManager: Professional styling for insights
+            - EnhancedHealthInsightsEngine: Core AI analysis engine
+            - HealthInsightsWidget: User interface components
+            
+        Signal connections:
+            - refresh_requested: Handles manual insight refresh
+            - insight_selected: Responds to insight selection events
+            
+        Fallback behavior:
+            If imports fail, creates a placeholder tab explaining the
+            health insights functionality (personalized recommendations,
+            pattern analysis) to maintain user expectations.
+            
+        The insights are generated based on personal health data patterns
+        and validated against medical evidence databases.
+        """
         try:
             from .health_insights_widget import HealthInsightsWidget
             from ..analytics.health_insights_engine import EnhancedHealthInsightsEngine
@@ -677,7 +936,28 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personalized health insights and recommendations")
     
     def _create_trophy_case_tab(self):
-        """Create the trophy case tab."""
+        """Create the trophy case tab for personal records and achievements.
+        
+        Initializes the trophy case tab which displays personal health records,
+        achievements, milestones, and progress streaks. This gamification
+        element helps motivate continued health monitoring and improvement.
+        
+        Features:
+            - Personal health records display
+            - Achievement badges and milestones
+            - Progress streaks tracking
+            - Interactive record exploration
+            - Achievement sharing capabilities
+            - Historical achievement timeline
+            
+        Components:
+            - TrophyCaseWidget: Main interface for records display
+            - PersonalRecordsTracker: Backend tracking system
+            
+        The trophy case integrates with the personal records tracker
+        to provide real-time updates as new records are achieved and
+        maintains historical tracking of all accomplishments.
+        """
         self.trophy_case_widget = TrophyCaseWidget(self.personal_records_tracker)
         
         # Connect signals (if needed)
@@ -688,7 +968,24 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personal records, achievements, and streaks")
     
     def _create_journal_tab(self):
-        """Create the journal tab placeholder."""
+        """Create the journal tab for personal health reflection.
+        
+        Initializes the journal tab which will provide capabilities for
+        personal health journaling, daily observations, and reflective
+        notes. Currently implemented as a placeholder for future development.
+        
+        Planned features:
+            - Daily health journal entries
+            - Weekly reflection summaries
+            - Monthly health goal reviews
+            - Mood and symptom tracking
+            - Integration with health metrics
+            - Search and tag functionality
+            
+        The journal tab serves as a personal space for users to record
+        qualitative health observations that complement the quantitative
+        data from Apple Health.
+        """
         journal_widget = QWidget(self)
         layout = QVBoxLayout(journal_widget)
         
@@ -722,7 +1019,31 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Add personal notes and health observations")
     
     def _create_help_tab(self):
-        """Create the help tab with keyboard shortcuts reference."""
+        """Create the comprehensive help tab with keyboard shortcuts reference.
+        
+        Initializes the help tab which provides a complete reference for
+        keyboard shortcuts, navigation tips, and usage guidance. The help
+        system is designed to be accessible and easy to navigate.
+        
+        Help sections:
+            - Navigation shortcuts (Tab switching, element navigation)
+            - File operations (Import, Save, Refresh)
+            - Configuration tab shortcuts (Browse, Import, Apply filters)
+            - Date picker navigation (Arrow keys, Page Up/Down)
+            - Multi-select dropdown shortcuts (Space, Ctrl+A, etc.)
+            - General controls (Help, Escape, Enter)
+            - Tips and tricks for efficient usage
+            
+        Features:
+            - Organized sections with clear headings
+            - Keyboard shortcut display with visual styling
+            - Scrollable content for comprehensive coverage
+            - Practical usage tips for power users
+            - Accessibility-focused design
+            
+        The help tab serves as both a reference guide and a tutorial
+        for users to maximize their efficiency with the application.
+        """
         help_widget = QWidget(self)
         main_layout = QVBoxLayout(help_widget)
         main_layout.setContentsMargins(24, 24, 24, 24)
@@ -966,7 +1287,33 @@ class MainWindow(QMainWindow):
         return section
     
     def _setup_keyboard_navigation(self):
-        """Set up keyboard navigation and shortcuts."""
+        """Set up comprehensive keyboard navigation and shortcuts.
+        
+        Configures a complete keyboard navigation system that provides
+        efficient access to all application functionality without requiring
+        mouse interaction. Implements accessibility best practices.
+        
+        Keyboard shortcuts implemented:
+            Tab switching:
+                - Ctrl+1-6: Switch to specific tabs by number
+                - Alt+C/D/W/M/J/H: Switch using mnemonic letters
+                - Ctrl+PageUp/PageDown: Navigate to previous/next tab
+                - F1: Quick access to Help tab
+                
+            Tab order:
+                - Logical tab order through all interactive elements
+                - Proper focus indicators for accessibility
+                - Tab wrapping for seamless navigation
+                
+        Accessibility features:
+            - Proper ARIA roles and descriptions
+            - High contrast focus indicators
+            - Keyboard-only navigation support
+            - Screen reader compatibility
+            
+        The navigation system ensures the application is fully accessible
+        to users who rely on keyboard navigation or assistive technologies.
+        """
         logger.debug("Setting up keyboard navigation")
         
         # Add tab switching shortcuts (now 6 tabs including Help)
@@ -1055,8 +1402,8 @@ class MainWindow(QMainWindow):
                          from_widget is not None and 
                          to_widget is not None)
         
-        # Disable animations for Daily tab temporarily to fix refresh issue
-        if index == 1:  # Daily tab index
+        # Disable animations for Daily and Monthly tabs to fix refresh issues
+        if index == 1 or index == 3:  # Daily tab or Monthly tab
             should_animate = False
         
         if should_animate:
@@ -1097,7 +1444,8 @@ class MainWindow(QMainWindow):
         elif index == 2:  # Weekly tab
             self._refresh_weekly_data()
         elif index == 3:  # Monthly tab
-            self._refresh_monthly_data()
+            # Add a small delay to ensure tab is fully visible before refresh
+            QTimer.singleShot(50, self._refresh_monthly_data)
         elif index == 4:  # Compare tab
             self._refresh_comparative_data()
     
@@ -1278,75 +1626,88 @@ class MainWindow(QMainWindow):
                 progress.show()
                 QApplication.processEvents()
                 
-                # 1. Close database connections
-                if hasattr(db_manager, 'close'):
-                    db_manager.close()
-                    logger.info("Closed database connections")
-                
-                # 2. Delete database file
-                db_path = os.path.join(DATA_DIR, "health_data.db")
-                if os.path.exists(db_path):
-                    os.remove(db_path)
-                    logger.info(f"Deleted database file: {db_path}")
-                
-                # 3. Delete analytics cache database
-                analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
-                if os.path.exists(analytics_cache_db):
-                    os.remove(analytics_cache_db)
-                    logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
-                
-                # Also check in current directory
-                if os.path.exists("analytics_cache.db"):
-                    os.remove("analytics_cache.db")
-                    logger.info("Deleted analytics cache database from current directory")
-                
-                # 4. Delete cache directory
-                cache_dir = os.path.join(DATA_DIR, "cache")
-                if os.path.exists(cache_dir):
-                    shutil.rmtree(cache_dir)
-                    logger.info(f"Deleted cache directory: {cache_dir}")
+                try:
+                    # 1. Close database connections
+                    if hasattr(db_manager, 'close'):
+                        db_manager.close()
+                        logger.info("Closed database connections")
                     
-                # Also check for cache in current directory
-                if os.path.exists("cache"):
-                    shutil.rmtree("cache")
-                    logger.info("Deleted cache directory from current directory")
-                
-                # 5. Clear filter configurations from database
-                if hasattr(self.config_tab, 'filter_config_manager'):
-                    # This will recreate the database but with empty tables
-                    self.config_tab.filter_config_manager.clear_all_presets()
-                    logger.info("Cleared filter configurations")
-                
-                # 6. Reset UI
-                if hasattr(self.config_tab, 'data'):
-                    self.config_tab.data = None
-                    self.config_tab.filtered_data = None
+                    # 2. Delete database file
+                    db_path = os.path.join(DATA_DIR, "health_data.db")
+                    if os.path.exists(db_path):
+                        os.remove(db_path)
+                        logger.info(f"Deleted database file: {db_path}")
                     
-                # Update UI to reflect empty state
-                if hasattr(self.config_tab, 'refresh_display'):
-                    self.config_tab.refresh_display()
+                    # 3. Delete analytics cache database
+                    analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
+                    if os.path.exists(analytics_cache_db):
+                        os.remove(analytics_cache_db)
+                        logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
                     
-                # Disable other tabs since no data is loaded
-                for i in range(1, self.tab_widget.count()):
-                    self.tab_widget.setTabEnabled(i, False)
-                
-                # Switch to configuration tab
-                self.tab_widget.setCurrentIndex(0)
-                
-                progress.close()
-                
-                # Show success message
-                QMessageBox.information(
-                    self,
-                    "Data Erased",
-                    "All data has been successfully erased.\n\n"
-                    "You can now import new health data."
-                )
-                
-                # Update status bar
-                self.status_bar.showMessage("All data erased successfully")
-                logger.info("All data erased successfully")
-                
+                    # Also check in current directory
+                    if os.path.exists("analytics_cache.db"):
+                        os.remove("analytics_cache.db")
+                        logger.info("Deleted analytics cache database from current directory")
+                    
+                    # 4. Delete cache directory
+                    cache_dir = os.path.join(DATA_DIR, "cache")
+                    if os.path.exists(cache_dir):
+                        shutil.rmtree(cache_dir)
+                        logger.info(f"Deleted cache directory: {cache_dir}")
+                        
+                    # Also check for cache in current directory
+                    if os.path.exists("cache"):
+                        shutil.rmtree("cache")
+                        logger.info("Deleted cache directory from current directory")
+                    
+                    # 5. Clear filter configurations from database
+                    if hasattr(self.config_tab, 'filter_config_manager'):
+                        # This will recreate the database but with empty tables
+                        self.config_tab.filter_config_manager.clear_all_presets()
+                        logger.info("Cleared filter configurations")
+                    
+                    # 6. Reset UI
+                    if hasattr(self.config_tab, 'data'):
+                        self.config_tab.data = None
+                        self.config_tab.filtered_data = None
+                        
+                    # Update UI to reflect empty state
+                    if hasattr(self.config_tab, 'refresh_display'):
+                        self.config_tab.refresh_display()
+                        
+                    # Disable other tabs since no data is loaded
+                    for i in range(1, self.tab_widget.count()):
+                        self.tab_widget.setTabEnabled(i, False)
+                    
+                    # Switch to configuration tab
+                    self.tab_widget.setCurrentIndex(0)
+                    
+                    # Close progress dialog before showing success message
+                    progress.close()
+                    
+                    # Show success message
+                    QMessageBox.information(
+                        self,
+                        "Data Erased",
+                        "All data has been successfully erased.\n\n"
+                        "You can now import new health data."
+                    )
+                    
+                    # Update status bar
+                    self.status_bar.showMessage("All data erased successfully")
+                    logger.info("All data erased successfully")
+                    
+                except Exception as e:
+                    # Always close the progress dialog on error
+                    progress.close()
+                    
+                    logger.error(f"Failed to erase data: {e}")
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        f"Failed to erase all data:\n\n{str(e)}"
+                    )
+                    
             except Exception as e:
                 logger.error(f"Failed to erase data: {e}")
                 QMessageBox.critical(
@@ -1513,6 +1874,11 @@ class MainWindow(QMainWindow):
         """Refresh data in the monthly dashboard."""
         logger.debug("Refreshing monthly dashboard data")
         if hasattr(self, 'monthly_dashboard'):
+            # Force the widget to be visible first
+            self.monthly_dashboard.show()
+            self.monthly_dashboard.raise_()
+            QApplication.processEvents()
+            
             # Get current data from configuration tab
             data = None
             if hasattr(self, 'config_tab'):
@@ -1541,6 +1907,15 @@ class MainWindow(QMainWindow):
                     logger.info(f"Set monthly calculator with {len(data)} records")
                 else:
                     logger.warning("No data available to refresh monthly dashboard")
+            
+            # Trigger the showEvent manually to ensure full refresh
+            if hasattr(self.monthly_dashboard, 'showEvent'):
+                from PyQt6.QtGui import QShowEvent
+                self.monthly_dashboard.showEvent(QShowEvent())
+            
+            # Force a repaint
+            self.monthly_dashboard.update()
+            QApplication.processEvents()
     
     def _refresh_comparative_data(self):
         """Refresh the comparative analytics tab with new data."""

@@ -1,12 +1,41 @@
-"""
-Apple Health XML to SQLite Data Loader
+"""Apple Health XML to SQLite Data Loader.
 
-This module provides functionality to:
-- Convert Apple Health XML exports to SQLite database
-- Query health records efficiently with date ranges
-- Generate daily/weekly/monthly summaries
-- Migrate existing CSV data to SQLite format
-- Load CSV data directly for UI usage
+This module provides comprehensive functionality for converting Apple Health XML exports
+to SQLite databases and performing efficient health data operations. It includes
+validation, transaction handling, duplicate prevention, and optimized querying.
+
+The module supports:
+    - XML to SQLite conversion with validation and error handling
+    - Date range queries with optional type filtering
+    - Daily, weekly, and monthly data aggregations
+    - CSV to SQLite migration for legacy data
+    - Direct CSV loading for UI display
+    - Database validation and integrity checking
+    - Performance optimization through indexing
+
+Examples:
+    Basic XML to SQLite conversion:
+        >>> records_imported = convert_xml_to_sqlite(
+        ...     "export.xml", 
+        ...     "health_data.db"
+        ... )
+        >>> print(f"Imported {records_imported} records")
+        
+    Query data for date range:
+        >>> df = query_date_range(
+        ...     "health_data.db",
+        ...     "2024-01-01", 
+        ...     "2024-12-31",
+        ...     "StepCount"
+        ... )
+        >>> print(f"Found {len(df)} step records")
+        
+    Get daily summary:
+        >>> summary = get_daily_summary("health_data.db", "StepCount")
+        >>> print(summary.head())
+
+Attributes:
+    logger: Module-level logger for tracking operations and errors.
 """
 
 import xml.etree.ElementTree as ET
@@ -28,21 +57,44 @@ logger = get_logger(__name__)
 
 
 def convert_xml_to_sqlite_with_validation(xml_path: str, db_path: str, validate_first: bool = True) -> Tuple[int, str]:
-    """Convert Apple Health XML export to SQLite database with validation and transaction handling.
+    """Convert Apple Health XML export to SQLite database with comprehensive validation.
+    
+    This function provides a complete XML to SQLite conversion pipeline with optional
+    XML validation, transaction handling, and detailed error reporting. It performs
+    duplicate detection and creates optimized database indexes for fast queries.
     
     Args:
-        xml_path: Path to the Apple Health export.xml file
-        db_path: Path where the SQLite database will be created
-        validate_first: Whether to validate XML before processing
-        
+        xml_path: Path to the Apple Health export.xml file.
+        db_path: Path where the SQLite database will be created.
+        validate_first: Whether to validate XML structure before processing.
+            Defaults to True for safety.
+    
     Returns:
-        Tuple of (number of records imported, validation summary message)
-        
+        A tuple containing:
+            - int: Number of new records imported (excludes duplicates)
+            - str: Validation summary message with statistics
+    
     Raises:
-        DataValidationError: If XML validation fails
-        FileNotFoundError: If XML file doesn't exist
-        ET.ParseError: If XML is malformed
-        sqlite3.Error: If database operation fails
+        DataValidationError: If XML validation fails with detailed error information.
+        FileNotFoundError: If the XML file doesn't exist at the specified path.
+        ET.ParseError: If XML structure is malformed or corrupted.
+        sqlite3.Error: If database operations fail during import.
+        DatabaseError: If transaction rollback occurs due to errors.
+        
+    Examples:
+        >>> count, summary = convert_xml_to_sqlite_with_validation(
+        ...     "/path/to/export.xml",
+        ...     "/path/to/health.db"
+        ... )
+        >>> print(f"Imported {count} records")
+        >>> print(summary)
+        
+        Skip validation for trusted files:
+        >>> count, summary = convert_xml_to_sqlite_with_validation(
+        ...     "export.xml",
+        ...     "health.db",
+        ...     validate_first=False
+        ... )
     """
     validation_summary = ""
     
@@ -67,7 +119,29 @@ def convert_xml_to_sqlite_with_validation(xml_path: str, db_path: str, validate_
 
 
 def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
-    """Internal function to handle XML conversion with proper transaction management."""
+    """Handle XML conversion with comprehensive transaction management.
+    
+    Internal function that performs the actual XML parsing and database import
+    with proper transaction handling, rollback on errors, and duplicate prevention.
+    Creates optimized indexes and metadata tables for performance.
+    
+    Args:
+        xml_path: Path to the validated Apple Health XML file.
+        db_path: Path where the SQLite database will be created.
+        
+    Returns:
+        Number of new records successfully imported to the database.
+        
+    Raises:
+        FileNotFoundError: If XML file doesn't exist.
+        DataValidationError: If no health records found in XML.
+        ET.ParseError: If XML parsing fails.
+        DatabaseError: If database transaction fails and rolls back.
+        
+    Note:
+        This is an internal function and should not be called directly.
+        Use convert_xml_to_sqlite_with_validation() instead.
+    """
     # Validate input paths
     if not Path(xml_path).exists():
         raise FileNotFoundError(f"XML file not found: {xml_path}")
@@ -209,19 +283,34 @@ def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
 
 
 def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
-    """Convert Apple Health XML export to SQLite database.
+    """Convert Apple Health XML export to SQLite database with basic error handling.
+    
+    This is a simplified version of the conversion function without XML validation.
+    It provides basic XML to SQLite conversion with duplicate prevention and
+    performance optimizations through indexing.
     
     Args:
-        xml_path: Path to the Apple Health export.xml file
-        db_path: Path where the SQLite database will be created
+        xml_path: Path to the Apple Health export.xml file.
+        db_path: Path where the SQLite database will be created.
         
     Returns:
-        Number of records imported
+        Number of new records imported (excludes duplicates).
         
     Raises:
-        FileNotFoundError: If XML file doesn't exist
-        ET.ParseError: If XML is malformed
-        sqlite3.Error: If database operation fails
+        FileNotFoundError: If XML file doesn't exist at the specified path.
+        ET.ParseError: If XML structure is malformed.
+        sqlite3.Error: If database operations fail.
+        
+    Examples:
+        >>> records_count = convert_xml_to_sqlite(
+        ...     "health_export.xml",
+        ...     "my_health_data.db"
+        ... )
+        >>> print(f"Successfully imported {records_count} records")
+        
+    Note:
+        For production use, consider using convert_xml_to_sqlite_with_validation()
+        which includes comprehensive validation and better error reporting.
     """
     # Validate input paths
     if not Path(xml_path).exists():
@@ -328,16 +417,46 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
 
 def query_date_range(db_path: str, start_date: str, end_date: str, 
                      record_type: str = None) -> pd.DataFrame:
-    """Query health records within a date range.
+    """Query health records within a specified date range with optional type filtering.
+    
+    Efficiently retrieves health records from the SQLite database using optimized
+    indexes. Automatically parses date columns and supports filtering by specific
+    health metric types for focused analysis.
     
     Args:
-        db_path: Path to the SQLite database
-        start_date: Start date (YYYY-MM-DD format)
-        end_date: End date (YYYY-MM-DD format)
-        record_type: Optional specific health metric type to filter
-        
+        db_path: Path to the SQLite database file.
+        start_date: Start date in YYYY-MM-DD format (inclusive).
+        end_date: End date in YYYY-MM-DD format (inclusive).
+        record_type: Optional health metric type to filter (e.g., 'StepCount',
+            'HeartRate'). If None, returns all record types.
+            
     Returns:
-        DataFrame with matching health records
+        DataFrame containing matching health records with columns:
+            - type: Health metric type
+            - sourceName: Source device/app name
+            - sourceVersion: Version of the source
+            - device: Device identifier
+            - unit: Measurement unit
+            - creationDate: When record was created (parsed as datetime)
+            - startDate: When measurement started (parsed as datetime)
+            - endDate: When measurement ended (parsed as datetime)
+            - value: Measured value (numeric)
+            
+    Examples:
+        Get all records for January 2024:
+        >>> df = query_date_range(
+        ...     "health.db",
+        ...     "2024-01-01",
+        ...     "2024-01-31"
+        ... )
+        
+        Get only step count data:
+        >>> steps_df = query_date_range(
+        ...     "health.db",
+        ...     "2024-01-01",
+        ...     "2024-01-31",
+        ...     "StepCount"
+        ... )
     """
     conn = sqlite3.connect(db_path)
     try:
@@ -363,18 +482,38 @@ def query_date_range(db_path: str, start_date: str, end_date: str,
 
 
 def get_daily_summary(db_path: str, record_type: str) -> pd.DataFrame:
-    """Get daily aggregated data for a specific health metric.
+    """Generate daily aggregated statistics for a specific health metric.
+    
+    Computes comprehensive daily statistics including count, average, minimum,
+    maximum, and total values for the specified health metric type. Results
+    are ordered chronologically for time series analysis.
     
     Args:
-        db_path: Path to the SQLite database
-        record_type: Health metric type (e.g., 'StepCount', 'HeartRate')
-        
+        db_path: Path to the SQLite database file.
+        record_type: Health metric type identifier (e.g., 'StepCount', 'HeartRate',
+            'DistanceWalkingRunning'). Must be a non-empty string.
+            
     Returns:
-        DataFrame with daily aggregations
-        
+        DataFrame with daily aggregations containing columns:
+            - date: Date of the aggregation (parsed as datetime)
+            - count: Number of records for that day
+            - avg_value: Average value for the day
+            - min_value: Minimum value recorded
+            - max_value: Maximum value recorded
+            - total_value: Sum of all values for the day
+            
     Raises:
-        sqlite3.Error: If database operation fails
-        ValueError: If record_type is invalid
+        sqlite3.Error: If database connection or query execution fails.
+        ValueError: If record_type is None, empty, or not a string.
+        
+    Examples:
+        Get daily step count summaries:
+        >>> daily_steps = get_daily_summary("health.db", "StepCount")
+        >>> print(f"Average daily steps: {daily_steps['avg_value'].mean():.0f}")
+        
+        Analyze heart rate patterns:
+        >>> daily_hr = get_daily_summary("health.db", "HeartRate")
+        >>> print(f"Highest daily average HR: {daily_hr['avg_value'].max():.1f} bpm")
     """
     # Validate input
     if not record_type or not isinstance(record_type, str):
@@ -402,18 +541,39 @@ def get_daily_summary(db_path: str, record_type: str) -> pd.DataFrame:
 
 
 def get_weekly_summary(db_path: str, record_type: str) -> pd.DataFrame:
-    """Get weekly aggregated data for a specific health metric.
+    """Generate weekly aggregated statistics for a specific health metric.
+    
+    Computes weekly statistics by grouping records using ISO week format (YYYY-WW).
+    Provides comprehensive aggregations including count, average, minimum, maximum,
+    and total values for analyzing weekly patterns and trends.
     
     Args:
-        db_path: Path to the SQLite database
-        record_type: Health metric type
-        
+        db_path: Path to the SQLite database file.
+        record_type: Health metric type identifier (e.g., 'StepCount', 'HeartRate').
+            Must be a non-empty string.
+            
     Returns:
-        DataFrame with weekly aggregations
-        
+        DataFrame with weekly aggregations containing columns:
+            - week: Week identifier in YYYY-WW format (e.g., '2024-15')
+            - count: Number of records for that week
+            - avg_value: Average value for the week
+            - min_value: Minimum value recorded during the week
+            - max_value: Maximum value recorded during the week
+            - total_value: Sum of all values for the week
+            
     Raises:
-        sqlite3.Error: If database operation fails
-        ValueError: If record_type is invalid
+        sqlite3.Error: If database connection or query execution fails.
+        ValueError: If record_type is None, empty, or not a string.
+        
+    Examples:
+        Analyze weekly step patterns:
+        >>> weekly_steps = get_weekly_summary("health.db", "StepCount")
+        >>> weekly_steps['avg_daily'] = weekly_steps['total_value'] / 7
+        >>> print(weekly_steps[['week', 'avg_daily']].head())
+        
+        Compare weekly workout intensities:
+        >>> weekly_workouts = get_weekly_summary("health.db", "ActiveEnergyBurned")
+        >>> print(f"Most active week: {weekly_workouts.loc[weekly_workouts['total_value'].idxmax(), 'week']}")
     """
     # Validate input
     if not record_type or not isinstance(record_type, str):
@@ -440,18 +600,41 @@ def get_weekly_summary(db_path: str, record_type: str) -> pd.DataFrame:
 
 
 def get_monthly_summary(db_path: str, record_type: str) -> pd.DataFrame:
-    """Get monthly aggregated data for a specific health metric.
+    """Generate monthly aggregated statistics for a specific health metric.
+    
+    Computes monthly statistics by grouping records using YYYY-MM format.
+    Ideal for long-term trend analysis and seasonal pattern identification.
+    Provides comprehensive aggregations for understanding monthly health patterns.
     
     Args:
-        db_path: Path to the SQLite database
-        record_type: Health metric type
-        
+        db_path: Path to the SQLite database file.
+        record_type: Health metric type identifier (e.g., 'StepCount', 'HeartRate').
+            Must be a non-empty string.
+            
     Returns:
-        DataFrame with monthly aggregations
-        
+        DataFrame with monthly aggregations containing columns:
+            - month: Month identifier in YYYY-MM format (e.g., '2024-03')
+            - count: Number of records for that month
+            - avg_value: Average value for the month
+            - min_value: Minimum value recorded during the month
+            - max_value: Maximum value recorded during the month
+            - total_value: Sum of all values for the month
+            
     Raises:
-        sqlite3.Error: If database operation fails
-        ValueError: If record_type is invalid
+        sqlite3.Error: If database connection or query execution fails.
+        ValueError: If record_type is None, empty, or not a string.
+        
+    Examples:
+        Track monthly activity trends:
+        >>> monthly_steps = get_monthly_summary("health.db", "StepCount")
+        >>> monthly_steps['avg_daily'] = monthly_steps['total_value'] / 30  # Rough estimate
+        >>> print("Monthly step trends:")
+        >>> print(monthly_steps[['month', 'avg_daily']])
+        
+        Analyze seasonal heart rate variations:
+        >>> monthly_hr = get_monthly_summary("health.db", "HeartRate")
+        >>> seasonal_hr = monthly_hr.groupby(monthly_hr['month'].str[-2:])['avg_value'].mean()
+        >>> print("Average HR by month:", seasonal_hr)
     """
     # Validate input
     if not record_type or not isinstance(record_type, str):
@@ -478,16 +661,32 @@ def get_monthly_summary(db_path: str, record_type: str) -> pd.DataFrame:
 
 
 def get_available_types(db_path: str) -> List[str]:
-    """Get list of all available health record types in the database.
+    """Retrieve all unique health record types available in the database.
+    
+    Efficiently queries the database to return a sorted list of all health metric
+    types present in the health_records table. Useful for populating UI filters
+    and understanding what types of health data are available for analysis.
     
     Args:
-        db_path: Path to the SQLite database
+        db_path: Path to the SQLite database file.
         
     Returns:
-        List of unique record types
+        Sorted list of unique health record type names (e.g., ['HeartRate',
+        'StepCount', 'DistanceWalkingRunning']). Returns empty list if no
+        records exist or database is inaccessible.
         
     Raises:
-        sqlite3.Error: If database operation fails
+        sqlite3.Error: If database connection fails or query execution errors.
+        
+    Examples:
+        Get all available metric types:
+        >>> types = get_available_types("health.db")
+        >>> print(f"Available metrics: {', '.join(types)}")
+        
+        Check if specific metric exists:
+        >>> available_types = get_available_types("health.db")
+        >>> if 'BloodPressureSystolic' in available_types:
+        ...     print("Blood pressure data is available")
     """
     conn = sqlite3.connect(db_path)
     try:
@@ -502,16 +701,37 @@ def get_available_types(db_path: str) -> List[str]:
 
 
 def get_date_range(db_path: str) -> Tuple[Optional[str], Optional[str]]:
-    """Get the date range of data in the database.
+    """Determine the complete date range of health data in the database.
+    
+    Efficiently queries the database to find the earliest and latest creation
+    dates across all health records. Useful for setting appropriate date range
+    limits in UI components and understanding data coverage.
     
     Args:
-        db_path: Path to the SQLite database
+        db_path: Path to the SQLite database file.
         
     Returns:
-        Tuple of (min_date, max_date) as strings
+        Tuple containing:
+            - str or None: Earliest creation date in ISO format (YYYY-MM-DD HH:MM:SS)
+            - str or None: Latest creation date in ISO format (YYYY-MM-DD HH:MM:SS)
+        Returns (None, None) if no records exist in the database.
         
     Raises:
-        sqlite3.Error: If database operation fails
+        sqlite3.Error: If database connection fails or query execution errors.
+        
+    Examples:
+        Check data coverage:
+        >>> min_date, max_date = get_date_range("health.db")
+        >>> if min_date and max_date:
+        ...     print(f"Data spans from {min_date} to {max_date}")
+        ... else:
+        ...     print("No health data found")
+        
+        Set UI date limits:
+        >>> start, end = get_date_range("health.db")
+        >>> if start:
+        ...     # Use dates to configure date picker widgets
+        ...     pass
     """
     conn = sqlite3.connect(db_path)
     try:
@@ -530,19 +750,41 @@ def get_date_range(db_path: str) -> Tuple[Optional[str], Optional[str]]:
 
 
 def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
-    """Migrate existing CSV data to SQLite format.
+    """Migrate existing CSV health data to optimized SQLite format.
+    
+    Converts CSV files (typically exported from previous versions or other tools)
+    to the standardized SQLite database format. Creates performance indexes and
+    metadata tables for optimal query performance.
     
     Args:
-        csv_path: Path to the CSV file
-        db_path: Path where the SQLite database will be created
-        
+        csv_path: Path to the CSV file containing health data. Expected to have
+            columns: type, sourceName, sourceVersion, device, unit, creationDate,
+            startDate, endDate, value.
+        db_path: Path where the SQLite database will be created. Overwrites
+            existing files.
+            
     Returns:
-        Number of records migrated
+        Number of records successfully migrated to the database.
         
     Raises:
-        FileNotFoundError: If CSV file doesn't exist
-        sqlite3.Error: If database operation fails
-        pd.errors.ParserError: If CSV is malformed
+        FileNotFoundError: If the CSV file doesn't exist at the specified path.
+        sqlite3.Error: If database creation or data insertion fails.
+        pd.errors.ParserError: If the CSV file is malformed or has invalid structure.
+        
+    Examples:
+        Migrate legacy CSV data:
+        >>> count = migrate_csv_to_sqlite(
+        ...     "legacy_health_data.csv",
+        ...     "migrated_health.db"
+        ... )
+        >>> print(f"Successfully migrated {count} records")
+        
+        Batch migration:
+        >>> import glob
+        >>> for csv_file in glob.glob("*.csv"):
+        ...     db_file = csv_file.replace(".csv", ".db")
+        ...     records = migrate_csv_to_sqlite(csv_file, db_file)
+        ...     print(f"{csv_file}: {records} records")
     """
     # Validate input paths
     if not Path(csv_path).exists():
@@ -585,13 +827,41 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
 
 
 def validate_database(db_path: str) -> dict:
-    """Validate the integrity of the SQLite database.
+    """Perform comprehensive validation of SQLite database integrity.
+    
+    Checks database structure, table existence, index presence, and data integrity.
+    Provides detailed validation results for troubleshooting and quality assurance.
+    Essential for verifying successful imports and database health.
     
     Args:
-        db_path: Path to the SQLite database
+        db_path: Path to the SQLite database file to validate.
         
     Returns:
-        Dictionary with validation results
+        Dictionary containing validation results with keys:
+            - 'exists' (bool): Whether the database file exists
+            - 'has_health_records' (bool): Whether health_records table exists
+            - 'has_indexes' (bool): Whether required performance indexes exist
+            - 'record_count' (int): Total number of health records
+            - 'has_metadata' (bool): Whether metadata table exists
+            - 'errors' (list): List of validation error messages
+            
+    Examples:
+        Validate database after import:
+        >>> validation = validate_database("health.db")
+        >>> if validation['errors']:
+        ...     print("Validation errors:", validation['errors'])
+        ... else:
+        ...     print(f"Database valid with {validation['record_count']} records")
+        
+        Check database health:
+        >>> result = validate_database("health.db")
+        >>> health_score = sum([
+        ...     result['exists'],
+        ...     result['has_health_records'],
+        ...     result['has_indexes'],
+        ...     result['has_metadata']
+        ... ]) / 4 * 100
+        >>> print(f"Database health: {health_score:.0f}%")
     """
     validation_results = {
         'exists': Path(db_path).exists(),
@@ -650,25 +920,79 @@ def validate_database(db_path: str) -> dict:
 
 
 class DataLoader:
-    """Simple data loader class for CSV files and SQLite databases."""
+    """Comprehensive data loader for health data from CSV files and SQLite databases.
+    
+    Provides unified interface for loading health data from various sources with
+    automatic data cleaning, type conversion, and error handling. Optimized for
+    performance with SQL-based aggregations and statistics computation.
+    
+    Features:
+        - CSV file loading with automatic date parsing
+        - SQLite database integration with optimized queries
+        - In-memory data cleaning and standardization
+        - Statistical analysis using SQL aggregations
+        - Filter options extraction for UI components
+        - Type inference for missing source information
+        
+    Attributes:
+        logger: Logger instance for tracking operations and errors.
+        db_path: Path to the currently connected SQLite database.
+        
+    Examples:
+        Basic usage:
+        >>> loader = DataLoader()
+        >>> loader.db_path = "health.db"
+        >>> df = loader.get_all_records()
+        >>> stats = loader.get_statistics_summary()
+        
+        Load CSV data:
+        >>> loader = DataLoader()
+        >>> df = loader.load_csv("health_export.csv")
+        >>> print(f"Loaded {len(df)} records")
+    """
     
     def __init__(self):
-        """Initialize the data loader."""
+        """Initialize the DataLoader with logging configuration.
+        
+        Sets up the logger and initializes the database path to None.
+        The database path must be set before using database-related methods.
+        """
         self.logger = get_logger(__name__)
         self.db_path = None
     
     def load_csv(self, file_path: str) -> pd.DataFrame:
-        """Load CSV file and return as DataFrame.
+        """Load and process CSV health data with automatic cleaning and standardization.
+        
+        Reads CSV files with automatic date parsing, data type conversion, and
+        standardization. Handles common data quality issues and applies consistent
+        formatting for downstream analysis.
         
         Args:
-            file_path: Path to the CSV file
+            file_path: Path to the CSV file containing health data.
             
         Returns:
-            DataFrame with the CSV data
-            
+            DataFrame with processed health data containing standardized columns:
+                - creationDate, startDate, endDate: Parsed as datetime objects
+                - value: Converted to numeric, NaN filled with 1.0
+                - type: Cleaned health metric type names
+                - Other columns preserved as-is
+                
         Raises:
-            FileNotFoundError: If CSV file doesn't exist
-            pd.errors.ParserError: If CSV is malformed
+            FileNotFoundError: If CSV file doesn't exist at the specified path.
+            DataImportError: If CSV parsing fails or data processing errors occur.
+            
+        Examples:
+            Load health data from CSV:
+            >>> loader = DataLoader()
+            >>> df = loader.load_csv("exported_health_data.csv")
+            >>> print(f"Loaded {len(df)} records")
+            >>> print(f"Date range: {df['creationDate'].min()} to {df['creationDate'].max()}")
+            
+            Handle loading errors:
+            >>> try:
+            ...     df = loader.load_csv("data.csv")
+            ... except DataImportError as e:
+            ...     print(f"Failed to load CSV: {e}")
         """
         if not Path(file_path).exists():
             raise FileNotFoundError(f"CSV file not found: {file_path}")
@@ -705,14 +1029,37 @@ class DataLoader:
             raise DataImportError(f"Unexpected error loading CSV: {str(e)}") from e
     
     def get_all_records(self) -> pd.DataFrame:
-        """Get all records from the SQLite database.
+        """Retrieve all health records from the SQLite database with data processing.
+        
+        Loads all health records from the database with automatic date parsing,
+        data type conversion, and missing column handling for backward compatibility.
+        Returns an empty DataFrame with expected columns if no data exists.
         
         Returns:
-            DataFrame with all health records
-            
+            DataFrame containing all health records with columns:
+                - type, sourceName, sourceVersion, device, unit: String data
+                - creationDate, startDate, endDate: Parsed datetime objects
+                - value: Numeric values with NaN filled as 1.0
+                
         Raises:
-            FileNotFoundError: If database doesn't exist
-            sqlite3.Error: If database query fails
+            ValueError: If database path not set on the DataLoader instance.
+            FileNotFoundError: If database file doesn't exist.
+            DataImportError: If database query fails or data processing errors occur.
+            
+        Examples:
+            Load all data for analysis:
+            >>> loader = DataLoader()
+            >>> loader.db_path = "health.db"
+            >>> df = loader.get_all_records()
+            >>> print(f"Total records: {len(df)}")
+            >>> print(f"Available types: {df['type'].nunique()}")
+            
+            Check for data availability:
+            >>> df = loader.get_all_records()
+            >>> if df.empty:
+            ...     print("No health data available")
+            ... else:
+            ...     print(f"Data from {df['creationDate'].min()} to {df['creationDate'].max()}")
         """
         if not self.db_path:
             raise ValueError("Database path not set")
@@ -770,7 +1117,27 @@ class DataLoader:
             raise DataImportError(f"Unexpected error: {str(e)}") from e
     
     def _infer_source_name(self, record_type: str) -> str:
-        """Infer source device name from record type."""
+        """Infer likely source device name from health record type.
+        
+        Provides fallback source name inference for records missing sourceName
+        information, based on common patterns in Apple Health data.
+        
+        Args:
+            record_type: Health metric type name (e.g., 'StepCount', 'HeartRate').
+            
+        Returns:
+            Inferred source name based on record type patterns:
+                - 'iPhone': For step, distance, and stair climbing metrics
+                - 'Apple Watch': For heart rate, workout, and exercise metrics
+                - 'Sleep Apps': For sleep-related metrics
+                - 'Other Apps': For unrecognized types
+                
+        Examples:
+            >>> loader = DataLoader()
+            >>> print(loader._infer_source_name('StepCount'))  # 'iPhone'
+            >>> print(loader._infer_source_name('HeartRate'))  # 'Apple Watch'
+            >>> print(loader._infer_source_name('SleepAnalysis'))  # 'Sleep Apps'
+        """
         # Common mappings
         if any(x in record_type.lower() for x in ['step', 'distance', 'flight']):
             return "iPhone"
@@ -782,23 +1149,39 @@ class DataLoader:
             return "Other Apps"
     
     def get_statistics_summary(self) -> dict:
-        """Get summary statistics from the database using SQL aggregation.
+        """Compute comprehensive database statistics using optimized SQL aggregations.
         
-        This method is optimized to avoid loading all records into memory.
-        Instead, it uses SQL queries to compute statistics directly in the database.
+        Efficiently calculates summary statistics directly in the database without
+        loading all records into memory. Provides essential information about data
+        coverage, diversity, and temporal span for UI display and analysis planning.
         
         Returns:
-            Dictionary with summary statistics:
-            - total_records: Total number of records
-            - unique_types: Number of unique health metric types
-            - unique_sources: Number of unique source devices
-            - date_range: Tuple of (earliest_date, latest_date)
-            - last_updated: When the statistics were computed
-            
+            Dictionary containing comprehensive statistics:
+                - 'total_records' (int): Total number of health records
+                - 'unique_types' (int): Number of distinct health metric types
+                - 'unique_sources' (int): Number of distinct source devices/apps
+                - 'date_range' (tuple): (earliest_date, latest_date) as strings or (None, None)
+                - 'last_updated' (datetime): When these statistics were computed
+                
         Raises:
-            ValueError: If database path not set
-            FileNotFoundError: If database doesn't exist
-            sqlite3.Error: If database query fails
+            ValueError: If database path not set on the DataLoader instance.
+            FileNotFoundError: If database file doesn't exist.
+            DataImportError: If database query execution fails.
+            
+        Examples:
+            Get database overview:
+            >>> loader = DataLoader()
+            >>> loader.db_path = "health.db"
+            >>> stats = loader.get_statistics_summary()
+            >>> print(f"Database contains {stats['total_records']:,} records")
+            >>> print(f"Covering {stats['unique_types']} metric types")
+            >>> print(f"From {stats['unique_sources']} different sources")
+            
+            Check data freshness:
+            >>> stats = loader.get_statistics_summary()
+            >>> if stats['date_range'][1]:  # Latest date exists
+            ...     latest = stats['date_range'][1]
+            ...     print(f"Most recent data: {latest}")
         """
         if not self.db_path:
             raise ValueError("Database path not set")
@@ -854,18 +1237,35 @@ class DataLoader:
             raise DataImportError(f"Failed to compute statistics: {str(e)}") from e
     
     def get_type_counts(self) -> pd.DataFrame:
-        """Get counts of records by health metric type.
+        """Generate record counts and percentages by health metric type.
+        
+        Efficiently computes the distribution of health records across different
+        metric types using SQL aggregation. Results are sorted by count in descending
+        order for easy identification of most common metrics.
         
         Returns:
-            DataFrame with columns:
-            - type: Health metric type
-            - count: Number of records
-            - percentage: Percentage of total records
-            
+            DataFrame with record type distribution containing columns:
+                - 'type' (str): Health metric type name
+                - 'count' (int): Number of records for this type
+                - 'percentage' (float): Percentage of total records (rounded to 1 decimal)
+                
         Raises:
-            ValueError: If database path not set
-            FileNotFoundError: If database doesn't exist
-            sqlite3.Error: If database query fails
+            ValueError: If database path not set on the DataLoader instance.
+            FileNotFoundError: If database file doesn't exist.
+            DataImportError: If database query execution fails.
+            
+        Examples:
+            Analyze metric distribution:
+            >>> loader = DataLoader()
+            >>> loader.db_path = "health.db"
+            >>> type_counts = loader.get_type_counts()
+            >>> print("Top 5 most common metrics:")
+            >>> print(type_counts.head())
+            
+            Find rare metrics:
+            >>> type_counts = loader.get_type_counts()
+            >>> rare_metrics = type_counts[type_counts['percentage'] < 1.0]
+            >>> print(f"Found {len(rare_metrics)} rare metric types")
         """
         if not self.db_path:
             raise ValueError("Database path not set")
@@ -900,18 +1300,36 @@ class DataLoader:
             raise DataImportError(f"Failed to get type counts: {str(e)}") from e
     
     def get_source_counts(self) -> pd.DataFrame:
-        """Get counts of records by source device.
+        """Generate record counts and percentages by source device or application.
+        
+        Efficiently computes the distribution of health records across different
+        source devices and applications using SQL aggregation. Helps identify
+        primary data sources and their relative contributions.
         
         Returns:
-            DataFrame with columns:
-            - sourceName: Source device name
-            - count: Number of records
-            - percentage: Percentage of total records
-            
+            DataFrame with source distribution containing columns:
+                - 'sourceName' (str): Source device or application name
+                - 'count' (int): Number of records from this source
+                - 'percentage' (float): Percentage of total records (rounded to 1 decimal)
+                
         Raises:
-            ValueError: If database path not set
-            FileNotFoundError: If database doesn't exist
-            sqlite3.Error: If database query fails
+            ValueError: If database path not set on the DataLoader instance.
+            FileNotFoundError: If database file doesn't exist.
+            DataImportError: If database query execution fails.
+            
+        Examples:
+            Identify main data sources:
+            >>> loader = DataLoader()
+            >>> loader.db_path = "health.db"
+            >>> source_counts = loader.get_source_counts()
+            >>> print("Data sources by contribution:")
+            >>> print(source_counts)
+            
+            Check device diversity:
+            >>> source_counts = loader.get_source_counts()
+            >>> print(f"Data collected from {len(source_counts)} different sources")
+            >>> primary_source = source_counts.iloc[0]
+            >>> print(f"Primary source: {primary_source['sourceName']} ({primary_source['percentage']:.1f}%)")
         """
         if not self.db_path:
             raise ValueError("Database path not set")
@@ -946,23 +1364,40 @@ class DataLoader:
             raise DataImportError(f"Failed to get source counts: {str(e)}") from e
     
     def get_record_statistics(self) -> dict:
-        """Get summary statistics using SQL aggregation queries.
+        """Compute comprehensive record statistics using efficient SQL aggregations.
         
-        This method combines data from multiple aggregation queries for
-        efficient loading in the Configuration tab.
+        Combines multiple statistical queries into a single method call for optimal
+        performance in UI components like the Configuration tab. Provides detailed
+        breakdown of records by type and source along with temporal coverage.
         
         Returns:
-            Dictionary with:
-            - total_records: Total number of records
-            - earliest_date: Earliest record date
-            - latest_date: Latest record date
-            - type_counts: Dictionary of type -> count
-            - source_counts: Dictionary of source -> count
-            
+            Dictionary containing comprehensive record statistics:
+                - 'total_records' (int): Total number of health records
+                - 'earliest_date' (str or None): Earliest record creation date
+                - 'latest_date' (str or None): Latest record creation date
+                - 'type_counts' (dict): Mapping of health types to record counts
+                - 'source_counts' (dict): Mapping of source names to record counts
+                
         Raises:
-            ValueError: If database path not set
-            FileNotFoundError: If database doesn't exist
-            sqlite3.Error: If database query fails
+            ValueError: If database path not set on the DataLoader instance.
+            FileNotFoundError: If database file doesn't exist.
+            DataImportError: If database query execution fails.
+            
+        Examples:
+            Get complete database statistics:
+            >>> loader = DataLoader()
+            >>> loader.db_path = "health.db"
+            >>> stats = loader.get_record_statistics()
+            >>> print(f"Total: {stats['total_records']:,} records")
+            >>> print(f"Types: {len(stats['type_counts'])}")
+            >>> print(f"Sources: {len(stats['source_counts'])}")
+            
+            Analyze data distribution:
+            >>> stats = loader.get_record_statistics()
+            >>> top_type = max(stats['type_counts'], key=stats['type_counts'].get)
+            >>> top_source = max(stats['source_counts'], key=stats['source_counts'].get)
+            >>> print(f"Most common type: {top_type} ({stats['type_counts'][top_type]:,} records)")
+            >>> print(f"Primary source: {top_source} ({stats['source_counts'][top_source]:,} records)")
         """
         if not self.db_path:
             raise ValueError("Database path not set")
@@ -1032,17 +1467,35 @@ class DataLoader:
             raise DataImportError(f"Failed to get record statistics: {str(e)}") from e
     
     def get_filter_options(self) -> dict:
-        """Get unique filter values without loading all data.
+        """Extract unique filter values for UI components without loading full dataset.
+        
+        Efficiently retrieves distinct values for filter dropdowns and selection
+        widgets using optimized SQL queries. Essential for populating UI filter
+        components without the memory overhead of loading complete datasets.
         
         Returns:
-            Dictionary with:
-            - types: List of unique health metric types
-            - sources: List of unique source names
-            
+            Dictionary containing filter options:
+                - 'types' (list): Sorted list of unique health metric types
+                - 'sources' (list): Sorted list of unique source device/app names
+                
         Raises:
-            ValueError: If database path not set
-            FileNotFoundError: If database doesn't exist
-            sqlite3.Error: If database query fails
+            ValueError: If database path not set on the DataLoader instance.
+            FileNotFoundError: If database file doesn't exist.
+            DataImportError: If database query execution fails.
+            
+        Examples:
+            Populate UI filter components:
+            >>> loader = DataLoader()
+            >>> loader.db_path = "health.db"
+            >>> options = loader.get_filter_options()
+            >>> print(f"Available types: {len(options['types'])}")
+            >>> print(f"Available sources: {len(options['sources'])}")
+            
+            Create filter dropdown contents:
+            >>> options = loader.get_filter_options()
+            >>> type_dropdown_items = options['types']
+            >>> source_dropdown_items = options['sources']
+            >>> # Use these lists to populate QComboBox or similar widgets
         """
         if not self.db_path:
             raise ValueError("Database path not set")

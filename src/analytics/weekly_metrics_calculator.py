@@ -547,9 +547,17 @@ class WeeklyMetricsCalculator:
         week_end = week_start + timedelta(days=6)
         
         # Filter data for the specific metric and week
+        # Convert datetime objects to pandas datetime for proper comparison
+        week_start_pd = pd.Timestamp(week_start)
+        week_end_pd = pd.Timestamp(week_end)
+        
+        # Ensure creationDate is in datetime format
+        if 'creationDate' in data.columns:
+            data['creationDate'] = pd.to_datetime(data['creationDate'])
+        
         mask = (data['type'] == metric_type) & \
-               (data['creationDate'] >= week_start) & \
-               (data['creationDate'] <= week_end)
+               (data['creationDate'] >= week_start_pd) & \
+               (data['creationDate'] <= week_end_pd)
         week_data = data[mask].copy()
         
         # Group by date and calculate daily values

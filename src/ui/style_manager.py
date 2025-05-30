@@ -1,4 +1,60 @@
-"""Style manager for consistent theming across the application."""
+"""Style manager for consistent theming across the application.
+
+This module provides comprehensive styling and theming capabilities for the
+Apple Health Monitor Dashboard. It implements a professional design system
+with WSJ-inspired aesthetics, modern color palettes, and accessibility features.
+
+The StyleManager centralizes all visual styling including:
+    - Professional color palette with high contrast ratios
+    - Modern typography system using Inter and Poppins fonts
+    - Shadow and elevation system for depth and hierarchy
+    - Component-specific styling for buttons, inputs, and cards
+    - Accessibility features including focus indicators
+    - Responsive design elements for different screen sizes
+
+Key features:
+    - WSJ-inspired professional color scheme
+    - Comprehensive component styling system
+    - Modern shadow and elevation effects
+    - Accessibility-compliant focus indicators
+    - Responsive design patterns
+    - Cross-platform visual consistency
+
+Design principles:
+    - Clean, minimalist aesthetic with purposeful use of color
+    - High contrast ratios for excellent readability
+    - Consistent spacing and typography for professional appearance
+    - Modern flat design with subtle depth through shadows
+    - Accessibility-first approach with proper focus management
+
+Example:
+    Basic styling application:
+    
+    >>> style_manager = StyleManager()
+    >>> 
+    >>> # Apply styles to components
+    >>> button.setStyleSheet(style_manager.get_button_style("primary"))
+    >>> input_field.setStyleSheet(style_manager.get_input_style())
+    >>> card.setStyleSheet(style_manager.get_card_style())
+    
+    Custom color usage:
+    
+    >>> # Access design system colors
+    >>> primary_color = style_manager.ACCENT_PRIMARY
+    >>> background_color = style_manager.PRIMARY_BG
+    >>> text_color = style_manager.TEXT_PRIMARY
+    
+    Global application styling:
+    
+    >>> # Apply global styles to entire application
+    >>> style_manager.apply_global_style(app)
+
+Attributes:
+    PRIMARY_BG (str): Clean white background color
+    ACCENT_PRIMARY (str): Rich black primary accent color
+    TEXT_PRIMARY (str): High contrast primary text color
+    FOCUS_COLOR (str): WSJ blue for focus indicators
+"""
 
 from ..utils.logging_config import get_logger
 
@@ -6,7 +62,76 @@ logger = get_logger(__name__)
 
 
 class StyleManager:
-    """Manages application styling and themes."""
+    """Manages comprehensive application styling and theming system.
+    
+    This class provides a centralized design system for the Apple Health Monitor
+    Dashboard, implementing WSJ-inspired professional aesthetics with modern
+    usability features and accessibility compliance.
+    
+    Design system features:
+        - Professional color palette with semantic naming
+        - Modern typography hierarchy using Inter and Poppins fonts
+        - Comprehensive shadow and elevation system
+        - Component-specific styling methods
+        - Accessibility-compliant focus indicators
+        - Responsive design patterns
+    
+    Color system:
+        - Primary: Clean whites and professional grays for backgrounds
+        - Accent: Rich blacks and vibrant blues for highlights
+        - Data: Carefully selected colors for charts and visualizations
+        - Status: Green, amber, and red for success, warning, and error states
+        - Text: High contrast colors ensuring accessibility compliance
+    
+    Typography system:
+        - Primary font: Inter for clean, readable interface text
+        - Display font: Poppins for headings and emphasis
+        - Monospace: JetBrains Mono for code and data display
+        - Proper font weights and sizes for clear hierarchy
+    
+    Component styling:
+        - Buttons: Primary, secondary, and ghost variants
+        - Inputs: Text fields, dropdowns, and date pickers
+        - Cards: Various elevation levels and styling options
+        - Navigation: Tabs, menus, and status bars
+        - Tables: Professional data display with proper contrast
+    
+    Accessibility features:
+        - WCAG AA compliant color contrast ratios
+        - Clear focus indicators for keyboard navigation
+        - Proper semantic styling for screen readers
+        - High contrast mode support
+        - Consistent interaction patterns
+    
+    Attributes:
+        PRIMARY_BG (str): Clean white background (#FFFFFF)
+        SECONDARY_BG (str): Very light gray for subtle contrast (#FAFBFC)
+        ACCENT_PRIMARY (str): Rich black for primary text (#0F172A)
+        ACCENT_SECONDARY (str): Vibrant blue for CTAs (#2563EB)
+        TEXT_PRIMARY (str): High contrast black for readability (#0F172A)
+        FOCUS_COLOR (str): WSJ blue for focus indicators (#0080C7)
+        CHART_COLORS (List[str]): Curated colors for data visualization
+    
+    Example:
+        Comprehensive styling workflow:
+        
+        >>> style_manager = StyleManager()
+        >>> 
+        >>> # Apply global application styling
+        >>> style_manager.apply_global_style(app)
+        >>> 
+        >>> # Style specific components
+        >>> primary_button.setStyleSheet(style_manager.get_button_style("primary"))
+        >>> text_input.setStyleSheet(style_manager.get_input_style())
+        >>> data_card.setStyleSheet(style_manager.get_card_style("md"))
+        >>> 
+        >>> # Create custom shadows for elevation
+        >>> shadow_effect = style_manager.create_shadow_effect(blur_radius=12)
+        >>> widget.setGraphicsEffect(shadow_effect)
+        >>> 
+        >>> # Access design system colors
+        >>> widget.setStyleSheet(f"background-color: {style_manager.PRIMARY_BG};")
+    """
     
     # Color palette constants - Modern WSJ-inspired professional palette
     PRIMARY_BG = "#FFFFFF"       # Clean white background
@@ -50,7 +175,32 @@ class StyleManager:
     }
     
     def __init__(self):
-        """Initialize the style manager."""
+        """Initialize the style manager with design system configuration.
+        
+        Sets up the comprehensive styling system for the Apple Health Monitor
+        Dashboard with professional WSJ-inspired aesthetics and accessibility
+        features. The initialization configures all design system components
+        for immediate use throughout the application.
+        
+        Initialization process:
+            1. Configure logging for style-related operations
+            2. Set up color palette constants for consistent theming
+            3. Prepare typography system with proper font hierarchies
+            4. Initialize shadow and elevation system
+            5. Configure accessibility features and focus indicators
+        
+        Design system setup:
+            - Professional color palette with semantic naming
+            - Modern typography using Inter and Poppins fonts
+            - Comprehensive shadow system for depth and hierarchy
+            - Accessibility-compliant focus indicators
+            - Cross-platform visual consistency
+        
+        Performance considerations:
+            - Efficient stylesheet generation with minimal overhead
+            - Cached style strings for frequently used components
+            - Optimized color calculations for dynamic theming
+        """
         logger.debug("Initializing StyleManager")
     
     def get_main_window_style(self):
@@ -162,7 +312,48 @@ class StyleManager:
         """
     
     def get_button_style(self, button_type="primary"):
-        """Get button stylesheet based on type."""
+        """Get comprehensive button stylesheet based on specified type.
+        
+        Provides professional button styling with proper interaction states,
+        accessibility features, and visual hierarchy. The button styles follow
+        modern design principles with clear visual feedback for user actions.
+        
+        Args:
+            button_type (str, optional): Button style variant. Defaults to "primary".
+                Available types:
+                - "primary": High-emphasis blue button for main actions
+                - "secondary": Medium-emphasis outlined button for secondary actions
+                - "ghost": Low-emphasis text button for subtle actions
+        
+        Returns:
+            str: Complete CSS stylesheet for the specified button type.
+                Includes normal, hover, pressed, disabled, and focus states.
+        
+        Button features:
+            - Modern rounded corners for contemporary appearance
+            - Smooth hover and press transitions for responsive feedback
+            - Accessibility-compliant focus indicators
+            - Proper contrast ratios for text readability
+            - Disabled state styling for inactive buttons
+        
+        Example:
+            Apply button styles to Qt widgets:
+            
+            >>> style_manager = StyleManager()
+            >>> 
+            >>> # Primary action button
+            >>> save_button.setStyleSheet(style_manager.get_button_style("primary"))
+            >>> 
+            >>> # Secondary action button
+            >>> cancel_button.setStyleSheet(style_manager.get_button_style("secondary"))
+            >>> 
+            >>> # Subtle action button
+            >>> more_button.setStyleSheet(style_manager.get_button_style("ghost"))
+        
+        Note:
+            All button types include focus indicators for keyboard navigation
+            and maintain consistent sizing and typography.
+        """
         if button_type == "primary":
             return f"""
                 QPushButton {{

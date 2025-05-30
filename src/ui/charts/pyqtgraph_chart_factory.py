@@ -264,11 +264,12 @@ class MultiMetricLineChart(InteractiveChartWidget):
         for i, (metric_name, metric_data) in enumerate(self.data.items()):
             # Prepare data
             if isinstance(metric_data, pd.DataFrame):
-                x_data = metric_data.index.astype(np.int64) // 10**9  # Convert to timestamp
+                # Convert index to numpy array of timestamps
+                x_data = np.array(metric_data.index.astype(np.int64) // 10**9)  # Convert to timestamp
                 y_data = metric_data.iloc[:, 0].values
             else:
                 x_data = np.arange(len(metric_data))
-                y_data = metric_data.values
+                y_data = np.array(metric_data.values) if hasattr(metric_data, 'values') else np.array(metric_data)
             
             # Get metric configuration
             metric_config = y_axes_config.get(metric_name, {})
@@ -458,8 +459,9 @@ class CorrelationHeatmapChart(InteractiveChartWidget):
         left_axis.setTicks([[(i, label) for i, label in enumerate(axis_labels)]])
         bottom_axis.setTicks([[(i, label) for i, label in enumerate(axis_labels)]])
         
-        # Rotate bottom labels
-        bottom_axis.setStyle(angle=-45)
+        # Rotate bottom labels - pyqtgraph doesn't support label rotation directly
+        # We'll use tick spacing instead to avoid overlap
+        bottom_axis.setStyle(tickLength=10)
         
         # Style axes
         for axis in [left_axis, bottom_axis]:

@@ -1,8 +1,68 @@
-"""
-XML Data Validation and Error Handling for Apple Health Monitor
+"""XML Data Validation and Error Handling for Apple Health Monitor.
 
-This module provides comprehensive validation for Apple Health XML imports,
-ensuring data integrity and providing clear error messages for users.
+This module provides comprehensive validation infrastructure for Apple Health XML
+exports, ensuring data integrity, format compliance, and providing detailed error
+reporting for import operations. The validation system is designed to handle large
+XML files efficiently while providing actionable feedback to users.
+
+Key Features:
+    - Comprehensive XML structure validation for Apple Health exports
+    - Field-level validation with configurable rules and constraints
+    - Performance-optimized validation for large datasets (1M+ records)
+    - Detailed error reporting with user-friendly summaries
+    - Configurable validation rules for different data types
+    - Robust error handling and logging integration
+    - Sample-based validation for performance with large files
+
+Validation Components:
+    - File format and accessibility validation
+    - XML structure and Apple Health schema compliance
+    - Individual health record validation with field-level rules
+    - Data type validation (datetime, numeric, string patterns)
+    - Value range and constraint checking
+    - Custom validation rule support
+
+Validation Rules:
+    The module includes default validation rules for standard Apple Health fields:
+    - creationDate: Required datetime field
+    - sourceName: Required string (1-255 characters)
+    - type: Required HealthKit type identifier pattern
+    - unit: Optional measurement unit string
+    - value: Required numeric value (≥ 0)
+    - startDate/endDate: Optional datetime fields
+
+Example:
+    Basic validation usage:
+    
+    >>> from src.utils.xml_validator import validate_apple_health_xml
+    >>> 
+    >>> result = validate_apple_health_xml('export.xml')
+    >>> if result.is_valid:
+    ...     print(f"Valid XML with {result.record_count} records")
+    ... else:
+    ...     print(f"Validation failed: {len(result.errors)} errors")
+    
+    Custom validation rules:
+    
+    >>> from src.utils.xml_validator import ValidationRule, AppleHealthXMLValidator
+    >>> 
+    >>> custom_rules = {
+    ...     'value': ValidationRule(
+    ...         field_name='value',
+    ...         required=True,
+    ...         data_type='float',
+    ...         min_value=0.0,
+    ...         max_value=1000.0
+    ...     )
+    ... }
+    >>> validator = AppleHealthXMLValidator(custom_rules)
+    >>> result = validator.validate_xml_file('export.xml')
+    
+    Error handling and reporting:
+    
+    >>> if not result.is_valid:
+    ...     summary = validator.get_user_friendly_summary(result)
+    ...     print(summary)  # User-friendly error report
 """
 
 import xml.etree.ElementTree as ET

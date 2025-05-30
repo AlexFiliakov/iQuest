@@ -59,7 +59,7 @@ class ImportProgressDialog(QDialog):
         """Setup dialog properties."""
         self.setWindowTitle("Importing Health Data")
         self.setModal(True)
-        self.setFixedSize(520, 320)
+        self.setFixedSize(500, 380)
         self.setWindowFlags(
             Qt.WindowType.Dialog | 
             Qt.WindowType.WindowTitleHint |
@@ -67,21 +67,27 @@ class ImportProgressDialog(QDialog):
             Qt.WindowType.FramelessWindowHint
         )
         
-        # Apply modern theme with elevation
-        self.setStyleSheet(self.style_manager.get_modern_dialog_style())
+        # Apply modern theme with custom styling
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: #FFFFFF;
+                border-radius: 12px;
+                border: 1px solid rgba(0, 0, 0, 0.08);
+            }}
+        """)
         
         # Add drop shadow effect for elevation
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(30)
-        shadow.setColor(QColor(Qt.GlobalColor.black))
-        shadow.setOffset(0, 10)
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        shadow.setOffset(0, 4)
         self.setGraphicsEffect(shadow)
     
     def _create_ui(self):
         """Create the dialog UI components."""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(24)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
         
         # Header with title and close button
         header_layout = QHBoxLayout()
@@ -91,10 +97,11 @@ class ImportProgressDialog(QDialog):
         title = QLabel("Importing Health Data")
         title.setStyleSheet(f"""
             QLabel {{
-                font-size: 20px;
+                font-size: 18px;
                 font-weight: 600;
-                color: {self.style_manager.TEXT_PRIMARY};
-                letter-spacing: -0.5px;
+                color: #212121;
+                letter-spacing: -0.3px;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
             }}
         """)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -110,8 +117,8 @@ class ImportProgressDialog(QDialog):
             QPushButton {{
                 background-color: transparent;
                 border: none;
-                font-size: 24px;
-                color: {self.style_manager.TEXT_SECONDARY};
+                font-size: 20px;
+                color: #757575;
                 padding: 0;
                 margin: 0;
                 min-width: 30px;
@@ -121,13 +128,13 @@ class ImportProgressDialog(QDialog):
                 border-radius: 15px;
             }}
             QPushButton:hover {{
-                background-color: {self.style_manager.TERTIARY_BG};
-                color: {self.style_manager.TEXT_PRIMARY};
+                background-color: #F5F5F5;
+                color: #212121;
             }}
         """)
         close_btn.clicked.connect(self.close)
         close_btn.setParent(self)
-        close_btn.move(self.width() - 50, 20)
+        close_btn.move(self.width() - 45, 15)
         
         layout.addLayout(header_layout)
         
@@ -136,28 +143,22 @@ class ImportProgressDialog(QDialog):
         file_info.setStyleSheet(f"""
             QLabel {{
                 font-size: 14px;
-                color: {self.style_manager.TEXT_SECONDARY};
-                padding: 10px 16px;
-                background-color: {self.style_manager.TERTIARY_BG};
-                border-radius: 8px;
+                color: #616161;
+                padding: 8px 16px;
+                background-color: #F5F5F5;
+                border-radius: 6px;
                 border: none;
+                font-family: 'SF Mono', 'Consolas', monospace;
             }}
         """)
         file_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(file_info)
         
-        # Progress section
-        progress_frame = QFrame(self)
-        progress_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {self.style_manager.SECONDARY_BG};
-                border: none;
-                border-radius: 12px;
-                padding: 24px;
-            }}
-        """)
-        progress_layout = QVBoxLayout(progress_frame)
-        progress_layout.setSpacing(16)
+        # Progress section - directly add elements without frame
+        progress_container = QWidget()
+        progress_layout = QVBoxLayout(progress_container)
+        progress_layout.setContentsMargins(0, 0, 0, 0)
+        progress_layout.setSpacing(12)
         
         # Progress label
         self.progress_label = QLabel("Preparing import...")
@@ -165,8 +166,9 @@ class ImportProgressDialog(QDialog):
             QLabel {{
                 font-size: 15px;
                 font-weight: 500;
-                color: {self.style_manager.TEXT_PRIMARY};
+                color: #212121;
                 letter-spacing: -0.2px;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
             }}
         """)
         progress_layout.addWidget(self.progress_label)
@@ -175,7 +177,27 @@ class ImportProgressDialog(QDialog):
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setStyleSheet(self.style_manager.get_modern_progress_bar_style())
+        self.progress_bar.setFixedHeight(28)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat("%p%")
+        self.progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                border: none;
+                border-radius: 14px;
+                text-align: center;
+                background-color: #E0E0E0;
+                font-weight: 600;
+                font-size: 13px;
+                color: #212121;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
+            }}
+            QProgressBar::chunk {{
+                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+                    stop: 0 #1E88E5,
+                    stop: 1 #1976D2);
+                border-radius: 14px;
+            }}
+        """)
         progress_layout.addWidget(self.progress_bar)
         
         # Stats container with horizontal layout
@@ -187,8 +209,9 @@ class ImportProgressDialog(QDialog):
         self.record_counter_label.setStyleSheet(f"""
             QLabel {{
                 font-size: 13px;
-                color: {self.style_manager.TEXT_SECONDARY};
+                color: #757575;
                 font-weight: 500;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
             }}
         """)
         stats_container.addWidget(self.record_counter_label)
@@ -200,21 +223,68 @@ class ImportProgressDialog(QDialog):
         self.stats_label.setStyleSheet(f"""
             QLabel {{
                 font-size: 13px;
-                color: {self.style_manager.TEXT_SECONDARY};
+                color: #757575;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
             }}
         """)
         stats_container.addWidget(self.stats_label)
         
         progress_layout.addLayout(stats_container)
         
-        layout.addWidget(progress_frame)
+        # Add spacing
+        progress_layout.addSpacing(8)
+        
+        # Status message area
+        self.status_message = QLabel("")
+        self.status_message.setStyleSheet(f"""
+            QLabel {{
+                font-size: 12px;
+                color: #9E9E9E;
+                padding: 12px;
+                background-color: #FAFAFA;
+                border-radius: 8px;
+                border: 1px solid #E0E0E0;
+                min-height: 60px;
+                font-family: 'SF Mono', 'Consolas', monospace;
+            }}
+        """)
+        self.status_message.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.status_message.setWordWrap(True)
+        progress_layout.addWidget(self.status_message)
+        
+        layout.addWidget(progress_container)
         
         # Button section
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         
         self.cancel_button = QPushButton("Cancel Import")
-        self.cancel_button.setStyleSheet(self.style_manager.get_button_style("secondary"))
+        self.cancel_button.setFixedHeight(36)
+        self.cancel_button.setMinimumWidth(120)
+        self.cancel_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #F5F5F5;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                color: #424242;
+                font-size: 14px;
+                font-weight: 500;
+                padding: 8px 20px;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
+            }}
+            QPushButton:hover {{
+                background-color: #EEEEEE;
+                border-color: #BDBDBD;
+            }}
+            QPushButton:pressed {{
+                background-color: #E0E0E0;
+            }}
+            QPushButton:disabled {{
+                background-color: #FAFAFA;
+                color: #BDBDBD;
+                border-color: #E0E0E0;
+            }}
+        """)
         self.cancel_button.clicked.connect(self._on_cancel_clicked)
         button_layout.addWidget(self.cancel_button)
         
@@ -244,6 +314,10 @@ class ImportProgressDialog(QDialog):
         # Update UI
         self.progress_label.setText("Starting import...")
         self.cancel_button.setEnabled(True)
+        
+        # Show initial status
+        if hasattr(self, 'status_message'):
+            self.status_message.setText("📂 Opening and validating file...")
     
     def _on_progress_updated(self, percentage: int, message: str, record_count: int = 0):
         """Handle progress updates from worker."""
@@ -251,6 +325,26 @@ class ImportProgressDialog(QDialog):
         self.progress_label.setText(message)
         if record_count > 0:
             self.record_counter_label.setText(f"Records processed: {record_count:,}")
+            
+        # Update status message with more detailed info
+        if hasattr(self, 'status_message'):
+            status_text = []
+            if percentage < 20:
+                status_text.append("📂 Opening and validating file...")
+            elif percentage < 40:
+                status_text.append("🔍 Parsing health records...")
+            elif percentage < 60:
+                status_text.append("💾 Storing data in database...")
+            elif percentage < 80:
+                status_text.append("📊 Processing metrics...")
+            else:
+                status_text.append("✨ Finalizing import...")
+                
+            if record_count > 0:
+                status_text.append(f"Found {record_count:,} health records")
+                
+            self.status_message.setText("\n".join(status_text))
+            
         logger.debug(f"Import progress: {percentage}% - {message} - Records: {record_count}")
     
     def _on_import_completed(self, result: Dict[str, Any]):
@@ -263,6 +357,19 @@ class ImportProgressDialog(QDialog):
         # Update UI
         self.progress_bar.setValue(100)
         self.progress_label.setText("Import completed successfully!")
+        self.progress_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 15px;
+                font-weight: 600;
+                color: #43A047;
+                letter-spacing: -0.2px;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
+            }}
+        """)
+        
+        # Update status message
+        if hasattr(self, 'status_message'):
+            self.status_message.setText(f"✅ Successfully imported {result.get('record_count', 0):,} health records")
         
         # Emit signal
         self.import_completed.emit(result)
@@ -293,11 +400,18 @@ class ImportProgressDialog(QDialog):
         self.progress_label.setText("Import failed!")
         self.progress_label.setStyleSheet(f"""
             QLabel {{
-                font-size: 16px;
-                font-weight: 500;
-                color: {self.style_manager.ACCENT_ERROR};
+                font-size: 15px;
+                font-weight: 600;
+                color: #F44336;
+                letter-spacing: -0.2px;
+                font-family: 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
             }}
         """)
+        
+        # Update status message
+        if hasattr(self, 'status_message'):
+            self.status_message.setText(f"❌ Error: {message}")
+        
         self.cancel_button.setText("Close")
         self.cancel_button.clicked.disconnect()
         self.cancel_button.clicked.connect(self.reject)
