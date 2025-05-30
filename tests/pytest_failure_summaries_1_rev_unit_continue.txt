@@ -1,0 +1,142 @@
+/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 898 items / 1 deselected / 897 selected
+
+tests/unit/test_accessibility_compliance.py::TestVisualizationAccessibilityManager::test_initialization PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestVisualizationAccessibilityManager::test_accessibility_validation PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestWCAGValidator::test_wcag_validation PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestWCAGValidator::test_contrast_requirements PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_contrast_calculation PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_colorblind_palettes PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_high_contrast_palette PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_color_enhancement PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestScreenReaderSupport::test_chart_description_creation PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestScreenReaderSupport::test_announcement_queue PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestKeyboardNavigation::test_default_shortcuts PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestKeyboardNavigation::test_shortcut_descriptions PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_basic_accessibility_setup PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_keyboard_navigation PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_high_contrast_toggle PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_announcements FAILED [  1%]
+
+=================================== FAILURES ===================================
+_________________ TestAccessibleChartMixin.test_announcements __________________
+tests/unit/test_accessibility_compliance.py:345: in test_announcements
+    assert "Point 1" in announcement
+E   AssertionError: assert 'Point 1' in 'Data point 1 of 3'
+----------------------------- Captured stderr call -----------------------------
+2025-05-30 08:36:17 - INFO - Initialized ScreenReaderManager
+2025-05-30 08:36:17 - INFO - Initialized KeyboardNavigationManager
+2025-05-30 08:36:17 - INFO - Initialized ColorAccessibilityManager
+2025-05-30 08:36:17 - INFO - Initialized DataSonification
+2025-05-30 08:36:17 - INFO - Initialized AlternativeRepresentationManager
+2025-05-30 08:36:17 - INFO - Initialized VisualizationAccessibilityManager
+2025-05-30 08:36:17 - INFO - WCAG validation complete: All tests passed
+2025-05-30 08:36:17 - INFO - Accessibility enabled for chart
+------------------------------ Captured log call -------------------------------
+INFO     apple_health_monitor.src.ui.accessibility.screen_reader_support:screen_reader_support.py:32 Initialized ScreenReaderManager
+INFO     apple_health_monitor.src.ui.accessibility.keyboard_navigation:keyboard_navigation.py:59 Initialized KeyboardNavigationManager
+INFO     apple_health_monitor.src.ui.accessibility.color_accessibility:color_accessibility.py:92 Initialized ColorAccessibilityManager
+INFO     apple_health_monitor.src.ui.accessibility.alternative_representations:alternative_representations.py:216 Initialized DataSonification
+INFO     apple_health_monitor.src.ui.accessibility.alternative_representations:alternative_representations.py:489 Initialized AlternativeRepresentationManager
+INFO     apple_health_monitor.src.ui.accessibility.accessibility_manager:accessibility_manager.py:81 Initialized VisualizationAccessibilityManager
+INFO     apple_health_monitor.src.ui.accessibility.wcag_validator:wcag_validator.py:133 WCAG validation complete: All tests passed
+INFO     apple_health_monitor.src.ui.accessibility.accessible_chart_mixin:accessible_chart_mixin.py:84 Accessibility enabled for chart
+=========================== short test summary info ============================
+FAILED tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_announcements
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================= 1 failed, 15 passed, 1 deselected in 27.28s ==================
+/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 898 items / 1 deselected / 897 selected
+
+tests/unit/test_accessibility_compliance.py::TestVisualizationAccessibilityManager::test_initialization PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestVisualizationAccessibilityManager::test_accessibility_validation PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestWCAGValidator::test_wcag_validation PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestWCAGValidator::test_contrast_requirements PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_contrast_calculation PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_colorblind_palettes PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_high_contrast_palette PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestColorAccessibilityManager::test_color_enhancement PASSED [  0%]
+tests/unit/test_accessibility_compliance.py::TestScreenReaderSupport::test_chart_description_creation PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestScreenReaderSupport::test_announcement_queue PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestKeyboardNavigation::test_default_shortcuts PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestKeyboardNavigation::test_shortcut_descriptions PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_basic_accessibility_setup PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_keyboard_navigation PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_high_contrast_toggle PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAccessibleChartMixin::test_announcements PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAlternativeRepresentations::test_data_table_creation PASSED [  1%]
+tests/unit/test_accessibility_compliance.py::TestAlternativeRepresentations::test_sonification_basic PASSED [  2%]
+tests/unit/test_accessibility_compliance.py::TestAlternativeRepresentations::test_haptic_feedback_generation PASSED [  2%]
+tests/unit/test_accessibility_compliance.py::TestIntegration::test_full_accessibility_workflow FAILED [  2%]
+
+=================================== FAILURES ===================================
+_______________ TestIntegration.test_full_accessibility_workflow _______________
+tests/unit/test_accessibility_compliance.py:435: in test_full_accessibility_workflow
+    accessible_chart = accessibility_manager.make_chart_accessible(chart, config)
+src/ui/accessibility/accessibility_manager.py:94: in make_chart_accessible
+    self._enhance_chart_accessibility(accessible_chart)
+src/ui/accessibility/accessibility_manager.py:145: in _enhance_chart_accessibility
+    self._ensure_color_accessibility(chart)
+src/ui/accessibility/accessibility_manager.py:213: in _ensure_color_accessibility
+    issues = self.color_accessibility.check_contrast_issues(current_colors)
+src/ui/accessibility/color_accessibility.py:107: in check_contrast_issues
+    if fg_key in colors and bg_key in colors:
+E   TypeError: argument of type 'Mock' is not iterable
+---------------------------- Captured stderr setup -----------------------------
+2025-05-30 08:37:59 - INFO - Initialized ScreenReaderManager
+2025-05-30 08:37:59 - INFO - Initialized KeyboardNavigationManager
+2025-05-30 08:37:59 - INFO - Initialized ColorAccessibilityManager
+2025-05-30 08:37:59 - INFO - Initialized DataSonification
+2025-05-30 08:37:59 - INFO - Initialized AlternativeRepresentationManager
+2025-05-30 08:37:59 - INFO - Initialized VisualizationAccessibilityManager
+------------------------------ Captured log setup ------------------------------
+INFO     apple_health_monitor.src.ui.accessibility.screen_reader_support:screen_reader_support.py:32 Initialized ScreenReaderManager
+INFO     apple_health_monitor.src.ui.accessibility.keyboard_navigation:keyboard_navigation.py:59 Initialized KeyboardNavigationManager
+INFO     apple_health_monitor.src.ui.accessibility.color_accessibility:color_accessibility.py:92 Initialized ColorAccessibilityManager
+INFO     apple_health_monitor.src.ui.accessibility.alternative_representations:alternative_representations.py:216 Initialized DataSonification
+INFO     apple_health_monitor.src.ui.accessibility.alternative_representations:alternative_representations.py:489 Initialized AlternativeRepresentationManager
+INFO     apple_health_monitor.src.ui.accessibility.accessibility_manager:accessibility_manager.py:81 Initialized VisualizationAccessibilityManager
+----------------------------- Captured stderr call -----------------------------
+2025-05-30 08:37:59 - ERROR - Error ensuring color accessibility: argument of type 'Mock' is not iterable
+2025-05-30 08:37:59 - ERROR - Error enhancing chart accessibility: argument of type 'Mock' is not iterable
+2025-05-30 08:37:59 - ERROR - Error making chart accessible: argument of type 'Mock' is not iterable
+------------------------------ Captured log call -------------------------------
+ERROR    apple_health_monitor.src.ui.accessibility.accessibility_manager:accessibility_manager.py:227 Error ensuring color accessibility: argument of type 'Mock' is not iterable
+ERROR    apple_health_monitor.src.ui.accessibility.accessibility_manager:accessibility_manager.py:156 Error enhancing chart accessibility: argument of type 'Mock' is not iterable
+ERROR    apple_health_monitor.src.ui.accessibility.accessibility_manager:accessibility_manager.py:115 Error making chart accessible: argument of type 'Mock' is not iterable
+=========================== short test summary info ============================
+FAILED tests/unit/test_accessibility_compliance.py::TestIntegration::test_full_accessibility_workflow
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+================= 1 failed, 19 passed, 1 deselected in 38.77s ==================

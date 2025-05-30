@@ -1,0 +1,80 @@
+/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 45 items
+
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_end_to_end_smart_selection PASSED [  2%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_user_interaction_tracking PASSED [  4%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_preference_learning_workflow PASSED [  6%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_context_based_selection PASSED [  8%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_preference_persistence_simulation PASSED [ 11%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_fallback_behavior_with_no_data PASSED [ 13%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_smart_selection_with_learned_preferences PASSED [ 15%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_weight_adjustment_affects_selection PASSED [ 17%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_export_import_preferences_integration PASSED [ 20%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_availability_service_integration PASSED [ 22%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_selector_cleanup PASSED [ 24%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_error_handling_in_integration PASSED [ 26%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_multiple_metric_switches PASSED [ 28%]
+tests/integration/test_smart_selection_integration.py::TestSmartSelectionIntegration::test_selection_info_and_statistics PASSED [ 31%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_end_to_end_visualization PASSED [ 33%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_correlation_with_real_data PASSED [ 35%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_export_functionality PASSED [ 37%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_performance_with_large_dataset PASSED [ 40%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_style_consistency PASSED [ 42%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_data_filtering_integration PASSED [ 44%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_accessibility_features PASSED [ 46%]
+tests/integration/test_visualization_integration.py::TestVisualizationIntegration::test_empty_data_handling PASSED [ 48%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_full_workflow_steps_analysis PASSED [ 51%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_momentum_detection_integration PASSED [ 53%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_streak_tracking_integration PASSED [ 55%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_prediction_integration PASSED [ 57%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_trend_series_integration PASSED [ 60%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_narrative_generation_integration PASSED [ 62%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_multiple_metrics_workflow PASSED [ 64%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_edge_case_insufficient_data PASSED [ 66%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_caching_behavior PASSED [ 68%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_year_boundary_handling PASSED [ 71%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_partial_week_handling PASSED [ 73%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_error_logging PASSED [ 75%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset PASSED [ 77%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_ui_widget_with_real_calculator PASSED [ 80%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_momentum_indicator_real_data PASSED [ 82%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_streak_tracker_real_data PASSED [ 84%]
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekUIIntegration::test_slope_graph_real_data PASSED [ 86%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_memory_monitor PASSED [ 88%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_chunk_size_calculation PASSED [ 91%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_streaming_processor_with_real_data SKIPPED [ 93%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_streaming_decision_logic PASSED [ 95%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_database_structure SKIPPED [ 97%]
+tests/integration/test_xml_streaming_integration.py::TestXMLStreamingIntegration::test_error_handling PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py:2842: RuntimeWarning: invalid value encountered in subtract
+    X -= avg[:, None]
+
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+tests/integration/test_week_over_week_integration.py::TestWeekOverWeekIntegration::test_performance_large_dataset
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:136: RuntimeWarning: invalid value encountered in reduce
+    ret = umr_sum(arr, axis, dtype, out, keepdims, where=where)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 43 passed, 2 skipped, 6 warnings in 35.62s ==================
