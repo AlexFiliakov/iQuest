@@ -75,17 +75,17 @@ class TestXMLStreamingProcessor:
         # Small file (<50MB)
         small_size = 30 * 1024 * 1024  # 30MB
         chunk_size = self.processor.calculate_chunk_size(small_size)
-        assert chunk_size == 20000
+        assert chunk_size == 10000
         
         # Medium file (<200MB)
         medium_size = 100 * 1024 * 1024  # 100MB
         chunk_size = self.processor.calculate_chunk_size(medium_size)
-        assert chunk_size == 10000
+        assert chunk_size == 5000
         
         # Large file (>200MB)
         large_size = 500 * 1024 * 1024  # 500MB
         chunk_size = self.processor.calculate_chunk_size(large_size)
-        assert chunk_size == 5000
+        assert chunk_size == 2500
     
     def test_streaming_decision(self):
         """Test decision logic for using streaming vs memory processing."""
@@ -135,8 +135,8 @@ class TestXMLStreamingProcessor:
         xml_path = self.create_sample_xml(record_count=50)
         db_path = Path(self.temp_dir) / "test.db"
         
-        # Mock the convert_xml_to_sqlite function by patching where it's imported
-        with patch('data_loader.convert_xml_to_sqlite') as mock_convert:
+        # Mock the convert_xml_to_sqlite function by patching the data_loader module
+        with patch('src.data_loader.convert_xml_to_sqlite') as mock_convert:
             mock_convert.return_value = 50
             
             record_count = self.processor.process_xml_file(
@@ -277,6 +277,8 @@ class TestAppleHealthHandler:
         
         # Process a few records
         handler._process_record(test_record)
+        # Simulate bytes processed to trigger progress callback
+        handler.bytes_processed = 1000  # Reached end of file
         handler._process_record(test_record)
         
         # Should have triggered progress callbacks

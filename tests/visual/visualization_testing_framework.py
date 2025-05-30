@@ -217,12 +217,26 @@ class VisualizationTestingFramework:
         """Save test reports to JSON files"""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         
+        class MockSafeEncoder(json.JSONEncoder):
+            def default(self, obj):
+                # Handle MagicMock objects and other non-serializable objects
+                if hasattr(obj, '_mock_name') or 'Mock' in str(type(obj)):
+                    return f"<Mock: {repr(obj)}>"
+                try:
+                    return super().default(obj)
+                except TypeError:
+                    return str(obj)
+        
         for report in reports:
             filename = f"{report.component_name}_{timestamp}.json"
             filepath = self.results_dir / filename
             
-            with open(filepath, 'w') as f:
-                json.dump(report.to_dict(), f, indent=2)
+            try:
+                with open(filepath, 'w') as f:
+                    json.dump(report.to_dict(), f, indent=2, cls=MockSafeEncoder)
+            except Exception as e:
+                # If serialization still fails, just skip saving this report
+                print(f"Warning: Could not save report for {report.component_name}: {e}")
                 
 
 class VisualizationUnitTestRunner:
@@ -767,7 +781,7 @@ class AccessibilityTestRunner:
         )
         
         # Test arrow key navigation
-        key_events = [Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down]
+        key_events = [Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down]
         key_names = ['Left', 'Right', 'Up', 'Down']
         
         for key, key_name in zip(key_events, key_names):

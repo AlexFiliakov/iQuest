@@ -65,11 +65,17 @@ class VisualTestBase:
             painter.end()
         
         # Convert to PIL Image
-        buffer = io.BytesIO()
-        pixmap.save(buffer, 'PNG')
-        buffer.seek(0)
+        # PyQt6 requires QBuffer for in-memory operations
+        from PyQt6.QtCore import QBuffer, QIODevice
         
-        return Image.open(buffer)
+        buffer = QBuffer()
+        buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+        pixmap.save(buffer, 'PNG')
+        buffer.close()
+        
+        # Get the data and convert to PIL Image
+        image_data = buffer.data().data()
+        return Image.open(io.BytesIO(image_data))
     
     def assert_visual_match(
         self, 

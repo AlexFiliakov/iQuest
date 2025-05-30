@@ -137,7 +137,7 @@ class WSJColorContrastChecker:
         self.wsj_palette = {
             'background': '#FFFFFF',
             'text': '#333333',
-            'primary': '#0080C0',
+            'primary': '#006FA0',  # Darker blue to meet AA contrast (4.51 ratio)
             'secondary': '#F5E6D3',
             'accent': '#FF8C42',
             'muted': '#666666',

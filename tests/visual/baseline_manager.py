@@ -89,8 +89,17 @@ class BaselineManager:
         test_name: str, 
         image: Image.Image,
         platform_specific: bool = True
-    ):
-        """Save baseline image."""
+    ) -> Path:
+        """Save baseline image.
+        
+        Args:
+            test_name: Name of the test
+            image: Image to save as baseline
+            platform_specific: Whether to save in platform-specific directory
+            
+        Returns:
+            Path to the saved baseline image
+        """
         clean_name = self._clean_filename(test_name)
         
         if platform_specific:
@@ -102,10 +111,21 @@ class BaselineManager:
         
         # Save with optimization for smaller file sizes
         image.save(path, 'PNG', optimize=True, compress_level=9)
+        
+        return path
     
     def baseline_exists(self, test_name: str) -> bool:
         """Check if baseline exists (either platform-specific or generic)."""
         return self.get_baseline_path(test_name).exists()
+    
+    def set_baseline_dir(self, path: str):
+        """Set the baseline directory path.
+        
+        Args:
+            path: New baseline directory path
+        """
+        self.base_path = Path(path)
+        self._ensure_directories()
     
     def list_baselines(self) -> list:
         """List all available baselines for current platform."""

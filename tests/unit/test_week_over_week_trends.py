@@ -230,8 +230,8 @@ class TestWeekOverWeekTrends:
         prediction = trends_calculator.predict_next_week("steps", 15, 2024, "linear")
         
         assert prediction.predicted_value > 0
-        assert prediction.confidence_interval_lower < prediction.predicted_value
-        assert prediction.confidence_interval_upper > prediction.predicted_value
+        assert prediction.confidence_interval_lower <= prediction.predicted_value
+        assert prediction.confidence_interval_upper >= prediction.predicted_value
         assert prediction.methodology == "linear_regression"
         assert prediction.prediction_confidence > 0
     

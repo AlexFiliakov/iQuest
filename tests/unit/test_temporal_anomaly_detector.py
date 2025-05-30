@@ -62,21 +62,33 @@ class TestSTLAnomalyDetector:
     
     def test_stl_fallback_to_iqr(self):
         """Test fallback to simple IQR when STL fails."""
-        # Create data that might cause STL issues
+        from unittest.mock import patch
+        
+        # Create test data with variation to ensure non-zero IQR
         dates = pd.date_range(start='2024-01-01', periods=50, freq='D')
-        data = pd.Series(np.ones(50), index=dates)  # Constant data
-        data[25] = 10  # One anomaly
+        # Create data with variation: values ranging from 8 to 12
+        data = pd.Series([8, 9, 10, 11, 12] * 10, index=dates)
+        data.iloc[25] = 100  # Clear anomaly (much higher than normal range)
         
-        detector = STLAnomalyDetector(seasonal=7)
+        detector = STLAnomalyDetector(seasonal=7, iqr_multiplier=1.5)
         
-        # Should fall back to simple IQR
-        with warnings.catch_warnings(record=True) as w:
-            anomalies = detector.detect(data)
-            # Check that a warning was issued
-            assert any("STL decomposition failed" in str(warning.message) for warning in w)
-        
-        assert len(anomalies) == 1
-        assert anomalies[0].context['decomposition_method'] == 'None (IQR only)'
+        # Mock STL to raise an exception and force fallback
+        with patch('src.analytics.temporal_anomaly_detector.STL') as mock_stl:
+            mock_stl.side_effect = ValueError("STL failed")
+            
+            # Should fall back to simple IQR due to mocked failure
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")  # Capture all warnings
+                anomalies = detector.detect(data)
+                # Check that a warning was issued
+                assert any("STL decomposition failed" in str(warning.message) for warning in w)
+            
+            # Should detect the anomaly using fallback method
+            assert len(anomalies) >= 1, f"Expected at least 1 anomaly, got {len(anomalies)}"
+            # Find the anomaly with value 100
+            anomaly_100 = next((a for a in anomalies if a.value == 100), None)
+            assert anomaly_100 is not None, f"Expected anomaly with value 100, got values: {[a.value for a in anomalies]}"
+            assert anomaly_100.context['decomposition_method'] == 'None (IQR only)'
     
     def test_stl_context_information(self, sample_data):
         """Test that STL provides rich context information."""

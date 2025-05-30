@@ -426,6 +426,9 @@ class TestComparisonResult:
             monthly_calculator=error_calc
         )
         
-        # Should return None without raising exception
+        # Should return empty HistoricalComparison without raising exception
         result = engine.compare_to_historical("error_metric", datetime.now())
-        assert result is None
+        assert isinstance(result, HistoricalComparison)
+        assert result.rolling_7_day is None
+        assert result.rolling_30_day is None
+        assert result.rolling_90_day is None

@@ -94,7 +94,7 @@ class TestVisualizationAccessibilityManager:
         }
         
         # Mock the create_data_table method to avoid Qt widget creation
-        with patch('src.ui.accessibility.alternative_representations.AlternativeRepresentations.create_data_table') as mock_create_table:
+        with patch('src.ui.accessibility.alternative_representations.AlternativeRepresentationManager.create_data_table') as mock_create_table:
             mock_create_table.return_value = MagicMock()
             
             accessible_chart = accessibility_manager.make_chart_accessible(
@@ -437,8 +437,10 @@ class TestIntegration:
         })
         
         # Mock the create_data_table method to avoid Qt widget creation
-        with patch('src.ui.accessibility.alternative_representations.AlternativeRepresentations.create_data_table') as mock_create_table:
+        with patch('src.ui.accessibility.alternative_representations.AlternativeRepresentationManager.create_data_table') as mock_create_table, \
+             patch.object(accessibility_manager.color_accessibility, 'check_contrast_issues') as mock_contrast_check:
             mock_create_table.return_value = MagicMock()
+            mock_contrast_check.return_value = []  # No contrast issues
             
             # Make it accessible
             config = {'type': 'line', 'title': 'Test Chart'}

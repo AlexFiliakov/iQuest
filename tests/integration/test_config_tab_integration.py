@@ -15,11 +15,31 @@ class TestConfigTabIntegration:
     """Test Configuration tab integration with main window."""
     
     @pytest.fixture
-    def main_window(self, qtbot):
+    def main_window(self, qtbot, monkeypatch):
         """Create a main window instance for testing."""
-        window = MainWindow()
-        qtbot.addWidget(window)
-        return window
+        import tempfile
+        from src.database import DatabaseManager
+        from PyQt6.QtWidgets import QMessageBox
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Reset singleton
+            DatabaseManager._instance = None
+            
+            # Override the data directory in config
+            import src.config as config
+            monkeypatch.setattr(config, 'DATA_DIR', temp_dir)
+            
+            # Mock QMessageBox.critical to prevent modal dialogs in tests
+            def mock_critical(*args, **kwargs):
+                return QMessageBox.StandardButton.Ok
+            monkeypatch.setattr(QMessageBox, 'critical', mock_critical)
+            
+            window = MainWindow()
+            qtbot.addWidget(window)
+            yield window
+            
+            # Cleanup
+            DatabaseManager._instance = None
     
     @pytest.fixture
     def mock_data(self):
