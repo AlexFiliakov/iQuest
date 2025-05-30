@@ -58,149 +58,154 @@ A powerful Windows desktop application for analyzing and visualizing Apple Healt
 - **SQLite**: Local database for journal entries
 - **PyInstaller**: Windows executable packaging
 
-## Project Structure
+## 📁 Project Structure
+
+The Apple Health Monitor Dashboard is organized into a modular architecture with clear separation of concerns. **All modules feature comprehensive Google-style docstrings** with detailed examples, parameter documentation, and usage guidelines:
 
 ```
 Apple Health Exports/
-├── src/                           # Source code
+├── src/                           # 🎯 Source code
 │   ├── __init__.py               # Package initialization
-│   ├── main.py                   # Application entry point
-│   ├── config.py                 # Configuration management
-│   ├── models.py                 # Data models
-│   ├── data_access.py            # Data access layer
-│   ├── data_loader.py            # Data import and processing
-│   ├── database.py               # Database operations
-│   ├── health_database.py        # Health-specific database operations
-│   ├── xml_streaming_processor.py # XML processing with streaming
-│   ├── filter_config_manager.py  # Filter configuration management
-│   ├── data_filter_engine.py     # Data filtering engine
-│   ├── data_availability_service.py # Data availability tracking
-│   ├── statistics_calculator.py  # Statistical calculations
-│   ├── predictive_analytics.py   # Predictive analytics engine
-│   ├── version.py                # Version information
-│   ├── analytics/                # Analytics modules
+│   ├── main.py                   # 🚀 Application entry point with Google-style docstrings
+│   ├── config.py                 # ⚙️ Configuration constants and settings
+│   ├── models.py                 # 📊 Data models for database entities
+│   ├── data_access.py            # 💾 Data access layer (DAO pattern)
+│   ├── data_loader.py            # 📥 Data import and XML/CSV processing
+│   ├── database.py               # 🗄️ Database operations and management
+│   ├── health_database.py        # 🏥 Health-specific database operations
+│   ├── xml_streaming_processor.py # 🔄 XML processing with streaming
+│   ├── filter_config_manager.py  # 🔧 Filter configuration management
+│   ├── data_filter_engine.py     # 🔍 Data filtering and query engine
+│   ├── data_availability_service.py # 📅 Data availability tracking
+│   ├── statistics_calculator.py  # 📈 Statistical calculations and analysis
+│   ├── predictive_analytics.py   # 🔮 Predictive analytics engine
+│   ├── version.py                # 📋 Version information
+│   ├── analytics/                # 📊 Advanced Analytics Package (38+ modules)
 │   │   ├── __init__.py
-│   │   ├── advanced_trend_engine.py      # Advanced trend analysis
-│   │   ├── advanced_trend_models.py      # Trend analysis models
-│   │   ├── anomaly_detection.py          # Anomaly detection
-│   │   ├── anomaly_detection_system.py   # Anomaly detection system
-│   │   ├── anomaly_detectors.py          # Anomaly detectors
-│   │   ├── anomaly_models.py             # Anomaly detection models
-│   │   ├── cache_background_refresh.py   # Background cache refresh
-│   │   ├── cache_manager.py              # Cache management
-│   │   ├── cached_calculators.py         # Cached calculation engines
-│   │   ├── causality_detector.py         # Causality detection
-│   │   ├── comparative_analytics.py      # Comparative analytics
-│   │   ├── comparison_overlay_calculator.py # Comparison calculations
-│   │   ├── computation_queue.py          # Computation queue management
-│   │   ├── connection_pool.py            # Database connection pool
-│   │   ├── correlation_analyzer.py       # Correlation analysis
-│   │   ├── correlation_discovery.py      # Correlation discovery
-│   │   ├── correlation_models.py         # Correlation models
-│   │   ├── daily_metrics_calculator.py   # Daily metrics calculations
-│   │   ├── data_source_protocol.py       # Data source protocols
-│   │   ├── data_story_generator.py       # Data story generation
-│   │   ├── dataframe_adapter.py          # DataFrame adapters
-│   │   ├── day_of_week_analyzer.py       # Day-of-week analysis
-│   │   ├── ensemble_detector.py          # Ensemble detection
-│   │   ├── evidence_database.py          # Evidence database
-│   │   ├── feedback_processor.py         # Feedback processing
-│   │   ├── goal_management_system.py     # Goal management
-│   │   ├── goal_models.py                # Goal models
-│   │   ├── goal_notification_integration.py # Goal notifications
-│   │   ├── health_insights_engine.py     # Health insights engine
-│   │   ├── health_insights_models.py     # Health insights models
-│   │   ├── medical_evidence_validator.py # Medical evidence validation
-│   │   ├── month_over_month_trends.py    # Monthly trend analysis
-│   │   ├── monthly_context_provider.py   # Monthly context
-│   │   ├── monthly_metrics_calculator.py # Monthly metrics
-│   │   ├── notification_manager.py       # Notification management
-│   │   ├── optimized_analytics_engine.py # Optimized analytics
-│   │   ├── optimized_calculator_integration.py # Calculator integration
-│   │   ├── peer_group_comparison.py      # Peer group comparisons
-│   │   ├── performance_monitor.py        # Performance monitoring
-│   │   ├── personal_records_tracker.py   # Personal records tracking
-│   │   ├── progressive_loader.py         # Progressive data loading
-│   │   ├── seasonal_pattern_analyzer.py  # Seasonal pattern analysis
-│   │   ├── story_delivery_manager.py     # Story delivery
-│   │   ├── story_templates.py            # Story templates
-│   │   ├── streaming_data_loader.py      # Streaming data loader
-│   │   ├── temporal_anomaly_detector.py  # Temporal anomaly detection
-│   │   ├── week_over_week_trends.py      # Weekly trend analysis
-│   │   ├── weekly_metrics_calculator.py  # Weekly metrics
-│   │   └── health_score/                 # Health scoring system
+│   │   ├── daily_metrics_calculator.py   # 📅 Daily metrics with Google docstrings
+│   │   ├── monthly_metrics_calculator.py # 📆 Monthly metrics with comprehensive docs
+│   │   ├── weekly_metrics_calculator.py  # 📅 Weekly aggregations and trends
+│   │   ├── cache_manager.py              # ⚡ High-performance caching system
+│   │   ├── comparative_analytics.py      # 📈 Multi-metric comparison analysis
+│   │   ├── anomaly_detection.py          # 🚨 Statistical anomaly detection
+│   │   ├── correlation_analyzer.py       # 🔗 Health metric correlation analysis
+│   │   ├── advanced_trend_engine.py      # 📈 Machine learning trend analysis
+│   │   ├── advanced_trend_models.py      # 🤖 Trend analysis models
+│   │   ├── anomaly_detection_system.py   # 🎯 Comprehensive anomaly system
+│   │   ├── anomaly_detectors.py          # 🔍 Multiple detection algorithms
+│   │   ├── anomaly_models.py             # 📊 Anomaly detection models
+│   │   ├── cache_background_refresh.py   # 🔄 Background cache refresh
+│   │   ├── cached_calculators.py         # ⚡ Cached calculation engines
+│   │   ├── causality_detector.py         # 🔗 Causal relationship detection
+│   │   ├── comparison_overlay_calculator.py # 📊 Overlay comparison calculations
+│   │   ├── computation_queue.py          # ⚙️ Async computation management
+│   │   ├── connection_pool.py            # 🔗 Database connection pool
+│   │   ├── correlation_discovery.py      # 🔍 Automated correlation discovery
+│   │   ├── correlation_models.py         # 📊 Correlation analysis models
+│   │   ├── data_source_protocol.py       # 🔌 Data source abstraction
+│   │   ├── data_story_generator.py       # 📖 Narrative health insights
+│   │   ├── dataframe_adapter.py          # 🔄 DataFrame integration adapters
+│   │   ├── day_of_week_analyzer.py       # 📅 Weekly pattern analysis
+│   │   ├── ensemble_detector.py          # 🎯 Ensemble anomaly detection
+│   │   ├── evidence_database.py          # 📚 Medical evidence database
+│   │   ├── feedback_processor.py         # 💬 User feedback processing
+│   │   ├── goal_management_system.py     # 🎯 Health goal tracking
+│   │   ├── goal_models.py                # 📊 Goal data models
+│   │   ├── goal_notification_integration.py # 🔔 Goal-based notifications
+│   │   ├── health_insights_engine.py     # 🧠 AI-powered health insights
+│   │   ├── health_insights_models.py     # 🤖 Health insight models
+│   │   ├── medical_evidence_validator.py # ⚕️ Medical evidence validation
+│   │   ├── month_over_month_trends.py    # 📊 MoM trend analysis
+│   │   ├── monthly_context_provider.py   # 📅 Monthly data context
+│   │   ├── notification_manager.py       # 🔔 Notification management
+│   │   ├── optimized_analytics_engine.py # ⚡ Performance-optimized analytics
+│   │   ├── optimized_calculator_integration.py # 🔧 Calculator integration
+│   │   ├── peer_group_comparison.py      # 👥 Peer group comparisons
+│   │   ├── performance_monitor.py        # 📊 System performance monitoring
+│   │   ├── personal_records_tracker.py   # 🏆 Personal achievement tracking
+│   │   ├── progressive_loader.py         # 📥 Progressive data loading
+│   │   ├── seasonal_pattern_analyzer.py  # 🌱 Seasonal health patterns
+│   │   ├── story_delivery_manager.py     # 📖 Health story delivery
+│   │   ├── story_templates.py            # 📝 Narrative templates
+│   │   ├── streaming_data_loader.py      # 🔄 Real-time data streaming
+│   │   ├── temporal_anomaly_detector.py  # ⏰ Time-based anomaly detection
+│   │   ├── week_over_week_trends.py      # 📊 WoW trend analysis
+│   │   └── health_score/                 # 🏥 Health Scoring System
 │   │       ├── __init__.py
-│   │       ├── component_calculators.py
-│   │       ├── health_score_calculator.py
-│   │       ├── health_score_models.py
-│   │       ├── personalization_engine.py
-│   │       └── trend_analyzer.py
-│   ├── ui/                        # UI components
+│   │       ├── health_score_calculator.py # 🧮 Core health scoring
+│   │       ├── health_score_models.py    # 📊 Health score data models
+│   │       ├── component_calculators.py  # 🔧 Score component calculators
+│   │       ├── personalization_engine.py # 🎯 Personalized health scoring
+│   │       └── trend_analyzer.py         # 📈 Health score trend analysis
+│   ├── ui/                        # 🎨 User Interface Package (85+ modules)
 │   │   ├── __init__.py
-│   │   ├── main_window.py                # Main application window
-│   │   ├── component_factory.py          # Component factory
-│   │   ├── configuration_tab.py          # Configuration interface
-│   │   ├── adaptive_configuration_tab.py # Adaptive configuration
-│   │   ├── statistics_widget.py          # Statistics display
-│   │   ├── bar_chart_component.py        # Bar chart component
-│   │   ├── activity_timeline_component.py # Activity timeline
-│   │   ├── celebration_manager.py        # Achievement celebrations
-│   │   ├── comparative_visualization.py  # Comparative visualizations
-│   │   ├── comparison_overlay_widget.py  # Comparison overlays
-│   │   ├── correlation_matrix_widget.py  # Correlation matrix display
-│   │   ├── coverage_integration.py       # Coverage integration
-│   │   ├── coverage_service.py           # Coverage service
-│   │   ├── daily_trend_indicator.py      # Daily trend indicators
-│   │   ├── data_availability_indicator.py # Data availability display
-│   │   ├── data_story_widget.py          # Data story display
-│   │   ├── enhanced_date_edit.py         # Enhanced date editing
-│   │   ├── adaptive_date_edit.py         # Adaptive date editing
-│   │   ├── goal_progress_widget.py       # Goal progress display
-│   │   ├── health_insights_widget.py     # Health insights display
-│   │   ├── health_score_visualizations.py # Health score visualizations
-│   │   ├── import_progress_dialog.py     # Import progress dialog
-│   │   ├── import_worker.py              # Import worker thread
-│   │   ├── month_over_month_demo.py      # MoM demo
-│   │   ├── month_over_month_widget.py    # MoM widget
-│   │   ├── monthly_context_widget.py     # Monthly context display
-│   │   ├── monthly_dashboard_widget.py   # Monthly dashboard
-│   │   ├── multi_select_combo.py         # Multi-select combo box
-│   │   ├── adaptive_multi_select_combo.py # Adaptive multi-select
-│   │   ├── adaptive_time_range_selector.py # Time range selector
-│   │   ├── preference_tracker.py         # User preference tracking
-│   │   ├── progressive_ui_integration.py # Progressive UI loading
-│   │   ├── settings_manager.py           # Settings management
-│   │   ├── smart_default_selector.py     # Smart default selection
-│   │   ├── style_manager.py              # Style management
-│   │   ├── summary_cards.py              # Summary card display
-│   │   ├── table_components.py           # Table components
-│   │   ├── time_comparison_utils.py      # Time comparison utilities
-│   │   ├── trend_calculator.py           # Trend calculations
-│   │   ├── trophy_case_widget.py         # Achievement display
-│   │   ├── view_transitions.py           # View transitions
-│   │   ├── week_over_week_widget.py      # WoW widget
-│   │   └── charts/                       # Chart components
+│   │   ├── main_window.py                # 🏠 Main application window with Google docs
+│   │   ├── configuration_tab.py          # ⚙️ Configuration interface with docs
+│   │   ├── component_factory.py          # 🏭 UI component factory
+│   │   ├── statistics_widget.py          # 📊 Statistics display widgets
+│   │   ├── settings_manager.py           # ⚙️ Settings persistence with docs
+│   │   ├── style_manager.py              # 🎨 Design system with docs  
+│   │   ├── adaptive_configuration_tab.py # 🔧 Adaptive configuration UI
+│   │   ├── bar_chart_component.py        # 📊 Interactive bar charts
+│   │   ├── activity_timeline_component.py # ⏰ Activity timeline visualization
+│   │   ├── celebration_manager.py        # 🎉 Achievement celebrations
+│   │   ├── comparative_visualization.py  # 📈 Multi-metric comparisons
+│   │   ├── comparison_overlay_widget.py  # 📊 Comparison overlay displays
+│   │   ├── correlation_matrix_widget.py  # 🔗 Correlation matrix visualization
+│   │   ├── daily_trend_indicator.py      # 📅 Daily trend indicators
+│   │   ├── data_availability_indicator.py # 📅 Data availability displays
+│   │   ├── data_story_widget.py          # 📖 Health narrative display
+│   │   ├── enhanced_date_edit.py         # 📅 Enhanced date editing
+│   │   ├── adaptive_date_edit.py         # 🔧 Adaptive date controls
+│   │   ├── goal_progress_widget.py       # 🎯 Goal tracking displays
+│   │   ├── health_insights_widget.py     # 🧠 AI insights display
+│   │   ├── health_score_visualizations.py # 🏥 Health score visualizations
+│   │   ├── import_progress_dialog.py     # 📥 Import progress dialogs
+│   │   ├── import_worker.py              # ⚙️ Background import workers
+│   │   ├── month_over_month_widget.py    # 📊 MoM comparison widgets
+│   │   ├── monthly_context_widget.py     # 📅 Monthly context displays
+│   │   ├── monthly_dashboard_widget.py   # 📆 Monthly dashboard
+│   │   ├── multi_select_combo.py         # 📋 Multi-selection controls
+│   │   ├── adaptive_multi_select_combo.py # 🔧 Adaptive multi-select
+│   │   ├── adaptive_time_range_selector.py # ⏰ Smart time range selection
+│   │   ├── preference_tracker.py         # 👤 User preference tracking
+│   │   ├── summary_cards.py              # 📋 Dashboard summary cards
+│   │   ├── table_components.py           # 📊 Data table components
+│   │   ├── time_comparison_utils.py      # ⏰ Time comparison utilities
+│   │   ├── trend_calculator.py           # 📈 Trend calculation widgets
+│   │   ├── trophy_case_widget.py         # 🏆 Achievement displays
+│   │   ├── view_transitions.py           # 🔄 Smooth view transitions
+│   │   ├── week_over_week_widget.py      # 📊 WoW comparison widgets
+│   │   ├── charts/                       # 📊 Chart Components (20+ modules)
+│   │   │   ├── __init__.py
+│   │   │   ├── base_chart.py             # 📊 Base chart framework with docs
+│   │   │   ├── line_chart.py             # 📈 Interactive line charts with docs
+│   │   │   ├── enhanced_line_chart.py    # 📈 Advanced line chart features
+│   │   │   ├── bump_chart.py             # 📊 Bump chart visualizations
+│   │   │   ├── calendar_heatmap.py       # 📅 Calendar heatmap displays
+│   │   │   ├── chart_config.py           # ⚙️ Chart configuration system
+│   │   │   ├── waterfall_chart.py        # 📊 Waterfall chart component
+│   │   │   ├── small_multiples.py        # 📊 Small multiples visualization
+│   │   │   ├── stream_graph.py           # 🌊 Stream graph component
+│   │   │   ├── wsj_health_visualization_suite.py # 📰 WSJ-style charts
+│   │   │   └── wsj_style_manager.py      # 🎨 WSJ design system
+│   │   ├── dashboards/                   # 📊 Dashboard Components
+│   │   │   ├── __init__.py
+│   │   │   ├── dashboard_customization.py # 🎨 Dashboard customization
+│   │   │   ├── dashboard_models.py       # 📊 Dashboard data models
+│   │   │   ├── responsive_grid_manager.py # 📱 Responsive grid layouts
+│   │   │   └── wsj_dashboard_layout.py   # 📰 WSJ-style dashboard layout
+│   │   └── accessibility/                # ♿ Accessibility Features
 │   │       ├── __init__.py
-│   │       ├── base_chart.py             # Base chart class
-│   │       ├── line_chart.py             # Line chart component
-│   │       ├── enhanced_line_chart.py    # Enhanced line charts
-│   │       ├── bump_chart.py             # Bump chart component
-│   │       ├── calendar_heatmap.py       # Calendar heatmap
-│   │       ├── chart_config.py           # Chart configuration
-│   │       ├── matplotlib_chart_factory.py # Matplotlib charts
-│   │       ├── progressive_drill_down.py # Progressive drill-down
-│   │       ├── pyqtgraph_chart_factory.py # PyQtGraph charts
-│   │       ├── shareable_dashboard.py    # Shareable dashboards
-│   │       ├── small_multiples.py        # Small multiples
-│   │       ├── stream_graph.py           # Stream graph
-│   │       ├── waterfall_chart.py        # Waterfall chart
-│   │       ├── wsj_health_visualization_suite.py # WSJ-style visualizations
-│   │       └── wsj_style_manager.py      # WSJ style management
-│   └── utils/                     # Utility modules
+│   │       ├── accessibility_manager.py  # ♿ Accessibility management
+│   │       ├── color_accessibility.py    # 🎨 Color accessibility features
+│   │       ├── keyboard_navigation.py    # ⌨️ Keyboard navigation support
+│   │       └── screen_reader_support.py  # 🔊 Screen reader integration
+│   └── utils/                     # 🛠️ Utility Modules (Comprehensive docs)
 │       ├── __init__.py
-│       ├── error_handler.py              # Error handling decorators and utilities
-│       ├── logging_config.py             # Centralized logging configuration
-│       └── xml_validator.py              # XML validation utilities
+│       ├── error_handler.py              # 🚨 Error handling with Google docstrings
+│       ├── logging_config.py             # 📝 Logging configuration with docs
+│       └── xml_validator.py              # ✅ XML validation with comprehensive docs
 ├── tests/                         # Test suites
 │   ├── __init__.py
 │   ├── conftest.py                       # Test configuration
