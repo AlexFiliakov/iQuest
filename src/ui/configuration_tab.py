@@ -1361,6 +1361,9 @@ class ConfigurationTab(QWidget):
             # Mark data as available for filtering (but not loaded)
             self.data_available = True
             
+            # Emit signal to notify other components that data is available
+            self.data_loaded.emit()
+            
             logger.info(f"Database statistics loaded: {row_count:,} records")
             
         except Exception as e:

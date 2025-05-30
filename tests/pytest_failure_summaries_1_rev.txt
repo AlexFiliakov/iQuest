@@ -17,32 +17,42 @@ plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, 
 asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 collecting ... collected 1219 items
 
-tests/visual/test_visual_regression.py::TestVisualRegression::test_large_dataset_visual_consistency FAILED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_large_dataset_visual_consistency PASSED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_windows_rendering_consistency SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_data_quality_indicators SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_summary_cards_rendering SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_animation_frame_consistency SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_color_theme_consistency[cool] SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_color_theme_consistency[warm] SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_color_theme_consistency[dark] SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_color_theme_consistency[light] SKIPPED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_chart_rendering[size3] PASSED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_chart_rendering[size2] PASSED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_chart_rendering[size1] PASSED [  0%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_chart_rendering[size0] PASSED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_dashboard_layout SKIPPED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_calendar_heatmap_rendering FAILED [  1%]
 
 =================================== FAILURES ===================================
-__________ TestVisualRegression.test_large_dataset_visual_consistency __________
+_____________ TestVisualRegression.test_calendar_heatmap_rendering _____________
 
-self = <test_visual_regression.TestVisualRegression object at 0x7f6c2e9ff110>
-visual_tester = <tests.conftest.visual_tester.<locals>.VisualTester object at 0x7f6c2e86e540>
+self = <test_visual_regression.TestVisualRegression object at 0x7f3a8ac92420>
+visual_tester = <tests.conftest.visual_tester.<locals>.VisualTester object at 0x7f3a8a990980>
+sample_data =                          date  steps  heart_rate   distance  calories
+0  2025-05-01 10:46:16.443396   8996          65...16.443396   7842          61   5.401321      2184
+29 2025-05-30 10:46:16.443396   9711          66   7.699434      2226
+chart_config = {'animate': False, 'dpi': 100, 'height': 600, 'style': 'default', ...}
 
     @pytest.mark.visual
-    @pytest.mark.slow
-    def test_large_dataset_visual_consistency(self, visual_tester):
-        """Test visual consistency with large datasets."""
-        from src.ui.charts.line_chart import LineChart
-        from tests.test_data_generator import HealthDataGenerator
+    def test_calendar_heatmap_rendering(self, visual_tester, sample_data, chart_config):
+        """Test calendar heatmap rendering."""
+        from src.ui.charts.calendar_heatmap import CalendarHeatmap
     
-        generator = HealthDataGenerator(seed=42)
-        large_data = generator.generate_performance_data('large')
-    
-        # Sample down to reasonable size for visualization
-        sampled_data = large_data.sample(n=1000, random_state=42).sort_values('date')
-    
-        chart = LineChart()
->       chart.configure(width=800, height=600, animate=False)
-E       AttributeError: 'LineChart' object has no attribute 'configure'
+        chart = CalendarHeatmap()
+>       chart.configure(**chart_config)
+E       AttributeError: 'CalendarHeatmapComponent' object has no attribute 'configure'
 
-tests/visual/test_visual_regression.py:357: AttributeError
+tests/visual/test_visual_regression.py:167: AttributeError
 =============================== warnings summary ===============================
 tests/integration/test_chaos_scenarios.py:571
   /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:571: PytestUnknownMarkWarning: Unknown pytest.mark.chaos - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
@@ -50,6 +60,6 @@ tests/integration/test_chaos_scenarios.py:571
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
-FAILED tests/visual/test_visual_regression.py::TestVisualRegression::test_large_dataset_visual_consistency
+FAILED tests/visual/test_visual_regression.py::TestVisualRegression::test_calendar_heatmap_rendering
 !!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
-======================== 1 failed, 1 warning in 43.93s =========================
+============== 1 failed, 5 passed, 9 skipped, 1 warning in 52.33s ==============

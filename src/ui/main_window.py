@@ -205,6 +205,9 @@ class MainWindow(QMainWindow):
         # Restore window state after UI is created
         self.settings_manager.restore_window_state(self)
         
+        # Always open to Configuration tab
+        self.tab_widget.setCurrentIndex(0)
+        
         # Set up status update timer
         self.status_update_timer = QTimer(self)
         self.status_update_timer.timeout.connect(self._update_trend_status)

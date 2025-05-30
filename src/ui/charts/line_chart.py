@@ -59,7 +59,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt, QPointF, QRectF, pyqtSignal as Signal, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt6.QtGui import (
     QPainter, QPen, QColor, QBrush, QFont, QPainterPath, 
-    QFontMetrics, QMouseEvent, QResizeEvent
+    QFontMetrics, QMouseEvent, QResizeEvent, QPixmap
 )
 
 
@@ -274,15 +274,50 @@ class LineChart(QWidget):
         
     animation_progress = pyqtProperty(float, get_animation_progress, set_animation_progress)
         
-    def set_data(self, data_points: List[Dict[str, Any]], animate: bool = True):
+    def set_data(self, data_points=None, y_values=None, animate: bool = True):
         """
         Set chart data.
         
         Args:
-            data_points: List of dictionaries with 'x', 'y', and optional 'label' keys
+            data_points: List of dictionaries with 'x', 'y', and optional 'label' keys,
+                        OR pandas Series for x-values when y_values is provided
+            y_values: Optional pandas Series for y-values (when data_points is x-values)
             animate: Whether to animate the data change
         """
-        self.data_points = data_points
+        # Handle dual parameter call (x_series, y_series) for testing compatibility
+        if y_values is not None:
+            # Convert pandas series to list of dictionaries
+            import pandas as pd
+            if hasattr(data_points, 'iloc') and hasattr(y_values, 'iloc'):
+                # Both are pandas Series
+                self.data_points = []
+                for i in range(len(data_points)):
+                    x_val = data_points.iloc[i] 
+                    y_val = y_values.iloc[i]
+                    
+                    # Convert date to string label if it's a datetime
+                    if hasattr(x_val, 'strftime'):
+                        label = x_val.strftime('%Y-%m-%d')
+                    else:
+                        label = str(x_val)
+                        
+                    self.data_points.append({
+                        'x': i,  # Use index for x position
+                        'y': float(y_val),
+                        'label': label
+                    })
+            else:
+                # Handle other iterable types
+                self.data_points = []
+                for i, (x_val, y_val) in enumerate(zip(data_points, y_values)):
+                    self.data_points.append({
+                        'x': i,
+                        'y': float(y_val),
+                        'label': str(x_val)
+                    })
+        else:
+            # Original single parameter call
+            self.data_points = data_points or []
         
         if animate and self.animate:
             self.animation.setStartValue(0.0)
@@ -379,7 +414,8 @@ class LineChart(QWidget):
         """Draw axis labels and title."""
         # Title
         if self.title:
-            title_font = QFont("Inter", 18, QFont.Bold)
+            title_font = QFont("Inter", 18)
+            title_font.setBold(True)
             painter.setFont(title_font)
             painter.setPen(self.colors['text'])
             
@@ -578,3 +614,179 @@ class LineChart(QWidget):
         """Handle widget resize."""
         super().resizeEvent(event)
         self.update()
+        
+    def configure(self, width: int = 800, height: int = 600, animate: bool = True, **kwargs):
+        """Configure chart dimensions and options for testing compatibility.
+        
+        Args:
+            width (int): Chart width in pixels
+            height (int): Chart height in pixels  
+            animate (bool): Enable/disable animations
+            **kwargs: Additional configuration options (ignored for compatibility)
+        """
+        self.resize(width, height)
+        self.animate = animate
+        # Store configured dimensions for render_to_image
+        self._configured_width = width
+        self._configured_height = height
+        
+    def set_title(self, title: str):
+        """Set chart title for testing compatibility.
+        
+        Args:
+            title (str): Chart title text
+        """
+        self.title = title
+        self.update()
+        
+    def render_to_image(self, width: int = None, height: int = None, dpi: int = 100):
+        """Render chart to image for testing.
+        
+        Args:
+            width (int): Image width in pixels (defaults to configured width or 800)
+            height (int): Image height in pixels (defaults to configured height or 600)
+            dpi (int): Image resolution (ignored, for compatibility)
+            
+        Returns:
+            QPixmap: Rendered chart image
+        """
+        # Use configured dimensions if available, otherwise defaults
+        if width is None:
+            width = getattr(self, '_configured_width', 800)
+        if height is None:
+            height = getattr(self, '_configured_height', 600)
+        # Create pixmap with specified dimensions
+        pixmap = QPixmap(width, height)
+        pixmap.fill(self.colors['background'])
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Calculate chart area for the specific image size
+        chart_rect = QRectF(
+            self.margins['left'],
+            self.margins['top'],
+            width - self.margins['left'] - self.margins['right'],
+            height - self.margins['top'] - self.margins['bottom']
+        )
+        
+        # Draw components using the image-specific rect
+        self._draw_background_to_painter(painter, width, height)
+        self._draw_grid(painter, chart_rect)
+        self._draw_axes(painter, chart_rect)
+        self._draw_labels_to_painter(painter, chart_rect, width, height)
+        self._draw_data_to_painter(painter, chart_rect)
+        
+        painter.end()
+        return pixmap
+        
+    def _draw_background_to_painter(self, painter: QPainter, width: int, height: int):
+        """Draw chart background to painter with specific dimensions."""
+        painter.fillRect(0, 0, width, height, self.colors['background'])
+        
+    def _draw_labels_to_painter(self, painter: QPainter, chart_rect: QRectF, width: int, height: int):
+        """Draw axis labels and title to painter with specific dimensions."""
+        # Title
+        if self.title:
+            title_font = QFont("Inter", 18)
+            title_font.setBold(True)
+            painter.setFont(title_font)
+            painter.setPen(self.colors['text'])
+            
+            title_rect = QRectF(0, 0, width, self.margins['top'])
+            painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, self.title)
+            
+        # Y-axis labels
+        label_font = QFont("Inter", 10)
+        painter.setFont(label_font)
+        painter.setPen(self.colors['text_muted'])
+        
+        y_steps = 5
+        y_min, y_max = self.y_range
+        for i in range(y_steps + 1):
+            value = y_min + (y_max - y_min) * (1 - i / y_steps)
+            y = chart_rect.top() + (i * chart_rect.height() / y_steps)
+            
+            label = f"{value:.0f}"
+            label_rect = QRectF(0, y - 10, self.margins['left'] - 10, 20)
+            painter.drawText(label_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, label)
+            
+        # X-axis labels
+        if self.data_points:
+            x_steps = min(len(self.data_points) - 1, 10)
+            for i in range(0, len(self.data_points), max(1, len(self.data_points) // x_steps)):
+                x = self._map_x_for_rect(i, chart_rect)
+                
+                if 'label' in self.data_points[i]:
+                    label = self.data_points[i]['label']
+                else:
+                    label = str(self.data_points[i]['x'])
+                    
+                label_rect = QRectF(x - 50, chart_rect.bottom() + 5, 100, 20)
+                painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, label)
+                
+        # Axis labels
+        if self.x_axis_label:
+            painter.drawText(
+                QRectF(0, height - 30, width, 20),
+                Qt.AlignmentFlag.AlignCenter,
+                self.x_axis_label
+            )
+            
+        if self.y_axis_label:
+            painter.save()
+            painter.translate(15, height / 2)
+            painter.rotate(-90)
+            painter.drawText(
+                QRectF(-50, -10, 100, 20),
+                Qt.AlignmentFlag.AlignCenter,
+                self.y_axis_label
+            )
+            painter.restore()
+            
+    def _map_x_for_rect(self, index: int, chart_rect: QRectF) -> float:
+        """Map data index to X coordinate for a specific rect."""
+        if len(self.data_points) <= 1:
+            return chart_rect.center().x()
+        return chart_rect.left() + (index / (len(self.data_points) - 1)) * chart_rect.width()
+        
+    def _draw_data_to_painter(self, painter: QPainter, chart_rect: QRectF):
+        """Draw the data line and points to a specific painter and rect."""
+        if not self.data_points:
+            return
+            
+        # Create path for line
+        path = QPainterPath()
+        
+        # Draw line
+        painter.setPen(QPen(self.colors['line'], 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        
+        for i, point in enumerate(self.data_points):
+            x = self._map_x_for_rect(i, chart_rect)
+            y = self._map_y_for_rect(point['y'], chart_rect)
+            
+            # No animation for image rendering
+            if i == 0:
+                path.moveTo(x, y)
+            else:
+                path.lineTo(x, y)
+                
+        painter.drawPath(path)
+        
+        # Draw dots
+        if self.show_dots:
+            for i, point in enumerate(self.data_points):
+                x = self._map_x_for_rect(i, chart_rect)
+                y = self._map_y_for_rect(point['y'], chart_rect)
+                    
+                painter.setBrush(QBrush(self.colors['dot']))
+                painter.setPen(QPen(self.colors['background'], 2))
+                painter.drawEllipse(QPointF(x, y), 4, 4)
+                
+    def _map_y_for_rect(self, value: float, chart_rect: QRectF) -> float:
+        """Map data value to Y coordinate for a specific rect."""
+        y_min, y_max = self.y_range
+        if y_max == y_min:
+            return chart_rect.center().y()
+        normalized = (value - y_min) / (y_max - y_min)
+        return chart_rect.bottom() - normalized * chart_rect.height()

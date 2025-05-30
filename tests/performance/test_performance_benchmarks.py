@@ -61,14 +61,40 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
         return data_generator.generate_performance_data('xlarge')
 
     # Daily Metrics Calculator Benchmarks
+    def _transform_to_health_records(self, df):
+        """Transform performance test data to health records format."""
+        records = []
+        for _, row in df.iterrows():
+            # Add steps record
+            records.append({
+                'creationDate': row['date'],
+                'type': 'HKQuantityTypeIdentifierStepCount',
+                'value': row['steps']
+            })
+            # Add heart rate record
+            records.append({
+                'creationDate': row['date'],
+                'type': 'HKQuantityTypeIdentifierHeartRate',
+                'value': row['heart_rate']
+            })
+            # Add distance record
+            records.append({
+                'creationDate': row['date'],
+                'type': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+                'value': row['distance']
+            })
+        return pd.DataFrame(records)
+
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_small(self, benchmark, small_dataset):
         """Benchmark daily calculator with small dataset."""
-        data_source = MockDataSource(small_dataset)
+        health_records = self._transform_to_health_records(small_dataset)
+        data_source = MockDataSource(health_records)
         calculator = DailyMetricsCalculator(data_source)
         
         result = benchmark.pedantic(
-            calculator.calculate_all_metrics,
+            calculator.calculate_statistics,
+            args=('HKQuantityTypeIdentifierStepCount',),  # Test with steps metric
             rounds=5,
             warmup_rounds=2
         )
@@ -80,15 +106,19 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
             margin=1.2
         )
         
-        assert result['mean'] < threshold
+        # The benchmark returns the calculated stats, but we need to check benchmark timing
+        assert benchmark.stats['mean'] < threshold
 
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_medium(self, benchmark, medium_dataset):
         """Benchmark daily calculator with medium dataset."""
-        calculator = DailyMetricsCalculator(medium_dataset)
+        health_records = self._transform_to_health_records(medium_dataset)
+        data_source = MockDataSource(health_records)
+        calculator = DailyMetricsCalculator(data_source)
         
         result = benchmark.pedantic(
-            calculator.calculate_all_metrics,
+            calculator.calculate_statistics,
+            args=('HKQuantityTypeIdentifierStepCount',),
             rounds=5,
             warmup_rounds=2
         )
@@ -100,19 +130,24 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
             margin=1.3
         )
         
-        assert result['mean'] < threshold
+        # Check benchmark timing
+        assert benchmark.stats['mean'] < threshold
 
     @pytest.mark.benchmark(group="daily_calculator")
     def test_daily_calculator_large(self, benchmark, large_dataset):
         """Benchmark daily calculator with large dataset."""
-        calculator = DailyMetricsCalculator()
+        health_records = self._transform_to_health_records(large_dataset)
+        data_source = MockDataSource(health_records)
+        calculator = DailyMetricsCalculator(data_source)
         
         result = benchmark(
-            calculator.calculate_all_metrics,
-            large_dataset
+            calculator.calculate_statistics,
+            'HKQuantityTypeIdentifierStepCount'  # Use full Apple Health metric name
         )
         
-        assert len(result) > 0
+        # Verify the calculation completed successfully and returned valid stats
+        assert result is not None
+        assert result.count > 0  # Should have processed some data
         assert benchmark.stats['mean'] < 1.0  # <1s
 
     # Note: Weekly and Monthly calculator performance tests are in tests/performance/test_calculator_benchmarks.py

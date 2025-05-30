@@ -15,4 +15,232 @@ rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
 configfile: pytest.ini
 plugins: benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
 asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collecting ... 
+collecting ... collected 1219 items
+
+atlas/tests/test_expanse.py::test_example_function PASSED                [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataPatterns::test_steps_pattern_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataPatterns::test_heart_rate_pattern_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataPatterns::test_sleep_pattern_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataPatterns::test_exercise_pattern_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_synthetic_data_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_edge_cases_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_performance_data_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_anonymized_sample_generation PASSED [  0%]
+tests/generators/test_data_generator_basic.py::TestHealthDataGeneratorBasic::test_database_data_generation PASSED [  0%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data PASSED [  0%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_missing_date_columns PASSED [  0%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_duplicate_dates PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_null_data_scenarios PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_extreme_values PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_concurrent_database_writes SKIPPED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_concurrent_analytics_calculations PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_low_memory_conditions PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_large_dataset_timeout_protection PASSED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_database_corruption_recovery SKIPPED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_file_system_errors SKIPPED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_csv_parsing_errors SKIPPED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_disk_space_exhaustion SKIPPED [  1%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_wrong_data_types PASSED [  2%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_missing_required_columns PASSED [  2%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection PASSED [  2%]
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_comparative_widget_creation PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_historical_comparison_display PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_percentile_gauge_animation PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_seasonal_trends_flow PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_view_switching PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_main_window_integration PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_privacy_settings_integration PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_responsive_layout PASSED [  2%]
+tests/integration/test_comparative_analytics_integration.py::TestComparativeAnalyticsIntegration::test_error_handling PASSED [  3%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_refresh_on_switch ERROR [  3%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestConfigTabIntegration.test_config_tab_refresh_on_switch _
+
+self = <test_config_tab_integration.TestConfigTabIntegration object at 0x7f3e0e17d880>
+qtbot = <pytestqt.qtbot.QtBot object at 0x7f3dae980a40>
+
+    @pytest.fixture
+    def main_window(self, qtbot):
+        """Create a main window instance for testing."""
+>       window = MainWindow()
+
+tests/integration/test_config_tab_integration.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.ui.main_window.MainWindow object at 0x7f3dae9513b0>
+
+    def __init__(self):
+        """Initialize the main window.
+    
+        Sets up the complete window structure including theming, tab navigation,
+        keyboard shortcuts, and restores the previous session state. The
+        initialization process is carefully ordered to ensure proper dependency
+        resolution and optimal startup performance.
+    
+        The initialization sequence:
+            1. Initialize core managers (style, settings, transitions)
+            2. Initialize data tracking components (records, trends)
+            3. Set window properties and default dimensions
+            4. Apply professional theming and color palette
+            5. Create UI components (menu bar, tabs, status bar)
+            6. Configure keyboard navigation and shortcuts
+            7. Restore previous window state and active tab
+            8. Start background status monitoring
+    
+        Raises:
+            ImportError: If required background trend processor cannot be imported.
+    
+        Note:
+            The window is created but not shown. Call show() to display it.
+        """
+        super().__init__()
+        logger.info("Initializing main window with tab navigation")
+    
+        # Initialize managers
+        self.style_manager = StyleManager()
+        self.settings_manager = SettingsManager()
+    
+        # Initialize transition manager (check accessibility settings)
+        accessibility_mode = self.settings_manager.get_setting("accessibility/disable_animations", False)
+        self.transition_manager = ViewTransitionManager(accessibility_mode=accessibility_mode)
+    
+        # Initialize personal records tracker
+>       self.personal_records_tracker = PersonalRecordsTracker(db_manager)
+
+src/ui/main_window.py:180: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.personal_records_tracker.PersonalRecordsTracker object at 0x7f3dae980950>
+database = <src.database.DatabaseManager object at 0x7f3e1739d520>
+
+    def __init__(self, database: DatabaseManager):
+        self.db = database
+        self.record_store = RecordStore(database)
+        self.achievement_system = AchievementSystem(database)
+        self.streak_tracker = StreakTracker()
+>       self._ensure_tables_exist()
+
+src/analytics/personal_records_tracker.py:124: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <src.analytics.personal_records_tracker.PersonalRecordsTracker object at 0x7f3dae980950>
+
+    def _ensure_tables_exist(self):
+        """Ensure personal records tables exist in database."""
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+    
+            # Create personal_records table
+>           cursor.execute("""
+                CREATE TABLE IF NOT EXISTS personal_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    record_type VARCHAR(50) NOT NULL,
+                    metric VARCHAR(100) NOT NULL,
+                    value REAL NOT NULL,
+                    date DATE NOT NULL,
+                    previous_value REAL,
+                    improvement_margin REAL,
+                    window_days INTEGER,
+                    streak_type VARCHAR(50),
+                    metadata TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+E           sqlite3.OperationalError: disk I/O error
+
+src/analytics/personal_records_tracker.py:132: OperationalError
+---------------------------- Captured stderr setup -----------------------------
+2025-05-30 10:48:18 - INFO - Initializing main window with tab navigation
+2025-05-30 10:48:18 - INFO - SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
+2025-05-30 10:48:18 - INFO - ViewTransitionManager initialized (accessibility_mode=False)
+------------------------------ Captured log setup ------------------------------
+INFO     apple_health_monitor.src.ui.main_window:main_window.py:169 Initializing main window with tab navigation
+INFO     apple_health_monitor.src.ui.settings_manager:settings_manager.py:124 SettingsManager initialized for Apple Health Monitor Team/Apple Health Monitor Dashboard
+INFO     apple_health_monitor.src.ui.view_transitions:view_transitions.py:331 ViewTransitionManager initialized (accessibility_mode=False)
+ERROR    src.database:database.py:214 Database connection error: disk I/O error
+=============================== warnings summary ===============================
+tests/integration/test_chaos_scenarios.py:571
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:571: PytestUnknownMarkWarning: Unknown pytest.mark.chaos - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = pytest.mark.chaos
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:115: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value '[10000000000.0, -5000, None, 0, 1000000.0, inf]' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
+    df.loc[10:15, 'value'] = [1e10, -5000, None, 0, 1e6, float('inf')]
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:118: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_corrupted_step_data
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:194: RuntimeWarning: invalid value encountered in subtract
+    x = asanyarray(arr - arrmean)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_duplicate_dates
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:155: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_null_data_scenarios
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:190: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df_nulls)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_null_data_scenarios
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:209: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df_zeros)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_handle_extreme_values
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:228: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df_extreme)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_concurrent_analytics_calculations
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:290: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_low_memory_conditions
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:348: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:369: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas. Value 'inf' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
+    circular_data.loc[0, 'steps'] = float('inf')
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:382: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:136: RuntimeWarning: invalid value encountered in reduce
+    ret = umr_sum(arr, axis, dtype, out, keepdims, where=where)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_infinite_loop_protection
+  /home/alexf/claude-env/lib/python3.12/site-packages/numpy/_core/_methods.py:173: RuntimeWarning: invalid value encountered in reduce
+    arrmean = umr_sum(arr, axis, dtype, keepdims=True, where=where)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_large_dataset_timeout_protection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:409: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_wrong_data_types
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:466: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_race_condition_detection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:516: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms
+tests/integration/test_chaos_scenarios.py::TestChaosScenarios::test_error_recovery_mechanisms
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:558: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    calculator = DailyMetricsCalculator(df)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_refresh_on_switch
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======== 32 passed, 5 skipped, 22 warnings, 1 error in 67.23s (0:01:07) ========
+Exit code: 1

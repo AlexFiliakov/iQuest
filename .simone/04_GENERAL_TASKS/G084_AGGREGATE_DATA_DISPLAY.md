@@ -1,6 +1,6 @@
-# GX084: Fix Aggregate Data Display Pipeline to Dashboard Tabs
+# G084: Fix Aggregate Data Display Pipeline to Dashboard Tabs
 
-**Task ID**: GX084  
+**Task ID**: G084  
 **Created**: 2025-05-30 21:47:00  
 **Status**: Not Started  
 **Priority**: High  
@@ -63,39 +63,57 @@ Based on comprehensive codebase analysis, the issue stems from inconsistent calc
 - [ ] Integration tests verify data flow from import to all tabs
 - [ ] Unit tests cover new data management patterns
 - [ ] Visual regression tests ensure UI consistency
+- [ ] Add automated tests for each tab's data display functionality
+- [ ] Database health check validation tests
+- [ ] Performance tests for lazy loading patterns
+- [ ] Error recovery mechanism tests
 
 ## Technical Approach
 
-### Phase 1: Immediate Fixes (Critical Path)
+### Phase 1: Critical Signal Propagation Fix (Immediate Priority)
 
-1. **Fix Main Window Data Propagation**
+1. **Main Window Signal Propagation (HIGHEST PRIORITY)**
    - Modify `_on_data_loaded()` in main_window.py to refresh ALL tabs, not just current
+   - Add comprehensive logging to understand current data flow
    - Ensure signal connections are established before data loading
+   - Implement progressive enhancement rather than architectural overhaul
 
-2. **Fix Configuration Tab Signal Emission**
+2. **Database Health & Data Verification**
+   - Address potential database schema issues
+   - Verify data availability at the database level before propagating
+   - Incorporate database health checks in startup sequence
+   - Add validation layer to ensure data quality before propagation
+
+3. **Configuration Tab Signal Emission**
    - Emit `data_loaded` signal immediately when database data is available
    - Separate initial data loading from filter application
+   - Add data validation before signal emission
 
-3. **Standardize Calculator Initialization**
-   - Add validation for calculator objects before passing to widgets
-   - Implement fallback patterns for missing calculators
+4. **Enhanced Error Handling & Debugging**
+   - Include automatic retry logic for transient failures
+   - Implement data state debugging tools for troubleshooting
+   - Add comprehensive logging throughout the data flow chain
 
-### Phase 2: Architectural Improvements
+### Phase 2: Performance & User Experience Enhancements
 
-1. **Implement Centralized Data Manager**
-   - Create `DataStateManager` class to coordinate data access
-   - Subscribe all dashboard widgets to central data state
-   - Implement observer pattern for data change notifications
+1. **Lazy Loading & Performance Optimization**
+   - Implement lazy loading patterns for non-visible tabs
+   - Optimize memory usage with shared calculator instances
+   - Create data flow visualization for development purposes
 
-2. **Add Data Availability Indicators**
+2. **Enhanced User Interface Indicators**
+   - Add status bar indicators for data loading state
+   - Implement progressive disclosure for error details
+   - Provide clear user guidance for resolving data issues
    - Loading spinners during data processing
    - Error messages for data access failures
    - Empty state indicators with actionable guidance
 
-3. **Improve Widget Initialization Patterns**
-   - Consistent constructor patterns across all dashboard widgets
-   - Proper error handling for missing dependencies
-   - Clear separation of initialization and data loading phases
+3. **Centralized Data Management (Long-term)**
+   - Create `DataStateManager` class to coordinate data access
+   - Subscribe all dashboard widgets to central data state
+   - Implement observer pattern for data change notifications
+   - Standardize widget initialization patterns
 
 ## Dependencies
 
@@ -116,29 +134,45 @@ Based on comprehensive codebase analysis, the issue stems from inconsistent calc
 
 ### Key Files to Modify
 
-1. **main_window.py**
+1. **main_window.py** (PRIORITY #1)
    - Fix `_on_data_loaded()` method to refresh all tabs
+   - Add comprehensive logging to trace data flow
    - Add proper error handling for calculator initialization
-   - Implement loading state management
+   - Implement status bar indicators for data loading state
+   - Add progressive enhancement patterns
 
 2. **configuration_tab.py**
+   - Implement database health checks before data operations
    - Emit `data_loaded` signal on initial database connection
    - Separate data availability from filter application
-   - Add data validation before signal emission
+   - Add validation layer to ensure data quality before propagation
+   - Include automatic retry logic for transient failures
 
 3. **Dashboard Widget Files**
    - `daily_dashboard_widget.py`
    - `weekly_dashboard_widget.py`
    - `monthly_dashboard_widget.py`
+   - Implement lazy loading patterns for non-visible tabs
    - Standardize constructor patterns and error handling
+   - Add data state debugging capabilities
+   - Implement progressive disclosure for error details
 
-### Implementation Sequence
+4. **New Development Tools**
+   - Create data flow visualization for development purposes
+   - Implement data state debugging tools for troubleshooting
+   - Add automated tests for each tab's data display functionality
 
-1. **Start with main_window.py signal handling** - Highest impact fix
-2. **Fix configuration_tab.py signal emission** - Enables data flow
-3. **Update individual dashboard widgets** - Improve resilience
-4. **Add centralized data manager** - Long-term architecture improvement
-5. **Implement loading/error states** - Polish user experience
+### Implementation Sequence (Progressive Enhancement Approach)
+
+1. **main_window.py signal propagation fix** - Critical path (IMMEDIATE)
+2. **Database health checks & validation layer** - Foundation reliability
+3. **Comprehensive logging & debugging tools** - Troubleshooting capability
+4. **configuration_tab.py signal emission timing** - Data flow enablement
+5. **Lazy loading patterns for tabs** - Performance optimization
+6. **Status bar & error disclosure UI** - User experience polish
+7. **Automated testing for all tabs** - Quality assurance
+8. **Data flow visualization tools** - Development support
+9. **Centralized data manager** - Long-term architecture (if needed)
 
 ### Testing Strategy
 
@@ -146,16 +180,29 @@ Based on comprehensive codebase analysis, the issue stems from inconsistent calc
    - Calculator initialization with various data states
    - Signal emission and propagation patterns
    - Widget behavior with missing/invalid data
+   - Database health check functionality
+   - Data validation layer correctness
+   - Automatic retry logic for transient failures
 
 2. **Integration Tests**
    - End-to-end data flow from import to visualization
    - Tab switching with data consistency
    - Filter application across all tabs
+   - Automated tests for each tab's data display functionality
+   - Lazy loading pattern performance
+   - Error recovery mechanisms
 
-3. **User Acceptance Testing**
+3. **Development & Debugging Tests**
+   - Data flow visualization accuracy
+   - Data state debugging tool effectiveness
+   - Comprehensive logging completeness
+
+4. **User Acceptance Testing**
    - Import sample health data
    - Verify all tabs display relevant information
    - Test error scenarios (corrupted data, network issues)
+   - Validate status bar indicators and error disclosure
+   - Confirm clear user guidance for issue resolution
 
 ## Risk Assessment
 
@@ -196,72 +243,112 @@ Based on comprehensive codebase analysis, the issue stems from inconsistent calc
 - Actionable error messages for data issues
 - Consistent visual feedback across all tabs
 
+## Additional Technical Considerations
+
+### Database Layer Enhancements
+1. **Schema Validation**
+   - Verify health_records table structure and indices
+   - Check for missing columns or data type mismatches
+   - Implement schema migration patterns for data integrity
+
+2. **Data Quality Assurance**
+   - Add data completeness checks before widget initialization
+   - Implement data freshness validation (last import timestamp)
+   - Handle corrupted or partial data gracefully
+
+3. **Performance Optimization**
+   - Database connection pooling for concurrent tab access
+   - Query optimization for large datasets
+   - Implement result caching with invalidation strategies
+
+### Development & Debugging Tools
+1. **Data Flow Visualization**
+   - Create developer dashboard showing data propagation status
+   - Visual representation of signal connections and timing
+   - Real-time monitoring of calculator initialization states
+
+2. **Debug Instrumentation**
+   - Structured logging with correlation IDs for tracking data flow
+   - Performance metrics collection for optimization
+   - Error aggregation and reporting for pattern identification
+
+3. **Testing Infrastructure**
+   - Automated test data generation for various health metrics
+   - Mock database scenarios for edge case testing
+   - Performance regression testing for tab loading times
+
+### Enhanced User Experience Design
+1. **Progressive Loading States**
+   - Skeleton loaders for dashboard components
+   - Progressive data disclosure as calculations complete
+   - Graceful handling of partial data availability
+
+2. **Error Communication Strategy**
+   - Contextual error messages with suggested remediation
+   - Help system integration for common data issues
+   - User-friendly explanations for technical problems
+
+3. **Accessibility & Usability**
+   - Keyboard navigation support for tab switching
+   - Screen reader compatibility for loading states
+   - High contrast mode support for status indicators
+
+## Implementation Priorities Matrix
+
+### Critical Path (Week 1)
+- [ ] main_window.py signal propagation fix
+- [ ] Database health checks implementation
+- [ ] Comprehensive logging addition
+- [ ] Basic error handling improvements
+
+### High Impact (Week 2)
+- [ ] Lazy loading patterns for tabs
+- [ ] Status bar indicators implementation
+- [ ] Data validation layer creation
+- [ ] Automatic retry logic integration
+
+### Quality Assurance (Week 3)
+- [ ] Fix WARNING - main_window.py:734 - _create_monthly_dashboard_tab() - MonthlyDashboardWidget import error: cannot import name 'DataAccess' from 'src.data_access' (C:\Users\alexf\OneDrive\Documents\Projects\Apple Health Exports\src\data_access.py)
+- [ ] Automated testing for all tabs
+- [ ] Data flow visualization tools
+- [ ] Progressive disclosure UI implementation
+- [ ] Performance optimization
+
+### Long-term Architecture (Week 4+)
+- [ ] Centralized data manager (if needed)
+- [ ] Advanced debugging tools
+- [ ] Comprehensive documentation
+- [ ] User experience polish
+
 ## Documentation Updates
 
 ### Required Documentation
 - Update CLAUDE.md with new data flow patterns
 - Add troubleshooting guide for data display issues
-- Document new centralized data management architecture
+- Document database health check procedures
+- Create developer guide for data flow debugging
 
 ### Code Documentation
 - Add comprehensive docstrings to new data manager classes
 - Document signal connections and data flow patterns
 - Include examples of proper calculator initialization
+- Document lazy loading and performance patterns
 
----
+### User Documentation
+- Create user guide for data loading troubleshooting
+- Document status bar indicators and their meanings
+- Add FAQ section for common data display issues
 
-## Review and Critique
+## Output Log
 
-### Implementation Approach Critique
-
-**Strengths of the Plan:**
-1. **Comprehensive Root Cause Analysis**: Identifies specific technical issues rather than symptoms
-2. **Phased Implementation**: Balances immediate fixes with long-term improvements
-3. **Risk Mitigation**: Acknowledges potential breaking changes and provides mitigation strategies
-4. **Clear Success Criteria**: Defines measurable outcomes for implementation success
-
-**Areas for Enhancement:**
-
-1. **Database Layer Consideration**
-   - The plan should address potential database schema issues
-   - Need to verify data availability at the database level before propagating
-   - Consider implementing database health checks
-
-2. **Performance Impact Analysis**
-   - Multiple calculator instances may increase memory usage
-   - Should implement lazy loading patterns for non-visible tabs
-   - Consider implementing data sharing between calculators to reduce duplication
-
-3. **Error Recovery Mechanisms**
-   - Plan should include automatic retry logic for transient failures
-   - Implement graceful degradation when partial data is available
-   - Add user-initiated refresh capabilities
-
-4. **Backward Compatibility**
-   - Ensure existing saved filters and preferences continue working
-   - Maintain existing API contracts for external integrations
-   - Consider migration path for existing user data
-
-### Recommended Approach Refinements
-
-1. **Start with Minimal Viable Fix**
-   - Focus first on the main_window.py signal propagation issue
-   - Add comprehensive logging to understand current data flow
-   - Implement progressive enhancement rather than architectural overhaul
-
-2. **Implement Data State Validation**
-   - Add validation layer to ensure data quality before propagation
-   - Implement data state debugging tools for troubleshooting
-   - Create data flow visualization for development purposes
-
-3. **Enhanced Testing Strategy**
-   - Add automated tests for each tab's data display functionality
-   - Implement visual regression testing for dashboard widgets
-   - Create synthetic test data for various edge cases
-
-4. **User Communication Strategy**
-   - Add status bar indicators for data loading state
-   - Implement progressive disclosure for error details
-   - Provide clear user guidance for resolving data issues
-
-This comprehensive plan addresses the core data aggregation display issue while providing a foundation for improved architecture and user experience. The phased approach allows for incremental improvement while minimizing risk to existing functionality.
+[2025-05-30 21:47] Task created - Comprehensive analysis of data aggregation display issue
+[2025-05-30 21:52] Research completed - Identified signal propagation and calculator initialization problems
+[2025-05-30 21:58] Task amended with enhanced requirements:
+  - Database health checks and schema validation
+  - Lazy loading patterns for performance optimization
+  - Comprehensive logging and debugging tools
+  - Progressive enhancement approach over architectural overhaul
+  - Status bar indicators and progressive disclosure UI
+  - Automated testing for all dashboard tabs
+  - Data flow visualization for development
+[2025-05-30 21:58] Added implementation priorities matrix and comprehensive documentation plan

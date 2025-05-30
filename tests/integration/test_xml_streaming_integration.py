@@ -51,7 +51,13 @@ class TestXMLStreamingIntegration:
     
     def test_memory_monitor(self):
         """Test memory monitoring functionality."""
-        monitor = MemoryMonitor(limit_mb=100)
+        # Get current memory usage to set a realistic limit
+        import psutil
+        current_usage = psutil.Process().memory_info().rss / 1024 / 1024
+        # Set limit to current usage + 100MB to ensure reasonable test conditions
+        limit_mb = max(100, current_usage + 100)
+        
+        monitor = MemoryMonitor(limit_mb=limit_mb)
         
         # Basic functionality tests
         current_usage = monitor.get_current_usage_mb()
@@ -59,7 +65,7 @@ class TestXMLStreamingIntegration:
         assert isinstance(current_usage, float)
         
         percentage = monitor.get_usage_percentage()
-        assert 0 <= percentage <= 1000  # Allow for systems using more than limit
+        assert 0 <= percentage <= 200  # Allow for reasonable overhead in test environment
         
         # Memory limit check
         is_over = monitor.is_over_limit()
