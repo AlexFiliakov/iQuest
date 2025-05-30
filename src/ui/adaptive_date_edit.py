@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QDate, pyqtSignal
 from PyQt6.QtGui import QTextCharFormat, QColor, QPalette
 
 from .enhanced_date_edit import EnhancedDateEdit
+from .styled_calendar_widget import DataAvailabilityCalendarWidget
 from ..data_availability_service import DataAvailabilityService, AvailabilityLevel
 from src.utils.logging_config import get_logger
 
@@ -37,7 +38,17 @@ class AdaptiveDateEdit(EnhancedDateEdit):
         # Customize calendar popup if available
         self.setCalendarPopup(True)
         
+        # Replace default calendar with our styled version
+        self._setup_styled_calendar()
+        
         logger.debug("AdaptiveDateEdit initialized")
+        
+    def _setup_styled_calendar(self):
+        """Setup the custom styled calendar widget."""
+        # Create and set our custom calendar
+        self.custom_calendar = DataAvailabilityCalendarWidget()
+        self.custom_calendar.setHideDaysFromOtherMonths(True)
+        self.setCalendarWidget(self.custom_calendar)
         
     def set_metric_type(self, metric_type: str):
         """Set the metric type for availability checking."""
@@ -87,33 +98,12 @@ class AdaptiveDateEdit(EnhancedDateEdit):
             
     def _update_calendar_highlighting(self):
         """Update calendar highlighting to show data availability."""
-        calendar = self.calendarWidget()
-        if not calendar:
-            return
-            
-        # Clear previous highlighting
-        calendar.setDateTextFormat(QDate(), QTextCharFormat())
-        
-        # Set up text formats for different availability levels
-        available_format = QTextCharFormat()
-        available_format.setBackground(QColor(40, 167, 69, 20))   # Very light green
-        available_format.setForeground(QColor(40, 167, 69))       # Green text
-        
-        partial_format = QTextCharFormat()
-        partial_format.setBackground(QColor(255, 193, 7, 20))     # Very light yellow
-        partial_format.setForeground(QColor(255, 193, 7))        # Yellow text
-        
-        unavailable_format = QTextCharFormat()
-        unavailable_format.setBackground(QColor(220, 53, 69, 20))  # Very light red
-        unavailable_format.setForeground(QColor(220, 53, 69))      # Red text
-        
-        # Apply highlighting to dates
-        for available_date in self.available_dates:
-            qdate = QDate(available_date.year, available_date.month, available_date.day)
-            if available_date in self.partial_dates:
-                calendar.setDateTextFormat(qdate, partial_format)
-            else:
-                calendar.setDateTextFormat(qdate, available_format)
+        # Update our custom calendar with availability data
+        if hasattr(self, 'custom_calendar'):
+            self.custom_calendar.set_availability_data(
+                self.available_dates,
+                self.partial_dates
+            )
                 
     def _update_current_date_feedback(self):
         """Update tooltip and styling for current date availability."""
@@ -188,9 +178,8 @@ class AdaptiveDateEdit(EnhancedDateEdit):
         self.available_dates.clear()
         self.partial_dates.clear()
         self.setStyleSheet("")
-        calendar = self.calendarWidget()
-        if calendar:
-            calendar.setDateTextFormat(QDate(), QTextCharFormat())
+        if hasattr(self, 'custom_calendar'):
+            self.custom_calendar.set_availability_data(set(), set())
             
     def cleanup(self):
         """Cleanup when widget is destroyed."""

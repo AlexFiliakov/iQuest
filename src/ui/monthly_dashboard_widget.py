@@ -166,7 +166,10 @@ class MonthlyDashboardWidget(QWidget):
             "HeadphoneAudioExposure": "Headphone Audio Exposure",
             
             # Mindfulness
-            "MindfulSession": "Mindful Minutes"
+            "MindfulSession": "Mindful Minutes",
+            
+            # Additional metrics from logs
+            "HKDataTypeSleepDurationGoal": "Sleep Duration Goal"
         }
         
         # Map database metric types to units for display
@@ -201,17 +204,25 @@ class MonthlyDashboardWidget(QWidget):
             "DietaryProtein": "g",
             "DietaryCarbohydrates": "g",
             "DietaryFatTotal": "g",
+            "DietaryFatSaturated": "g",
+            "DietaryFatMonounsaturated": "g",
+            "DietaryFatPolyunsaturated": "g",
+            "DietaryCholesterol": "mg",
+            "DietaryFiber": "g",
+            "DietarySugar": "g",
+            "DietarySodium": "mg",
+            "DietaryPotassium": "mg",
+            "DietaryCalcium": "mg",
+            "DietaryIron": "mg",
+            "DietaryVitaminC": "mg",
             "DietaryWater": "mL",
             "HeadphoneAudioExposure": "dB",
-            "MindfulSession": "min"
+            "MindfulSession": "min",
+            "HKDataTypeSleepDurationGoal": "hours"
         }
         
     def _load_available_metrics(self):
         """Load available metrics from the database with source information."""
-        # Start with default metrics
-        default_metrics = ["StepCount", "HeartRate", "SleepAnalysis", "DistanceWalkingRunning", 
-                          "ActiveEnergyBurned", "FlightsClimbed", "BodyMass", "BloodPressureSystolic"]
-        
         # If no database connection, use all available metrics
         if not self.health_db:
             logger.warning("No database connection, showing all available metrics")
@@ -220,53 +231,66 @@ class MonthlyDashboardWidget(QWidget):
             return
         
         try:
+            # Get all available types from database
+            db_types = self.health_db.get_available_types()
+            logger.info(f"Found {len(db_types)} types in database")
+            
             # Get all available sources
             sources = self.health_db.get_available_sources()
             logger.info(f"Found {len(sources)} data sources in database")
             
             # Build list of (metric, source) tuples
             self._available_metrics = []
+            seen_metrics = set()
             
-            # If no sources in database, just use default metrics without sources
-            if not sources:
-                logger.info("No sources in database, using default metrics")
-                # Use default metrics without specific sources
-                for metric in default_metrics:
+            # First, add aggregated metrics (no source specified) for all available types
+            for db_type in db_types:
+                # Types in the database might already have HK prefix stripped (based on weekly tab log)
+                # Check if it already exists in our display names
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
+                else:
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    seen_metrics.add(clean_type)
+                    logger.debug(f"Added aggregated metric: {clean_type}")
+            
+            # Then, add source-specific metrics
+            for source in sources:
+                types_for_source = self.health_db.get_types_for_source(source)
+                
+                for db_type in types_for_source:
+                    # Check if it already exists in our display names
+                    if db_type in self._metric_display_names:
+                        clean_type = db_type
+                    else:
+                        # If not, try stripping HK prefixes
+                        clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                    
+                    # Only include metrics we have display names for
+                    if clean_type in self._metric_display_names:
+                        self._available_metrics.append((clean_type, source))
+                        logger.debug(f"Added metric: {clean_type} from {source}")
+            
+            # If no metrics found, use a basic set
+            if not self._available_metrics:
+                logger.warning("No metrics found in database, using basic set")
+                # Use the types from the log that we know exist
+                basic_metrics = ["StepCount", "DistanceWalkingRunning", "FlightsClimbed", 
+                               "DietaryWater", "BodyMass", "HeartRate", "ActiveEnergyBurned",
+                               "SleepAnalysis"]
+                for metric in basic_metrics:
                     if metric in self._metric_display_names:
                         self._available_metrics.append((metric, None))
-            else:
-                # Use real data from database
-                # For each source, get its available types
-                for source in sources:
-                    types_for_source = self.health_db.get_types_for_source(source)
-                    
-                    for db_type in types_for_source:
-                        # Remove HK prefixes if present
-                        clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
-                        
-                        # Only include metrics we have display names for
-                        if clean_type in self._metric_display_names:
-                            self._available_metrics.append((clean_type, source))
-                            logger.debug(f"Added metric: {clean_type} from {source}")
-                
-                # Also get metrics without specific source filtering (aggregated view)
-                db_types = self.health_db.get_available_types()
-                for db_type in db_types:
-                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
-                    if clean_type in self._metric_display_names:
-                        # Add aggregated option (no source specified)
-                        if (clean_type, None) not in self._available_metrics:
-                            self._available_metrics.append((clean_type, None))
-            
-            # If still no metrics, use defaults
-            if not self._available_metrics:
-                logger.info("No metrics found, using defaults")
-                self._available_metrics = [(metric, None) for metric in default_metrics]
             
             # Sort by display name and source for better UX
             self._available_metrics.sort(key=lambda x: (
                 self._metric_display_names.get(x[0], x[0]), 
-                x[1] if x[1] else "zzz"  # Put "All Sources" at the end
+                x[1] if x[1] else ""  # Put "All Sources" first
             ))
             
             logger.info(f"Loaded {len(self._available_metrics)} metric-source combinations")
@@ -789,6 +813,39 @@ class MonthlyDashboardWidget(QWidget):
                 # Emit just the metric type for compatibility
                 self.metric_changed.emit(self._current_metric[0])
             
+    def _get_database_metric_type(self, clean_metric: str) -> str:
+        """Convert a clean metric name to the format stored in the database.
+        
+        Args:
+            clean_metric: Metric name without HK prefix (e.g., 'StepCount')
+            
+        Returns:
+            The metric type as stored in the database
+        """
+        # First check if the metric exists as-is in the database
+        if self.health_db:
+            available_types = self.health_db.get_available_types()
+            
+            # Check if clean name exists directly
+            if clean_metric in available_types:
+                return clean_metric
+                
+            # Check with HK prefix for quantities
+            hk_quantity = f"HKQuantityTypeIdentifier{clean_metric}"
+            if hk_quantity in available_types:
+                return hk_quantity
+                
+            # Check with HK prefix for categories
+            hk_category = f"HKCategoryTypeIdentifier{clean_metric}"
+            if hk_category in available_types:
+                return hk_category
+        
+        # Default: assume it needs HK prefix based on known category types
+        if clean_metric in ["SleepAnalysis", "MindfulSession", "HKDataTypeSleepDurationGoal"]:
+            return f"HKCategoryTypeIdentifier{clean_metric}"
+        else:
+            return f"HKQuantityTypeIdentifier{clean_metric}"
+    
     def _load_month_data(self):
         """Load data for the current month and metric."""
         data = {}
@@ -799,11 +856,8 @@ class MonthlyDashboardWidget(QWidget):
                 # Extract metric and source from tuple
                 metric_type, source = self._current_metric
                 
-                # Add HK prefix back for database query
-                if metric_type == "SleepAnalysis" or metric_type == "MindfulSession":
-                    hk_type = f"HKCategoryTypeIdentifier{metric_type}"
-                else:
-                    hk_type = f"HKQuantityTypeIdentifier{metric_type}"
+                # Get the correct database format for this metric
+                hk_type = self._get_database_metric_type(metric_type)
                 
                 # Get data for the entire month
                 days_in_month = monthrange(self._current_year, self._current_month)[1]
@@ -930,11 +984,8 @@ class MonthlyDashboardWidget(QWidget):
                 metric_type = self._current_metric
                 source = None
                 
-            # Add HK prefix back for database query
-            if metric_type == "SleepAnalysis" or metric_type == "MindfulSession":
-                hk_type = f"HKCategoryTypeIdentifier{metric_type}"
-            else:
-                hk_type = f"HKQuantityTypeIdentifier{metric_type}"
+            # Get the correct database format for this metric
+            hk_type = self._get_database_metric_type(metric_type)
                 
             # Get data for the entire month
             first_day = date(self._current_year, self._current_month, 1)

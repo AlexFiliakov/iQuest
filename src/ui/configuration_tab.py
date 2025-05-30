@@ -1961,7 +1961,7 @@ class ConfigurationTab(QWidget):
                 preview_columns.append(col)
         
         if preview_columns:
-            preview_data = sample_data[preview_columns]
+            preview_data = sample_data[preview_columns].copy()
             
             # Format dates for better readability
             for col in ['creationDate', 'startDate', 'endDate']:

@@ -20,8 +20,8 @@ from src.utils.error_handler import ConfigurationError, ErrorContext
 from src.utils.logging_config import get_logger, setup_logging
 
 # Initialize logging for the application
-setup_logging(log_level="INFO")
-logger = get_logger(__name__)
+logger = setup_logging(log_level="INFO")
+module_logger = get_logger(__name__)
 
 
 def exception_hook(exc_type, exc_value, exc_traceback):
@@ -45,7 +45,7 @@ def exception_hook(exc_type, exc_value, exc_traceback):
         return
 
     # Log the exception
-    logger.critical(
+    module_logger.critical(
         "Uncaught exception",
         exc_info=(exc_type, exc_value, exc_traceback)
     )
@@ -87,7 +87,7 @@ def main():
         SystemExit: If the application fails to start or encounters a critical error.
     """
     try:
-        logger.info("Starting Apple Health Monitor Dashboard")
+        module_logger.info("Starting Apple Health Monitor Dashboard")
         
         # PyQt6 handles high DPI scaling automatically
         # Set the rounding policy for fractional scale factors
@@ -122,11 +122,11 @@ def main():
             window = MainWindow()
             window.show()
 
-        logger.info("Application started successfully")
+        module_logger.info("Application started successfully")
         sys.exit(app.exec())
 
     except Exception as e:
-        logger.critical(f"Failed to start application: {e}", exc_info=True)
+        module_logger.critical(f"Failed to start application: {e}", exc_info=True)
         sys.exit(1)
 
 

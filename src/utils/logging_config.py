@@ -217,8 +217,16 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(f"apple_health_monitor.{name}")
 
 
-# Create a default logger instance
-default_logger = setup_logging()
+# Module-level variable to track if logging has been initialized
+_logging_initialized = False
+
+def get_default_logger():
+    """Get the default logger, initializing if needed."""
+    global _logging_initialized
+    if not _logging_initialized:
+        setup_logging()
+        _logging_initialized = True
+    return logging.getLogger("apple_health_monitor")
 
 
 if __name__ == "__main__":

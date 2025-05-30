@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QDateEdit
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QKeyEvent
 
+from .styled_calendar_widget import StyledCalendarWidget
 from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -18,6 +19,11 @@ class EnhancedDateEdit(QDateEdit):
         # Enable keyboard tracking and calendar popup
         self.setKeyboardTracking(True)
         self.setCalendarPopup(True)
+        
+        # Use our styled calendar widget
+        styled_calendar = StyledCalendarWidget()
+        styled_calendar.setHideDaysFromOtherMonths(True)
+        self.setCalendarWidget(styled_calendar)
         
         logger.debug("EnhancedDateEdit initialized with arrow key navigation")
     

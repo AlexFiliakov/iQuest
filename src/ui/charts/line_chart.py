@@ -609,7 +609,7 @@ class LineChart(QWidget):
         old_hover = self.hover_index
         self.hover_index = -1
         
-        if chart_rect.contains(event.position().toPoint()) and self.data_points:
+        if chart_rect.contains(event.position()) and self.data_points:
             min_distance = float('inf')
             
             for i in range(len(self.data_points)):

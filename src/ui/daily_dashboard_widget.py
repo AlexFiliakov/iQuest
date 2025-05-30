@@ -856,7 +856,7 @@ class DailyDashboardWidget(QWidget):
             logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
             today_stats = self.daily_calculator.calculate_daily_statistics(
                 metric=hk_type,
-                date=self._current_date
+                target_date=self._current_date
             )
             
             logger.debug(f"Stats for {metric_name}: {today_stats}")
@@ -868,7 +868,7 @@ class DailyDashboardWidget(QWidget):
                     yesterday = self._current_date - timedelta(days=1)
                     yesterday_stats = self.daily_calculator.calculate_daily_statistics(
                         metric=hk_type,
-                        date=yesterday
+                        target_date=yesterday
                     )
                     
                     if yesterday_stats and yesterday_stats.count > 0:
