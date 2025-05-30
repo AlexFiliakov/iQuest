@@ -58,11 +58,6 @@ The Records and Badges system in Apple Health Monitor tracks personal achievemen
 - Visual styling based on achievement status (earned vs locked)
 - Achievement notifications with confetti animations
 
-**Sample Data Fallback**:
-- If no real records exist, displays sample data for demonstration
-- Sample records include realistic health metrics and values
-- Used only when database contains no actual records
-
 #### 3. Achievement System
 
 **Badge Categories**:

@@ -1,155 +1,266 @@
-# Apple Health Monitor - System Context Diagram
+# Apple Health Monitor Dashboard - System Context Diagram
 
-This diagram shows the high-level architecture of the Apple Health Monitor application, including external dependencies, data sources, and major component interactions.
+This diagram shows the high-level architecture of the Apple Health Monitor Dashboard, including external integrations, major system components, and primary data flows.
+
+## System Context
 
 ```mermaid
-flowchart TB
-    %% External Data Sources
-    subgraph "Data Sources"
-        XML[Apple Health XML Export]
-        CSV[CSV Files]
-        SQLite[SQLite Database]
-    end
+C4Context
+    title System Context - Apple Health Monitor Dashboard
 
-    %% Core Application
-    subgraph "Apple Health Monitor Application"
-        direction TB
-        
-        %% Data Layer
-        subgraph "Data Processing Layer"
-            DL[data_loader.py<br/>XML/CSV Parser]
-            DB[database.py<br/>Database Manager]
-            DA[data_access.py<br/>Data Access Objects]
-            MOD[models.py<br/>Data Models]
-        end
-        
-        %% Business Logic
-        subgraph "Business Logic Layer"
-            FILTER[DataFilterEngine<br/>Query & Filter]
-            STATS[StatisticsCalculator<br/>Analytics]
-            CACHE[CachedMetricDAO<br/>Performance Cache]
-        end
-        
-        %% UI Layer
-        subgraph "UI Layer"
-            MW[main_window.py<br/>Main Application]
-            CT[configuration_tab.py<br/>Import & Config]
-            DASH[Dashboard Tabs<br/>Daily/Weekly/Monthly]
-            CHARTS[Chart Widgets<br/>WSJ-style Visualizations]
-        end
-        
-        %% Utilities
-        subgraph "Utilities"
-            ERR[error_handler.py<br/>Exception Management]
-            LOG[logging_config.py<br/>Structured Logging]
-            CFG[config.py<br/>App Configuration]
-        end
-    end
-
-    %% External Dependencies
-    subgraph "Python Dependencies"
-        direction LR
-        PD[pandas<br/>Data Analysis]
-        QT[PyQt6<br/>Desktop UI]
-        MPL[matplotlib<br/>Plotting]
-        NP[numpy<br/>Numerics]
-        STATS_LIB[statsmodels<br/>Statistics]
-        PROPHET[prophet<br/>Forecasting]
-    end
-
-    %% User
-    USER[End User]
-
-    %% Data Flow
-    XML --> DL
-    CSV --> DL
-    SQLite --> DB
+    Person(user, "User", "Health data analyst wanting to track and visualize personal health metrics")
     
-    DL --> DB
-    DB --> DA
-    DA --> MOD
-    MOD --> FILTER
-    MOD --> STATS
+    System_Boundary(app, "Apple Health Monitor Dashboard") {
+        System(ui, "User Interface Layer", "PyQt6-based desktop application with accessibility support")
+        System(analytics, "Analytics Engine", "Health data analysis, trending, and scoring")
+        System(data, "Data Management", "Import, storage, and access layer")
+    }
     
-    FILTER --> DASH
-    STATS --> DASH
-    CACHE --> FILTER
+    System_Ext(apple_health, "Apple Health App", "iOS health data export (XML format)")
+    System_Ext(csv_data, "CSV Files", "External health data sources")
+    System_Ext(sqlite, "SQLite Database", "Local health data storage")
+    System_Ext(filesystem, "File System", "Configuration, logs, and cache storage")
     
-    CT --> DL
-    DASH --> CHARTS
-    MW --> CT
-    MW --> DASH
+    Rel(user, ui, "Interacts with", "Mouse, keyboard, accessibility tools")
+    Rel(ui, analytics, "Requests analysis", "Qt signals/slots")
+    Rel(analytics, data, "Queries data", "DAO pattern")
+    Rel(data, sqlite, "Stores/retrieves", "SQL queries")
+    Rel(data, apple_health, "Imports from", "XML parsing")
+    Rel(data, csv_data, "Imports from", "CSV parsing")
+    Rel(app, filesystem, "Reads/writes", "Config, logs, cache files")
     
-    USER --> MW
-    CHARTS --> USER
-    
-    %% Utility connections
-    ERR -.-> DL
-    ERR -.-> DB
-    ERR -.-> DA
-    LOG -.-> DL
-    LOG -.-> DB
-    CFG -.-> MW
-    CFG -.-> DB
-    
-    %% External lib usage
-    PD -.-> DL
-    PD -.-> FILTER
-    QT -.-> MW
-    MPL -.-> CHARTS
-    NP -.-> STATS
-    STATS_LIB -.-> STATS
-    PROPHET -.-> STATS
-
-    %% Styling
-    classDef external fill:#f9f,stroke:#333,stroke-width:2px
-    classDef data fill:#bbf,stroke:#333,stroke-width:2px
-    classDef ui fill:#bfb,stroke:#333,stroke-width:2px
-    classDef util fill:#fbb,stroke:#333,stroke-width:2px
-    classDef logic fill:#fbf,stroke:#333,stroke-width:2px
-    
-    class XML,CSV,SQLite,USER external
-    class DL,DB,DA,MOD data
-    class MW,CT,DASH,CHARTS ui
-    class ERR,LOG,CFG util
-    class FILTER,STATS,CACHE logic
-    class PD,QT,MPL,NP,STATS_LIB,PROPHET external
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
 
-## Component Overview
+## Primary Data Flow
 
-### Data Sources
-- **Apple Health XML Export**: Primary data source containing all health metrics
-- **CSV Files**: Alternative import format for specific metrics
-- **SQLite Database**: Processed and indexed data storage
+```mermaid
+flowchart TD
+    subgraph "External Data Sources"
+        A[Apple Health XML Export]
+        B[CSV Health Data]
+    end
+    
+    subgraph "Import & Validation Layer"
+        C[XML Streaming Processor]
+        D[Data Loader]
+        E[XML Validator]
+    end
+    
+    subgraph "Data Management Layer"
+        F[Database Manager<br/>Singleton Pattern]
+        G[Data Access Objects<br/>DAO Pattern]
+        H[SQLite Database<br/>WAL Mode]
+    end
+    
+    subgraph "Analytics Engine"
+        I[Daily Metrics Calculator]
+        J[Monthly Metrics Calculator]
+        K[Cache Manager<br/>3-tier Caching]
+        L[Health Score Calculator]
+        M[Anomaly Detection]
+    end
+    
+    subgraph "User Interface Layer"
+        N[Main Window<br/>Tab-based Navigation]
+        O[Configuration Tab]
+        P[Dashboard Widgets]
+        Q[Chart Components<br/>WSJ Style]
+    end
+    
+    subgraph "Storage & Caching"
+        R[L1: Memory Cache<br/>LRU]
+        S[L2: SQLite Cache]
+        T[L3: Compressed Disk]
+        U[User Preferences]
+        V[Import History]
+    end
+    
+    %% Data import flow
+    A --> C
+    B --> D
+    C --> E
+    D --> E
+    E --> F
+    
+    %% Database operations
+    F --> G
+    G --> H
+    
+    %% Analytics processing
+    G --> I
+    G --> J
+    I --> K
+    J --> K
+    K --> L
+    K --> M
+    
+    %% Caching strategy
+    K --> R
+    R --> S
+    S --> T
+    
+    %% UI interactions
+    N --> O
+    N --> P
+    P --> Q
+    O --> G
+    Q --> K
+    
+    %% Configuration storage
+    F --> U
+    F --> V
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style H fill:#f3e5f5
+    style K fill:#fff3e0
+    style N fill:#e8f5e8
+    style R fill:#fff8e1
+    style S fill:#fff8e1
+    style T fill:#fff8e1
+```
 
-### Data Processing Layer
-- **data_loader.py**: Handles XML/CSV parsing and SQLite conversion
-- **database.py**: Manages database connections with singleton pattern
-- **data_access.py**: Provides DAOs for each entity type
-- **models.py**: Defines data structures and schemas
+## Component Interactions
 
-### Business Logic Layer
-- **DataFilterEngine**: Complex query building and data filtering
-- **StatisticsCalculator**: Computes health metrics and trends
-- **CachedMetricDAO**: Performance optimization through caching
+```mermaid
+flowchart LR
+    subgraph "Presentation Layer"
+        UI[UI Components<br/>PyQt6 Widgets]
+        CHARTS[Chart Components<br/>Interactive Visualizations]
+        CONFIG[Configuration Interface<br/>Data Import & Filtering]
+    end
+    
+    subgraph "Business Logic Layer"
+        ANALYTICS[Analytics Engine<br/>Health Data Analysis]
+        CACHE[Cache Manager<br/>Performance Optimization]
+        FILTERS[Data Filter Engine<br/>Query Building]
+    end
+    
+    subgraph "Data Access Layer"
+        DAO[Data Access Objects<br/>CRUD Operations]
+        MODELS[Data Models<br/>7 Dataclasses]
+        LOADER[Data Loader<br/>XML/CSV Import]
+    end
+    
+    subgraph "Persistence Layer"
+        DB[Database Manager<br/>SQLite with WAL]
+        FILES[File System<br/>Config & Logs]
+    end
+    
+    %% UI to Business Logic
+    UI --> ANALYTICS
+    CHARTS --> CACHE
+    CONFIG --> FILTERS
+    
+    %% Business Logic to Data Access
+    ANALYTICS --> DAO
+    CACHE --> DAO
+    FILTERS --> DAO
+    LOADER --> MODELS
+    
+    %% Data Access to Persistence
+    DAO --> DB
+    MODELS --> DB
+    LOADER --> DB
+    
+    %% Configuration flow
+    CONFIG --> FILES
+    UI --> FILES
+    
+    %% Bidirectional data flow
+    DAO <--> CACHE
+    ANALYTICS <--> CACHE
+    
+    %% Styling
+    style UI fill:#e8f5e8
+    style CHARTS fill:#e8f5e8
+    style CONFIG fill:#e8f5e8
+    style ANALYTICS fill:#fff3e0
+    style CACHE fill:#fff8e1
+    style FILTERS fill:#fff3e0
+    style DAO fill:#f3e5f5
+    style MODELS fill:#f3e5f5
+    style LOADER fill:#f3e5f5
+    style DB fill:#e1f5fe
+    style FILES fill:#e1f5fe
+```
 
-### UI Layer
-- **main_window.py**: Main application window and navigation
-- **configuration_tab.py**: Data import and filter configuration
-- **Dashboard Tabs**: Daily, weekly, and monthly health views
-- **Chart Widgets**: WSJ-style data visualizations
+## Technology Stack Context
 
-### Utilities
-- **error_handler.py**: Centralized exception handling
-- **logging_config.py**: Structured logging with rotation
-- **config.py**: Application-wide configuration
+```mermaid
+graph TB
+    subgraph "Desktop Application"
+        APP[Apple Health Monitor Dashboard]
+    end
+    
+    subgraph "UI Framework"
+        PYQT6[PyQt6<br/>Modern Desktop UI]
+        MATPLOTLIB[Matplotlib<br/>Chart Rendering]
+        ACCESSIBILITY[Accessibility<br/>WCAG 2.1 AA]
+    end
+    
+    subgraph "Data Processing"
+        PANDAS[Pandas<br/>Data Analysis]
+        NUMPY[NumPy<br/>Numerical Computing]
+        SQLITE3[SQLite3<br/>Database Driver]
+    end
+    
+    subgraph "Development Tools"
+        PYTEST[PyTest<br/>Testing Framework]
+        SPHINX[Sphinx<br/>Documentation]
+        RUFF[Ruff<br/>Code Quality]
+    end
+    
+    subgraph "System Integration"
+        PYTHON[Python 3.10+<br/>Runtime Environment]
+        OS[Operating System<br/>Windows/Linux/macOS]
+        FS[File System<br/>Local Storage]
+    end
+    
+    APP --> PYQT6
+    APP --> PANDAS
+    APP --> SQLITE3
+    
+    PYQT6 --> MATPLOTLIB
+    PYQT6 --> ACCESSIBILITY
+    
+    PANDAS --> NUMPY
+    SQLITE3 --> FS
+    
+    APP --> PYTHON
+    PYTHON --> OS
+    OS --> FS
+    
+    %% Development dependencies (dashed)
+    APP -.-> PYTEST
+    APP -.-> SPHINX
+    APP -.-> RUFF
+    
+    %% Styling
+    style APP fill:#4caf50,color:#fff
+    style PYQT6 fill:#2196f3,color:#fff
+    style PANDAS fill:#ff9800,color:#fff
+    style SQLITE3 fill:#9c27b0,color:#fff
+    style PYTHON fill:#f44336,color:#fff
+```
 
-### External Dependencies
-Key libraries that power the application:
-- **pandas**: DataFrame operations and data analysis
-- **PyQt6**: Cross-platform desktop UI framework
-- **matplotlib**: Scientific plotting and charting
-- **numpy**: Numerical computations
-- **statsmodels**: Statistical modeling
-- **prophet**: Time series forecasting
+## Key Architectural Principles
+
+1. **Layered Architecture**: Clear separation between presentation, business logic, data access, and persistence layers
+2. **Singleton Pattern**: Database manager ensures single connection point with connection pooling
+3. **DAO Pattern**: Data access objects provide clean abstraction over database operations
+4. **Protocol-Based Design**: Interfaces enable flexibility and testability
+5. **3-Tier Caching**: Performance optimization through memory, SQLite, and disk caching
+6. **Observer Pattern**: Qt signals/slots enable reactive UI updates
+7. **Factory Pattern**: Component factories ensure consistent styling and behavior
+8. **Local-First**: All data remains on user's machine for privacy and security
+
+## Security & Privacy Features
+
+- **Local Data Only**: No cloud storage or external data transmission
+- **Input Validation**: Comprehensive XML and data validation
+- **Secure File Handling**: Proper permissions and path validation
+- **Error Isolation**: Secure error messages without data leakage
+- **Database Integrity**: Foreign key constraints and transaction safety

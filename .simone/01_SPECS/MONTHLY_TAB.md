@@ -11,7 +11,6 @@ The Monthly tab provides a comprehensive calendar-based view of health metrics w
 - **Primary Interface**: Orchestrates the Monthly tab experience
 - **State Management**: Tracks current month/year for navigation
 - **Data Integration**: Connects with MonthlyMetricsCalculator for analytics
-- **Sample Data**: Generates realistic demo data when real data unavailable
 
 #### 2. Calendar Heatmap (`src/ui/charts/calendar_heatmap.py`)
 - **Primary Visualization**: Color-coded calendar grid showing daily values

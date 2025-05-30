@@ -196,7 +196,7 @@ docs/
 README.md                         # Link to architecture docs
 ```
 
-I already created the folders `quactuary/docs/architecture/`, `quactuary/docs/architecture/class_diagrams`, and `quactuary/docs/diagrams/`, so save there and fill out the file structure above.
+I already created the folders `docs/architecture/`, `docs/architecture/class_diagrams`, and `docs/diagrams/`, so save there and fill out the file structure above.
 
 ## Specific Mermaid Diagram Types ##
 ### For Context Diagrams:
@@ -466,7 +466,7 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 ---- Templates 4: Testing ----------
 
-pytest --tb=long -v --cov > tests\pytest_failure_summaries_cov.txt 2>&1
+pytest --tb=long -v --cov --timeout=120 > tests\pytest_failure_summaries_cov.txt 2>&1
 
 run below command at the project root and fix errors until the command passes all tests.
 `pytest --tb=long -v -x > tests\pytest_failure_summaries_1.txt 2>&1`
@@ -478,8 +478,15 @@ Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and test
 
 #### Future #####
 
-the Monthly tab still doesn't display any data. Error is `apple_health_monitor.src.ui.monthly_dashboard_widget - WARNING - monthly_dashboard_widget.py:914 - _generate_sample_data() - No real data available for display`. Please come up with an approach to correct the data feed and proper metrics by type, review the changes, implement the corrections, and create automated tests in `tests/` to validate. Make sure all new tests pass and the Monthly tab has data flowing through.  
+
+Remove `_generate_sample_data()` om `src/ui/monthly_dashboard_widget.py` so that it never generates sample data, but always goes from user data.
 
 
 
 
+
+
+
+### Simone ###
+
+/mermaid currently doesn’t update mermaid flowcharts, but rather asks for modified files?
