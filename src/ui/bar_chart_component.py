@@ -260,6 +260,10 @@ class BarChart(QWidget):
             
     def _plot_simple_bars(self, data: pd.DataFrame, **kwargs):
         """Plot simple bar chart with single data series."""
+        # Handle empty data
+        if data.empty or data.shape[0] == 0 or data.shape[1] == 0:
+            return
+            
         if data.shape[1] != 1:
             # Use first column if multiple columns provided
             series = data.iloc[:, 0]
@@ -290,6 +294,9 @@ class BarChart(QWidget):
             
     def _plot_grouped_bars(self, data: pd.DataFrame, **kwargs):
         """Plot grouped bar chart with multiple data series."""
+        # Handle empty data
+        if data.empty or data.shape[0] == 0 or data.shape[1] == 0:
+            return
         n_groups = len(data.index)
         n_bars = len(data.columns)
         width = self.config.bar_width / n_bars
@@ -316,6 +323,9 @@ class BarChart(QWidget):
         
     def _plot_stacked_bars(self, data: pd.DataFrame, **kwargs):
         """Plot stacked bar chart with multiple data series."""
+        # Handle empty data
+        if data.empty or data.shape[0] == 0 or data.shape[1] == 0:
+            return
         colors = self.config.get_color_sequence(len(data.columns))
         
         bottom = np.zeros(len(data.index))

@@ -838,12 +838,12 @@ class MonthlyDashboardWidget(QWidget):
                             
             except Exception as e:
                 logger.error(f"Error loading month data: {e}", exc_info=True)
-                # Try to generate sample data as fallback
-                data = self._generate_sample_data()
+                # Return empty data
+                data = {}
         else:
-            # Use sample data if no calculator available
-            logger.warning("No monthly calculator available, generating sample data")
-            data = self._generate_sample_data()
+            # No calculator available - try to use database directly
+            logger.warning("No monthly calculator available, attempting direct database access")
+            data = self._load_data_from_database()
         
         # Update calendar heatmap with metric type and source
         if isinstance(self._current_metric, tuple):
@@ -914,61 +914,85 @@ class MonthlyDashboardWidget(QWidget):
         else:
             return value  # Return as-is for other metrics
         
-    def _generate_sample_data(self) -> Dict[date, float]:
-        """Generate sample data for demonstration when no real data is available."""
-        logger.info("Generating sample data for demonstration")
-        
-        # Generate realistic sample data based on metric type
-        metric_type = self._current_metric[0] if isinstance(self._current_metric, tuple) else self._current_metric
-        
-        days_in_month = monthrange(self._current_year, self._current_month)[1]
-        today = date.today()
+    def _load_data_from_database(self) -> Dict[date, float]:
+        """Load data directly from the database when no calculator is available."""
         data = {}
         
-        # Define reasonable ranges for different metrics
-        metric_ranges = {
-            "StepCount": (3000, 15000),
-            "HeartRate": (60, 80),
-            "DistanceWalkingRunning": (2.0, 10.0),  # km
-            "ActiveEnergyBurned": (200, 600),
-            "SleepAnalysis": (6, 9),  # hours
-            "BodyMass": (65, 75),
-            "BloodPressureSystolic": (110, 130),
-            "BloodPressureDiastolic": (70, 85),
-            "FlightsClimbed": (5, 30),
-            "RespiratoryRate": (12, 20),
-            "RestingHeartRate": (55, 70),
-            "BodyFatPercentage": (15, 25),
-            "AppleExerciseTime": (15, 60),  # minutes
-        }
-        
-        # Get range for current metric
-        min_val, max_val = metric_ranges.get(metric_type, (50, 100))
-        
-        # Generate data with some realistic patterns
-        import random
-        
-        for day in range(1, days_in_month + 1):
-            current_date = date(self._current_year, self._current_month, day)
+        if not self.health_db:
+            logger.warning("No health database connection available")
+            return data
             
-            # Skip future dates
-            if current_date > today:
-                continue
+        try:
+            # Get metric and source from current metric tuple
+            if isinstance(self._current_metric, tuple):
+                metric_type, source = self._current_metric
+            else:
+                metric_type = self._current_metric
+                source = None
                 
-            # Add some weekly patterns (lower values on weekends)
-            weekday = current_date.weekday()
-            weekend_factor = 0.8 if weekday >= 5 else 1.0
+            # Add HK prefix back for database query
+            if metric_type == "SleepAnalysis" or metric_type == "MindfulSession":
+                hk_type = f"HKCategoryTypeIdentifier{metric_type}"
+            else:
+                hk_type = f"HKQuantityTypeIdentifier{metric_type}"
+                
+            # Get data for the entire month
+            first_day = date(self._current_year, self._current_month, 1)
+            last_day = date(self._current_year, self._current_month, 
+                           monthrange(self._current_year, self._current_month)[1])
+            today = date.today()
             
-            # Generate value with some randomness
-            base_value = random.uniform(min_val, max_val)
-            value = base_value * weekend_factor
+            logger.info(f"Loading data directly from database for {hk_type} in {self._current_month}/{self._current_year}")
             
-            # Add some noise
-            value += random.uniform(-0.1, 0.1) * (max_val - min_val)
+            current_date = first_day
+            while current_date <= last_day and current_date <= today:
+                if source:
+                    # Get source-specific data
+                    daily_value = self._get_source_specific_daily_value(hk_type, current_date, source)
+                else:
+                    # Get aggregated data from database
+                    daily_value = self._get_daily_aggregate_from_db(hk_type, current_date)
+                
+                if daily_value is not None and daily_value > 0:
+                    # Convert values for display based on metric type
+                    data[current_date] = self._convert_value_for_display(daily_value, metric_type)
+                    logger.debug(f"Loaded {metric_type} for {current_date}: {daily_value}")
+                
+                current_date += timedelta(days=1)
             
-            data[current_date] = max(min_val, min(max_val, value))
-        
+            logger.info(f"Loaded {len(data)} days of data for {metric_type} from database")
+            
+        except Exception as e:
+            logger.error(f"Error loading data from database: {e}", exc_info=True)
+            
         return data
+    
+    def _get_daily_aggregate_from_db(self, metric_type: str, target_date: date) -> Optional[float]:
+        """Get daily aggregate value directly from database."""
+        try:
+            from ..database import db_manager
+            
+            # Query database for the specific date
+            query = """
+                SELECT SUM(value) as total_value
+                FROM health_records
+                WHERE type = ? 
+                AND DATE(start_date) = ?
+            """
+            
+            with db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (metric_type, target_date.isoformat()))
+                result = cursor.fetchone()
+                
+                if result and result[0] is not None:
+                    return float(result[0])
+                
+        except Exception as e:
+            logger.error(f"Error getting daily aggregate from database: {e}")
+            
+        return None
+    
         
     def _update_summary_stats(self, data: Dict[date, float]):
         """Update the summary statistics cards."""

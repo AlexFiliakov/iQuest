@@ -532,7 +532,7 @@ class WSJHealthVisualizationSuite(QWidget):
             
             # Ensure we have 24 hours
             full_hours = pd.DataFrame(index=range(24))
-            hourly_pattern = full_hours.join(hourly_avg).fillna(method='ffill').fillna(method='bfill')
+            hourly_pattern = full_hours.join(hourly_avg).ffill().bfill()
             
             config = {
                 'title': 'Daily Heart Rate Pattern',

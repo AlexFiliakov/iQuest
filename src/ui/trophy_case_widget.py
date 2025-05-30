@@ -504,91 +504,20 @@ class TrophyCaseWidget(QWidget):
                     if hasattr(record, 'id') and record.id:
                         self.record_map[record.id] = record
             
-            # If no records, create some sample data for demonstration
-            if not self.records or all(len(records) == 0 for records in self.records.values()):
-                logger.info("No records found, creating sample data")
-                from datetime import date, timedelta
-                from ..analytics.personal_records_tracker import Record, RecordType
-                
-                # Create sample records
-                sample_records = [
-                    Record(
-                        id=1,
-                        metric="HKQuantityTypeIdentifierStepCount",
-                        value=12543,
-                        date=date.today() - timedelta(days=3),
-                        record_type=RecordType.DAILY_HIGH,
-                        improvement_margin=5.2
-                    ),
-                    Record(
-                        id=2,
-                        metric="HKQuantityTypeIdentifierActiveEnergyBurned",
-                        value=742,
-                        date=date.today() - timedelta(days=7),
-                        record_type=RecordType.WEEKLY_AVERAGE,
-                        improvement_margin=12.1
-                    ),
-                    Record(
-                        id=3,
-                        metric="HKQuantityTypeIdentifierSleepAnalysis",
-                        value=8.5,
-                        date=date.today() - timedelta(days=1),
-                        record_type=RecordType.DAILY_HIGH,
-                        improvement_margin=3.8
-                    )
-                ]
-                
-                self.records = {RecordType.DAILY_HIGH: [sample_records[0], sample_records[2]], 
-                               RecordType.WEEKLY_AVERAGE: [sample_records[1]]}
-                               
-                # Update record map with sample data
-                for record in sample_records:
-                    self.record_map[record.id] = record
+            # Never use sample data - always work from user's data
+            if not self.records:
+                self.records = {}
+                logger.info("No records found in user's data")
             
             self.populate_records()
             
             # Load achievements
             self.achievements = self.tracker.get_achievements()
             
-            # If no achievements, create some sample data
+            # Never use sample achievements - always work from user's data
             if not self.achievements:
-                logger.info("No achievements found, creating sample data")
-                from ..analytics.personal_records_tracker import Achievement
-                
-                sample_achievements = [
-                    Achievement(
-                        name="First Steps",
-                        description="Walked 10,000 steps in a day",
-                        criteria={"steps": 10000},
-                        unlocked_date=date.today() - timedelta(days=30),
-                        rarity="common",
-                        trigger_record_id=1  # Link to step count record
-                    ),
-                    Achievement(
-                        name="Sleep Champion",
-                        description="Got 8+ hours of sleep for 7 consecutive days",
-                        criteria={"sleep": 8, "days": 7},
-                        unlocked_date=date.today() - timedelta(days=15),
-                        rarity="rare",
-                        trigger_record_id=3  # Link to sleep record
-                    ),
-                    Achievement(
-                        name="Heart Hero",
-                        description="Maintained healthy heart rate for 30 days",
-                        criteria={"heart_rate": "healthy", "days": 30},
-                        unlocked_date=None,  # Not yet earned
-                        rarity="legendary"
-                    ),
-                    Achievement(
-                        name="Weekend Warrior",
-                        description="Exceeded activity goals on weekends",
-                        criteria={"weekend_activity": True},
-                        unlocked_date=None,  # Not yet earned
-                        rarity="common"
-                    )
-                ]
-                
-                self.achievements = sample_achievements
+                self.achievements = []
+                logger.info("No achievements found in user's data")
             
             self.populate_badges()
             
@@ -642,7 +571,7 @@ class TrophyCaseWidget(QWidget):
         
         # Add empty state if no records
         if row == 0 and col == 0:
-            empty_label = QLabel("No records found matching the selected filters")
+            empty_label = QLabel("No personal records yet. Keep tracking your health data!")
             empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_label.setStyleSheet("""
                 QLabel {
@@ -685,7 +614,7 @@ class TrophyCaseWidget(QWidget):
         
         # Add empty state if no badges
         if badges_added == 0:
-            empty_label = QLabel("No achievements unlocked yet. Keep going!")
+            empty_label = QLabel("No achievements unlocked yet. Keep tracking your health data to earn badges!")
             empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_label.setStyleSheet("""
                 QLabel {

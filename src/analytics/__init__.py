@@ -53,7 +53,7 @@ from .cached_calculators import (
     CacheInvalidationManager,
     create_invalidation_manager
 )
-from .cache_performance_test import run_cache_performance_tests
+# from .cache_performance_test import run_cache_performance_tests  # Module not found
 
 # Optimized analytics engine
 from .optimized_analytics_engine import OptimizedAnalyticsEngine, AnalyticsRequest
@@ -113,7 +113,7 @@ __all__ = [
     'create_invalidation_manager',
     
     # Performance testing
-    'run_cache_performance_tests',
+    # 'run_cache_performance_tests',  # Module not found
     
     # Optimized analytics engine
     'OptimizedAnalyticsEngine',

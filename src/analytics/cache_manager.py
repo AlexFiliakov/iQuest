@@ -284,32 +284,98 @@ class SQLiteCache:
     
     def __init__(self, db_path: str = "analytics_cache.db"):
         self.db_path = Path(db_path)
+        self._connection = None
+        self._corrupted = False
+        self._init_db_with_recovery()
+    
+    def _check_database_integrity(self) -> bool:
+        """Check if the SQLite database is corrupted."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Run integrity check
+                result = conn.execute("PRAGMA integrity_check").fetchone()
+                if result and result[0] == "ok":
+                    # Also try to query the table to ensure it exists and is readable
+                    conn.execute("SELECT COUNT(*) FROM cache_entries").fetchone()
+                    return True
+                else:
+                    logger.warning(f"Database integrity check failed: {result}")
+                    return False
+        except sqlite3.DatabaseError as e:
+            logger.error(f"Database corruption detected: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Error checking database integrity: {e}")
+            return False
+    
+    def _recover_corrupted_database(self) -> None:
+        """Recover from a corrupted database by recreating it."""
+        logger.warning(f"Attempting to recover corrupted cache database: {self.db_path}")
+        
+        # Backup the corrupted file
+        if self.db_path.exists():
+            backup_path = self.db_path.with_suffix('.corrupted.bak')
+            try:
+                import shutil
+                shutil.move(str(self.db_path), str(backup_path))
+                logger.info(f"Moved corrupted database to: {backup_path}")
+            except Exception as e:
+                logger.error(f"Could not backup corrupted database: {e}")
+                # Try to just delete it
+                try:
+                    self.db_path.unlink()
+                    logger.info("Deleted corrupted database")
+                except Exception as del_error:
+                    logger.error(f"Could not delete corrupted database: {del_error}")
+                    # As a last resort, use a different cache file
+                    self.db_path = self.db_path.with_name("analytics_cache_new.db")
+                    logger.warning(f"Using alternative cache database: {self.db_path}")
+    
+    def _init_db_with_recovery(self) -> None:
+        """Initialize SQLite database with corruption recovery."""
+        # First check if database exists and is healthy
+        if self.db_path.exists():
+            if not self._check_database_integrity():
+                self._recover_corrupted_database()
+                self._corrupted = True
+        
+        # Now initialize the database
         self._init_db()
     
     def _init_db(self) -> None:
         """Initialize SQLite database."""
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS cache_entries (
-                    key TEXT PRIMARY KEY,
-                    value BLOB,
-                    created_at TIMESTAMP,
-                    last_accessed TIMESTAMP,
-                    access_count INTEGER DEFAULT 0,
-                    size_bytes INTEGER,
-                    dependencies TEXT,
-                    ttl_seconds INTEGER,
-                    expires_at TIMESTAMP
-                )
-            """)
-            
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_expires_at ON cache_entries(expires_at)
-            """)
-            
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_created_at ON cache_entries(created_at)
-            """)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS cache_entries (
+                        key TEXT PRIMARY KEY,
+                        value BLOB,
+                        created_at TIMESTAMP,
+                        last_accessed TIMESTAMP,
+                        access_count INTEGER DEFAULT 0,
+                        size_bytes INTEGER,
+                        dependencies TEXT,
+                        ttl_seconds INTEGER,
+                        expires_at TIMESTAMP
+                    )
+                """)
+                
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_expires_at ON cache_entries(expires_at)
+                """)
+                
+                conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_created_at ON cache_entries(created_at)
+                """)
+                
+                if self._corrupted:
+                    logger.info("Successfully created new cache database after corruption recovery")
+                    self._corrupted = False
+                    
+        except Exception as e:
+            logger.error(f"Failed to initialize cache database: {e}")
+            # Fall back to in-memory mode if we can't create a database
+            logger.warning("Cache will operate in degraded mode without persistence")
     
     def get(self, key: str) -> Optional[Any]:
         """Get value from SQLite cache."""
@@ -336,6 +402,15 @@ class SQLiteCache:
                 value = pickle.loads(row['value'])
                 return value
                 
+        except sqlite3.DatabaseError as e:
+            if "malformed" in str(e).lower() or "corrupt" in str(e).lower():
+                logger.error(f"Cache database corruption detected during get: {e}")
+                # Try to recover
+                self._recover_corrupted_database()
+                self._init_db()
+            else:
+                logger.error(f"Database error getting from SQLite cache: {e}")
+            return None
         except Exception as e:
             logger.error(f"Error getting from SQLite cache: {e}")
             return None
@@ -366,6 +441,32 @@ class SQLiteCache:
                         VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL)
                     """, (key, value_blob, size_bytes, dependencies_json, ttl))
                 
+        except sqlite3.DatabaseError as e:
+            if "malformed" in str(e).lower() or "corrupt" in str(e).lower():
+                logger.error(f"Cache database corruption detected during set: {e}")
+                # Try to recover and retry once
+                self._recover_corrupted_database()
+                self._init_db()
+                try:
+                    # Retry the operation once after recovery
+                    with sqlite3.connect(self.db_path) as conn:
+                        if ttl:
+                            conn.execute("""
+                                INSERT OR REPLACE INTO cache_entries 
+                                (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
+                                VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, datetime('now', '+' || ? || ' seconds'))
+                            """, (key, value_blob, size_bytes, dependencies_json, ttl, ttl))
+                        else:
+                            conn.execute("""
+                                INSERT OR REPLACE INTO cache_entries 
+                                (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
+                                VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL)
+                            """, (key, value_blob, size_bytes, dependencies_json, ttl))
+                    logger.info("Successfully wrote to cache after recovery")
+                except Exception as retry_error:
+                    logger.error(f"Failed to write to cache even after recovery: {retry_error}")
+            else:
+                logger.error(f"Database error setting SQLite cache: {e}")
         except Exception as e:
             logger.error(f"Error setting SQLite cache: {e}")
     
@@ -375,6 +476,14 @@ class SQLiteCache:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute("DELETE FROM cache_entries WHERE key LIKE ?", (f"%{pattern}%",))
                 return cursor.rowcount
+        except sqlite3.DatabaseError as e:
+            if "malformed" in str(e).lower() or "corrupt" in str(e).lower():
+                logger.error(f"Cache database corruption detected during invalidate: {e}")
+                self._recover_corrupted_database()
+                self._init_db()
+            else:
+                logger.error(f"Database error invalidating SQLite cache pattern: {e}")
+            return 0
         except Exception as e:
             logger.error(f"Error invalidating SQLite cache pattern: {e}")
             return 0
@@ -385,9 +494,27 @@ class SQLiteCache:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.execute("DELETE FROM cache_entries WHERE expires_at < datetime('now')")
                 return cursor.rowcount
+        except sqlite3.DatabaseError as e:
+            if "malformed" in str(e).lower() or "corrupt" in str(e).lower():
+                logger.error(f"Cache database corruption detected during cleanup: {e}")
+                self._recover_corrupted_database()
+                self._init_db()
+            else:
+                logger.error(f"Database error cleaning up expired entries: {e}")
+            return 0
         except Exception as e:
             logger.error(f"Error cleaning up expired entries: {e}")
             return 0
+    
+    def close(self) -> None:
+        """Close any open database connections."""
+        if self._connection:
+            try:
+                self._connection.close()
+                self._connection = None
+                logger.debug("Closed SQLite cache connection")
+            except Exception as e:
+                logger.error(f"Error closing SQLite cache: {e}")
 
 
 class DiskCache:
@@ -660,6 +787,21 @@ class AnalyticsCacheManager:
         
         logger.info(f"Cleaned up expired entries: {results}")
         return results
+    
+    def shutdown(self) -> None:
+        """Shutdown the cache manager and close all connections."""
+        with self._lock:
+            logger.info("Shutting down cache manager")
+            
+            # Clear L1 cache
+            self.l1_cache.clear()
+            
+            # Close L2 cache database connection
+            self.l2_cache.close()
+            
+            # L3 cache doesn't need closing (file-based)
+            
+            logger.info("Cache manager shutdown complete")
 
 
 # Global cache manager instance
@@ -672,6 +814,14 @@ def get_cache_manager() -> AnalyticsCacheManager:
     if _cache_manager is None:
         _cache_manager = AnalyticsCacheManager()
     return _cache_manager
+
+
+def shutdown_cache_manager() -> None:
+    """Shutdown the global cache manager."""
+    global _cache_manager
+    if _cache_manager is not None:
+        _cache_manager.shutdown()
+        _cache_manager = None
 
 
 def cache_key(*args, **kwargs) -> str:

@@ -371,7 +371,7 @@ class ComparisonOverlayCalculator:
             
             # Check significance (two-tailed test)
             critical_value = stats.norm.ppf(1 - alpha/2)
-            return z_score > critical_value
+            return bool(z_score > critical_value)
             
         except Exception as e:
             logger.error(f"Error in significance test: {e}")

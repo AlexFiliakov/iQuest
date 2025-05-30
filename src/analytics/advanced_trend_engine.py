@@ -481,7 +481,7 @@ class AdvancedTrendAnalysisEngine:
                 
                 return TrendDecomposition(
                     observed=data.values.tolist(),
-                    trend=trend.fillna(method='bfill').fillna(method='ffill').values.tolist(),
+                    trend=trend.bfill().ffill().values.tolist(),
                     seasonal=seasonal.fillna(0).values.tolist(),
                     residual=residual.fillna(0).values.tolist(),
                     timestamps=data.index.tolist(),

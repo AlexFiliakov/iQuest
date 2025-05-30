@@ -37,6 +37,7 @@ from .base_chart import BaseChart
 from .line_chart import LineChart
 from .chart_config import ChartConfig, LineChartConfig, LineChartBuilder
 from .enhanced_line_chart import EnhancedLineChart
+from .calendar_heatmap import CalendarHeatmapComponent
 from .wsj_style_manager import WSJStyleManager
 from .pyqtgraph_chart_factory import PyQtGraphChartFactory
 from .matplotlib_chart_factory import MatplotlibChartFactory
@@ -77,6 +78,7 @@ __all__ = [
     'LineChartConfig', 
     'LineChartBuilder',
     'EnhancedLineChart',
+    'CalendarHeatmapComponent',
     'WSJStyleManager',
     'PyQtGraphChartFactory',
     'MatplotlibChartFactory',

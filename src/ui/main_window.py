@@ -61,6 +61,36 @@ from ..config import (
 
 logger = get_logger(__name__)
 
+# Windows to pytz timezone mapping
+WINDOWS_TIMEZONE_MAP = {
+    'Eastern Standard Time': 'US/Eastern',
+    'Eastern Daylight Time': 'US/Eastern',
+    'Central Standard Time': 'US/Central',
+    'Central Daylight Time': 'US/Central',
+    'Mountain Standard Time': 'US/Mountain',
+    'Mountain Daylight Time': 'US/Mountain',
+    'Pacific Standard Time': 'US/Pacific',
+    'Pacific Daylight Time': 'US/Pacific',
+    'GMT Standard Time': 'Europe/London',
+    'Central European Standard Time': 'Europe/Berlin',
+    'W. Europe Standard Time': 'Europe/Amsterdam',
+    'Romance Standard Time': 'Europe/Paris',
+    'Tokyo Standard Time': 'Asia/Tokyo',
+    'China Standard Time': 'Asia/Shanghai',
+    'India Standard Time': 'Asia/Kolkata',
+    'AUS Eastern Standard Time': 'Australia/Sydney',
+}
+
+def get_local_timezone():
+    """Get the local timezone in pytz-compatible format.
+    
+    Returns:
+        str: pytz-compatible timezone name
+    """
+    import time
+    local_tz = time.tzname[0]
+    return WINDOWS_TIMEZONE_MAP.get(local_tz, 'UTC')
+
 
 class MainWindow(QMainWindow):
     """Main application window with tab-based navigation.
@@ -664,17 +694,30 @@ class MainWindow(QMainWindow):
         seasonal patterns and long-term health trends.
         """
         try:
-            # Try the modern version first
+            from .monthly_dashboard_widget import MonthlyDashboardWidget
+            from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+            from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+            from ..data_access import DataAccess
+            
+            # Create calculators for the monthly dashboard
             try:
-                from .monthly_dashboard_widget import MonthlyDashboardWidget
-                # Create the monthly dashboard widget
+                # Initialize data access
+                data_access = DataAccess()
+                
+                # Create daily calculator first (required by monthly calculator)
+                daily_calculator = DailyMetricsCalculator(data_access)
+                
+                # Create monthly calculator with the daily calculator
+                monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
+                
+                # Create the monthly dashboard widget with calculator
+                self.monthly_dashboard = MonthlyDashboardWidget(monthly_calculator=monthly_calculator)
+                logger.info("Using MonthlyDashboardWidget with calculator")
+            except Exception as calc_error:
+                logger.warning(f"Could not create calculators: {calc_error}")
+                # Create without calculator - will use direct database access
                 self.monthly_dashboard = MonthlyDashboardWidget()
-                logger.info("Using MonthlyDashboardWidget")
-            except ImportError:
-                # If modern version not available, create placeholder
-                logger.warning("MonthlyDashboardWidget not available, using placeholder")
-                self._create_monthly_dashboard_placeholder()
-                return
+                logger.info("Using MonthlyDashboardWidget without calculator")
             
             # Connect signals if needed
             self.monthly_dashboard.month_changed.connect(self._on_month_changed)
@@ -683,9 +726,13 @@ class MainWindow(QMainWindow):
             self.tab_widget.addTab(self.monthly_dashboard, "Monthly")
             self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and calendar heatmap")
             
+        except ImportError as e:
+            # If import fails, create placeholder
+            logger.warning(f"MonthlyDashboardWidget import error: {e}")
+            self._create_monthly_dashboard_placeholder()
         except Exception as e:
-            # Fallback to placeholder if import fails
-            logger.warning(f"Could not create MonthlyDashboardWidget: {e}")
+            # Log any other exceptions
+            logger.error(f"Error creating MonthlyDashboardWidget: {e}", exc_info=True)
             self._create_monthly_dashboard_placeholder()
             
     def _create_monthly_dashboard_placeholder(self):
@@ -1614,100 +1661,127 @@ class MainWindow(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
+            import os
+            import shutil
+            from ..config import DATA_DIR
+            
+            # Create progress dialog
+            progress = QMessageBox(self)
+            progress.setWindowTitle("Erasing Data")
+            progress.setText("Erasing all data...")
+            progress.setStandardButtons(QMessageBox.StandardButton.NoButton)
+            progress.show()
+            QApplication.processEvents()
+            
             try:
-                import os
-                import shutil
-                from ..config import DATA_DIR
-                # Create progress dialog
-                progress = QMessageBox(self)
-                progress.setWindowTitle("Erasing Data")
-                progress.setText("Erasing all data...")
-                progress.setStandardButtons(QMessageBox.StandardButton.NoButton)
-                progress.show()
-                QApplication.processEvents()
-                
+                # 1. Shutdown cache manager and background processes
                 try:
-                    # 1. Close database connections
-                    if hasattr(db_manager, 'close'):
-                        db_manager.close()
-                        logger.info("Closed database connections")
-                    
-                    # 2. Delete database file
-                    db_path = os.path.join(DATA_DIR, "health_data.db")
-                    if os.path.exists(db_path):
-                        os.remove(db_path)
-                        logger.info(f"Deleted database file: {db_path}")
-                    
-                    # 3. Delete analytics cache database
-                    analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
-                    if os.path.exists(analytics_cache_db):
-                        os.remove(analytics_cache_db)
-                        logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
-                    
-                    # Also check in current directory
-                    if os.path.exists("analytics_cache.db"):
-                        os.remove("analytics_cache.db")
-                        logger.info("Deleted analytics cache database from current directory")
-                    
-                    # 4. Delete cache directory
-                    cache_dir = os.path.join(DATA_DIR, "cache")
-                    if os.path.exists(cache_dir):
-                        shutil.rmtree(cache_dir)
-                        logger.info(f"Deleted cache directory: {cache_dir}")
-                        
-                    # Also check for cache in current directory
-                    if os.path.exists("cache"):
-                        shutil.rmtree("cache")
-                        logger.info("Deleted cache directory from current directory")
-                    
-                    # 5. Clear filter configurations from database
-                    if hasattr(self.config_tab, 'filter_config_manager'):
-                        # This will recreate the database but with empty tables
-                        self.config_tab.filter_config_manager.clear_all_presets()
-                        logger.info("Cleared filter configurations")
-                    
-                    # 6. Reset UI
-                    if hasattr(self.config_tab, 'data'):
-                        self.config_tab.data = None
-                        self.config_tab.filtered_data = None
-                        
-                    # Update UI to reflect empty state
-                    if hasattr(self.config_tab, 'refresh_display'):
-                        self.config_tab.refresh_display()
-                        
-                    # Disable other tabs since no data is loaded
-                    for i in range(1, self.tab_widget.count()):
-                        self.tab_widget.setTabEnabled(i, False)
-                    
-                    # Switch to configuration tab
-                    self.tab_widget.setCurrentIndex(0)
-                    
-                    # Close progress dialog before showing success message
-                    progress.close()
-                    
-                    # Show success message
-                    QMessageBox.information(
-                        self,
-                        "Data Erased",
-                        "All data has been successfully erased.\n\n"
-                        "You can now import new health data."
-                    )
-                    
-                    # Update status bar
-                    self.status_bar.showMessage("All data erased successfully")
-                    logger.info("All data erased successfully")
-                    
+                    from ..analytics.cache_manager import shutdown_cache_manager
+                    shutdown_cache_manager()
+                    logger.info("Shutdown cache manager")
                 except Exception as e:
-                    # Always close the progress dialog on error
-                    progress.close()
+                    logger.warning(f"Could not shutdown cache manager: {e}")
+                
+                # 2. Shutdown any background processors
+                # Check if any tabs have background processors
+                for i in range(self.tab_widget.count()):
+                    tab = self.tab_widget.widget(i)
+                    if hasattr(tab, 'background_processor') and tab.background_processor:
+                        try:
+                            tab.background_processor.shutdown()
+                            logger.info(f"Shutdown background processor for tab {i}")
+                        except Exception as e:
+                            logger.warning(f"Could not shutdown background processor: {e}")
+                
+                # 3. Close database connections
+                if hasattr(db_manager, 'close'):
+                    db_manager.close()
+                    logger.info("Closed database connections")
+                
+                # 4. Small delay to ensure all connections are closed
+                import time
+                time.sleep(0.5)
+                
+                # 5. Delete database file
+                db_path = os.path.join(DATA_DIR, "health_data.db")
+                if os.path.exists(db_path):
+                    os.remove(db_path)
+                    logger.info(f"Deleted database file: {db_path}")
+                
+                # 6. Delete analytics cache database with retry
+                analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
+                if os.path.exists(analytics_cache_db):
+                    for attempt in range(3):
+                        try:
+                            os.remove(analytics_cache_db)
+                            logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
+                            break
+                        except PermissionError as e:
+                            if attempt < 2:
+                                logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
+                                time.sleep(1)
+                            else:
+                                logger.warning(f"Could not delete analytics cache database (file locked): {e}")
+                
+                # Also check in current directory
+                if os.path.exists("analytics_cache.db"):
+                    for attempt in range(3):
+                        try:
+                            os.remove("analytics_cache.db")
+                            logger.info("Deleted analytics cache database from current directory")
+                            break
+                        except PermissionError as e:
+                            if attempt < 2:
+                                logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
+                                time.sleep(1)
+                            else:
+                                logger.warning(f"Could not delete analytics cache database (file locked): {e}")
+                
+                # 7. Delete cache directory
+                cache_dir = os.path.join(DATA_DIR, "cache")
+                if os.path.exists(cache_dir):
+                    shutil.rmtree(cache_dir)
+                    logger.info(f"Deleted cache directory: {cache_dir}")
                     
-                    logger.error(f"Failed to erase data: {e}")
-                    QMessageBox.critical(
-                        self,
-                        "Error",
-                        f"Failed to erase all data:\n\n{str(e)}"
-                    )
+                # Also check for cache in current directory
+                if os.path.exists("cache"):
+                    shutil.rmtree("cache")
+                    logger.info("Deleted cache directory from current directory")
+                
+                # 8. Clear filter configurations from database
+                if hasattr(self.config_tab, 'filter_config_manager'):
+                    # This will recreate the database but with empty tables
+                    self.config_tab.filter_config_manager.clear_all_presets()
+                    logger.info("Cleared filter configurations")
+                
+                # 9. Reset UI
+                if hasattr(self.config_tab, 'data'):
+                    self.config_tab.data = None
+                    self.config_tab.filtered_data = None
                     
+                # Update UI to reflect empty state
+                if hasattr(self.config_tab, 'refresh_display'):
+                    self.config_tab.refresh_display()
+                    
+                # Disable other tabs since no data is loaded
+                for i in range(1, self.tab_widget.count()):
+                    self.tab_widget.setTabEnabled(i, False)
+                
+                # Switch to configuration tab
+                self.tab_widget.setCurrentIndex(0)
+                
+                # Show success message
+                QMessageBox.information(
+                    self,
+                    "Data Erased",
+                    "All data has been successfully erased.\n\n"
+                    "You can now import new health data."
+                )
+                
+                # Update status bar
+                self.status_bar.showMessage("All data erased successfully")
+                logger.info("All data erased successfully")
+                
             except Exception as e:
                 logger.error(f"Failed to erase data: {e}")
                 QMessageBox.critical(
@@ -1715,6 +1789,9 @@ class MainWindow(QMainWindow):
                     "Error",
                     f"Failed to erase all data:\n\n{str(e)}"
                 )
+            finally:
+                # Always close the progress dialog
+                progress.close()
         else:
             logger.info("User cancelled erase all data operation")
     
@@ -1787,9 +1864,8 @@ class MainWindow(QMainWindow):
                 if data is not None and not data.empty:
                     # Create daily calculator with the data
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
-                    import time
                     # Get local timezone
-                    local_tz = time.tzname[0]
+                    local_tz = get_local_timezone()
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     
                     # Set the calculator in the daily dashboard
@@ -1853,9 +1929,8 @@ class MainWindow(QMainWindow):
                     # Create daily calculator first
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
-                    import time
                     # Get local timezone
-                    local_tz = time.tzname[0]
+                    local_tz = get_local_timezone()
                     
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     
@@ -1891,9 +1966,8 @@ class MainWindow(QMainWindow):
                     # Create daily calculator first
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
-                    import time
                     # Get local timezone
-                    local_tz = time.tzname[0]
+                    local_tz = get_local_timezone()
                     
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     
@@ -1956,9 +2030,8 @@ class MainWindow(QMainWindow):
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
-                    import time
                     # Get local timezone
-                    local_tz = time.tzname[0]
+                    local_tz = get_local_timezone()
                     
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
                     weekly_calculator = WeeklyMetricsCalculator(daily_calculator)

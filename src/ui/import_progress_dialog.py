@@ -11,7 +11,8 @@ from typing import Optional, Dict, Any
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QProgressBar, QTextEdit, QFrame, QMessageBox, QGraphicsDropShadowEffect
+    QProgressBar, QTextEdit, QFrame, QMessageBox, QGraphicsDropShadowEffect,
+    QWidget
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap, QColor

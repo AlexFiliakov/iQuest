@@ -74,6 +74,37 @@ from .data_source_protocol import DataSourceProtocol
 
 logger = logging.getLogger(__name__)
 
+# Windows to pytz timezone mapping
+WINDOWS_TIMEZONE_MAP = {
+    'Eastern Standard Time': 'US/Eastern',
+    'Eastern Daylight Time': 'US/Eastern',
+    'Central Standard Time': 'US/Central',
+    'Central Daylight Time': 'US/Central',
+    'Mountain Standard Time': 'US/Mountain',
+    'Mountain Daylight Time': 'US/Mountain',
+    'Pacific Standard Time': 'US/Pacific',
+    'Pacific Daylight Time': 'US/Pacific',
+    'GMT Standard Time': 'Europe/London',
+    'Central European Standard Time': 'Europe/Berlin',
+    'W. Europe Standard Time': 'Europe/Amsterdam',
+    'Romance Standard Time': 'Europe/Paris',
+    'Tokyo Standard Time': 'Asia/Tokyo',
+    'China Standard Time': 'Asia/Shanghai',
+    'India Standard Time': 'Asia/Kolkata',
+    'AUS Eastern Standard Time': 'Australia/Sydney',
+}
+
+def normalize_timezone(tz_name: str) -> str:
+    """Convert Windows timezone names to pytz-compatible names.
+    
+    Args:
+        tz_name: Timezone name (possibly Windows format)
+        
+    Returns:
+        pytz-compatible timezone name
+    """
+    return WINDOWS_TIMEZONE_MAP.get(tz_name, tz_name)
+
 
 class InterpolationMethod(Enum):
     """Enumeration of supported interpolation methods for handling missing data.
@@ -294,7 +325,7 @@ class DailyMetricsCalculator:
         # Use adapter for flexibility
         adapter = DataFrameAdapter(data)
         self.data = adapter.get_dataframe()
-        self.timezone = timezone
+        self.timezone = normalize_timezone(timezone)
         
         # Show deprecation warning for direct DataFrame usage
         if isinstance(data, pd.DataFrame):
@@ -737,9 +768,9 @@ class DailyMetricsCalculator:
         if method == InterpolationMethod.LINEAR:
             series = series.interpolate(method='linear', limit_direction='both')
         elif method == InterpolationMethod.FORWARD_FILL:
-            series = series.fillna(method='ffill')
+            series = series.ffill()
         elif method == InterpolationMethod.BACKWARD_FILL:
-            series = series.fillna(method='bfill')
+            series = series.bfill()
         
         return series.values
     

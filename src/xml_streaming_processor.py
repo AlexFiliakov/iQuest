@@ -78,6 +78,10 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
         self.in_record = False
         self.current_record = {}
         
+        # Progress update optimization
+        self.last_progress_update = 0
+        self.progress_update_interval = 10000  # Update UI every 10,000 records
+        
         # Database connection for batched inserts
         self.conn = None
         self._initialize_database()
@@ -152,13 +156,17 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
             if len(self.records) >= self.chunk_size:
                 self._flush_to_database()
             
-            # Update progress if callback provided
+            # Update progress if callback provided (but only every N records for performance)
             if self.progress_callback and self.file_size > 0:
-                progress_pct = (self.bytes_processed / self.file_size) * 100
-                # Check if callback returns False to signal cancellation
-                should_continue = self.progress_callback(progress_pct, self.record_count)
-                if should_continue is False:
-                    raise xml.sax.SAXException("Import cancelled by user")
+                # Only update progress every 10,000 records or when reaching 100%
+                if (self.record_count - self.last_progress_update >= self.progress_update_interval or 
+                    self.bytes_processed >= self.file_size):
+                    progress_pct = (self.bytes_processed / self.file_size) * 100
+                    # Check if callback returns False to signal cancellation
+                    should_continue = self.progress_callback(progress_pct, self.record_count)
+                    self.last_progress_update = self.record_count
+                    if should_continue is False:
+                        raise xml.sax.SAXException("Import cancelled by user")
             
             # Check memory usage
             if self.memory_monitor and self.memory_monitor.is_over_limit():
@@ -262,6 +270,10 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
         try:
             # Flush any remaining records
             self._flush_to_database()
+            
+            # Send final progress update if we haven't already
+            if self.progress_callback and self.record_count > self.last_progress_update:
+                self.progress_callback(100.0, self.record_count)
             
             # Update metadata
             self.conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', ?)", 
