@@ -453,10 +453,10 @@ class HybridTemporalAnomalyDetector(BaseDetector):
                 return self._ensemble_vote(statistical_anomalies, ml_anomalies, data)
             except Exception as e:
                 warnings.warn(f"ML detection failed, using statistical only: {e}")
-                return statistical_anomalies
+                return self._add_ensemble_context(statistical_anomalies, statistical_only=True)
         else:
-            # Fallback to statistical only
-            return statistical_anomalies
+            # Fallback to statistical only, but add ensemble context
+            return self._add_ensemble_context(statistical_anomalies, statistical_only=True)
     
     def train_ml_component(self, data: pd.Series, **kwargs) -> Optional[Dict[str, Any]]:
         """Train the ML component if available."""
@@ -465,6 +465,34 @@ class HybridTemporalAnomalyDetector(BaseDetector):
         else:
             warnings.warn("ML detector not available for training")
             return None
+    
+    def _add_ensemble_context(self, anomalies: List[Anomaly], statistical_only: bool = True) -> List[Anomaly]:
+        """Add ensemble confidence context to anomalies."""
+        enhanced_anomalies = []
+        
+        for anomaly in anomalies:
+            # Create a copy with ensemble context
+            enhanced_context = anomaly.context.copy()
+            enhanced_context['ensemble_confidence'] = 0.6 if statistical_only else 0.9
+            enhanced_context['detection_mode'] = 'statistical_only' if statistical_only else 'hybrid'
+            enhanced_context['detection_agreement'] = 'Statistical only' if statistical_only else 'Both methods'
+            
+            enhanced_anomaly = Anomaly(
+                timestamp=anomaly.timestamp,
+                metric=anomaly.metric,
+                value=anomaly.value,
+                score=anomaly.score,
+                method=DetectionMethod.ENSEMBLE,  # Mark as ensemble
+                severity=anomaly.severity,
+                threshold=anomaly.threshold,
+                explanation=anomaly.explanation,
+                context=enhanced_context,
+                contributing_features=anomaly.contributing_features,
+                confidence=enhanced_context['ensemble_confidence']
+            )
+            enhanced_anomalies.append(enhanced_anomaly)
+        
+        return enhanced_anomalies
     
     def _ensemble_vote(self, stat_anomalies: List[Anomaly], 
                       ml_anomalies: List[Anomaly], 
