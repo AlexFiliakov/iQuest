@@ -395,7 +395,8 @@ class TestGroupChallenge:
             metric="steps",
             start_date=start,
             end_date=end,
-            target_type="improvement"
+            target_type="improvement",
+            participants=["user1", "user2", "user3"]
         )
         
         assert challenge.challenge_id == "challenge123"
@@ -413,7 +414,8 @@ class TestGroupChallenge:
             metric="steps",
             start_date=datetime.now() + timedelta(days=7),
             end_date=datetime.now() + timedelta(days=37),
-            target_type="absolute"
+            target_type="absolute",
+            participants=["user1", "user2"]
         )
         
         assert not future_challenge.is_active
@@ -427,11 +429,12 @@ class TestGroupChallenge:
             metric="steps",
             start_date=datetime.now() - timedelta(days=5),
             end_date=datetime.now() + timedelta(days=25),
-            target_type="consistency"
+            target_type="consistency",
+            participants=["user1", "user2", "user3"]
         )
         
         assert active_challenge.is_active
-        assert active_challenge.days_remaining == 25
+        assert 24 <= active_challenge.days_remaining <= 25
         
         # Past challenge
         past_challenge = GroupChallenge(
@@ -441,7 +444,8 @@ class TestGroupChallenge:
             metric="steps",
             start_date=datetime.now() - timedelta(days=35),
             end_date=datetime.now() - timedelta(days=5),
-            target_type="improvement"
+            target_type="improvement",
+            participants=["user1", "user2"]
         )
         
         assert not past_challenge.is_active

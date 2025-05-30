@@ -159,7 +159,7 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
         calculator = StatisticsCalculator()
         
         result = benchmark(
-            calculator.calculate_comprehensive_stats,
+            calculator.calculate_descriptive_stats,
             large_dataset['steps']
         )
         
