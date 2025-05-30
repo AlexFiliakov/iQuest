@@ -101,9 +101,10 @@ class RecordCardWidget(QFrame):
 class AchievementBadgeWidget(QFrame):
     """Widget displaying an achievement badge."""
     
-    def __init__(self, achievement: Achievement, parent=None):
+    def __init__(self, achievement: Achievement, metric_name: Optional[str] = None, parent=None):
         super().__init__(parent)
         self.achievement = achievement
+        self.metric_name = metric_name
         self.setup_ui()
         
     def setup_ui(self):
@@ -134,7 +135,7 @@ class AchievementBadgeWidget(QFrame):
             }}
         """)
         
-        self.setFixedSize(140, 160)
+        self.setFixedSize(140, 200)  # Increased height to accommodate metric
         
         layout = QVBoxLayout(self)
         layout.setSpacing(2)  # Reduced spacing
@@ -177,7 +178,25 @@ class AchievementBadgeWidget(QFrame):
         desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc_label.setWordWrap(True)
         desc_label.setStyleSheet(f"color: {'#666666' if is_earned else '#AAAAAA'}; background: transparent; padding: 0px 2px;")
-        desc_label.setFixedHeight(40)  # Increased height for description
+        desc_label.setFixedHeight(35)  # Slightly reduced to make room for metric
+        
+        # Metric name (new)
+        if self.metric_name and is_earned:
+            # Format metric name
+            metric_display = self.metric_name.replace('HKQuantityTypeIdentifier', '').replace('HKCategoryTypeIdentifier', '')
+            # Add spaces before capital letters
+            import re
+            metric_display = re.sub(r'([A-Z])', r' \1', metric_display).strip()
+            metric_text = f"for {metric_display}"
+        else:
+            metric_text = ""
+            
+        metric_label = QLabel(metric_text)
+        metric_label.setFont(QFont("Arial", 7))
+        metric_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        metric_label.setWordWrap(True)
+        metric_label.setStyleSheet(f"color: {'#FF8C42' if is_earned else '#CCCCCC'}; background: transparent;")
+        metric_label.setFixedHeight(20)
         
         # Rarity
         rarity_label = QLabel(self.achievement.rarity.title())
@@ -200,6 +219,7 @@ class AchievementBadgeWidget(QFrame):
         layout.addWidget(icon_label)
         layout.addWidget(name_label)
         layout.addWidget(desc_label)
+        layout.addWidget(metric_label)  # Added metric label
         layout.addWidget(rarity_label)
         layout.addWidget(date_label)
 
@@ -476,6 +496,13 @@ class TrophyCaseWidget(QWidget):
             # Load records
             self.records = self.tracker.get_all_records()
             
+            # Create a mapping of record IDs to records for quick lookup
+            self.record_map = {}
+            for record_type, records in self.records.items():
+                for record in records:
+                    if hasattr(record, 'id') and record.id:
+                        self.record_map[record.id] = record
+            
             # If no records, create some sample data for demonstration
             if not self.records or all(len(records) == 0 for records in self.records.values()):
                 logger.info("No records found, creating sample data")
@@ -485,6 +512,7 @@ class TrophyCaseWidget(QWidget):
                 # Create sample records
                 sample_records = [
                     Record(
+                        id=1,
                         metric="HKQuantityTypeIdentifierStepCount",
                         value=12543,
                         date=date.today() - timedelta(days=3),
@@ -492,6 +520,7 @@ class TrophyCaseWidget(QWidget):
                         improvement_margin=5.2
                     ),
                     Record(
+                        id=2,
                         metric="HKQuantityTypeIdentifierActiveEnergyBurned",
                         value=742,
                         date=date.today() - timedelta(days=7),
@@ -499,6 +528,7 @@ class TrophyCaseWidget(QWidget):
                         improvement_margin=12.1
                     ),
                     Record(
+                        id=3,
                         metric="HKQuantityTypeIdentifierSleepAnalysis",
                         value=8.5,
                         date=date.today() - timedelta(days=1),
@@ -509,6 +539,10 @@ class TrophyCaseWidget(QWidget):
                 
                 self.records = {RecordType.DAILY_HIGH: [sample_records[0], sample_records[2]], 
                                RecordType.WEEKLY_AVERAGE: [sample_records[1]]}
+                               
+                # Update record map with sample data
+                for record in sample_records:
+                    self.record_map[record.id] = record
             
             self.populate_records()
             
@@ -526,14 +560,16 @@ class TrophyCaseWidget(QWidget):
                         description="Walked 10,000 steps in a day",
                         criteria={"steps": 10000},
                         unlocked_date=date.today() - timedelta(days=30),
-                        rarity="common"
+                        rarity="common",
+                        trigger_record_id=1  # Link to step count record
                     ),
                     Achievement(
                         name="Sleep Champion",
                         description="Got 8+ hours of sleep for 7 consecutive days",
                         criteria={"sleep": 8, "days": 7},
                         unlocked_date=date.today() - timedelta(days=15),
-                        rarity="rare"
+                        rarity="rare",
+                        trigger_record_id=3  # Link to sleep record
                     ),
                     Achievement(
                         name="Heart Hero",

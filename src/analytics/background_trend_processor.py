@@ -153,35 +153,71 @@ class BackgroundTrendProcessor:
             start_date = end_date - timedelta(days=365)  # Analyze last year
             
             # Query health records from database
+            # First, let's check what format dates are stored in
+            sample_query = "SELECT creationDate FROM health_records WHERE type = ? LIMIT 1"
+            sample_rows = self.database.execute_query(sample_query, (metric,))
+            if sample_rows:
+                logger.debug(f"Sample date format for {metric}: {sample_rows[0]['creationDate']}")
+            
             query = """
                 SELECT type, creationDate, value, unit, sourceName
                 FROM health_records
                 WHERE type = ?
-                AND creationDate >= ?
-                AND creationDate <= ?
-                ORDER BY creationDate
+                AND datetime(creationDate) >= datetime(?)
+                AND datetime(creationDate) <= datetime(?)
+                ORDER BY datetime(creationDate)
             """
             params = (
                 metric,
-                start_date.isoformat(),
-                end_date.isoformat()
+                start_date.strftime('%Y-%m-%d %H:%M:%S'),
+                end_date.strftime('%Y-%m-%d %H:%M:%S')
             )
             
             rows = self.database.execute_query(query, params)
+            logger.info(f"Query returned {len(rows) if rows else 0} records for {metric}")
             
             # Convert to a format expected by trend engine
             data = []
             for row in rows:
-                data.append({
-                    'date': datetime.fromisoformat(row['creationDate']),
-                    'value': float(row['value']),
-                    'unit': row['unit'],
-                    'source': row['sourceName']
-                })
+                try:
+                    # Parse date - handle different formats
+                    date_str = row['creationDate']
+                    if isinstance(date_str, str):
+                        # Try different date formats
+                        try:
+                            # ISO format with timezone
+                            parsed_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        except:
+                            try:
+                                # Standard datetime format
+                                parsed_date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+                            except:
+                                try:
+                                    # Pandas default string format
+                                    parsed_date = pd.to_datetime(date_str).to_pydatetime()
+                                except:
+                                    logger.warning(f"Could not parse date: {date_str}")
+                                    continue
+                    else:
+                        parsed_date = pd.to_datetime(date_str).to_pydatetime()
+                    
+                    data.append({
+                        'date': parsed_date,
+                        'value': float(row['value']),
+                        'unit': row['unit'],
+                        'source': row['sourceName']
+                    })
+                except Exception as e:
+                    logger.warning(f"Error processing row: {e}")
+                    continue
             
-            if not data or len(data) < 7:
-                logger.warning(f"Insufficient data for trend analysis: {metric}")
+            if not data:
+                logger.warning(f"No data found for trend analysis: {metric}")
                 return None
+            
+            if len(data) < 7:
+                logger.info(f"Limited data for trend analysis: {metric} ({len(data)} points). Proceeding with available data.")
+                # Continue with analysis even with limited data
             
             # Perform trend analysis
             trend_result = self.trend_engine.analyze_trend(

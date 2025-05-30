@@ -1522,9 +1522,17 @@ class MainWindow(QMainWindow):
                     data = self.config_tab.filtered_data
                     
                 if data is not None and not data.empty:
-                    # Create monthly calculator with the data
+                    # Create daily calculator first
+                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
-                    monthly_calculator = MonthlyMetricsCalculator(data)
+                    import time
+                    # Get local timezone
+                    local_tz = time.tzname[0]
+                    
+                    daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
+                    
+                    # Create monthly calculator with the daily calculator
+                    monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
                     
                     # Set the calculator in the monthly dashboard
                     if hasattr(self.monthly_dashboard, 'set_data_source'):

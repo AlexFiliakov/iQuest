@@ -70,6 +70,7 @@ class CalendarHeatmapComponent(QWidget):
         self._view_mode = ViewMode.GITHUB_STYLE
         self._color_scale = ColorScale.WARM_ORANGE
         self._metric_type = "steps"
+        self._metric_source = None  # Source device/app for the metric
         self._current_date = datetime.now().date()
         self._data_range = None
         self._show_controls = True  # Whether to show view mode controls
@@ -346,9 +347,16 @@ class CalendarHeatmapComponent(QWidget):
         self._show_patterns = enabled
         self.update()
         
-    def set_metric_data(self, metric_type: str, data: Dict[date, float]):
-        """Set the metric data for the heatmap."""
+    def set_metric_data(self, metric_type: str, data: Dict[date, float], source: Optional[str] = None):
+        """Set the metric data for the heatmap.
+        
+        Args:
+            metric_type: The type of metric being displayed
+            data: Dictionary mapping dates to values
+            source: Optional source device/app name (e.g., "iPhone", "Apple Watch")
+        """
         self._metric_type = metric_type
+        self._metric_source = source
         self._metric_data = data
         
         # Calculate data bounds for color scaling
@@ -436,7 +444,10 @@ class CalendarHeatmapComponent(QWidget):
                 self._draw_circular_view(painter, chart_rect)
                 
             # Draw title if set
-            title = f"{self._metric_type.title()} Calendar Heatmap"
+            metric_display = self._metric_type.title()
+            if self._metric_source:
+                metric_display += f" ({self._metric_source})"
+            title = f"{metric_display} Calendar Heatmap"
             self._draw_title(painter, title)
         finally:
             # Always end the painter to prevent crashes
@@ -513,8 +524,11 @@ class CalendarHeatmapComponent(QWidget):
         # Draw calendar cells
         for day in range(1, days_in_month + 1):
             current_date = date(year, month, day)
-            week = (day + first_weekday - 1) // 7
-            weekday = (day + first_weekday - 1) % 7
+            # Calculate position: day 1 starts at first_weekday position
+            # This matches the click detection logic
+            cell_index = day + first_weekday - 1
+            week = cell_index // 7
+            weekday = cell_index % 7
             
             x = start_x + weekday * cell_width
             y = start_y + week * cell_height
@@ -952,7 +966,10 @@ class CalendarHeatmapComponent(QWidget):
                 else:
                     formatted_value = f"{value:,.1f}"
                     
-                tooltip_text = f"{hover_date.strftime('%B %d, %Y')}\n{self._metric_type.replace('_', ' ').title()}: {formatted_value}"
+                metric_display = self._metric_type.replace('_', ' ').title()
+                if self._metric_source:
+                    metric_display += f" ({self._metric_source})"
+                tooltip_text = f"{hover_date.strftime('%B %d, %Y')}\n{metric_display}: {formatted_value}"
                 QToolTip.showText(event.globalPosition().toPoint(), tooltip_text)
             elif hover_date:
                 # Show date even if no data
