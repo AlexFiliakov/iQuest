@@ -3,7 +3,7 @@ The event loop scope for asynchronous fixtures will default to the fixture cachi
 
   warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
 ============================= test session starts ==============================
-platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
 cachedir: .pytest_cache
 benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
 hypothesis profile 'default'
@@ -31,35 +31,96 @@ tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_ch
 tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_chart_rendering[size1] PASSED [  0%]
 tests/visual/test_visual_regression.py::TestVisualRegression::test_responsive_chart_rendering[size0] PASSED [  1%]
 tests/visual/test_visual_regression.py::TestVisualRegression::test_dashboard_layout SKIPPED [  1%]
-tests/visual/test_visual_regression.py::TestVisualRegression::test_calendar_heatmap_rendering FAILED [  1%]
-
-=================================== FAILURES ===================================
-_____________ TestVisualRegression.test_calendar_heatmap_rendering _____________
-
-self = <test_visual_regression.TestVisualRegression object at 0x7f3a8ac92420>
-visual_tester = <tests.conftest.visual_tester.<locals>.VisualTester object at 0x7f3a8a990980>
-sample_data =                          date  steps  heart_rate   distance  calories
-0  2025-05-01 10:46:16.443396   8996          65...16.443396   7842          61   5.401321      2184
-29 2025-05-30 10:46:16.443396   9711          66   7.699434      2226
-chart_config = {'animate': False, 'dpi': 100, 'height': 600, 'style': 'default', ...}
-
-    @pytest.mark.visual
-    def test_calendar_heatmap_rendering(self, visual_tester, sample_data, chart_config):
-        """Test calendar heatmap rendering."""
-        from src.ui.charts.calendar_heatmap import CalendarHeatmap
-    
-        chart = CalendarHeatmap()
->       chart.configure(**chart_config)
-E       AttributeError: 'CalendarHeatmapComponent' object has no attribute 'configure'
-
-tests/visual/test_visual_regression.py:167: AttributeError
-=============================== warnings summary ===============================
-tests/integration/test_chaos_scenarios.py:571
-  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:571: PytestUnknownMarkWarning: Unknown pytest.mark.chaos - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
-    pytestmark = pytest.mark.chaos
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-FAILED tests/visual/test_visual_regression.py::TestVisualRegression::test_calendar_heatmap_rendering
-!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
-============== 1 failed, 5 passed, 9 skipped, 1 warning in 52.33s ==============
+tests/visual/test_visual_regression.py::TestVisualRegression::test_calendar_heatmap_rendering PASSED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_scatter_plot_correlation SKIPPED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_bar_chart_weekly_summary SKIPPED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_line_chart_heart_rate_rendering PASSED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_line_chart_steps_rendering PASSED [  1%]
+tests/visual/test_visual_regression.py::TestVisualRegression::test_framework_validation PASSED [  1%]
+tests/unit/test_xml_validation.py::TestValidationIntegration::test_validate_with_custom_rules PASSED [  1%]
+tests/unit/test_xml_validation.py::TestValidationIntegration::test_validate_apple_health_xml_convenience_function PASSED [  1%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_get_user_friendly_summary_invalid PASSED [  1%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_get_user_friendly_summary_valid PASSED [  1%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_invalid_numeric_value PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_invalid_datetime PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_missing_required_fields PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_valid_xml PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_no_records PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_wrong_root_element PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_invalid_xml_format PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_validate_nonexistent_file PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_custom_rules_override PASSED [  2%]
+tests/unit/test_xml_validation.py::TestAppleHealthXMLValidator::test_default_rules_loaded PASSED [  2%]
+tests/unit/test_xml_validation.py::TestValidationResult::test_merge_results PASSED [  2%]
+tests/unit/test_xml_validation.py::TestValidationResult::test_add_warning PASSED [  2%]
+tests/unit/test_xml_validation.py::TestValidationResult::test_add_error PASSED [  3%]
+tests/unit/test_xml_validation.py::TestValidationResult::test_create_validation_result PASSED [  3%]
+tests/unit/test_xml_validation.py::TestValidationRule::test_create_validation_rule PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestIntegration::test_memory_monitoring_during_processing PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestIntegration::test_end_to_end_streaming_processing PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestAppleHealthHandler::test_database_batch_insertion PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestAppleHealthHandler::test_progress_callback_integration PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestAppleHealthHandler::test_numeric_value_parsing PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestAppleHealthHandler::test_record_cleaning PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestAppleHealthHandler::test_handler_initialization PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestXMLStreamingProcessor::test_file_not_found_error PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestXMLStreamingProcessor::test_progress_callback PASSED [  3%]
+tests/unit/test_xml_streaming_processor.py::TestXMLStreamingProcessor::test_small_file_processing PASSED [  4%]
+tests/unit/test_xml_streaming_processor.py::TestXMLStreamingProcessor::test_streaming_decision PASSED [  4%]
+tests/unit/test_xml_streaming_processor.py::TestXMLStreamingProcessor::test_chunk_size_calculation PASSED [  4%]
+tests/unit/test_xml_streaming_processor.py::TestXMLStreamingProcessor::test_initialization PASSED [  4%]
+tests/unit/test_xml_streaming_processor.py::TestMemoryMonitor::test_over_limit_detection PASSED [  4%]
+tests/unit/test_xml_streaming_processor.py::TestMemoryMonitor::test_memory_usage_calculation PASSED [  4%]
+tests/unit/test_xml_streaming_processor.py::TestMemoryMonitor::test_initialization PASSED [  4%]
+tests/unit/test_wsj_visualizations.py::TestWSJHealthVisualizationSuite::test_performance_optimization SKIPPED [  4%]
+tests/unit/test_wsj_visualizations.py::TestWSJHealthVisualizationSuite::test_show_multi_metric SKIPPED [  4%]
+tests/unit/test_wsj_visualizations.py::TestWSJHealthVisualizationSuite::test_create_export_chart SKIPPED [  4%]
+tests/unit/test_wsj_visualizations.py::TestWSJHealthVisualizationSuite::test_create_interactive_chart SKIPPED [  4%]
+tests/unit/test_wsj_visualizations.py::TestWSJHealthVisualizationSuite::test_suite_init SKIPPED [  4%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_create_waterfall_chart PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_create_box_plot PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_create_polar_chart PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_create_sparkline PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_create_correlation_heatmap PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_create_multi_metric_line PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestMatplotlibChartFactory::test_factory_init PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestPyQtGraphChartFactory::test_fallback_widget SKIPPED [  5%]
+tests/unit/test_wsj_visualizations.py::TestPyQtGraphChartFactory::test_factory_init SKIPPED [  5%]
+tests/unit/test_wsj_visualizations.py::TestPerformanceManager::test_should_use_cached PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestPerformanceManager::test_optimize_data_for_display PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_create_accessibility_description PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_configure_independent_axes PASSED [  5%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_apply_chart_style PASSED [  6%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_get_metric_color PASSED [  6%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_format_number PASSED [  6%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_get_warm_palette PASSED [  6%]
+tests/unit/test_wsj_visualizations.py::TestWSJStyleManager::test_init PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsIntegration::test_custom_aggregation_methods[custom-<lambda>] PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsIntegration::test_custom_aggregation_methods[sum-None] PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsIntegration::test_custom_aggregation_methods[mean-None] PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsIntegration::test_calculator_chain_integration PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_data_validation_edge_cases[edge_case_data3] PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_data_validation_edge_cases[edge_case_data2] PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_data_validation_edge_cases[edge_case_data1] PASSED [  6%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_data_validation_edge_cases[edge_case_data0] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_invalid_input_handling[invalid_input4-error_type4] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_invalid_input_handling[invalid_input3-error_type3] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_invalid_input_handling[123-error_type2] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_invalid_input_handling[string-error_type1] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsEdgeCases::test_invalid_input_handling[None-error_type0] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_api_compatibility_weekly_metrics PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_performance_requirements[volatility-500] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_performance_requirements[trend_detection-500] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_performance_requirements[rolling_stats-500] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_partial_week_handling PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_date_range_handling[10-10-1] PASSED [  7%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_date_range_handling[1-7-7] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_date_range_handling[15-20-6] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_caching_behavior PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_get_weekly_summary_comprehensive PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_get_weeks_in_year[2020-53] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_get_weeks_in_year[2024-52] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_get_week_dates_standards[2024-1-US-6] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_get_week_dates_standards[2024-1-ISO-0] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_calculate_multiple_metrics_parallel_toggle[False] PASSED [  8%]
+tests/unit/test_weekly_metrics_calculator.py::TestWeeklyMetricsCalculator::test_calculate_multiple_metrics_parallel_toggle[True] 

@@ -1,0 +1,426 @@
+{
+  "component_name": "MockComponent",
+  "passed": false,
+  "total_tests": 42,
+  "passed_tests": 25,
+  "categories": [
+    {
+      "name": "Unit Tests",
+      "passed": false,
+      "pass_rate": 0.375,
+      "tests": [
+        {
+          "name": "default_initialization",
+          "passed": true,
+          "message": "Component initializes with defaults",
+          "duration": 2.275299993925728e-05,
+          "details": null
+        },
+        {
+          "name": "initialization_with_data",
+          "passed": true,
+          "message": "Component initializes with data",
+          "duration": 2.3534000320069026e-05,
+          "details": null
+        },
+        {
+          "name": "data_loading",
+          "passed": false,
+          "message": "FAILED: Component loads data correctly",
+          "duration": 0.000578447999942,
+          "details": null
+        },
+        {
+          "name": "empty_data_handling",
+          "passed": "<Mock: <MagicMock name='mock().get_data().empty' id='140440239899712'>>",
+          "message": "Component handles empty data",
+          "duration": 0.00022852999973110855,
+          "details": null
+        },
+        {
+          "name": "apply_theme_light",
+          "passed": false,
+          "message": "FAILED: Component applies light theme",
+          "duration": 9.11819997782004e-05,
+          "details": null
+        },
+        {
+          "name": "apply_theme_dark",
+          "passed": false,
+          "message": "FAILED: Component applies dark theme",
+          "duration": 1.4097000530455261e-05,
+          "details": null
+        },
+        {
+          "name": "apply_theme_high_contrast",
+          "passed": false,
+          "message": "FAILED: Component applies high_contrast theme",
+          "duration": 1.1791999895649496e-05,
+          "details": null
+        },
+        {
+          "name": "invalid_data_rejection",
+          "passed": false,
+          "message": "FAILED: Component should reject invalid data",
+          "duration": 5.709998731617816e-07,
+          "details": null
+        }
+      ]
+    },
+    {
+      "name": "Visual Regression Tests",
+      "passed": false,
+      "pass_rate": 0.0,
+      "tests": [
+        {
+          "name": "standard_rendering",
+          "passed": false,
+          "message": "ERROR: Standard rendering matches baseline - 'similarity'",
+          "duration": 4.0380000427830964e-06,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_standard"
+          }
+        },
+        {
+          "name": "theme_light",
+          "passed": false,
+          "message": "ERROR: light theme rendering matches baseline - 'similarity'",
+          "duration": 3.656999979284592e-06,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_light"
+          }
+        },
+        {
+          "name": "theme_dark",
+          "passed": false,
+          "message": "ERROR: dark theme rendering matches baseline - 'similarity'",
+          "duration": 1.1619995348155499e-06,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_dark"
+          }
+        },
+        {
+          "name": "theme_high_contrast",
+          "passed": false,
+          "message": "ERROR: high_contrast theme rendering matches baseline - 'similarity'",
+          "duration": 9.109999155043624e-07,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_high_contrast"
+          }
+        },
+        {
+          "name": "size_400x200",
+          "passed": false,
+          "message": "ERROR: Rendering at 400x200 matches baseline - 'similarity'",
+          "duration": 2.7850001060869545e-06,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_400x200"
+          }
+        },
+        {
+          "name": "size_800x400",
+          "passed": false,
+          "message": "ERROR: Rendering at 800x400 matches baseline - 'similarity'",
+          "duration": 1.0930007192655466e-06,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_800x400"
+          }
+        },
+        {
+          "name": "size_1200x600",
+          "passed": false,
+          "message": "ERROR: Rendering at 1200x600 matches baseline - 'similarity'",
+          "duration": 7.819999154889956e-07,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_1200x600"
+          }
+        },
+        {
+          "name": "size_1920x1080",
+          "passed": false,
+          "message": "ERROR: Rendering at 1920x1080 matches baseline - 'similarity'",
+          "duration": 7.11000211595092e-07,
+          "details": {
+            "match": true,
+            "score": 1.0,
+            "method": "ssim",
+            "diff_image": null,
+            "threshold": 0.95,
+            "baseline_name": "MockComponent_1920x1080"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Performance Tests",
+      "passed": true,
+      "pass_rate": 1.0,
+      "tests": [
+        {
+          "name": "render_time_100_points",
+          "passed": true,
+          "message": "Render 100 points within 50ms",
+          "duration": 1.0109997674589977e-06,
+          "details": {
+            "actual_time": 0.38999400021566544,
+            "target_time": 50
+          }
+        },
+        {
+          "name": "render_time_1000_points",
+          "passed": true,
+          "message": "Render 1000 points within 100ms",
+          "duration": 6.410000423784368e-07,
+          "details": {
+            "actual_time": 0.045445999603543896,
+            "target_time": 100
+          }
+        },
+        {
+          "name": "render_time_10000_points",
+          "passed": true,
+          "message": "Render 10000 points within 200ms",
+          "duration": 6.310001481324434e-07,
+          "details": {
+            "actual_time": 0.05131600028107641,
+            "target_time": 200
+          }
+        },
+        {
+          "name": "memory_usage_100_points",
+          "passed": true,
+          "message": "Memory usage for 100 points under 10MB",
+          "duration": 5.609999789157882e-07,
+          "details": {
+            "actual_memory": 0.0,
+            "target_memory": 10
+          }
+        },
+        {
+          "name": "memory_usage_1000_points",
+          "passed": true,
+          "message": "Memory usage for 1000 points under 20MB",
+          "duration": 1.0619996828609146e-06,
+          "details": {
+            "actual_memory": 0.0,
+            "target_memory": 20
+          }
+        },
+        {
+          "name": "memory_usage_10000_points",
+          "passed": true,
+          "message": "Memory usage for 10000 points under 50MB",
+          "duration": 6.910004231031053e-07,
+          "details": {
+            "actual_memory": 0.0,
+            "target_memory": 50
+          }
+        },
+        {
+          "name": "animation_frame_rate",
+          "passed": "True",
+          "message": "Animation maintains 60fps",
+          "duration": 1.4920005924068391e-06,
+          "details": {
+            "actual_fps": 50107.2292606463,
+            "avg_frame_time": 0.019957200083808857
+          }
+        },
+        {
+          "name": "zoom_latency",
+          "passed": true,
+          "message": "zoom responds within 16ms",
+          "duration": 1.041999894368928e-06,
+          "details": {
+            "actual_latency": 0.1261570005226531
+          }
+        },
+        {
+          "name": "pan_latency",
+          "passed": true,
+          "message": "pan responds within 16ms",
+          "duration": 5.310002961778082e-07,
+          "details": {
+            "actual_latency": 0.11324299975967733
+          }
+        },
+        {
+          "name": "select_latency",
+          "passed": true,
+          "message": "select responds within 16ms",
+          "duration": 3.909999577444978e-07,
+          "details": {
+            "actual_latency": 0.09652100015955511
+          }
+        },
+        {
+          "name": "hover_latency",
+          "passed": true,
+          "message": "hover responds within 16ms",
+          "duration": 6.009995558997616e-07,
+          "details": {
+            "actual_latency": 0.17109200052800588
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integration Tests",
+      "passed": false,
+      "pass_rate": 0.25,
+      "tests": [
+        {
+          "name": "reactive_data_binding",
+          "passed": false,
+          "message": "FAILED: Component updates with data source changes",
+          "duration": 7.340799947996857e-05,
+          "details": null
+        },
+        {
+          "name": "reactive_filter_update",
+          "passed": false,
+          "message": "FAILED: Component updates with filtered data",
+          "duration": 3.43550000252435e-05,
+          "details": null
+        },
+        {
+          "name": "synchronized_zoom",
+          "passed": true,
+          "message": "Components synchronize zoom actions",
+          "duration": 0.0003094120002060663,
+          "details": null
+        },
+        {
+          "name": "data_change_event",
+          "passed": false,
+          "message": "FAILED: Data change event fires correctly",
+          "duration": 1.2919999790028669e-06,
+          "details": null
+        }
+      ]
+    },
+    {
+      "name": "Accessibility Tests",
+      "passed": false,
+      "pass_rate": 0.9090909090909091,
+      "tests": [
+        {
+          "name": "tab_navigation",
+          "passed": "<Mock: <MagicMock name='mock().focusable' id='140440240350144'>>",
+          "message": "Component is focusable via tab",
+          "duration": 0.00016073200004029786,
+          "details": null
+        },
+        {
+          "name": "key_navigation_Left",
+          "passed": "<Mock: <MagicMock name='mock().handle_key_event()' id='140440241532432'>>",
+          "message": "Component handles Left key navigation",
+          "duration": 7.816699962859275e-05,
+          "details": null
+        },
+        {
+          "name": "key_navigation_Right",
+          "passed": "<Mock: <MagicMock name='mock().handle_key_event()' id='140440241532432'>>",
+          "message": "Component handles Right key navigation",
+          "duration": 1.160200008598622e-05,
+          "details": null
+        },
+        {
+          "name": "key_navigation_Up",
+          "passed": "<Mock: <MagicMock name='mock().handle_key_event()' id='140440241532432'>>",
+          "message": "Component handles Up key navigation",
+          "duration": 9.507999493507668e-06,
+          "details": null
+        },
+        {
+          "name": "key_navigation_Down",
+          "passed": "<Mock: <MagicMock name='mock().handle_key_event()' id='140440241532432'>>",
+          "message": "Component handles Down key navigation",
+          "duration": 9.388000762555748e-06,
+          "details": null
+        },
+        {
+          "name": "accessible_name",
+          "passed": true,
+          "message": "Component has accessible name",
+          "duration": 0.00018312500014872057,
+          "details": null
+        },
+        {
+          "name": "accessible_description",
+          "passed": true,
+          "message": "Component has accessible description",
+          "duration": 0.00013342100010049762,
+          "details": null
+        },
+        {
+          "name": "live_announcements",
+          "passed": true,
+          "message": "Component supports live region announcements",
+          "duration": 2.1099913283251226e-07,
+          "details": null
+        },
+        {
+          "name": "text_contrast",
+          "passed": true,
+          "message": "Text contrast meets WCAG AA (12.63:1)",
+          "duration": 8.41000655782409e-07,
+          "details": {
+            "contrast_ratio": 12.63465434445799
+          }
+        },
+        {
+          "name": "primary_contrast",
+          "passed": false,
+          "message": "FAILED: Primary color contrast meets WCAG AA (4.33:1)",
+          "duration": 3.2999923860188574e-07,
+          "details": {
+            "contrast_ratio": 4.33094809069411
+          }
+        },
+        {
+          "name": "focus_visible",
+          "passed": true,
+          "message": "Component has visible focus indicator",
+          "duration": 6.131600002845516e-05,
+          "details": null
+        }
+      ]
+    }
+  ]
+}

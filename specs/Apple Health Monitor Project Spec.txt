@@ -2,6 +2,8 @@
 source /home/alexf/claude-env/bin/activate
 claude --dangerously-skip-permissions --resume
 
+/model claude-opus-4-20250514
+
 # Claude Config
 claude config list -g
 claude config --help
@@ -480,6 +482,11 @@ Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and test
 
 G084_AGGREGATE_DATA_DISPLAY.md
 
+
+
+#### Testing ####
+
+create a general task `G085_FIX_BROKEN_TESTS.md`, then run each test in directory `tests/` individually using pytest, and for any warnings or errors create subtasks in `G085_FIX_BROKEN_TESTS.md`. Each subtask should have notes detailing the problem and a recommended approach to repair. Then, review the task you have created, consolidate redundant problem subtasks, and expand subtask details on the tradeoffs of various approaches. Add this task to the current sprint as an important infrastructural hotfix.
 
 
 ### Simone ###
