@@ -133,12 +133,22 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
     
     def startElement(self, name: str, attrs: xml.sax.xmlreader.AttributesImpl):
         """Handle start of XML element."""
+        # Track bytes for element name and attributes for progress calculation
+        element_bytes = len(f"<{name}".encode('utf-8'))
+        for attr_name, attr_value in attrs.items():
+            element_bytes += len(f' {attr_name}="{attr_value}"'.encode('utf-8'))
+        element_bytes += len('>'.encode('utf-8'))
+        self.bytes_processed += element_bytes
+        
         if name == 'Record':
             self.in_record = True
             self.current_record = dict(attrs.items())
     
     def endElement(self, name: str):
         """Handle end of XML element."""
+        # Track bytes for closing element tag
+        self.bytes_processed += len(f"</{name}>".encode('utf-8'))
+        
         if name == 'Record' and self.in_record:
             self.in_record = False
             self._process_record(self.current_record)

@@ -1684,16 +1684,37 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     logger.warning(f"Could not shutdown cache manager: {e}")
                 
-                # 2. Shutdown any background processors
+                # 2. Shutdown any background processors with timeout protection
                 # Check if any tabs have background processors
+                from PyQt6.QtCore import QTimer
+                import time
+                shutdown_start_time = time.time()
+                
                 for i in range(self.tab_widget.count()):
                     tab = self.tab_widget.widget(i)
                     if hasattr(tab, 'background_processor') and tab.background_processor:
                         try:
+                            # Set a reasonable timeout for background processor shutdown
+                            processor_start_time = time.time()
                             tab.background_processor.shutdown()
-                            logger.info(f"Shutdown background processor for tab {i}")
+                            
+                            # Check if shutdown took too long
+                            shutdown_duration = time.time() - processor_start_time
+                            if shutdown_duration > 3.0:  # More than 3 seconds
+                                logger.warning(f"Background processor shutdown for tab {i} took {shutdown_duration:.1f} seconds")
+                            else:
+                                logger.info(f"Shutdown background processor for tab {i} in {shutdown_duration:.1f} seconds")
+                                
                         except Exception as e:
-                            logger.warning(f"Could not shutdown background processor: {e}")
+                            logger.warning(f"Could not shutdown background processor for tab {i}: {e}")
+                
+                total_shutdown_time = time.time() - shutdown_start_time
+                if total_shutdown_time > 5.0:  # More than 5 seconds total
+                    logger.warning(f"Total background processor shutdown took {total_shutdown_time:.1f} seconds")
+                
+                # Update progress dialog
+                progress.setLabelText("Closing database connections...")
+                QApplication.processEvents()
                 
                 # 3. Close database connections
                 if hasattr(db_manager, 'close'):
@@ -1701,16 +1722,21 @@ class MainWindow(QMainWindow):
                     logger.info("Closed database connections")
                 
                 # 4. Small delay to ensure all connections are closed
-                import time
+                progress.setLabelText("Ensuring database connections are closed...")
+                QApplication.processEvents()
                 time.sleep(0.5)
                 
                 # 5. Delete database file
+                progress.setLabelText("Deleting database files...")
+                QApplication.processEvents()
                 db_path = os.path.join(DATA_DIR, "health_data.db")
                 if os.path.exists(db_path):
                     os.remove(db_path)
                     logger.info(f"Deleted database file: {db_path}")
                 
                 # 6. Delete analytics cache database with retry
+                progress.setLabelText("Deleting analytics cache...")
+                QApplication.processEvents()
                 analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
                 if os.path.exists(analytics_cache_db):
                     for attempt in range(3):
@@ -1740,6 +1766,8 @@ class MainWindow(QMainWindow):
                                 logger.warning(f"Could not delete analytics cache database (file locked): {e}")
                 
                 # 7. Delete cache directory
+                progress.setLabelText("Deleting cache directories...")
+                QApplication.processEvents()
                 cache_dir = os.path.join(DATA_DIR, "cache")
                 if os.path.exists(cache_dir):
                     shutil.rmtree(cache_dir)
@@ -1751,12 +1779,16 @@ class MainWindow(QMainWindow):
                     logger.info("Deleted cache directory from current directory")
                 
                 # 8. Clear filter configurations from database
+                progress.setLabelText("Clearing filter configurations...")
+                QApplication.processEvents()
                 if hasattr(self.config_tab, 'filter_config_manager'):
                     # This will recreate the database but with empty tables
                     self.config_tab.filter_config_manager.clear_all_presets()
                     logger.info("Cleared filter configurations")
                 
                 # 9. Reset UI
+                progress.setLabelText("Resetting user interface...")
+                QApplication.processEvents()
                 if hasattr(self.config_tab, 'data'):
                     self.config_tab.data = None
                     self.config_tab.filtered_data = None
@@ -1772,6 +1804,9 @@ class MainWindow(QMainWindow):
                 # Switch to configuration tab
                 self.tab_widget.setCurrentIndex(0)
                 
+                # Close progress dialog before showing success message
+                progress.close()
+                
                 # Show success message
                 QMessageBox.information(
                     self,
@@ -1786,14 +1821,20 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 logger.error(f"Failed to erase data: {e}")
+                # Close progress dialog before showing error message
+                progress.close()
                 QMessageBox.critical(
                     self,
                     "Error",
                     f"Failed to erase all data:\n\n{str(e)}"
                 )
             finally:
-                # Always close the progress dialog
-                progress.close()
+                # Ensure the progress dialog is closed (defensive programming)
+                if progress and hasattr(progress, 'close'):
+                    try:
+                        progress.close()
+                    except:
+                        pass  # Ignore any errors during cleanup
         else:
             logger.info("User cancelled erase all data operation")
     
