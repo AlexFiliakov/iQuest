@@ -11,7 +11,8 @@ pytest-mock>=3.10.0
 pytest-xdist>=3.0.0
 pytest-html>=3.1.0
 pytest-mpl>=0.16.0
-pytest-reverse
+pytest-reverse>=1.8.0
+pytest-timeout>=2.4.0
 pillow>=9.0.0
 memory-profiler>=0.60.0
 faker>=18.0.0
