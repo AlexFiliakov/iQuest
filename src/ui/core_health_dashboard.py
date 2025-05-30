@@ -593,7 +593,8 @@ class CoreHealthDashboard(QWidget):
         try:
             # Set loading state
             for panel in self.metric_panels.values():
-                panel.set_loading(True)
+                if hasattr(panel, 'set_loading'):
+                    panel.set_loading(True)
                 
             # Calculate metrics based on time range
             days_diff = (self.end_date - self.start_date).days

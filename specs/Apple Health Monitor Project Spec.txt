@@ -483,10 +483,6 @@ Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and test
 
 
 
-
-
-
-
 ### Simone ###
 
 

@@ -168,14 +168,20 @@ class TestImportFlow:
         invalid_file = "/path/to/nonexistent/file.xml"
         
         with patch.object(QFileDialog, 'getOpenFileName', return_value=(invalid_file, '')):
-            with patch.object(QMessageBox, 'critical') as mock_error:
-                # Attempt import
-                main_window._on_import_data()
-                
-                # Should show error message
-                qtbot.wait(100)
-                # Error might be shown either immediately or after worker fails
-                # Just verify no crash occurs
+            with patch('src.ui.configuration_tab.ImportProgressDialog') as mock_dialog_class:
+                with patch.object(QMessageBox, 'critical') as mock_error:
+                    mock_dialog = MagicMock()
+                    mock_dialog_class.return_value = mock_dialog
+                    mock_dialog.exec.return_value = 0  # Dialog rejected
+                    
+                    # Attempt import
+                    main_window._on_import_data()
+                    
+                    # Should show error message
+                    qtbot.wait(100)
+                    # Verify dialog was created and exec was called
+                    mock_dialog_class.assert_called_once()
+                    mock_dialog.exec.assert_called_once()
     
     def test_import_completion_updates_ui(self, main_window, sample_csv_file, qtbot):
         """Test that UI updates after successful import."""

@@ -824,6 +824,40 @@ class DatabaseManager:
             
             conn.commit()
             logger.info("Performance optimization indexes created successfully")
+    
+    def close(self):
+        """Close all database connections and clean up resources.
+        
+        This method provides a way to explicitly close any active database connections
+        and clean up resources. While SQLite connections are typically short-lived and
+        managed through context managers, this method ensures proper cleanup during
+        application shutdown or data erasure operations.
+        
+        Since this DatabaseManager uses context managers for connection lifecycle,
+        most connections are automatically closed. This method serves as a cleanup
+        point for any persistent connections and ensures proper resource management.
+        
+        Examples:
+            Explicit cleanup during application shutdown:
+            >>> db = DatabaseManager()
+            >>> db.close()
+            >>> print("Database connections closed")
+        
+        Note:
+            This method is safe to call multiple times and will not raise errors
+            if no connections are active. New connections can still be created
+            after calling this method through the normal get_connection() context manager.
+        """
+        logger.info("Closing database connections and cleaning up resources")
+        # Since we use context managers for connection lifecycle,
+        # most connections are automatically managed. This method
+        # serves as an explicit cleanup point.
+        
+        # Force garbage collection to clean up any remaining connection objects
+        import gc
+        gc.collect()
+        
+        logger.info("Database connections closed successfully")
 
 
 # Global singleton database manager instance

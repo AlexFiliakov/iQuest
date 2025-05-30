@@ -1666,10 +1666,12 @@ class MainWindow(QMainWindow):
             from ..config import DATA_DIR
             
             # Create progress dialog
-            progress = QMessageBox(self)
+            from PyQt6.QtWidgets import QProgressDialog
+            progress = QProgressDialog("Erasing all data...", None, 0, 0, self)
             progress.setWindowTitle("Erasing Data")
-            progress.setText("Erasing all data...")
-            progress.setStandardButtons(QMessageBox.StandardButton.NoButton)
+            progress.setModal(True)
+            progress.setCancelButton(None)  # Remove cancel button since operation cannot be canceled
+            progress.setMinimumDuration(0)  # Show immediately
             progress.show()
             QApplication.processEvents()
             
@@ -2010,6 +2012,7 @@ class MainWindow(QMainWindow):
                 # Try to load data if not already loaded
                 else:
                     try:
+                        from ..config import DATA_DIR
                         # Check if database exists
                         db_path = os.path.join(DATA_DIR, "health_data.db")
                         if os.path.exists(db_path) and hasattr(self.config_tab, 'data_loader'):
