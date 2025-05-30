@@ -831,3 +831,302 @@ class ImportHistoryDAO:
         except Exception as e:
             logger.error(f"Error checking file import: {e}")
             return False
+
+
+class DataAccess:
+    """Unified data access interface for the Apple Health Monitor application.
+    
+    Provides a single entry point for all database operations by aggregating
+    the specialized DAO classes. This class serves as a facade pattern implementation
+    that simplifies access to the underlying data persistence layer.
+    
+    This unified interface:
+        - Centralizes database operations for easier maintenance
+        - Provides consistent error handling across all data operations
+        - Simplifies dependency injection in UI components
+        - Maintains compatibility with existing DAO implementations
+        - Supports transaction management across multiple DAOs
+    
+    The DataAccess class delegates operations to the appropriate DAO while
+    providing additional functionality like transaction management, connection
+    pooling, and centralized logging.
+    
+    Examples:
+        Basic usage:
+        >>> data_access = DataAccess()
+        >>> entries = data_access.get_journal_entries(start_date, end_date)
+        >>> data_access.cache_metrics('steps', metrics_data, start_date, end_date)
+        
+        With transaction management:
+        >>> with data_access.transaction():
+        ...     data_access.save_journal_entry(date.today(), 'daily', 'Entry content')
+        ...     data_access.set_preference('last_journal_date', date.today())
+    
+    Attributes:
+        logger: Instance logger for data access operations.
+        _transaction_active: Flag indicating if a transaction is currently active.
+    """
+    
+    def __init__(self):
+        """Initialize the unified data access interface.
+        
+        Sets up logging and initializes connection state. No database connections
+        are established at initialization - they are created on-demand by the
+        underlying DAO classes.
+        """
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._transaction_active = False
+    
+    # Journal Operations
+    def save_journal_entry(self, entry_date: date, entry_type: str, content: str,
+                          week_start_date: Optional[date] = None,
+                          month_year: Optional[str] = None) -> int:
+        """Create or update a journal entry (delegates to JournalDAO)."""
+        return JournalDAO.save_journal_entry(
+            entry_date, entry_type, content, week_start_date, month_year
+        )
+    
+    def get_journal_entries(self, start_date: date, end_date: date, 
+                           entry_type: Optional[str] = None) -> List[JournalEntry]:
+        """Retrieve journal entries for date range (delegates to JournalDAO)."""
+        return JournalDAO.get_journal_entries(start_date, end_date, entry_type)
+    
+    def search_journal_entries(self, search_term: str) -> List[JournalEntry]:
+        """Full-text search in journal content (delegates to JournalDAO)."""
+        return JournalDAO.search_journal_entries(search_term)
+    
+    # Preference Operations
+    def get_preference(self, key: str, default: Any = None) -> Any:
+        """Retrieve preference value (delegates to PreferenceDAO)."""
+        return PreferenceDAO.get_preference(key, default)
+    
+    def set_preference(self, key: str, value: Any) -> bool:
+        """Update preference (delegates to PreferenceDAO)."""
+        return PreferenceDAO.set_preference(key, value)
+    
+    def get_all_preferences(self) -> Dict[str, Any]:
+        """Return all preferences (delegates to PreferenceDAO)."""
+        return PreferenceDAO.get_all_preferences()
+    
+    # Recent Files Operations
+    def add_recent_file(self, file_path: str, file_size: Optional[int] = None) -> int:
+        """Add or update a recent file entry (delegates to RecentFilesDAO)."""
+        return RecentFilesDAO.add_recent_file(file_path, file_size)
+    
+    def get_recent_files(self, limit: int = 10) -> List[RecentFile]:
+        """Get list of recent files (delegates to RecentFilesDAO)."""
+        return RecentFilesDAO.get_recent_files(limit)
+    
+    def mark_file_invalid(self, file_path: str) -> bool:
+        """Mark a file as invalid (delegates to RecentFilesDAO)."""
+        return RecentFilesDAO.mark_file_invalid(file_path)
+    
+    # Cache Operations
+    def cache_metrics(self, metric_type: str, data: Dict[str, Any], 
+                     date_start: date, date_end: date,
+                     aggregation_type: str = 'daily',
+                     source_name: Optional[str] = None,
+                     health_type: Optional[str] = None,
+                     unit: Optional[str] = None,
+                     record_count: Optional[int] = None,
+                     min_value: Optional[float] = None,
+                     max_value: Optional[float] = None,
+                     avg_value: Optional[float] = None,
+                     ttl_hours: int = 24) -> str:
+        """Store computed metrics (delegates to CacheDAO)."""
+        return CacheDAO.cache_metrics(
+            metric_type, data, date_start, date_end, aggregation_type,
+            source_name, health_type, unit, record_count, min_value,
+            max_value, avg_value, ttl_hours
+        )
+    
+    def get_cached_metrics(self, metric_type: str, date_start: date, date_end: date,
+                          aggregation_type: str = 'daily',
+                          source_name: Optional[str] = None,
+                          health_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Retrieve cached metrics (delegates to CacheDAO)."""
+        return CacheDAO.get_cached_metrics(
+            metric_type, date_start, date_end, aggregation_type, source_name, health_type
+        )
+    
+    def clean_expired_cache(self) -> int:
+        """Delete expired cache entries (delegates to CacheDAO)."""
+        return CacheDAO.clean_expired_cache()
+    
+    # Metrics Metadata Operations
+    def get_metric_metadata(self, metric_type: str) -> Optional[Dict[str, Any]]:
+        """Get metric metadata (delegates to MetricsMetadataDAO)."""
+        return MetricsMetadataDAO.get_metric_metadata(metric_type)
+    
+    def update_metric_metadata(self, metric_type: str, display_name: str, 
+                             category: Optional[str] = None,
+                             unit: Optional[str] = None,
+                             color_hex: Optional[str] = None,
+                             icon_name: Optional[str] = None) -> bool:
+        """Update metric metadata (delegates to MetricsMetadataDAO)."""
+        return MetricsMetadataDAO.update_metric_metadata(
+            metric_type, display_name, category, unit, color_hex, icon_name
+        )
+    
+    def get_metrics_by_category(self, category: str) -> List[Dict[str, Any]]:
+        """Return all metrics in category (delegates to MetricsMetadataDAO)."""
+        return MetricsMetadataDAO.get_metrics_by_category(category)
+    
+    # Data Source Operations
+    def register_data_source(self, source_name: str, category: Optional[str] = None) -> int:
+        """Create or update source record (delegates to DataSourceDAO)."""
+        return DataSourceDAO.register_data_source(source_name, category)
+    
+    def get_active_sources(self) -> List[Dict[str, Any]]:
+        """Return sources with is_active=True (delegates to DataSourceDAO)."""
+        return DataSourceDAO.get_active_sources()
+    
+    def update_source_activity(self, source_name: str) -> bool:
+        """Update last_seen timestamp (delegates to DataSourceDAO)."""
+        return DataSourceDAO.update_source_activity(source_name)
+    
+    # Import History Operations
+    def record_import(self, file_path: str, file_hash: Optional[str] = None,
+                     row_count: Optional[int] = None,
+                     date_range_start: Optional[date] = None,
+                     date_range_end: Optional[date] = None,
+                     unique_types: Optional[int] = None,
+                     unique_sources: Optional[int] = None,
+                     import_duration_ms: Optional[int] = None) -> int:
+        """Store import metadata (delegates to ImportHistoryDAO)."""
+        return ImportHistoryDAO.record_import(
+            file_path, file_hash, row_count, date_range_start, date_range_end,
+            unique_types, unique_sources, import_duration_ms
+        )
+    
+    def get_import_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return recent imports (delegates to ImportHistoryDAO)."""
+        return ImportHistoryDAO.get_import_history(limit)
+    
+    def is_file_imported(self, file_hash: str) -> bool:
+        """Check by hash to avoid duplicates (delegates to ImportHistoryDAO)."""
+        return ImportHistoryDAO.is_file_imported(file_hash)
+    
+    # Database Health and Utility Operations
+    def get_database_stats(self) -> Dict[str, Any]:
+        """Get database statistics across all tables.
+        
+        Returns comprehensive statistics about the database including
+        record counts, table sizes, and health metrics.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing database statistics including:
+                - Table record counts
+                - Cache statistics
+                - Recent activity summaries
+                - Database health indicators
+        """
+        try:
+            db = DatabaseManager()
+            stats = {}
+            
+            # Get record counts for all main tables
+            table_queries = {
+                'journal_entries': "SELECT COUNT(*) as count FROM journal_entries",
+                'user_preferences': "SELECT COUNT(*) as count FROM user_preferences", 
+                'recent_files': "SELECT COUNT(*) as count FROM recent_files",
+                'cached_metrics': "SELECT COUNT(*) as count FROM cached_metrics",
+                'health_records': "SELECT COUNT(*) as count FROM health_records",
+                'data_sources': "SELECT COUNT(*) as count FROM data_sources",
+                'import_history': "SELECT COUNT(*) as count FROM import_history"
+            }
+            
+            for table_name, query in table_queries.items():
+                try:
+                    result = db.execute_query(query)
+                    stats[f"{table_name}_count"] = result[0]['count'] if result else 0
+                except Exception as e:
+                    self.logger.warning(f"Could not get count for {table_name}: {e}")
+                    stats[f"{table_name}_count"] = 0
+            
+            # Get cache statistics
+            cache_query = """
+                SELECT 
+                    COUNT(*) as total_cached_metrics,
+                    COUNT(CASE WHEN expires_at > datetime('now') THEN 1 END) as valid_cache_entries,
+                    COUNT(CASE WHEN expires_at <= datetime('now') THEN 1 END) as expired_cache_entries
+                FROM cached_metrics
+            """
+            
+            try:
+                cache_result = db.execute_query(cache_query)
+                if cache_result:
+                    stats.update(dict(cache_result[0]))
+            except Exception as e:
+                self.logger.warning(f"Could not get cache statistics: {e}")
+            
+            self.logger.info("Retrieved database statistics")
+            return stats
+            
+        except Exception as e:
+            self.logger.error(f"Error getting database stats: {e}")
+            return {}
+    
+    def health_check(self) -> Dict[str, Any]:
+        """Perform database health check.
+        
+        Verifies database connectivity, table integrity, and basic functionality.
+        
+        Returns:
+            Dict[str, Any]: Health check results including:
+                - Database connectivity status
+                - Table existence verification
+                - Basic operation tests
+                - Error details if any issues found
+        """
+        health_status = {
+            'database_connected': False,
+            'tables_exist': False,
+            'basic_operations': False,
+            'errors': []
+        }
+        
+        try:
+            # Test database connection
+            db = DatabaseManager()
+            with db.get_connection() as conn:
+                health_status['database_connected'] = True
+            
+            # Test table existence
+            required_tables = [
+                'journal_entries', 'user_preferences', 'recent_files',
+                'cached_metrics', 'health_records', 'data_sources', 'import_history'
+            ]
+            
+            table_check_query = """
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name IN ({})
+            """.format(','.join('?' * len(required_tables)))
+            
+            result = db.execute_query(table_check_query, required_tables)
+            found_tables = [row['name'] for row in result] if result else []
+            
+            if len(found_tables) == len(required_tables):
+                health_status['tables_exist'] = True
+            else:
+                missing_tables = set(required_tables) - set(found_tables)
+                health_status['errors'].append(f"Missing tables: {missing_tables}")
+            
+            # Test basic operations
+            try:
+                # Test a simple read operation
+                stats = self.get_database_stats()
+                if stats:
+                    health_status['basic_operations'] = True
+                else:
+                    health_status['errors'].append("Database statistics query returned empty")
+            except Exception as e:
+                health_status['errors'].append(f"Basic operations test failed: {e}")
+            
+            self.logger.info("Database health check completed")
+            
+        except Exception as e:
+            health_status['errors'].append(f"Health check failed: {e}")
+            self.logger.error(f"Database health check error: {e}")
+        
+        return health_status

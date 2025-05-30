@@ -188,6 +188,9 @@ class MainWindow(QMainWindow):
         except ImportError as e:
             logger.warning(f"Could not initialize background trend processor: {e}")
         
+        # Perform database health check (G084 infrastructure validation)
+        self._perform_database_health_check()
+        
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
@@ -1853,31 +1856,50 @@ class MainWindow(QMainWindow):
             pass
     
     def _on_data_loaded(self, data):
-        """Handle data loaded signal from configuration tab."""
+        """Handle data loaded signal from configuration tab.
+        
+        CRITICAL FIX: Now refreshes ALL dashboard tabs, not just the current one.
+        This ensures data is propagated to all tabs when imported or when filters change.
+        """
         logger.info(f"Data loaded: {len(data) if data is not None else 0} records")
         self.status_bar.showMessage(f"Loaded {len(data):,} health records")
         
-        # Refresh all dashboard tabs when data is loaded
-        current_tab = self.tab_widget.currentIndex()
-        
-        # Refresh the current tab first
-        if current_tab == 1:
-            self._refresh_daily_data()
-        elif current_tab == 2:
-            self._refresh_weekly_data()
-        elif current_tab == 3:
-            self._refresh_monthly_data()
-            
         # Enable other tabs when data is loaded
         if data is not None and not data.empty:
+            logger.info("Enabling all dashboard tabs and refreshing data")
             for i in range(1, self.tab_widget.count()):
                 self.tab_widget.setTabEnabled(i, True)
             
-            # Always refresh weekly data to ensure it's ready
-            self._refresh_weekly_data()
-            
-            # Update comparative analytics engine with new calculators
-            self._refresh_comparative_data()
+            # CRITICAL FIX: Refresh ALL tabs, not just current tab
+            logger.debug("Refreshing all dashboard tabs with new data")
+            try:
+                # Refresh daily dashboard
+                logger.debug("Refreshing daily dashboard")
+                self._refresh_daily_data()
+                
+                # Refresh weekly dashboard  
+                logger.debug("Refreshing weekly dashboard")
+                self._refresh_weekly_data()
+                
+                # Refresh monthly dashboard
+                logger.debug("Refreshing monthly dashboard")
+                self._refresh_monthly_data()
+                
+                # Update comparative analytics engine with new calculators
+                logger.debug("Refreshing comparative analytics")
+                self._refresh_comparative_data()
+                
+                logger.info("Successfully refreshed all dashboard tabs")
+                
+            except Exception as e:
+                logger.error(f"Error refreshing dashboard tabs: {e}", exc_info=True)
+                self.status_bar.showMessage(f"Data loaded with some errors: {str(e)}")
+                
+        else:
+            logger.warning("No data loaded or data is empty - disabling dashboard tabs")
+            # Disable other tabs if no data
+            for i in range(1, self.tab_widget.count()):
+                self.tab_widget.setTabEnabled(i, False)
     
     def _handle_metric_selection(self, metric_name: str):
         """Handle metric selection from daily dashboard.
@@ -2520,3 +2542,68 @@ class MainWindow(QMainWindow):
                     metrics.append(metric_mapping[health_type])
                     
         return metrics
+    
+    def _perform_database_health_check(self):
+        """Perform comprehensive database health check during initialization.
+        
+        This method validates database connectivity, table integrity, and basic
+        functionality as part of the G084 infrastructure improvements.
+        
+        Logs health check results and provides early warning of data access issues
+        that could prevent dashboard tabs from displaying data properly.
+        """
+        logger.info("Performing database health check (G084 infrastructure validation)")
+        
+        try:
+            from ..data_access import DataAccess
+            data_access = DataAccess()
+            
+            # Perform health check
+            health_status = data_access.health_check()
+            
+            # Log results
+            if health_status['database_connected']:
+                logger.info("✓ Database connection successful")
+            else:
+                logger.error("✗ Database connection failed")
+            
+            if health_status['tables_exist']:
+                logger.info("✓ All required tables exist")
+            else:
+                logger.error("✗ Missing required tables")
+            
+            if health_status['basic_operations']:
+                logger.info("✓ Basic database operations working")
+            else:
+                logger.error("✗ Basic database operations failed")
+            
+            # Log any errors found
+            if health_status['errors']:
+                logger.warning(f"Database health check found {len(health_status['errors'])} issues:")
+                for error in health_status['errors']:
+                    logger.warning(f"  - {error}")
+            
+            # Get database statistics
+            try:
+                stats = data_access.get_database_stats()
+                if stats:
+                    logger.info(f"Database statistics: {stats.get('health_records_count', 0):,} health records")
+                    if stats.get('health_records_count', 0) > 0:
+                        logger.info("✓ Health data is available for dashboard display")
+                    else:
+                        logger.info("ⓘ No health data found - dashboards will be empty until data is imported")
+                else:
+                    logger.warning("Could not retrieve database statistics")
+            except Exception as stats_error:
+                logger.warning(f"Error retrieving database statistics: {stats_error}")
+            
+            # Overall health assessment
+            if (health_status['database_connected'] and 
+                health_status['tables_exist'] and 
+                health_status['basic_operations']):
+                logger.info("✓ Database health check PASSED - Ready for data aggregation display")
+            else:
+                logger.error("✗ Database health check FAILED - Data display may not work properly")
+                
+        except Exception as e:
+            logger.error(f"Database health check failed with exception: {e}", exc_info=True)

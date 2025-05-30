@@ -1361,8 +1361,16 @@ class ConfigurationTab(QWidget):
             # Mark data as available for filtering (but not loaded)
             self.data_available = True
             
+            # Get current filtered data or all data for signal emission
+            current_data = self.get_filtered_data()
+            if current_data is None or current_data.empty:
+                # Load all data if no filtered data exists
+                current_data = self.data_loader.load_data()
+                if current_data is not None:
+                    self.data = current_data
+            
             # Emit signal to notify other components that data is available
-            self.data_loaded.emit()
+            self.data_loaded.emit(current_data)
             
             logger.info(f"Database statistics loaded: {row_count:,} records")
             
