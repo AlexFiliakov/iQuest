@@ -38,6 +38,7 @@ class ColorScale:
     PLASMA = "plasma"
     CIVIDIS = "cividis"
     WARM_ORANGE = "warm_orange"  # Custom WSJ-inspired scale
+    GITHUB_GREEN = "github_green"  # GitHub contribution graph colors
 
 
 class CalendarHeatmapComponent(QWidget):
@@ -182,6 +183,13 @@ class CalendarHeatmapComponent(QWidget):
                 QColor("#C7B884"),
                 QColor("#F0E795"),
                 QColor("#FFEA46")
+            ],
+            ColorScale.GITHUB_GREEN: [
+                QColor("#EBEDF0"),  # No data - light gray
+                QColor("#9BE9A8"),  # Level 1 - lightest green
+                QColor("#40C463"),  # Level 2 - light green
+                QColor("#30A14E"),  # Level 3 - medium green
+                QColor("#216E39")   # Level 4 - dark green
             ]
         }
         
@@ -453,16 +461,18 @@ class CalendarHeatmapComponent(QWidget):
         total_cells_needed = first_weekday + days_in_month
         weeks_needed = (total_cells_needed + 6) // 7  # Round up
         
-        # Calculate cell size with smaller minimum to fit all rows
+        # Use FIXED cell size to ensure consistency across all months
+        # Calculate based on the worst case scenario: 6 weeks (maximum possible)
+        MAX_WEEKS = 6  # Maximum weeks any month can have
         MIN_CELL_SIZE = 25  # Reduced minimum cell size
         MAX_CELL_SIZE = 45  # Reduced maximum cell size
         
         grid_width = rect.width() - 100  # Leave space for labels
         grid_height = rect.height() - 100  # Adjusted for better spacing
         
-        # Calculate optimal cell size based on both width and height constraints
+        # Calculate cell size based on available space and maximum possible weeks
         cell_width_from_width = grid_width // 7
-        cell_height_from_height = grid_height // weeks_needed
+        cell_height_from_height = grid_height // MAX_WEEKS  # Always divide by max weeks
         
         # Use the smaller of the two to ensure everything fits
         cell_size = min(cell_width_from_width, cell_height_from_height)
@@ -471,11 +481,12 @@ class CalendarHeatmapComponent(QWidget):
         cell_width = cell_size
         cell_height = cell_size
         
-        # Starting position - center the grid
+        # Starting position - always use the same grid dimensions for consistency
         grid_total_width = 7 * cell_width
-        grid_total_height = weeks_needed * cell_height
+        # Always allocate space for MAX_WEEKS to keep consistent positioning
+        grid_allocated_height = MAX_WEEKS * cell_height
         start_x = rect.x() + (rect.width() - grid_total_width) // 2
-        start_y = rect.y() + 70 + (rect.height() - 70 - grid_total_height) // 2  # Center vertically in available space
+        start_y = rect.y() + 70 + (rect.height() - 70 - grid_allocated_height) // 2  # Center based on max height
         
         # Draw month and year label
         month_names = [
@@ -548,6 +559,12 @@ class CalendarHeatmapComponent(QWidget):
             self._draw_no_data_message(painter, rect)
             return
             
+        # For monthly dashboard, show only the current month in GitHub style
+        # Check if we're in monthly mode (no controls shown)
+        if not self._show_controls:
+            self._draw_github_style_month(painter, rect)
+            return
+            
         # Calculate 52 weeks x 7 days grid (showing last 52 weeks from today)
         # Account for spacing between cells (2 pixels) in calculation
         available_width = rect.width() - 120  # Leave margins for labels
@@ -588,10 +605,10 @@ class CalendarHeatmapComponent(QWidget):
                 value = self._metric_data.get(target_date)
                 color = self._get_color_for_value(value)
                 
-                # Draw cell
-                painter.fillRect(cell_rect, color)
-                painter.setPen(QPen(self._colors['grid'], 1))
-                painter.drawRect(cell_rect)
+                # Draw cell with rounded corners like GitHub
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(color))
+                painter.drawRoundedRect(cell_rect, 2, 2)
                 
                 # Draw pattern if enabled
                 if self._show_patterns and value is not None:
@@ -615,6 +632,154 @@ class CalendarHeatmapComponent(QWidget):
             x = start_x - 35
             y = start_y + i * (cell_size + 2) + cell_size // 2 + 5
             painter.drawText(QPoint(x, y), label)
+    
+    def _draw_github_style_month(self, painter: QPainter, rect: QRect):
+        """Draw GitHub-style view for a single month."""
+        if not self._metric_data:
+            self._draw_no_data_message(painter, rect)
+            return
+            
+        # Temporarily switch to GitHub green color scale
+        original_scale = self._color_scale
+        self._color_scale = ColorScale.GITHUB_GREEN
+            
+        year = self._current_date.year
+        month = self._current_date.month
+        
+        # Get month info
+        first_day = date(year, month, 1)
+        days_in_month = calendar.monthrange(year, month)[1]
+        first_weekday = (first_day.weekday() + 1) % 7  # Convert to Sunday=0
+        
+        # Calculate grid dimensions - GitHub style always shows full weeks
+        # If month starts mid-week, include days from previous month
+        # If month ends mid-week, include days from next month
+        weeks_needed = 6  # Always show 6 weeks for consistency
+        
+        # Cell size calculation
+        available_width = rect.width() - 100
+        available_height = rect.height() - 100
+        cell_size = min(available_width // 7, available_height // weeks_needed) - 3  # Account for spacing
+        cell_size = max(10, min(cell_size, 20))  # Constrain size
+        
+        # Starting position
+        grid_width = 7 * (cell_size + 3)
+        grid_height = weeks_needed * (cell_size + 3)
+        start_x = rect.x() + (rect.width() - grid_width) // 2
+        start_y = rect.y() + 80
+        
+        # Draw month and year label
+        month_names = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+        month_year_text = f"{month_names[month - 1]} {year}"
+        
+        painter.setFont(QFont('Poppins', 14, QFont.Weight.Bold))
+        painter.setPen(self._colors['text'])
+        text_rect = QRect(rect.x(), rect.y() + 20, rect.width(), 30)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, month_year_text)
+        
+        # Draw day labels (GitHub style - short names on left)
+        painter.setFont(QFont('Inter', 9, QFont.Weight.Normal))
+        painter.setPen(self._colors['text_secondary'])
+        
+        day_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        for i in range(0, 7, 2):  # Only show every other day label to save space
+            x = start_x - 35
+            y = start_y + i * (cell_size + 3) + cell_size // 2 + 3
+            painter.drawText(QPoint(x, y), day_labels[i])
+        
+        # Calculate start date (may be from previous month)
+        days_before = first_weekday
+        if days_before > 0:
+            if month == 1:
+                prev_month = 12
+                prev_year = year - 1
+            else:
+                prev_month = month - 1
+                prev_year = year
+            days_in_prev_month = calendar.monthrange(prev_year, prev_month)[1]
+            start_date = date(prev_year, prev_month, days_in_prev_month - days_before + 1)
+        else:
+            start_date = first_day
+        
+        # Draw cells
+        current_date = start_date
+        for week in range(weeks_needed):
+            for day in range(7):
+                x = start_x + day * (cell_size + 3)
+                y = start_y + week * (cell_size + 3)
+                
+                cell_rect = QRect(x, y, cell_size, cell_size)
+                
+                # Determine if this date is in the current month
+                is_current_month = current_date.month == month and current_date.year == year
+                
+                # Get value and color
+                value = self._metric_data.get(current_date) if is_current_month else None
+                
+                if is_current_month and value is not None:
+                    color = self._get_color_for_value(value)
+                else:
+                    # Use very light color for days outside current month or without data
+                    color = QColor("#F0F0F0")
+                
+                # Draw cell with rounded corners (GitHub style)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(color))
+                painter.drawRoundedRect(cell_rect, 2, 2)
+                
+                # Draw pattern if enabled
+                if self._show_patterns and value is not None and is_current_month:
+                    self._draw_accessibility_pattern(painter, cell_rect, value)
+                    
+                # Draw today marker
+                if current_date == date.today() and self._show_today_marker and is_current_month:
+                    self._draw_today_marker(painter, cell_rect)
+                
+                # Move to next date
+                current_date = current_date + timedelta(days=1)
+        
+        # Draw legend
+        self._draw_github_legend(painter, rect, start_y + grid_height + 20)
+        
+        # Restore original color scale
+        self._color_scale = original_scale
+    
+    def _draw_github_legend(self, painter: QPainter, rect: QRect, y_position: int):
+        """Draw a GitHub-style legend for the heatmap."""
+        # Legend position
+        legend_x = rect.x() + rect.width() // 2 - 100
+        legend_y = y_position
+        
+        # Draw "Less" label
+        painter.setFont(QFont('Inter', 9, QFont.Weight.Normal))
+        painter.setPen(self._colors['text_secondary'])
+        painter.drawText(QPoint(legend_x - 30, legend_y + 10), "Less")
+        
+        # Draw color squares
+        colors = self._color_scales[self._color_scale]
+        
+        # Handle different color scale lengths
+        if len(colors) == 5:
+            # GitHub green scale has exactly 5 colors
+            sample_colors = colors
+        elif len(colors) >= 8:
+            # Other scales - sample evenly
+            sample_colors = [colors[0], colors[2], colors[4], colors[6], colors[-1]]
+        else:
+            # Fallback for other scale lengths
+            sample_colors = colors
+        
+        for i, color in enumerate(sample_colors):
+            square_rect = QRect(legend_x + i * 15, legend_y, 12, 12)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(color))
+            painter.drawRoundedRect(square_rect, 2, 2)
+        
+        # Draw "More" label
+        painter.drawText(QPoint(legend_x + len(sample_colors) * 15 + 5, legend_y + 10), "More")
                     
     def _draw_circular_view(self, painter: QPainter, rect: QRect):
         """Draw circular/spiral year view."""
@@ -854,7 +1019,8 @@ class CalendarHeatmapComponent(QWidget):
         total_cells_needed = first_weekday + days_in_month
         weeks_needed = (total_cells_needed + 6) // 7  # Round up
         
-        # Calculate cell size (same as in _draw_month_grid)
+        # Use FIXED cell size (same as in _draw_month_grid)
+        MAX_WEEKS = 6  # Maximum weeks any month can have
         MIN_CELL_SIZE = 25
         MAX_CELL_SIZE = 45
         
@@ -862,7 +1028,7 @@ class CalendarHeatmapComponent(QWidget):
         grid_height = rect.height() - 100
         
         cell_width_from_width = grid_width // 7
-        cell_height_from_height = grid_height // weeks_needed
+        cell_height_from_height = grid_height // MAX_WEEKS  # Always divide by max weeks
         
         cell_size = min(cell_width_from_width, cell_height_from_height)
         cell_size = min(max(cell_size, MIN_CELL_SIZE), MAX_CELL_SIZE)
@@ -870,11 +1036,11 @@ class CalendarHeatmapComponent(QWidget):
         cell_width = cell_size
         cell_height = cell_size
         
-        # Starting position
+        # Starting position - use fixed allocation
         grid_total_width = 7 * cell_width
-        grid_total_height = weeks_needed * cell_height
+        grid_allocated_height = MAX_WEEKS * cell_height
         start_x = rect.x() + (rect.width() - grid_total_width) // 2
-        start_y = rect.y() + 70 + (rect.height() - 70 - grid_total_height) // 2
+        start_y = rect.y() + 70 + (rect.height() - 70 - grid_allocated_height) // 2
         
         # Check if position is within grid
         grid_x = pos.x() - start_x

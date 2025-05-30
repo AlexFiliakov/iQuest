@@ -11,7 +11,7 @@ from calendar import monthrange
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy
+    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy, QButtonGroup
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QDate
 from PyQt6.QtGui import QFont, QIcon
@@ -212,18 +212,70 @@ class MonthlyDashboardWidget(QWidget):
         layout = QVBoxLayout(section)
         layout.setSpacing(16)
         
+        # Header with title and style toggle
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(16)
+        
         # Section title
         title = QLabel("Monthly Activity Calendar")
         title.setFont(QFont('Poppins', 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #5D4E37; margin-bottom: 8px;")
-        layout.addWidget(title)
+        title.setStyleSheet("color: #5D4E37;")
+        header_layout.addWidget(title)
+        
+        header_layout.addStretch()
+        
+        # Style toggle buttons
+        self.style_button_group = QButtonGroup()
+        
+        self.classic_btn = QPushButton("Classic")
+        self.classic_btn.setCheckable(True)
+        self.classic_btn.setChecked(True)
+        self.classic_btn.setFixedSize(80, 32)
+        self.classic_btn.clicked.connect(lambda: self._set_calendar_style("classic"))
+        self.style_button_group.addButton(self.classic_btn)
+        
+        self.github_btn = QPushButton("GitHub")
+        self.github_btn.setCheckable(True)
+        self.github_btn.setChecked(False)
+        self.github_btn.setFixedSize(80, 32)
+        self.github_btn.clicked.connect(lambda: self._set_calendar_style("github"))
+        self.style_button_group.addButton(self.github_btn)
+        
+        # Style the toggle buttons
+        toggle_style = """
+            QPushButton {
+                background-color: #FFFFFF;
+                border: 2px solid #E8DCC8;
+                border-radius: 16px;
+                color: #5D4E37;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                border-color: #FF8C42;
+                background-color: #FFF8F0;
+            }
+            QPushButton:checked {
+                background-color: #FF8C42;
+                border-color: #FF8C42;
+                color: #FFFFFF;
+            }
+        """
+        
+        self.classic_btn.setStyleSheet(toggle_style)
+        self.github_btn.setStyleSheet(toggle_style)
+        
+        header_layout.addWidget(self.classic_btn)
+        header_layout.addWidget(self.github_btn)
+        
+        layout.addLayout(header_layout)
         
         # Calendar heatmap
         self.calendar_heatmap = CalendarHeatmapComponent()
         self.calendar_heatmap.setMinimumHeight(350)  # Reduced minimum height
         # Set to Month Grid view by default for monthly dashboard
         self.calendar_heatmap._view_mode = "month_grid"
-        # Hide view mode controls since we want Month Grid only
+        # Hide view mode controls since we want our own toggle
         self.calendar_heatmap.set_show_controls(False)
         layout.addWidget(self.calendar_heatmap)
         
@@ -606,6 +658,20 @@ class MonthlyDashboardWidget(QWidget):
         self._update_month_label()
         self._load_month_data()
         self.month_changed.emit(self._current_year, self._current_month)
+        
+    def _set_calendar_style(self, style: str):
+        """Set the calendar heatmap style."""
+        if style == "classic":
+            self.calendar_heatmap._view_mode = "month_grid"
+            self.classic_btn.setChecked(True)
+            self.github_btn.setChecked(False)
+        elif style == "github":
+            self.calendar_heatmap._view_mode = "github_style"
+            self.classic_btn.setChecked(False)
+            self.github_btn.setChecked(True)
+        
+        # Force redraw
+        self.calendar_heatmap.update()
         
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""

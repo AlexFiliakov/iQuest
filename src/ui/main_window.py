@@ -322,14 +322,10 @@ class MainWindow(QMainWindow):
         tab's signals to main window handlers for data loading and
         filter changes.
         """
-        # Try to import modern version first, fallback to original
-        try:
-            from .configuration_tab_modern import ModernConfigurationTab
-            ConfigTab = ModernConfigurationTab
-            logger.info("Using ModernConfigurationTab")
-        except ImportError:
-            ConfigTab = ConfigurationTab
-            logger.info("Using standard ConfigurationTab")
+        # Use standard ConfigurationTab for now
+        # The modern version is incomplete and doesn't have summary cards implemented
+        ConfigTab = ConfigurationTab
+        logger.info("Using standard ConfigurationTab")
         
         # Create configuration tab with scroll area
         scroll_area = QScrollArea(self)
@@ -1252,6 +1248,9 @@ class MainWindow(QMainWindow):
         if data is not None and not data.empty:
             for i in range(1, self.tab_widget.count()):
                 self.tab_widget.setTabEnabled(i, True)
+            
+            # Always refresh weekly data to ensure it's ready
+            self._refresh_weekly_data()
     
     def _handle_metric_selection(self, metric_name: str):
         """Handle metric selection from daily dashboard.

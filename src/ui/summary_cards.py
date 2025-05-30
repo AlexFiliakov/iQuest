@@ -87,6 +87,7 @@ class SummaryCard(QWidget):
     def setup_ui(self):
         """Setup card UI based on type. Override in subclasses."""
         self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         
         # Card container with styling
@@ -95,6 +96,7 @@ class SummaryCard(QWidget):
         
         # Default content
         self.content_layout = QVBoxLayout(self.card_frame)
+        self.content_layout.setContentsMargins(8, 8, 8, 8)
         self.layout.addWidget(self.card_frame)
     
     def apply_size_config(self):

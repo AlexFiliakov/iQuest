@@ -448,27 +448,71 @@ class ModernConfigurationTab(QWidget):
         layout.setSpacing(12)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Placeholder for summary cards
-        placeholder = QLabel("Summary cards will appear here after data import")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setStyleSheet(f"""
+        # Add section title
+        title_label = QLabel("Summary Cards")
+        title_label.setStyleSheet(f"""
             QLabel {{
-                color: {self.style_manager.TEXT_MUTED};
-                font-size: 13px;
-                padding: 40px;
-                background-color: {self.style_manager.PRIMARY_BG};
-                border-radius: 12px;
+                font-size: 16px;
+                font-weight: 600;
+                color: {self.style_manager.TEXT_PRIMARY};
+                padding: 8px 0px 4px 0px;
             }}
         """)
-        # Add shadow to placeholder
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setXOffset(0)
-        shadow.setYOffset(2)
-        shadow.setColor(QColor(self.style_manager.ACCENT_LIGHT))
-        placeholder.setGraphicsEffect(shadow)
+        layout.addWidget(title_label)
         
-        layout.addWidget(placeholder)
+        # Create frame for cards
+        cards_frame = QFrame()
+        cards_frame.setObjectName("cardsFrame")
+        cards_frame.setStyleSheet("background-color: transparent;")
+        
+        cards_layout = QHBoxLayout(cards_frame)
+        cards_layout.setContentsMargins(0, 10, 0, 10)
+        cards_layout.setSpacing(16)
+        
+        # Create summary cards with WSJ styling
+        self.total_records_card = self.component_factory.create_metric_card(
+            title="Total Records",
+            value="-",
+            card_type="simple",
+            size="medium",
+            wsj_style=True
+        )
+        
+        self.filtered_records_card = self.component_factory.create_metric_card(
+            title="Filtered Records",
+            value="-",
+            card_type="simple",
+            size="medium",
+            wsj_style=True
+        )
+        
+        self.data_source_card = self.component_factory.create_metric_card(
+            title="Data Source",
+            value="None",
+            card_type="simple",
+            size="medium",
+            wsj_style=True
+        )
+        
+        self.filter_status_card = self.component_factory.create_metric_card(
+            title="Filter Status",
+            value="No filters",
+            card_type="simple",
+            size="medium",
+            wsj_style=True
+        )
+        
+        # Add cards to layout
+        cards_layout.addWidget(self.total_records_card)
+        cards_layout.addWidget(self.filtered_records_card)
+        cards_layout.addWidget(self.data_source_card)
+        cards_layout.addWidget(self.filter_status_card)
+        cards_layout.addStretch()
+        
+        layout.addWidget(cards_frame)
+        
+        # Ensure minimum height for the section
+        section.setMinimumHeight(180)
         
         return section
     
@@ -794,7 +838,12 @@ class ModernConfigurationTab(QWidget):
         """Load data from SQLite database."""
         try:
             logger.info("Loading data from SQLite database")
-            self.data = self.data_loader.load_from_sqlite()
+            # Set database path
+            db_path = os.path.join(DATA_DIR, "health_data.db")
+            self.data_loader.db_path = db_path
+            
+            # Load data using the correct method
+            self.data = self.data_loader.get_all_records()
             
             if self.data is not None and not self.data.empty:
                 row_count = len(self.data)

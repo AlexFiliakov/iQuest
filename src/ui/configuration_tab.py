@@ -895,7 +895,37 @@ class ConfigurationTab(QWidget):
     def _create_summary_cards_section(self):
         """Create summary cards for data overview."""
         section = QWidget(self)
-        layout = QHBoxLayout(section)
+        section.setObjectName("summaryCardsSection")
+        
+        # Create a frame for better visibility
+        frame = QFrame(section)
+        frame.setObjectName("summaryCardsFrame")
+        frame.setStyleSheet(f"""
+            QFrame#summaryCardsFrame {{
+                background-color: transparent;
+                border: none;
+                padding: 0px;
+            }}
+        """)
+        
+        section_layout = QVBoxLayout(section)
+        section_layout.setContentsMargins(0, 0, 0, 0)
+        section_layout.setSpacing(8)
+        
+        # Add section title
+        title_label = QLabel("Summary Cards")
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 16px;
+                font-weight: 600;
+                color: {self.style_manager.TEXT_PRIMARY};
+                padding: 8px 0px 4px 0px;
+            }}
+        """)
+        section_layout.addWidget(title_label)
+        section_layout.addWidget(frame)
+        
+        layout = QHBoxLayout(frame)
         layout.setContentsMargins(0, 10, 0, 10)
         layout.setSpacing(16)  # Add spacing between cards
         
@@ -937,6 +967,15 @@ class ConfigurationTab(QWidget):
         layout.addWidget(self.data_source_card)
         layout.addWidget(self.filter_status_card)
         layout.addStretch()
+        
+        # Ensure minimum height for the section
+        section.setMinimumHeight(180)
+        
+        # Ensure cards are visible
+        self.total_records_card.show()
+        self.filtered_records_card.show()
+        self.data_source_card.show()
+        self.filter_status_card.show()
         
         return section
     

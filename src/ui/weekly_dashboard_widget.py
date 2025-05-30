@@ -52,11 +52,15 @@ class WeeklyStatCard(QFrame):
         shadow = style_manager.get_shadow_style('md')
         
         self.setStyleSheet(f"""
-            QFrame {{
+            WeeklyStatCard {{
                 background-color: {style_manager.PRIMARY_BG};
                 border: {shadow['border']};
                 border-radius: 8px;
                 padding: 16px;
+            }}
+            WeeklyStatCard:hover {{
+                background-color: {style_manager.PRIMARY_BG};
+                border: 1px solid {style_manager.ACCENT_PRIMARY};
             }}
         """)
         
@@ -159,7 +163,10 @@ class WeeklyDashboardWidget(QWidget):
         scroll_area.setStyleSheet("""
             QScrollArea {
                 border: none;
-                background-color: transparent;
+                background-color: white;
+            }
+            QScrollArea > QWidget > QWidget {
+                background-color: white;
             }
             QScrollBar:vertical {
                 background-color: #F5E6D3;
@@ -178,6 +185,7 @@ class WeeklyDashboardWidget(QWidget):
         
         # Content widget
         content_widget = QWidget(self)
+        content_widget.setStyleSheet("background-color: white;")
         content_layout = QVBoxLayout(content_widget)
         content_layout.setSpacing(20)
         
@@ -599,7 +607,10 @@ class WeeklyDashboardWidget(QWidget):
     
     def _load_weekly_data(self):
         """Load data for the current week."""
+        logger.info("Loading weekly data...")
+        
         if not self.weekly_calculator:
+            logger.warning("No weekly calculator available - showing no data message")
             self._show_no_data_message()
             return
             
@@ -871,7 +882,7 @@ class WeeklyDashboardWidget(QWidget):
             self.no_data_overlay = QWidget(self)
             self.no_data_overlay.setStyleSheet("""
                 QWidget {
-                    background-color: rgba(255, 255, 255, 0.95);
+                    background-color: rgba(255, 255, 255, 1.0);
                     border-radius: 12px;
                     border: 1px solid rgba(139, 115, 85, 0.1);
                     margin: 10px;
@@ -915,6 +926,9 @@ class WeeklyDashboardWidget(QWidget):
         self._position_overlay()
         self.no_data_overlay.show()
         self.no_data_overlay.raise_()
+        
+        # Ensure widgets remain interactive
+        self.no_data_overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
     
     def _hide_no_data_message(self):
         """Hide the no data message overlay."""
@@ -1008,9 +1022,16 @@ class WeeklyDashboardWidget(QWidget):
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""
         super().showEvent(event)
+        logger.info("Weekly dashboard shown")
+        
         # Force a refresh when the widget is shown
         if self.weekly_calculator:
+            logger.info("Weekly calculator available - loading data")
+            self._hide_no_data_message()  # Hide overlay if calculator is available
             self._load_weekly_data()
             self.update()
             from PyQt6.QtWidgets import QApplication
             QApplication.processEvents()
+        else:
+            logger.warning("No weekly calculator available on show event")
+            self._show_no_data_message()

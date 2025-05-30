@@ -665,11 +665,17 @@ class DailyDashboardWidget(QWidget):
     def _detect_available_metrics(self):
         """Detect which metrics are available in the data."""
         if not self.daily_calculator:
+            logger.warning("No daily calculator available for metric detection")
             return
             
         try:
             # Get unique metric types from the data
+            if not hasattr(self.daily_calculator, 'data'):
+                logger.error("Daily calculator has no data attribute")
+                return
+                
             available_types = self.daily_calculator.data['type'].unique()
+            logger.info(f"Found {len(available_types)} unique metric types in data")
             
             # Map to our metric names
             metric_mapping = {
@@ -688,16 +694,17 @@ class DailyDashboardWidget(QWidget):
             for hk_type, metric_name in metric_mapping.items():
                 if hk_type in available_types:
                     self._available_metrics.append(metric_name)
+                    logger.debug(f"Found metric: {metric_name} (from {hk_type})")
                     
             # Sort by priority
             self._available_metrics.sort(
                 key=lambda x: self.METRIC_CONFIG.get(x, {}).get('priority', 999)
             )
             
-            logger.info(f"Detected {len(self._available_metrics)} available metrics")
+            logger.info(f"Detected {len(self._available_metrics)} available metrics: {self._available_metrics}")
             
         except Exception as e:
-            logger.error(f"Error detecting available metrics: {e}")
+            logger.error(f"Error detecting available metrics: {e}", exc_info=True)
             self._available_metrics = []
     
     def _create_metric_cards(self):
@@ -726,13 +733,17 @@ class DailyDashboardWidget(QWidget):
     
     def _load_daily_data(self):
         """Load data for the current date."""
+        logger.info(f"Loading daily data for {self._current_date}")
+        
         if not self.daily_calculator:
+            logger.warning("No daily calculator available")
             self._show_no_data_message()
             return
             
         try:
             # Create metric cards if not already done
             if not self._metric_cards:
+                logger.info("Creating metric cards")
                 self._create_metric_cards()
                 self._populate_detail_selector()
             
@@ -740,17 +751,24 @@ class DailyDashboardWidget(QWidget):
             has_any_data = False
             metrics_with_data = []
             
+            logger.info(f"Getting stats for {len(self._metric_cards)} metric cards")
+            
             # Get today's data for each metric
             for metric_name, card in self._metric_cards.items():
                 stats = self._get_metric_stats(metric_name)
                 if stats and stats['value'] is not None:
+                    logger.debug(f"Got stats for {metric_name}: value={stats['value']}")
                     card.update_value(stats['value'], stats.get('trend'))
                     has_any_data = True
                     metrics_with_data.append(metric_name)
                 else:
+                    logger.debug(f"No stats for {metric_name}")
                     card.update_value(None, None)
             
+            logger.info(f"Found data for {len(metrics_with_data)} metrics: {metrics_with_data}")
+            
             if not has_any_data:
+                logger.warning("No data found for current date")
                 self._show_no_data_for_date()
             else:
                 # Hide no data message if it exists
@@ -767,7 +785,7 @@ class DailyDashboardWidget(QWidget):
                     self._update_detail_chart()
                 
         except Exception as e:
-            logger.error(f"Error loading daily data: {e}")
+            logger.error(f"Error loading daily data: {e}", exc_info=True)
             self._show_error_message(str(e))
     
     def _get_metric_stats(self, metric_name: str) -> Optional[Dict]:
@@ -1211,8 +1229,28 @@ class DailyDashboardWidget(QWidget):
     
     def set_daily_calculator(self, calculator: DailyMetricsCalculator):
         """Set the daily metrics calculator."""
+        logger.info("Setting daily calculator")
         self.daily_calculator = calculator
-        self.day_analyzer = DayOfWeekAnalyzer(calculator) if calculator else None
+        
+        # Prepare data for DayOfWeekAnalyzer
+        if calculator and hasattr(calculator, 'data'):
+            logger.info(f"Calculator has data with {len(calculator.data)} records")
+            # Transform the data to match DayOfWeekAnalyzer's expected format
+            analyzer_data = calculator.data.copy()
+            # Rename columns to match expected format
+            if 'type' in analyzer_data.columns:
+                analyzer_data['metric_type'] = analyzer_data['type']
+            if 'creationDate' in analyzer_data.columns and 'date' not in analyzer_data.columns:
+                analyzer_data['date'] = analyzer_data['creationDate']
+            # Add unit column if not present
+            if 'unit' not in analyzer_data.columns:
+                analyzer_data['unit'] = ''
+                
+            self.day_analyzer = DayOfWeekAnalyzer(analyzer_data)
+        else:
+            logger.warning("Calculator has no data attribute")
+            self.day_analyzer = None
+            
         self._detect_available_metrics()
         self._load_daily_data()
         
