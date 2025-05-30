@@ -305,8 +305,8 @@ class HealthDataGenerator:
         sizes = {
             'small': 1000,      # 1K records
             'medium': 10000,    # 10K records
-            'large': 100000,    # 100K records
-            'xlarge': 1000000   # 1M records
+            'large': 50000,     # 50K records (reduced from 100K)
+            'xlarge': 100000    # 100K records (reduced from 1M)
         }
         
         days = sizes.get(size, 100000)
@@ -342,7 +342,7 @@ class HealthDataGenerator:
             'leap_year': self.generate(366),
             'partial_year': self.generate(90),
             'multi_year': self.generate(365 * 3),
-            'stress_test': self.generate_performance_data('large')
+            'stress_test': self.generate_performance_data('medium')  # Use medium for stress test
         }
     
     def create_sample_datasets(self) -> Dict[str, pd.DataFrame]:

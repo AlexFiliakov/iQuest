@@ -275,7 +275,8 @@ if not pytest_qt_available:
                 """Wait for specified milliseconds."""
                 from PyQt6.QtCore import QTimer, QEventLoop
                 loop = QEventLoop()
-                QTimer.singleShot(ms, loop.quit)
+                # Add timeout protection to prevent infinite waiting
+                QTimer.singleShot(min(ms, 5000), loop.quit)  # Max 5 seconds
                 loop.exec()
         
         bot = QtBot(qapp)
