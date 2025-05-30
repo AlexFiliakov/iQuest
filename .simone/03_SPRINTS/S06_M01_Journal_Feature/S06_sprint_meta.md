@@ -42,3 +42,6 @@ Implement the journal feature that allows users to add contextual notes to their
 ## Risks
 - Risk 1: Data loss from crashes - Mitigation: Aggressive auto-save
 - Risk 2: Search performance - Mitigation: SQLite FTS (full-text search)
+
+## Hotfix Tasks
+- G085: Fix broken tests (infrastructural hotfix) - Critical test suite repairs needed before continuing sprint work
