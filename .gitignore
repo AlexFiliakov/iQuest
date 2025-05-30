@@ -211,3 +211,4 @@ installer/*.exe
 /ad hoc
 /cache
 /data
+analytics_cache.corrupted.bak
