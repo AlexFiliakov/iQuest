@@ -479,7 +479,7 @@ Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and test
 #### Future #####
 
 
-Remove `_generate_sample_data()` om `src/ui/monthly_dashboard_widget.py` so that it never generates sample data, but always goes from user data.
+
 
 
 
@@ -489,4 +489,4 @@ Remove `_generate_sample_data()` om `src/ui/monthly_dashboard_widget.py` so that
 
 ### Simone ###
 
-/mermaid currently doesn’t update mermaid flowcharts, but rather asks for modified files?
+
