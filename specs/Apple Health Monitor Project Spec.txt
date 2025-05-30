@@ -465,10 +465,6 @@ Create a list of all the advanced statistical capabilities implemented in the pr
 
 #### Future #####
 
-when switching from Weekly tab to Monthly tab, the UI doesn’t refresh completely. Please fix this.
-
-fix this error: ERROR - monthly_dashboard_widget.py:556 - _load_month_data() - Error loading month data: 'MonthlyMetricsCalculator' object has no attribute 'get_daily_aggregate'
-
 fix this error: apple_health_monitor.src.ui.weekly_dashboard_widget - ERROR - weekly_dashboard_widget.py:759 - _update_summary_stats() - Error updating summary stats: Invalid comparison between dtype=datetime64[ns, UTC] and datetime
 
 
@@ -512,3 +508,9 @@ Traceback (most recent call last):
   File "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/dataframe_adapter.py", line 67, in _validate_dataframe
     raise ValueError(
 ValueError: DataFrame missing required columns: {'creationDate'}. Required columns are: {'creationDate', 'type', 'value'}
+
+
+------
+
+
+when switching from Weekly tab to Monthly tab, the UI doesn’t refresh completely. Please fix this.
