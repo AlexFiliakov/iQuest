@@ -21,6 +21,7 @@ import pandas as pd
 
 from src.utils.logging_config import get_logger
 from src.utils.error_handler import DataImportError
+from src.config import MIN_MEMORY_LIMIT_MB, MAX_MEMORY_LIMIT_MB, DEFAULT_MEMORY_LIMIT_MB
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -29,12 +30,19 @@ logger = get_logger(__name__)
 class MemoryMonitor:
     """Monitor memory usage during processing."""
     
-    def __init__(self, limit_mb: int = 500):
+    def __init__(self, limit_mb: int = DEFAULT_MEMORY_LIMIT_MB):
         """Initialize memory monitor.
         
         Args:
-            limit_mb: Memory limit in megabytes
+            limit_mb: Memory limit in megabytes (must be between 50 and 8192)
+        
+        Raises:
+            ValueError: If limit_mb is outside the valid range
         """
+        if limit_mb < MIN_MEMORY_LIMIT_MB:
+            raise ValueError(f"Memory limit must be at least {MIN_MEMORY_LIMIT_MB}MB, got {limit_mb}MB")
+        if limit_mb > MAX_MEMORY_LIMIT_MB:
+            raise ValueError(f"Memory limit must not exceed {MAX_MEMORY_LIMIT_MB}MB ({MAX_MEMORY_LIMIT_MB/1024:.0f}GB), got {limit_mb}MB")
         self.limit_mb = limit_mb
         self.process = psutil.Process()
         
@@ -84,12 +92,17 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
         
         # Database connection for batched inserts
         self.conn = None
+        self._transaction_started = False
         self._initialize_database()
         
     def _initialize_database(self):
         """Initialize the SQLite database and create tables."""
         try:
             self.conn = sqlite3.connect(self.db_path)
+            
+            # Start a transaction for the entire import
+            self.conn.execute('BEGIN IMMEDIATE')
+            self._transaction_started = True
             
             # Create health_records table with unique constraint
             self.conn.execute('''
@@ -251,8 +264,7 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
                 except Exception as e:
                     logger.warning(f"Failed to insert record: {e}")
             
-            self.conn.commit()
-            
+            # Don't commit yet - wait until entire import is done
             logger.debug(f"Flushed {records_inserted} new records to database (skipped {len(self.records) - records_inserted} duplicates)")
             
             # Clear records from memory
@@ -275,28 +287,48 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
         """Track whitespace for progress."""
         self.bytes_processed += len(whitespace.encode('utf-8'))
     
-    def finalize(self) -> int:
-        """Finalize processing and close database connection."""
+    def finalize(self, cancelled: bool = False) -> int:
+        """Finalize processing and close database connection.
+        
+        Args:
+            cancelled: Whether the import was cancelled
+        """
         try:
-            # Flush any remaining records
-            self._flush_to_database()
-            
-            # Send final progress update if we haven't already
-            if self.progress_callback and self.record_count > self.last_progress_update:
-                self.progress_callback(100.0, self.record_count)
-            
-            # Update metadata
-            self.conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', ?)", 
-                            (datetime.now().isoformat(),))
-            self.conn.execute("INSERT OR REPLACE INTO metadata VALUES ('record_count', ?)", 
-                            (str(self.record_count),))
-            self.conn.commit()
-            
-            logger.info(f"Processing complete: {self.record_count} records imported")
-            return self.record_count
+            if cancelled:
+                # Rollback the entire transaction if cancelled
+                if self._transaction_started:
+                    self.conn.rollback()
+                    logger.info("Import cancelled - transaction rolled back")
+                return 0
+            else:
+                # Flush any remaining records
+                self._flush_to_database()
+                
+                # Send final progress update if we haven't already
+                if self.progress_callback and self.record_count > self.last_progress_update:
+                    self.progress_callback(100.0, self.record_count)
+                
+                # Update metadata
+                self.conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', ?)", 
+                                (datetime.now().isoformat(),))
+                self.conn.execute("INSERT OR REPLACE INTO metadata VALUES ('record_count', ?)", 
+                                (str(self.record_count),))
+                
+                # Commit the entire transaction
+                if self._transaction_started:
+                    self.conn.commit()
+                    logger.info(f"Transaction committed: {self.record_count} records imported")
+                
+                return self.record_count
             
         except Exception as e:
             logger.error(f"Failed to finalize processing: {e}")
+            if self._transaction_started:
+                try:
+                    self.conn.rollback()
+                    logger.info("Transaction rolled back due to error")
+                except:
+                    pass
             raise
         finally:
             if self.conn:
@@ -306,12 +338,19 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
 class XMLStreamingProcessor:
     """Main streaming processor for Apple Health XML files."""
     
-    def __init__(self, memory_limit_mb: int = 500):
+    def __init__(self, memory_limit_mb: int = DEFAULT_MEMORY_LIMIT_MB):
         """Initialize the streaming processor.
         
         Args:
-            memory_limit_mb: Memory limit in megabytes
+            memory_limit_mb: Memory limit in megabytes (must be between 50 and 8192)
+        
+        Raises:
+            ValueError: If memory_limit_mb is outside the valid range
         """
+        if memory_limit_mb < MIN_MEMORY_LIMIT_MB:
+            raise ValueError(f"Memory limit must be at least {MIN_MEMORY_LIMIT_MB}MB, got {memory_limit_mb}MB")
+        if memory_limit_mb > MAX_MEMORY_LIMIT_MB:
+            raise ValueError(f"Memory limit must not exceed {MAX_MEMORY_LIMIT_MB}MB ({MAX_MEMORY_LIMIT_MB/1024:.0f}GB), got {memory_limit_mb}MB")
         self.memory_limit_mb = memory_limit_mb
         self.memory_monitor = MemoryMonitor(memory_limit_mb)
         
@@ -363,6 +402,8 @@ class XMLStreamingProcessor:
     def _stream_process(self, xml_path: str, db_path: str,
                        progress_callback: Optional[Callable] = None) -> int:
         """Process XML file using streaming SAX parser."""
+        handler = None
+        cancelled = False
         try:
             file_size = os.path.getsize(xml_path)
             chunk_size = self.calculate_chunk_size(file_size)
@@ -384,7 +425,7 @@ class XMLStreamingProcessor:
                 parser.parse(xml_file)
             
             # Finalize and get record count
-            record_count = handler.finalize()
+            record_count = handler.finalize(cancelled=False)
             
             # Log memory usage statistics
             final_memory = self.memory_monitor.get_current_usage_mb()
@@ -396,19 +437,26 @@ class XMLStreamingProcessor:
             # Check if this is a cancellation
             if "cancelled by user" in str(e).lower():
                 logger.info("Import cancelled by user")
+                cancelled = True
+                if handler:
+                    handler.finalize(cancelled=True)
                 raise DataImportError("Import cancelled by user")
             else:
                 logger.error(f"XML parsing error: {e}")
+                if handler:
+                    handler.finalize(cancelled=True)
                 raise DataImportError(f"Failed to parse XML: {str(e)}")
         except Exception as e:
             logger.error(f"Streaming processing error: {e}")
+            if handler:
+                handler.finalize(cancelled=True)
             raise DataImportError(f"Streaming processing failed: {str(e)}")
 
 
 # Example usage
 if __name__ == "__main__":
     # Example: Process large XML file with streaming
-    processor = XMLStreamingProcessor(memory_limit_mb=500)
+    processor = XMLStreamingProcessor(memory_limit_mb=DEFAULT_MEMORY_LIMIT_MB)
     
     def progress_callback(percent: float, records: int):
         print(f"Progress: {percent:.1f}% - {records} records processed")

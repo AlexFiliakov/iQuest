@@ -72,11 +72,9 @@ class MonthlyDashboardWidget(QWidget):
         # Load available metrics from database
         self._load_available_metrics()
         
-        # Ensure we have at least some metrics
+        # Don't add default metrics if none are found
         if not self._available_metrics:
-            logger.warning("No metrics available, using all defined metrics")
-            self._available_metrics = [(metric, None) for metric in self._metric_display_names.keys()]
-            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+            logger.warning("No metrics available in database")
         
         # Set default metric (now a tuple of (metric, source))
         # Try to find StepCount with no source (aggregated)
@@ -264,9 +262,8 @@ class MonthlyDashboardWidget(QWidget):
         
         # Fall back to database if no cached access
         if not self.health_db:
-            logger.warning("No data access available, showing all available metrics")
-            self._available_metrics = [(metric, None) for metric in self._metric_display_names.keys()]
-            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+            logger.warning("No data access available - cannot load metrics")
+            self._available_metrics = []
             return
         
         try:
@@ -315,16 +312,9 @@ class MonthlyDashboardWidget(QWidget):
                         self._available_metrics.append((clean_type, source))
                         logger.debug(f"Added metric: {clean_type} from {source}")
             
-            # If no metrics found, use a basic set
+            # If no metrics found, log warning but don't use defaults
             if not self._available_metrics:
-                logger.info("No metrics found in database, using default metric set")
-                # Use the types from the log that we know exist
-                basic_metrics = ["StepCount", "DistanceWalkingRunning", "FlightsClimbed", 
-                               "DietaryWater", "BodyMass", "HeartRate", "ActiveEnergyBurned",
-                               "SleepAnalysis"]
-                for metric in basic_metrics:
-                    if metric in self._metric_display_names:
-                        self._available_metrics.append((metric, None))
+                logger.warning("No metrics found in database - data may not be loaded or filtered out")
             
             # Sort by display name and source for better UX
             self._available_metrics.sort(key=lambda x: (
@@ -336,9 +326,8 @@ class MonthlyDashboardWidget(QWidget):
             
         except Exception as e:
             logger.error(f"Error loading available metrics: {e}", exc_info=True)
-            # Fall back to showing all possible metrics without sources
-            self._available_metrics = [(metric, None) for metric in self._metric_display_names.keys()]
-            self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+            # Don't fall back to defaults - let the UI show "no data" state
+            self._available_metrics = []
     
     def _refresh_metric_combo(self):
         """Refresh the metric combo box with current available metrics."""
@@ -352,6 +341,19 @@ class MonthlyDashboardWidget(QWidget):
         # Clear and repopulate
         self.metric_combo.clear()
         logger.info(f"Refreshing combo box with {len(self._available_metrics)} metrics")
+        
+        if not self._available_metrics:
+            # No metrics available - add placeholder
+            self.metric_combo.addItem("No metrics available", None)
+            self.metric_combo.setEnabled(False)
+            logger.warning("No metrics available to display")
+            # Clear the calendar display
+            self.calendar_heatmap.set_metric_data("", {})
+            self._update_summary_stats({})
+            return
+        
+        # Enable combo box if it was disabled
+        self.metric_combo.setEnabled(True)
         
         for metric_tuple in self._available_metrics:
             metric, source = metric_tuple
@@ -851,6 +853,11 @@ class MonthlyDashboardWidget(QWidget):
                 self._load_month_data()
                 # Emit just the metric type for compatibility
                 self.metric_changed.emit(self._current_metric[0])
+            else:
+                # No valid metric selected (e.g., "No metrics available")
+                logger.warning("No valid metric selected")
+                self.calendar_heatmap.set_metric_data("", {})
+                self._update_summary_stats({})
             
     def _get_database_metric_type(self, clean_metric: str) -> str:
         """Convert a clean metric name to the format stored in the database.
@@ -1187,6 +1194,22 @@ class MonthlyDashboardWidget(QWidget):
         # Force UI update
         self.update()
         QApplication.processEvents()
+        
+    def set_cached_data_access(self, cached_data_access):
+        """Set the cached data access for metric queries.
+        
+        Args:
+            cached_data_access: The cached data access instance
+        """
+        self.cached_data_access = cached_data_access
+        logger.info("Set cached data access for monthly dashboard")
+        
+        # Reload available metrics when data source changes
+        self._load_available_metrics()
+        self._refresh_metric_combo()
+        
+        # Load data for current month
+        self._load_month_data()
         
     def get_current_month(self) -> tuple[int, int]:
         """Get the current year and month being displayed."""

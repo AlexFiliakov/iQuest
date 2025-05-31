@@ -125,68 +125,18 @@ class PersonalRecordsTracker:
     
     def _ensure_tables_exist(self):
         """Ensure personal records tables exist in database."""
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Create personal_records table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS personal_records (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    record_type VARCHAR(50) NOT NULL,
-                    metric VARCHAR(100) NOT NULL,
-                    value REAL NOT NULL,
-                    date DATE NOT NULL,
-                    previous_value REAL,
-                    improvement_margin REAL,
-                    window_days INTEGER,
-                    streak_type VARCHAR(50),
-                    metadata TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Create achievements table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS achievements (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    badge_id VARCHAR(50) NOT NULL,
-                    name VARCHAR(100) NOT NULL,
-                    description TEXT,
-                    icon VARCHAR(50),
-                    rarity VARCHAR(20) DEFAULT 'common',
-                    unlocked_date DATE NOT NULL,
-                    trigger_record_id INTEGER,
-                    metadata TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (trigger_record_id) REFERENCES personal_records (id)
-                )
-            """)
-            
-            # Create streaks table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS streaks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    metric VARCHAR(100) NOT NULL,
-                    streak_type VARCHAR(50) NOT NULL,
-                    current_length INTEGER DEFAULT 0,
-                    best_length INTEGER DEFAULT 0,
-                    start_date DATE,
-                    end_date DATE,
-                    best_start_date DATE,
-                    best_end_date DATE,
-                    is_active BOOLEAN DEFAULT TRUE,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(metric, streak_type)
-                )
-            """)
-            
-            # Create indexes
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_records_metric_type ON personal_records(metric, record_type)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_records_date ON personal_records(date)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_date ON achievements(unlocked_date)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_streaks_metric ON streaks(metric)")
-            
-            conn.commit()
+        # Tables are created by database.py, so we just verify they exist
+        # This avoids schema conflicts between this module and database.py
+        required_tables = ['personal_records', 'achievements']
+        missing_tables = []
+        
+        for table in required_tables:
+            if not self.db.table_exists(table):
+                missing_tables.append(table)
+                
+        if missing_tables:
+            logger.warning(f"Missing tables for personal records tracker: {missing_tables}")
+            logger.info("Tables should be created by database.py migration system")
     
     def check_for_records(self, metric: str, value: float, date_val: date, 
                          source_data: Optional[pd.DataFrame] = None) -> List[Record]:
@@ -355,34 +305,57 @@ class RecordStore:
     
     def add_record(self, record: Record) -> int:
         """Add a new record to the database."""
+        # Check if table exists before attempting to insert
+        if not self.db.table_exists('personal_records'):
+            logger.warning("personal_records table does not exist, skipping record storage")
+            return -1
+            
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Map to the actual database schema
+            period = 'day'  # Default period
+            if record.window_days:
+                if record.window_days == 7:
+                    period = 'week'
+                elif record.window_days == 30:
+                    period = 'month'
+                elif record.window_days == 90:
+                    period = 'quarter'
+            elif record.record_type in [RecordType.SINGLE_DAY_MAX, RecordType.SINGLE_DAY_MIN]:
+                period = 'day'
+            elif 'streak' in record.record_type.value:
+                period = 'all_time'
+                
             cursor.execute("""
-                INSERT INTO personal_records 
-                (record_type, metric, value, date, previous_value, improvement_margin, 
-                 window_days, streak_type, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO personal_records 
+                (metric_type, record_type, period, value, recorded_date, 
+                 previous_value, improvement_percentage)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
-                record.record_type.value,
                 record.metric,
+                record.record_type.value,
+                period,
                 record.value,
                 record.date.isoformat(),
                 record.previous_value,
-                record.improvement_margin,
-                record.window_days,
-                record.streak_type,
-                json.dumps(record.metadata)
+                record.improvement_margin
             ))
             conn.commit()
             return cursor.lastrowid
     
     def get_record(self, metric: str, record_type: RecordType) -> Optional[Record]:
         """Get the current record for a metric and type."""
+        # Check if table exists before attempting to query
+        if not self.db.table_exists('personal_records'):
+            logger.debug("personal_records table does not exist")
+            return None
+            
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM personal_records 
-                WHERE metric = ? AND record_type = ?
+                WHERE metric_type = ? AND record_type = ?
                 ORDER BY created_at DESC LIMIT 1
             """, (metric, record_type.value))
             
@@ -393,11 +366,16 @@ class RecordStore:
     
     def get_all_records(self, metric: Optional[str] = None) -> Dict[str, List[Record]]:
         """Get all records, optionally filtered by metric."""
+        # Check if table exists before attempting to query
+        if not self.db.table_exists('personal_records'):
+            logger.debug("personal_records table does not exist")
+            return {}
+            
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             
             if metric:
-                cursor.execute("SELECT * FROM personal_records WHERE metric = ? ORDER BY created_at DESC", (metric,))
+                cursor.execute("SELECT * FROM personal_records WHERE metric_type = ? ORDER BY created_at DESC", (metric,))
             else:
                 cursor.execute("SELECT * FROM personal_records ORDER BY created_at DESC")
             
@@ -413,18 +391,31 @@ class RecordStore:
     
     def _row_to_record(self, row) -> Record:
         """Convert database row to Record object."""
-        metadata = json.loads(row['metadata']) if row['metadata'] else {}
+        # Map period to window_days
+        window_days = None
+        if row['period'] == 'week':
+            window_days = 7
+        elif row['period'] == 'month':
+            window_days = 30
+        elif row['period'] == 'quarter':
+            window_days = 90
+            
+        # Determine streak type if applicable
+        streak_type = None
+        if 'streak' in row['record_type']:
+            streak_type = 'consistency'
+            
         return Record(
             id=row['id'],
             record_type=RecordType(row['record_type']),
-            metric=row['metric'],
+            metric=row['metric_type'],
             value=row['value'],
-            date=date.fromisoformat(row['date']),
+            date=date.fromisoformat(row['recorded_date']),
             previous_value=row['previous_value'],
-            improvement_margin=row['improvement_margin'],
-            window_days=row['window_days'],
-            streak_type=row['streak_type'],
-            metadata=metadata,
+            improvement_margin=row['improvement_percentage'],
+            window_days=window_days,
+            streak_type=streak_type,
+            metadata={},  # No metadata column in actual schema
             created_at=datetime.fromisoformat(row['created_at'])
         )
 
@@ -573,59 +564,89 @@ class AchievementSystem:
     def _load_user_achievements(self) -> List[str]:
         """Load user's current achievements."""
         try:
+            # Check if table exists before querying
+            if not self.db.table_exists('achievements'):
+                logger.debug("achievements table does not exist")
+                return []
+                
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT badge_id FROM achievements")
-                return [row['badge_id'] for row in cursor.fetchall()]
-        except Exception:
+                cursor.execute("SELECT criteria_json FROM achievements")
+                badge_ids = []
+                for row in cursor.fetchall():
+                    criteria = json.loads(row['criteria_json']) if row['criteria_json'] else {}
+                    if 'badge_id' in criteria:
+                        badge_ids.append(criteria['badge_id'])
+                return badge_ids
+        except sqlite3.OperationalError as e:
+            if "no such column" in str(e):
+                logger.warning(f"Schema mismatch in achievements table: {e}")
+                return []
+            else:
+                raise
+        except Exception as e:
+            logger.debug(f"Could not load achievements: {e}")
             return []
     
     def _store_achievement(self, achievement: Achievement) -> int:
         """Store achievement in database."""
+        # Check if table exists before attempting to insert
+        if not self.db.table_exists('achievements'):
+            logger.warning("achievements table does not exist, skipping achievement storage")
+            return -1
+            
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO achievements 
-                (badge_id, name, description, icon, rarity, unlocked_date, trigger_record_id, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (achievement_type, metric_type, title, description, criteria_json, achieved_date, achieved_value)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
-                achievement.badge_id,
-                achievement.name,
+                achievement.rarity,  # Map rarity to achievement_type
+                getattr(achievement, 'metric_type', 'general'),  # Add metric_type field
+                achievement.name,  # Map name to title
                 achievement.description,
-                achievement.icon,
-                achievement.rarity,
+                json.dumps({'badge_id': achievement.badge_id, 'icon': achievement.icon, **achievement.metadata}),
                 achievement.unlocked_date.isoformat(),
-                achievement.trigger_record_id,
-                json.dumps(achievement.metadata)
+                getattr(achievement, 'value', None)  # Add achieved_value if available
             ))
             conn.commit()
             return cursor.lastrowid
     
     def get_user_achievements(self, limit: Optional[int] = None) -> List[Achievement]:
         """Get user's achievements."""
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            query = "SELECT * FROM achievements ORDER BY unlocked_date DESC"
-            if limit:
-                query += f" LIMIT {limit}"
+        # Check if table exists before querying
+        if not self.db.table_exists('achievements'):
+            logger.debug("achievements table does not exist")
+            return []
             
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            
-            achievements = []
-            for row in rows:
-                metadata = json.loads(row['metadata']) if row['metadata'] else {}
-                achievement = Achievement(
-                    id=row['id'],
-                    badge_id=row['badge_id'],
-                    name=row['name'],
-                    description=row['description'],
-                    icon=row['icon'],
-                    rarity=row['rarity'],
-                    unlocked_date=date.fromisoformat(row['unlocked_date']),
-                    trigger_record_id=row['trigger_record_id'],
-                    metadata=metadata
-                )
-                achievements.append(achievement)
-            
-            return achievements
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                query = "SELECT * FROM achievements ORDER BY achieved_date DESC"
+                if limit:
+                    query += f" LIMIT {limit}"
+                
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                
+                achievements = []
+                for row in rows:
+                    criteria = json.loads(row['criteria_json']) if row['criteria_json'] else {}
+                    achievement = Achievement(
+                        id=row['id'],
+                        badge_id=criteria.get('badge_id', ''),
+                        name=row['title'],
+                        description=row['description'],
+                        icon=criteria.get('icon', ''),
+                        rarity=row['achievement_type'],  # achievement_type is mapped to rarity
+                        unlocked_date=date.fromisoformat(row['achieved_date']) if row['achieved_date'] else date.today(),
+                        trigger_record_id=criteria.get('trigger_record_id'),  # Stored in criteria_json
+                        metadata=criteria  # Use criteria as metadata
+                    )
+                    achievements.append(achievement)
+                
+                return achievements
+        except sqlite3.OperationalError as e:
+            logger.warning(f"Error loading achievements: {e}")
+            return []

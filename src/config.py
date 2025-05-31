@@ -15,6 +15,9 @@ Attributes:
     WINDOW_DEFAULT_HEIGHT (int): Default window height in pixels.
     MAX_CSV_SIZE_MB (int): Maximum allowed CSV file size in megabytes.
     SUPPORTED_FILE_TYPES (List[str]): List of supported file extensions.
+    MIN_MEMORY_LIMIT_MB (int): Minimum memory limit for XML streaming processor.
+    MAX_MEMORY_LIMIT_MB (int): Maximum memory limit for XML streaming processor.
+    DEFAULT_MEMORY_LIMIT_MB (int): Default memory limit for XML streaming processor.
     DB_FILE_NAME (str): Default database filename.
     DATA_DIR (str): Directory for storing database and user data.
     BATCH_SIZE (int): Default batch size for database operations.
@@ -44,6 +47,11 @@ WINDOW_DEFAULT_HEIGHT = 700
 # File settings
 MAX_CSV_SIZE_MB = 500
 SUPPORTED_FILE_TYPES = ["csv", "xml"]
+
+# Memory settings for XML streaming processor
+MIN_MEMORY_LIMIT_MB = 50  # Minimum memory limit for streaming processor
+MAX_MEMORY_LIMIT_MB = 8192  # Maximum memory limit (8GB)
+DEFAULT_MEMORY_LIMIT_MB = 500  # Default memory limit for streaming processor
 
 # Database settings
 DB_FILE_NAME = "health_monitor.db"  # As per SPECS_DB.md

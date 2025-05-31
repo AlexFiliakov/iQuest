@@ -6,6 +6,7 @@ during long-running import operations.
 """
 
 import os
+import shutil
 import time
 import uuid
 from pathlib import Path
@@ -16,9 +17,9 @@ from PyQt6.QtWidgets import QApplication
 
 try:
     from ..utils.logging_config import get_logger
-    from ..data_loader import convert_xml_to_sqlite_with_validation, DataLoader
+    from ..data_loader import convert_xml_to_sqlite_with_validation, DataLoader, migrate_csv_to_sqlite
     from ..database import db_manager
-    from ..config import DATA_DIR
+    from ..config import DATA_DIR, DEFAULT_MEMORY_LIMIT_MB
     from ..xml_streaming_processor import XMLStreamingProcessor
     from ..analytics.summary_calculator import SummaryCalculator
     from ..analytics.cache_manager import AnalyticsCacheManager
@@ -35,9 +36,9 @@ except (ImportError, ValueError) as e:
     
     # Now use absolute imports
     from src.utils.logging_config import get_logger
-    from src.data_loader import convert_xml_to_sqlite_with_validation, DataLoader
+    from src.data_loader import convert_xml_to_sqlite_with_validation, DataLoader, migrate_csv_to_sqlite
     from src.database import db_manager
-    from src.config import DATA_DIR
+    from src.config import DATA_DIR, DEFAULT_MEMORY_LIMIT_MB
     from src.xml_streaming_processor import XMLStreamingProcessor
     from src.analytics.summary_calculator import SummaryCalculator
     from src.analytics.cache_manager import AnalyticsCacheManager
@@ -73,6 +74,7 @@ class ImportWorker(QThread):
         self.record_count = 0
         self.db_path = None
         self.import_id = None
+        self._backup_db_path = None  # For rollback support
         
         # Auto-detect import type if needed
         if import_type == "auto":
@@ -109,6 +111,9 @@ class ImportWorker(QThread):
         try:
             start_time = time.time()
             
+            # Create database backup for rollback
+            self._create_database_backup()
+            
             if self.import_type == 'xml':
                 result = self._import_xml()
             elif self.import_type == 'csv':
@@ -124,12 +129,24 @@ class ImportWorker(QThread):
                 end_time = time.time()
                 result['import_time'] = round(end_time - start_time, 2)
                 self.import_completed.emit(result)
+                # Clean up backup on success
+                self._cleanup_backup()
+            else:
+                # Rollback on cancellation or failure
+                self._rollback_database()
+                if self.is_cancelled():
+                    self.import_error.emit(
+                        "Import Cancelled",
+                        "Import was cancelled. All changes have been rolled back."
+                    )
             
         except Exception as e:
             logger.error(f"Import failed with exception: {e}")
+            # Rollback on any exception
+            self._rollback_database()
             self.import_error.emit(
                 "Import Error",
-                f"An unexpected error occurred during import:\n{str(e)}"
+                f"An unexpected error occurred during import:\n{str(e)}\n\nAll changes have been rolled back."
             )
     
     def _import_xml(self) -> Dict[str, Any]:
@@ -146,8 +163,8 @@ class ImportWorker(QThread):
         self.progress_updated.emit(10, "Preparing database...", 0)
         
         # Prepare database path
-        # Use a hardcoded filename to avoid import issues in thread
-        DB_FILE_NAME = 'health_data.db'
+        # Use the correct database filename from database.py
+        DB_FILE_NAME = 'health_monitor.db'
         db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
         os.makedirs(DATA_DIR, exist_ok=True)
         
@@ -161,7 +178,7 @@ class ImportWorker(QThread):
         file_size_mb = file_size / (1024 * 1024)
         
         # Initialize streaming processor
-        processor = XMLStreamingProcessor(memory_limit_mb=500)
+        processor = XMLStreamingProcessor(memory_limit_mb=DEFAULT_MEMORY_LIMIT_MB)
         
         # Determine if we should use streaming based on file size
         use_streaming = processor.should_use_streaming(self.file_path)
@@ -255,24 +272,53 @@ class ImportWorker(QThread):
     
     def _import_csv(self) -> Dict[str, Any]:
         """Import CSV file with progress updates."""
-        self.progress_updated.emit(10, "Reading CSV file...", 0)
+        self.progress_updated.emit(10, "Preparing database...", 0)
         
         if self.is_cancelled():
             return {'success': False, 'message': 'Import cancelled'}
         
         try:
-            # Load CSV data
-            data = self.data_loader.load_csv(self.file_path)
-            record_count = len(data) if data is not None else 0
+            # Prepare database path (same as XML import)
+            DB_FILE_NAME = 'health_monitor.db'
+            db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
+            os.makedirs(DATA_DIR, exist_ok=True)
             
             if self.is_cancelled():
                 return {'success': False, 'message': 'Import cancelled'}
             
-            self.progress_updated.emit(50, "Processing CSV data...", record_count)
-            time.sleep(0.1)  # Small delay to show progress
+            self.progress_updated.emit(20, "Converting CSV to database format...", 0)
+            
+            # Create progress callback for CSV import
+            def csv_progress_callback(percentage: float, record_count: int):
+                if self.is_cancelled():
+                    return False  # Signal cancellation
+                self.progress_updated.emit(int(20 + percentage * 0.6), "Converting CSV data...", record_count)
+                QApplication.processEvents()  # Keep UI responsive
+                return True  # Continue processing
+            
+            # Use migrate_csv_to_sqlite to import CSV data into the database
+            record_count = migrate_csv_to_sqlite(self.file_path, db_path, csv_progress_callback)
             
             if self.is_cancelled():
                 return {'success': False, 'message': 'Import cancelled'}
+            
+            self.progress_updated.emit(80, "Processing complete", record_count)
+            
+            # Initialize database manager
+            db_manager.initialize_database()
+            
+            # Store values for summary calculation
+            self.record_count = record_count
+            self.db_path = db_path
+            self.import_id = str(uuid.uuid4())
+            
+            # Calculate and cache summaries if requested
+            if self.include_summaries and record_count > 0:
+                try:
+                    self._calculate_and_cache_summaries()
+                except Exception as e:
+                    logger.warning(f"Summary caching failed (non-fatal): {e}")
+                    # Don't fail the import if summary caching fails
             
             self.progress_updated.emit(100, "CSV import completed!", record_count)
             
@@ -282,7 +328,7 @@ class ImportWorker(QThread):
                 'record_count': record_count,
                 'file_path': self.file_path,
                 'import_type': 'csv',
-                'data': data
+                'import_id': self.import_id
             }
             
         except Exception as e:
@@ -295,7 +341,7 @@ class ImportWorker(QThread):
         
         try:
             # Create calculator with database access
-            data_access = DataAccess(db_manager)
+            data_access = DataAccess()
             calculator = SummaryCalculator(data_access)
             
             # Define progress callback
@@ -322,3 +368,54 @@ class ImportWorker(QThread):
         except Exception as e:
             logger.error(f"Error calculating summaries: {e}")
             raise
+    
+    def _create_database_backup(self):
+        """Create a backup of the current database for rollback."""
+        try:
+            # Prepare database path
+            DB_FILE_NAME = 'health_monitor.db'
+            self.db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
+            
+            if Path(self.db_path).exists():
+                # Create backup with timestamp
+                import shutil
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                self._backup_db_path = os.path.join(DATA_DIR, f'health_monitor_backup_{timestamp}.db')
+                
+                shutil.copy2(self.db_path, self._backup_db_path)
+                logger.info(f"Created database backup: {self._backup_db_path}")
+            else:
+                logger.info("No existing database to backup")
+                self._backup_db_path = None
+        except Exception as e:
+            logger.error(f"Failed to create database backup: {e}")
+            # Continue without backup - new imports will still work
+            self._backup_db_path = None
+    
+    def _rollback_database(self):
+        """Rollback database to the backup state."""
+        try:
+            if self._backup_db_path and Path(self._backup_db_path).exists():
+                import shutil
+                # Close any open connections first
+                if hasattr(self, 'db_connection'):
+                    self.db_connection.close()
+                
+                # Restore from backup
+                shutil.move(self._backup_db_path, self.db_path)
+                logger.info("Database rolled back successfully")
+            elif self.db_path and Path(self.db_path).exists():
+                # If no backup but database exists (new import), remove it
+                os.remove(self.db_path)
+                logger.info("Removed partially imported database")
+        except Exception as e:
+            logger.error(f"Failed to rollback database: {e}")
+    
+    def _cleanup_backup(self):
+        """Remove the backup file after successful import."""
+        try:
+            if self._backup_db_path and Path(self._backup_db_path).exists():
+                os.remove(self._backup_db_path)
+                logger.info("Cleaned up database backup")
+        except Exception as e:
+            logger.warning(f"Failed to cleanup backup: {e}")

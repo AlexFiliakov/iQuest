@@ -22,7 +22,12 @@ class CachedDailyMetricsCalculator:
     """Cached wrapper for DailyMetricsCalculator."""
     
     def __init__(self, calculator: DailyMetricsCalculator = None):
-        self.calculator = calculator or DailyMetricsCalculator()
+        if calculator is None:
+            # Create empty DataFrame as fallback
+            import pandas as pd
+            empty_df = pd.DataFrame(columns=['creationDate', 'type', 'value'])
+            calculator = DailyMetricsCalculator(empty_df)
+        self.calculator = calculator
         self.cache_manager = get_cache_manager()
         
         # Cache TTL configurations (seconds)
@@ -125,7 +130,13 @@ class CachedWeeklyMetricsCalculator:
     """Cached wrapper for WeeklyMetricsCalculator."""
     
     def __init__(self, calculator: WeeklyMetricsCalculator = None):
-        self.calculator = calculator or WeeklyMetricsCalculator()
+        if calculator is None:
+            # Create empty DataFrame as fallback
+            import pandas as pd
+            empty_df = pd.DataFrame(columns=['creationDate', 'type', 'value'])
+            daily_calculator = DailyMetricsCalculator(empty_df)
+            calculator = WeeklyMetricsCalculator(daily_calculator)
+        self.calculator = calculator
         self.cache_manager = get_cache_manager()
         
         # Cache TTL configurations (seconds)
@@ -249,7 +260,13 @@ class CachedMonthlyMetricsCalculator:
     """Cached wrapper for MonthlyMetricsCalculator."""
     
     def __init__(self, calculator: MonthlyMetricsCalculator = None):
-        self.calculator = calculator or MonthlyMetricsCalculator()
+        if calculator is None:
+            # Create empty DataFrame as fallback
+            import pandas as pd
+            empty_df = pd.DataFrame(columns=['creationDate', 'type', 'value'])
+            daily_calculator = DailyMetricsCalculator(empty_df)
+            calculator = MonthlyMetricsCalculator(daily_calculator)
+        self.calculator = calculator
         self.cache_manager = get_cache_manager()
         
         # Cache TTL configurations (seconds)
@@ -418,17 +435,54 @@ class CacheInvalidationManager:
 
 # Factory functions for cached calculators
 def create_cached_daily_calculator() -> CachedDailyMetricsCalculator:
-    """Create cached daily metrics calculator."""
+    """Create cached daily metrics calculator with proper data source."""
+    try:
+        # Try to use database connection
+        from ..database import DatabaseManager
+        import pandas as pd
+        
+        db = DatabaseManager()
+        # Create a simple data source that loads from database
+        with db.get_connection() as conn:
+            df = pd.read_sql("SELECT creationDate, type, value FROM health_records", conn)
+        
+        if not df.empty:
+            calculator = DailyMetricsCalculator(df)
+            return CachedDailyMetricsCalculator(calculator)
+    except Exception as e:
+        logger.warning(f"Could not create calculator with database data: {e}")
+    
+    # Fallback to default initialization
     return CachedDailyMetricsCalculator()
 
 
 def create_cached_weekly_calculator() -> CachedWeeklyMetricsCalculator:
-    """Create cached weekly metrics calculator."""
+    """Create cached weekly metrics calculator with proper data source."""
+    try:
+        # Create daily calculator first
+        cached_daily = create_cached_daily_calculator()
+        if cached_daily and cached_daily.calculator:
+            calculator = WeeklyMetricsCalculator(cached_daily.calculator)
+            return CachedWeeklyMetricsCalculator(calculator)
+    except Exception as e:
+        logger.warning(f"Could not create weekly calculator: {e}")
+    
+    # Fallback to default initialization
     return CachedWeeklyMetricsCalculator()
 
 
 def create_cached_monthly_calculator() -> CachedMonthlyMetricsCalculator:
-    """Create cached monthly metrics calculator."""
+    """Create cached monthly metrics calculator with proper data source."""
+    try:
+        # Create daily calculator first
+        cached_daily = create_cached_daily_calculator()
+        if cached_daily and cached_daily.calculator:
+            calculator = MonthlyMetricsCalculator(cached_daily.calculator)
+            return CachedMonthlyMetricsCalculator(calculator)
+    except Exception as e:
+        logger.warning(f"Could not create monthly calculator: {e}")
+    
+    # Fallback to default initialization
     return CachedMonthlyMetricsCalculator()
 
 

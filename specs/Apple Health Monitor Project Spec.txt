@@ -13,6 +13,8 @@ claude config set --global parallelTasksCount 5
 # Update Claude Code:
 npm i -g @anthropic-ai/claude-code
 
+@anthropic-ai/claude-code --version
+
 
 If MCP doesn’t work: “I downgraded to 1.0.3 and mcp works again”
 
@@ -518,6 +520,8 @@ Fix Records `RECORDS.md`
 ### Future ####
 
 
+How would you approach dealing with the warning `apple_health_monitor.src.xml_streaming_processor - WARNING - xml_streaming_processor.py:188 - _process_record() - Memory usage over limit: 542.3MB` when importing large files? It clogs up the logs and isn’t very informative. Do you have a strategy for optimizing the load process, or perhaps we should increase the memory limit cap to 1BG for this notification?
+
 
 
 
@@ -538,5 +542,15 @@ create a general task `G085_FIX_BROKEN_TESTS.md`, then run each test in director
 
 
 ### Simone ###
+
+
+
+
+
+
+
+
+
+
 
 

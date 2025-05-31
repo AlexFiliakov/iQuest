@@ -150,6 +150,12 @@ class DatabaseManager:
             self.db_path = Path(config.DATA_DIR) / DB_FILE_NAME
             self.initialized = True
             self._ensure_database_exists()
+            
+            # Ensure all migrations are applied on startup
+            try:
+                self._check_and_apply_migrations()
+            except Exception as e:
+                logger.error(f"Failed to apply migrations on startup: {e}")
     
     def _ensure_database_exists(self):
         """Ensure database file and directory structure exist.
@@ -165,6 +171,35 @@ class DatabaseManager:
         if not self.db_path.exists():
             logger.info(f"Creating new database at {self.db_path}")
             self.initialize_database()
+    
+    def _check_and_apply_migrations(self):
+        """Check and apply any pending migrations to existing database.
+        
+        This method is called on startup to ensure all migrations are applied,
+        even if the database already exists. This is important for adding new
+        tables like achievements, personal_records, and streaks.
+        """
+        if self.db_path.exists():
+            logger.debug("Checking for pending migrations")
+            try:
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
+                    
+                    # Ensure schema_migrations table exists
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS schema_migrations (
+                            version INTEGER PRIMARY KEY,
+                            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    
+                    # Apply any pending migrations
+                    self._apply_migrations(cursor)
+                    conn.commit()
+                    
+            except Exception as e:
+                logger.error(f"Error checking/applying migrations: {e}")
+                raise
     
     @contextmanager
     def get_connection(self):
@@ -488,6 +523,7 @@ class DatabaseManager:
         Current migrations:
             Migration 2: Adds filter_configs table for user-defined filter presets
             Migration 3: Adds unique constraints to health_records table
+            Migration 4: Adds achievements, personal_records, and streaks tables
             
         Examples:
             This method is called automatically during database initialization:
@@ -579,6 +615,119 @@ class DatabaseManager:
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (3)")
             logger.info("Migration 3 applied successfully")
+        
+        # Migration 4: Add achievements and personal_records tables
+        if current_version < 4:
+            logger.info("Applying migration 4: Adding achievements and personal_records tables")
+            
+            # Create achievements table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS achievements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    achievement_type VARCHAR(50) NOT NULL,
+                    metric_type VARCHAR(100) NOT NULL,
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    criteria_json TEXT NOT NULL,  -- JSON object with achievement criteria
+                    achieved_date DATE,
+                    achieved_value REAL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes for achievements
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_type ON achievements(achievement_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_metric ON achievements(metric_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_date ON achievements(achieved_date)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_achievements_active ON achievements(is_active)")
+            
+            # Create personal_records table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS personal_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    metric_type VARCHAR(100) NOT NULL,
+                    record_type VARCHAR(50) NOT NULL,  -- e.g., 'daily_max', 'daily_min', 'weekly_total', etc.
+                    period VARCHAR(20),  -- e.g., 'day', 'week', 'month', 'all_time'
+                    value REAL NOT NULL,
+                    unit VARCHAR(50),
+                    recorded_date DATE NOT NULL,
+                    previous_value REAL,
+                    previous_date DATE,
+                    improvement_percentage REAL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(metric_type, record_type, period)
+                )
+            """)
+            
+            # Create indexes for personal_records
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_personal_records_metric ON personal_records(metric_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_personal_records_type ON personal_records(record_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_personal_records_date ON personal_records(recorded_date)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_personal_records_period ON personal_records(period)")
+            
+            # Create streaks table (bonus - also mentioned in clear_all_health_data)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS streaks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    metric_type VARCHAR(100) NOT NULL,
+                    streak_type VARCHAR(50) NOT NULL,  -- e.g., 'daily', 'weekly'
+                    current_streak INTEGER DEFAULT 0,
+                    longest_streak INTEGER DEFAULT 0,
+                    streak_start_date DATE,
+                    streak_end_date DATE,
+                    last_activity_date DATE,
+                    threshold_value REAL,  -- Minimum value to maintain streak
+                    threshold_unit VARCHAR(50),
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(metric_type, streak_type)
+                )
+            """)
+            
+            # Create indexes for streaks
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_streaks_metric ON streaks(metric_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_streaks_type ON streaks(streak_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_streaks_active ON streaks(is_active)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_streaks_dates ON streaks(streak_start_date, streak_end_date)")
+            
+            # Add triggers to update timestamps
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS update_achievements_timestamp 
+                AFTER UPDATE ON achievements
+                BEGIN
+                    UPDATE achievements 
+                    SET updated_at = CURRENT_TIMESTAMP 
+                    WHERE id = NEW.id;
+                END
+            """)
+            
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS update_personal_records_timestamp 
+                AFTER UPDATE ON personal_records
+                BEGIN
+                    UPDATE personal_records 
+                    SET updated_at = CURRENT_TIMESTAMP 
+                    WHERE id = NEW.id;
+                END
+            """)
+            
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS update_streaks_timestamp 
+                AFTER UPDATE ON streaks
+                BEGIN
+                    UPDATE streaks 
+                    SET updated_at = CURRENT_TIMESTAMP 
+                    WHERE id = NEW.id;
+                END
+            """)
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (4)")
+            logger.info("Migration 4 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute SELECT query and return all matching rows.
@@ -858,6 +1007,132 @@ class DatabaseManager:
         gc.collect()
         
         logger.info("Database connections closed successfully")
+    
+    def clear_all_health_data(self) -> Dict[str, int]:
+        """Clear all health-related data from the database while preserving preferences.
+        
+        This method performs a comprehensive erasure of all health record data and related
+        entries from the database. It clears data from the following tables:
+            - health_records: All imported health data
+            - cached_metrics: All cached calculations and metrics
+            - import_history: History of data imports
+            - data_sources: Device and source information
+            - health_metrics_metadata: Metric display metadata
+            - filter_configs: Saved filter configurations
+            - recent_files: List of recently imported files
+            - achievements: User achievements (if table exists)
+            - personal_records: Personal record tracking (if table exists)
+            - streaks: Streak tracking data (if table exists)
+        
+        User preferences and journal entries are intentionally preserved as they
+        represent user-generated content and application settings.
+        
+        Returns:
+            Dict[str, int]: Dictionary mapping table names to the number of records
+                deleted from each table. For example:
+                {
+                    'health_records': 50000,
+                    'cached_metrics': 1234,
+                    'import_history': 5,
+                    ...
+                }
+        
+        Raises:
+            sqlite3.Error: If database operations fail during the clearing process.
+                The operation is atomic - either all tables are cleared or none are.
+        
+        Examples:
+            Clear all health data:
+            >>> db = DatabaseManager()
+            >>> deleted_counts = db.clear_all_health_data()
+            >>> for table, count in deleted_counts.items():
+            ...     print(f"Deleted {count} records from {table}")
+            
+            With error handling:
+            >>> try:
+            ...     counts = db.clear_all_health_data()
+            ...     print(f"Successfully cleared {sum(counts.values())} total records")
+            ... except sqlite3.Error as e:
+            ...     print(f"Failed to clear data: {e}")
+        
+        Note:
+            This operation cannot be undone. It's recommended to confirm with the user
+            before calling this method and potentially create a backup first.
+        """
+        logger.info("Starting comprehensive health data erasure")
+        
+        # First, shutdown the analytics cache manager to close all connections
+        try:
+            from .analytics.cache_manager import shutdown_cache_manager
+            shutdown_cache_manager()
+            logger.info("Shut down analytics cache manager")
+        except Exception as e:
+            logger.warning(f"Could not shutdown cache manager: {e}")
+        
+        # Tables to clear (in order to respect foreign key constraints if any)
+        tables_to_clear = [
+            'achievements',       # May not exist in all versions
+            'personal_records',   # May not exist in all versions
+            'streaks',           # May not exist in all versions
+            'cached_metrics',
+            'filter_configs',
+            'health_metrics_metadata',
+            'data_sources',
+            'import_history',
+            'recent_files',
+            'health_records'     # Main data table, cleared last
+        ]
+        
+        deleted_counts = {}
+        
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Begin transaction for atomic operation
+                cursor.execute("BEGIN TRANSACTION")
+                
+                try:
+                    for table in tables_to_clear:
+                        # Check if table exists before attempting to clear
+                        if self.table_exists(table):
+                            # Get count before deletion for reporting
+                            cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                            count = cursor.fetchone()[0]
+                            
+                            # Delete all records from the table
+                            cursor.execute(f"DELETE FROM {table}")
+                            deleted_counts[table] = count
+                            
+                            logger.info(f"Deleted {count} records from {table}")
+                        else:
+                            logger.debug(f"Table {table} does not exist, skipping")
+                    
+                    # Reset SQLite auto-increment counters
+                    cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ({})".format(
+                        ','.join(['?' for _ in tables_to_clear])
+                    ), tables_to_clear)
+                    
+                    # Commit the transaction
+                    cursor.execute("COMMIT")
+                    
+                    # Run VACUUM to reclaim disk space
+                    logger.info("Running VACUUM to reclaim disk space")
+                    cursor.execute("VACUUM")
+                    
+                    logger.info(f"Health data erasure completed. Total records deleted: {sum(deleted_counts.values())}")
+                    
+                except Exception as e:
+                    # Rollback on any error
+                    cursor.execute("ROLLBACK")
+                    logger.error(f"Failed to clear health data: {e}")
+                    raise
+                
+        except sqlite3.Error as e:
+            logger.error(f"Database error during health data erasure: {e}")
+            raise
+        
+        return deleted_counts
 
 
 # Global singleton database manager instance

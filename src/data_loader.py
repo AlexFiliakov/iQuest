@@ -42,7 +42,7 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import sqlite3
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Callable
 from datetime import datetime
 
 from src.utils.logging_config import get_logger
@@ -752,7 +752,7 @@ def get_date_range(db_path: str) -> Tuple[Optional[str], Optional[str]]:
         conn.close()
 
 
-def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
+def migrate_csv_to_sqlite(csv_path: str, db_path: str, progress_callback: Optional[Callable] = None) -> int:
     """Migrate existing CSV health data to optimized SQLite format.
     
     Converts CSV files (typically exported from previous versions or other tools)
@@ -793,18 +793,42 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
     if not Path(csv_path).exists():
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
     
+    conn = None
     try:
         logger.info(f"Reading CSV file: {csv_path}")
         df = pd.read_csv(csv_path, parse_dates=['creationDate'])
         
         logger.info(f"Creating SQLite database: {db_path}")
-        with sqlite3.connect(db_path) as conn:
+        conn = sqlite3.connect(db_path)
+        
+        # Start transaction
+        conn.execute('BEGIN IMMEDIATE')
+        
+        try:
+            # Check for cancellation before processing
+            if progress_callback and progress_callback(20, len(df)) is False:
+                conn.rollback()
+                logger.info("CSV import cancelled by user")
+                return 0
+            
             df.to_sql('health_records', conn, index=False, if_exists='replace')
+            
+            # Check for cancellation
+            if progress_callback and progress_callback(60, len(df)) is False:
+                conn.rollback()
+                logger.info("CSV import cancelled by user")
+                return 0
             
             # Add same indexes as XML import
             conn.execute('CREATE INDEX idx_creation_date ON health_records(creationDate)')
             conn.execute('CREATE INDEX idx_type ON health_records(type)')
             conn.execute('CREATE INDEX idx_type_date ON health_records(type, creationDate)')
+            
+            # Check for cancellation
+            if progress_callback and progress_callback(80, len(df)) is False:
+                conn.rollback()
+                logger.info("CSV import cancelled by user")
+                return 0
             
             # Create metadata table
             conn.execute('''
@@ -815,9 +839,16 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
             ''')
             conn.execute("INSERT OR REPLACE INTO metadata VALUES ('import_date', datetime('now'))")
             conn.execute(f"INSERT OR REPLACE INTO metadata VALUES ('record_count', '{len(df)}')")
-        
-        logger.info(f"Successfully migrated {len(df)} records")
-        return len(df)
+            
+            # Commit transaction
+            conn.commit()
+            logger.info(f"Successfully migrated {len(df)} records")
+            return len(df)
+        except Exception as e:
+            # Rollback on any error
+            conn.rollback()
+            logger.error(f"Transaction rolled back due to error: {e}")
+            raise
     except pd.errors.ParserError as e:
         logger.error(f"Failed to parse CSV file: {e}")
         raise
@@ -827,6 +858,9 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str) -> int:
     except Exception as e:
         logger.error(f"Unexpected error during migration: {e}")
         raise
+    finally:
+        if conn:
+            conn.close()
 
 
 def validate_database(db_path: str) -> dict:

@@ -507,14 +507,27 @@ class SQLiteCache:
             return 0
     
     def close(self) -> None:
-        """Close any open database connections."""
-        if self._connection:
-            try:
-                self._connection.close()
-                self._connection = None
-                logger.debug("Closed SQLite cache connection")
-            except Exception as e:
-                logger.error(f"Error closing SQLite cache: {e}")
+        """Close any open database connections and prepare for cleanup."""
+        # Since we use context managers, connections are auto-closed
+        # But we should ensure no active connections remain
+        try:
+            # Force close any lingering connections by clearing the connection pool
+            import gc
+            gc.collect()
+            
+            # Try to close the database file if it exists
+            if self.db_path.exists():
+                # Ensure WAL mode is disabled to prevent lingering connections
+                try:
+                    with sqlite3.connect(self.db_path) as conn:
+                        conn.execute("PRAGMA journal_mode=DELETE")
+                        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                except Exception as e:
+                    logger.debug(f"Could not change journal mode: {e}")
+            
+            logger.debug("SQLite cache prepared for cleanup")
+        except Exception as e:
+            logger.error(f"Error closing SQLite cache: {e}")
 
 
 class DiskCache:

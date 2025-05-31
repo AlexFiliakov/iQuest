@@ -597,6 +597,9 @@ class WeeklyDashboardWidget(QWidget):
                 logger.warning("No data source available")
                 return
             logger.info(f"Available types: {available_types}")
+            logger.info(f"Number of available types: {len(available_types)}")
+            if len(available_types) > 0:
+                logger.info(f"First 5 types: {list(available_types[:5])}")
             
             # Map to display names
             metric_mapping = {
@@ -618,6 +621,10 @@ class WeeklyDashboardWidget(QWidget):
                     self._available_metrics.append((hk_type, metric_key))
                     self.metric_selector.addItem(display_name, hk_type)
                     logger.info(f"Added metric: {display_name} ({hk_type})")
+                else:
+                    # Log why metrics weren't matched for debugging
+                    if hk_type == 'HKQuantityTypeIdentifierStepCount' and len(available_types) > 0:
+                        logger.debug(f"Steps not found. Checking first type: '{available_types[0]}' vs '{hk_type}'")
             
             if self._available_metrics:
                 self._selected_metric = self._available_metrics[0][0]
@@ -625,6 +632,8 @@ class WeeklyDashboardWidget(QWidget):
                 logger.info(f"Selected first metric: {self._selected_metric}")
             else:
                 logger.warning("No available metrics found")
+                logger.warning(f"Searched for: {list(metric_mapping.keys())}")
+                logger.warning(f"Available in data: {list(available_types[:10]) if len(available_types) > 0 else 'None'}")
                 
         except Exception as e:
             logger.error(f"Error detecting available metrics: {e}", exc_info=True)

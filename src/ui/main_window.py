@@ -740,15 +740,17 @@ class MainWindow(QMainWindow):
             from .monthly_dashboard_widget import MonthlyDashboardWidget
             from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
             from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+            from ..analytics.data_source_protocol import DataAccessAdapter
             from ..data_access import DataAccess
             
             # Create calculators for the monthly dashboard
             try:
-                # Initialize data access
+                # Initialize data access and wrap it with adapter
                 data_access = DataAccess()
+                data_adapter = DataAccessAdapter(data_access)
                 
                 # Create daily calculator first (required by monthly calculator)
-                daily_calculator = DailyMetricsCalculator(data_access)
+                daily_calculator = DailyMetricsCalculator(data_adapter)
                 
                 # Create monthly calculator with the daily calculator
                 monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
@@ -1683,6 +1685,289 @@ class MainWindow(QMainWindow):
             "<p>Built with PyQt6 and Python.</p>"
         )
     
+    def _perform_data_erasure(self):
+        """Perform the actual data erasure after confirmation.
+        
+        This method handles the complete data erasure process including:
+        - Shutting down cache managers and background processors
+        - Closing database connections
+        - Deleting database files and cache directories
+        - Resetting the UI to its initial state
+        
+        This is a shared method used by both the menu action and the configuration
+        tab's clear data button to ensure consistent behavior.
+        
+        Returns:
+            bool: True if successful, False if operation failed
+        """
+        logger.info("Starting data erasure process")
+        
+        # Create progress dialog
+        from PyQt6.QtWidgets import QProgressDialog
+        progress = QProgressDialog("Erasing all data...", None, 0, 0, self)
+        progress.setWindowTitle("Erasing Data")
+        progress.setModal(True)
+        progress.setCancelButton(None)  # Remove cancel button since operation cannot be canceled
+        progress.setMinimumDuration(0)  # Show immediately
+        progress.show()
+        QApplication.processEvents()
+        
+        try:
+            # 1. Shutdown cache manager and background processes
+            try:
+                from ..analytics.cache_manager import shutdown_cache_manager
+                shutdown_cache_manager()
+                logger.info("Shutdown cache manager")
+                
+                # Force garbage collection to clear any lingering references
+                import gc
+                gc.collect()
+                
+                # Small delay to ensure file handles are released
+                time.sleep(0.5)
+            except Exception as e:
+                logger.warning(f"Could not shutdown cache manager: {e}")
+            
+            # 2. Shutdown any background processors with timeout protection
+            # Check if any tabs have background processors
+            from PyQt6.QtCore import QTimer
+            import time
+            shutdown_start_time = time.time()
+            
+            for i in range(self.tab_widget.count()):
+                tab = self.tab_widget.widget(i)
+                if hasattr(tab, 'background_processor') and tab.background_processor:
+                    try:
+                        # Set a reasonable timeout for background processor shutdown
+                        processor_start_time = time.time()
+                        tab.background_processor.shutdown()
+                        
+                        # Check if shutdown took too long
+                        shutdown_duration = time.time() - processor_start_time
+                        if shutdown_duration > 3.0:  # More than 3 seconds
+                            logger.warning(f"Background processor shutdown for tab {i} took {shutdown_duration:.1f} seconds")
+                        else:
+                            logger.info(f"Shutdown background processor for tab {i} in {shutdown_duration:.1f} seconds")
+                            
+                    except Exception as e:
+                        logger.warning(f"Could not shutdown background processor for tab {i}: {e}")
+            
+            total_shutdown_time = time.time() - shutdown_start_time
+            if total_shutdown_time > 5.0:  # More than 5 seconds total
+                logger.warning(f"Total background processor shutdown took {total_shutdown_time:.1f} seconds")
+            
+            # Update progress dialog
+            progress.setLabelText("Closing database connections...")
+            QApplication.processEvents()
+            
+            # 3. Close database connections
+            if hasattr(db_manager, 'close'):
+                db_manager.close()
+                logger.info("Closed database connections")
+            
+            # 4. Small delay to ensure all connections are closed
+            progress.setLabelText("Ensuring database connections are closed...")
+            QApplication.processEvents()
+            time.sleep(0.5)
+            
+            # 5. Delete database file
+            progress.setLabelText("Deleting database files...")
+            QApplication.processEvents()
+            db_path = os.path.join(DATA_DIR, "health_data.db")
+            if os.path.exists(db_path):
+                os.remove(db_path)
+                logger.info(f"Deleted database file: {db_path}")
+            
+            # 6. Delete analytics cache database with retry
+            progress.setLabelText("Deleting analytics cache...")
+            QApplication.processEvents()
+            analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
+            if os.path.exists(analytics_cache_db):
+                for attempt in range(3):
+                    try:
+                        os.remove(analytics_cache_db)
+                        logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
+                        break
+                    except PermissionError as e:
+                        if attempt < 2:
+                            logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
+                            time.sleep(1)
+                        else:
+                            logger.warning(f"Could not delete analytics cache database (file locked): {e}")
+            
+            # Also check in current directory
+            if os.path.exists("analytics_cache.db"):
+                for attempt in range(3):
+                    try:
+                        os.remove("analytics_cache.db")
+                        logger.info("Deleted analytics cache database from current directory")
+                        break
+                    except PermissionError as e:
+                        if attempt < 2:
+                            logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
+                            time.sleep(1)
+                        else:
+                            logger.warning(f"Could not delete analytics cache database (file locked): {e}")
+            
+            # 7. Delete cache directory
+            progress.setLabelText("Deleting cache directories...")
+            QApplication.processEvents()
+            
+            # Helper function to safely delete directory on Windows
+            def safe_rmtree(path):
+                """Safely remove directory tree, handling Windows file locks."""
+                if not os.path.exists(path):
+                    return
+                    
+                # First try normal deletion
+                try:
+                    shutil.rmtree(path)
+                    return True
+                except Exception as e:
+                    logger.warning(f"First attempt to delete {path} failed: {e}")
+                
+                # If that fails, try to remove files individually
+                try:
+                    # Walk through directory and delete files first
+                    for root, dirs, files in os.walk(path, topdown=False):
+                        for name in files:
+                            file_path = os.path.join(root, name)
+                            try:
+                                os.chmod(file_path, 0o777)  # Make writable
+                                os.remove(file_path)
+                            except Exception as e:
+                                logger.warning(f"Could not delete file {file_path}: {e}")
+                        
+                        # Then try to remove empty directories
+                        for name in dirs:
+                            dir_path = os.path.join(root, name)
+                            try:
+                                os.chmod(dir_path, 0o777)  # Make writable
+                                os.rmdir(dir_path)
+                            except Exception as e:
+                                logger.warning(f"Could not delete directory {dir_path}: {e}")
+                    
+                    # Finally try to remove the root directory
+                    try:
+                        os.chmod(path, 0o777)  # Make writable
+                        os.rmdir(path)
+                        return True
+                    except Exception as e:
+                        logger.warning(f"Could not delete root directory {path}: {e}")
+                        return False
+                        
+                except Exception as e:
+                    logger.error(f"Failed to manually delete {path}: {e}")
+                    return False
+            
+            cache_dir = os.path.join(DATA_DIR, "cache")
+            if os.path.exists(cache_dir):
+                if safe_rmtree(cache_dir):
+                    logger.info(f"Deleted cache directory: {cache_dir}")
+                else:
+                    logger.warning(f"Could not completely delete cache directory: {cache_dir}")
+                
+            # Also check for cache in current directory
+            if os.path.exists("cache"):
+                if safe_rmtree("cache"):
+                    logger.info("Deleted cache directory from current directory")
+                else:
+                    logger.warning("Could not completely delete cache directory from current directory")
+            
+            # 8. Clear filter configurations from database
+            progress.setLabelText("Clearing filter configurations...")
+            QApplication.processEvents()
+            if hasattr(self.config_tab, 'filter_config_manager'):
+                # This will recreate the database but with empty tables
+                self.config_tab.filter_config_manager.clear_all_presets()
+                logger.info("Cleared filter configurations")
+            
+            # 9. Reset UI
+            progress.setLabelText("Resetting user interface...")
+            QApplication.processEvents()
+            if hasattr(self.config_tab, 'data'):
+                self.config_tab.data = None
+                self.config_tab.filtered_data = None
+                self.config_tab.data_available = False
+                
+                # Clear filter dropdowns
+                if hasattr(self.config_tab, 'device_dropdown'):
+                    self.config_tab.device_dropdown.clear()
+                if hasattr(self.config_tab, 'metric_dropdown'):
+                    self.config_tab.metric_dropdown.clear()
+                
+                # Disable filter controls
+                if hasattr(self.config_tab, '_enable_filter_controls'):
+                    self.config_tab._enable_filter_controls(False)
+                
+                # Reset summary cards
+                if hasattr(self.config_tab, 'total_records_card'):
+                    self.config_tab.total_records_card.update_content({'value': "-"})
+                if hasattr(self.config_tab, 'filtered_records_card'):
+                    self.config_tab.filtered_records_card.update_content({'value': "-"})
+                if hasattr(self.config_tab, 'data_source_card'):
+                    self.config_tab.data_source_card.update_content({'value': "None"})
+                if hasattr(self.config_tab, 'filter_status_card'):
+                    self.config_tab.filter_status_card.update_content({'value': "N/A"})
+                
+                # Clear statistics
+                if hasattr(self.config_tab, '_update_custom_statistics'):
+                    self.config_tab._update_custom_statistics(None)
+                
+                # Update progress label
+                if hasattr(self.config_tab, 'progress_label'):
+                    self.config_tab.progress_label.setText("All health data cleared")
+                
+            # Update UI to reflect empty state
+            if hasattr(self.config_tab, 'refresh_display'):
+                self.config_tab.refresh_display()
+                
+            # Disable other tabs since no data is loaded
+            for i in range(1, self.tab_widget.count()):
+                self.tab_widget.setTabEnabled(i, False)
+            
+            # Switch to configuration tab
+            self.tab_widget.setCurrentIndex(0)
+            
+            # Close progress dialog before showing success message
+            progress.close()
+            
+            # Show success message
+            QMessageBox.information(
+                self,
+                "Data Erased",
+                "All data has been successfully erased.\n\n"
+                "You can now import new health data."
+            )
+            
+            # Update status bar
+            self.status_bar.showMessage("All data erased successfully")
+            logger.info("All data erased successfully")
+            
+            # Emit signal if available
+            if hasattr(self.config_tab, 'data_cleared'):
+                self.config_tab.data_cleared.emit()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to erase data: {e}")
+            # Close progress dialog before showing error message
+            progress.close()
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to erase all data:\n\n{str(e)}"
+            )
+            return False
+        finally:
+            # Ensure the progress dialog is closed (defensive programming)
+            if progress and hasattr(progress, 'close'):
+                try:
+                    progress.close()
+                except:
+                    pass  # Ignore any errors during cleanup
+    
     def _on_erase_all_data(self):
         """Handle erase all data action."""
         logger.info("Erase all data action triggered")
@@ -1704,232 +1989,7 @@ class MainWindow(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            import os
-            import shutil
-            from ..config import DATA_DIR
-            
-            # Create progress dialog
-            from PyQt6.QtWidgets import QProgressDialog
-            progress = QProgressDialog("Erasing all data...", None, 0, 0, self)
-            progress.setWindowTitle("Erasing Data")
-            progress.setModal(True)
-            progress.setCancelButton(None)  # Remove cancel button since operation cannot be canceled
-            progress.setMinimumDuration(0)  # Show immediately
-            progress.show()
-            QApplication.processEvents()
-            
-            try:
-                # 1. Shutdown cache manager and background processes
-                try:
-                    from ..analytics.cache_manager import shutdown_cache_manager
-                    shutdown_cache_manager()
-                    logger.info("Shutdown cache manager")
-                except Exception as e:
-                    logger.warning(f"Could not shutdown cache manager: {e}")
-                
-                # 2. Shutdown any background processors with timeout protection
-                # Check if any tabs have background processors
-                from PyQt6.QtCore import QTimer
-                import time
-                shutdown_start_time = time.time()
-                
-                for i in range(self.tab_widget.count()):
-                    tab = self.tab_widget.widget(i)
-                    if hasattr(tab, 'background_processor') and tab.background_processor:
-                        try:
-                            # Set a reasonable timeout for background processor shutdown
-                            processor_start_time = time.time()
-                            tab.background_processor.shutdown()
-                            
-                            # Check if shutdown took too long
-                            shutdown_duration = time.time() - processor_start_time
-                            if shutdown_duration > 3.0:  # More than 3 seconds
-                                logger.warning(f"Background processor shutdown for tab {i} took {shutdown_duration:.1f} seconds")
-                            else:
-                                logger.info(f"Shutdown background processor for tab {i} in {shutdown_duration:.1f} seconds")
-                                
-                        except Exception as e:
-                            logger.warning(f"Could not shutdown background processor for tab {i}: {e}")
-                
-                total_shutdown_time = time.time() - shutdown_start_time
-                if total_shutdown_time > 5.0:  # More than 5 seconds total
-                    logger.warning(f"Total background processor shutdown took {total_shutdown_time:.1f} seconds")
-                
-                # Update progress dialog
-                progress.setLabelText("Closing database connections...")
-                QApplication.processEvents()
-                
-                # 3. Close database connections
-                if hasattr(db_manager, 'close'):
-                    db_manager.close()
-                    logger.info("Closed database connections")
-                
-                # 4. Small delay to ensure all connections are closed
-                progress.setLabelText("Ensuring database connections are closed...")
-                QApplication.processEvents()
-                time.sleep(0.5)
-                
-                # 5. Delete database file
-                progress.setLabelText("Deleting database files...")
-                QApplication.processEvents()
-                db_path = os.path.join(DATA_DIR, "health_data.db")
-                if os.path.exists(db_path):
-                    os.remove(db_path)
-                    logger.info(f"Deleted database file: {db_path}")
-                
-                # 6. Delete analytics cache database with retry
-                progress.setLabelText("Deleting analytics cache...")
-                QApplication.processEvents()
-                analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
-                if os.path.exists(analytics_cache_db):
-                    for attempt in range(3):
-                        try:
-                            os.remove(analytics_cache_db)
-                            logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
-                            break
-                        except PermissionError as e:
-                            if attempt < 2:
-                                logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
-                                time.sleep(1)
-                            else:
-                                logger.warning(f"Could not delete analytics cache database (file locked): {e}")
-                
-                # Also check in current directory
-                if os.path.exists("analytics_cache.db"):
-                    for attempt in range(3):
-                        try:
-                            os.remove("analytics_cache.db")
-                            logger.info("Deleted analytics cache database from current directory")
-                            break
-                        except PermissionError as e:
-                            if attempt < 2:
-                                logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
-                                time.sleep(1)
-                            else:
-                                logger.warning(f"Could not delete analytics cache database (file locked): {e}")
-                
-                # 7. Delete cache directory
-                progress.setLabelText("Deleting cache directories...")
-                QApplication.processEvents()
-                
-                # Helper function to safely delete directory on Windows
-                def safe_rmtree(path):
-                    """Safely remove directory tree, handling Windows file locks."""
-                    if not os.path.exists(path):
-                        return
-                        
-                    # First try normal deletion
-                    try:
-                        shutil.rmtree(path)
-                        return True
-                    except Exception as e:
-                        logger.warning(f"First attempt to delete {path} failed: {e}")
-                    
-                    # If that fails, try to remove files individually
-                    try:
-                        # Walk through directory and delete files first
-                        for root, dirs, files in os.walk(path, topdown=False):
-                            for name in files:
-                                file_path = os.path.join(root, name)
-                                try:
-                                    os.chmod(file_path, 0o777)  # Make writable
-                                    os.remove(file_path)
-                                except Exception as e:
-                                    logger.warning(f"Could not delete file {file_path}: {e}")
-                            
-                            # Then try to remove empty directories
-                            for name in dirs:
-                                dir_path = os.path.join(root, name)
-                                try:
-                                    os.chmod(dir_path, 0o777)  # Make writable
-                                    os.rmdir(dir_path)
-                                except Exception as e:
-                                    logger.warning(f"Could not delete directory {dir_path}: {e}")
-                        
-                        # Finally try to remove the root directory
-                        try:
-                            os.chmod(path, 0o777)  # Make writable
-                            os.rmdir(path)
-                            return True
-                        except Exception as e:
-                            logger.warning(f"Could not delete root directory {path}: {e}")
-                            return False
-                            
-                    except Exception as e:
-                        logger.error(f"Failed to manually delete {path}: {e}")
-                        return False
-                
-                cache_dir = os.path.join(DATA_DIR, "cache")
-                if os.path.exists(cache_dir):
-                    if safe_rmtree(cache_dir):
-                        logger.info(f"Deleted cache directory: {cache_dir}")
-                    else:
-                        logger.warning(f"Could not completely delete cache directory: {cache_dir}")
-                    
-                # Also check for cache in current directory
-                if os.path.exists("cache"):
-                    if safe_rmtree("cache"):
-                        logger.info("Deleted cache directory from current directory")
-                    else:
-                        logger.warning("Could not completely delete cache directory from current directory")
-                
-                # 8. Clear filter configurations from database
-                progress.setLabelText("Clearing filter configurations...")
-                QApplication.processEvents()
-                if hasattr(self.config_tab, 'filter_config_manager'):
-                    # This will recreate the database but with empty tables
-                    self.config_tab.filter_config_manager.clear_all_presets()
-                    logger.info("Cleared filter configurations")
-                
-                # 9. Reset UI
-                progress.setLabelText("Resetting user interface...")
-                QApplication.processEvents()
-                if hasattr(self.config_tab, 'data'):
-                    self.config_tab.data = None
-                    self.config_tab.filtered_data = None
-                    
-                # Update UI to reflect empty state
-                if hasattr(self.config_tab, 'refresh_display'):
-                    self.config_tab.refresh_display()
-                    
-                # Disable other tabs since no data is loaded
-                for i in range(1, self.tab_widget.count()):
-                    self.tab_widget.setTabEnabled(i, False)
-                
-                # Switch to configuration tab
-                self.tab_widget.setCurrentIndex(0)
-                
-                # Close progress dialog before showing success message
-                progress.close()
-                
-                # Show success message
-                QMessageBox.information(
-                    self,
-                    "Data Erased",
-                    "All data has been successfully erased.\n\n"
-                    "You can now import new health data."
-                )
-                
-                # Update status bar
-                self.status_bar.showMessage("All data erased successfully")
-                logger.info("All data erased successfully")
-                
-            except Exception as e:
-                logger.error(f"Failed to erase data: {e}")
-                # Close progress dialog before showing error message
-                progress.close()
-                QMessageBox.critical(
-                    self,
-                    "Error",
-                    f"Failed to erase all data:\n\n{str(e)}"
-                )
-            finally:
-                # Ensure the progress dialog is closed (defensive programming)
-                if progress and hasattr(progress, 'close'):
-                    try:
-                        progress.close()
-                    except:
-                        pass  # Ignore any errors during cleanup
+            self._perform_data_erasure()
         else:
             logger.info("User cancelled erase all data operation")
     

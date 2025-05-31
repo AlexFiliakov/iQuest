@@ -155,6 +155,7 @@ class ConfigurationTab(QWidget):
     # Signals
     data_loaded = pyqtSignal(object)  # Emitted when data is successfully loaded
     filters_applied = pyqtSignal(dict)  # Emitted when filters are applied
+    data_cleared = pyqtSignal()  # Emitted when all health data is cleared
     
     def __init__(self):
         """Initialize the configuration tab with comprehensive data management.
@@ -444,6 +445,36 @@ class ConfigurationTab(QWidget):
         import_button.setToolTip("Import data from selected file (Alt+I)")
         import_button.setFixedWidth(60)
         import_row.addWidget(import_button)
+        
+        # Add Clear Data button
+        clear_data_button = QPushButton("Clear Data")
+        clear_data_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.style_manager.ACCENT_ERROR};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 12px;
+                font-size: 12px;
+                font-weight: 500;
+                min-height: 28px;
+                max-height: 28px;
+            }}
+            QPushButton:hover {{
+                background-color: #DC2626;
+            }}
+            QPushButton:pressed {{
+                background-color: #B91C1C;
+            }}
+            QPushButton:disabled {{
+                background-color: #FCA5A5;
+                color: #FECACA;
+            }}
+        """)
+        clear_data_button.clicked.connect(self._on_clear_data_clicked)
+        clear_data_button.setToolTip("Clear all imported health data")
+        clear_data_button.setFixedWidth(80)
+        import_row.addWidget(clear_data_button)
         
         import_row.addStretch()
         group_layout.addLayout(import_row)
@@ -1227,14 +1258,9 @@ class ConfigurationTab(QWidget):
         try:
             logger.info(f"Import completed successfully: {result}")
             
-            # Load data based on import type
-            if result['import_type'] == 'csv' and 'data' in result:
-                # CSV data is already loaded
-                self.data = result['data']
-            else:
-                # For XML imports, load from database
-                self._load_from_sqlite()
-                return  # _load_from_sqlite handles the rest
+            # Both CSV and XML imports now load from database
+            self._load_from_sqlite()
+            return  # _load_from_sqlite handles the rest
             
             # Update UI
             row_count = result.get('record_count', 0)
@@ -1309,7 +1335,7 @@ class ConfigurationTab(QWidget):
             logger.info("Loading statistics from SQLite database (optimized)")
             
             # Set database path
-            db_path = os.path.join(DATA_DIR, "health_data.db")
+            db_path = os.path.join(DATA_DIR, "health_monitor.db")
             self.data_loader.db_path = db_path
             
             # Use cache manager with compute function for record statistics
@@ -1621,6 +1647,43 @@ class ConfigurationTab(QWidget):
                     "Reset Error",
                     f"Failed to reset application settings: {str(e)}"
                 )
+    
+    def _on_clear_data_clicked(self):
+        """Handle clear data button click."""
+        logger.info("Clear data requested")
+        
+        # Get the main window instance to call the shared method
+        main_window = self.window()
+        if main_window and hasattr(main_window, '_perform_data_erasure'):
+            # Use the same confirmation dialog format as the menu action
+            reply = QMessageBox.warning(
+                self,
+                "Erase All Data",
+                "<h3>Warning: This action cannot be undone!</h3>"
+                "<p>This will permanently delete:</p>"
+                "<ul>"
+                "<li>All imported health data from the database</li>"
+                "<li>All cached calculations and analytics</li>"
+                "<li>All filter presets and configurations</li>"
+                "</ul>"
+                "<p><b>Are you sure you want to continue?</b></p>",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # Call the shared method from main window
+                main_window._perform_data_erasure()
+            else:
+                logger.info("User cancelled clear data operation")
+        else:
+            # Fallback if main window method not available
+            logger.error("Main window _perform_data_erasure method not available")
+            QMessageBox.critical(
+                self,
+                "Error",
+                "Unable to clear data. Please use File > Erase All Data instead."
+            )
     
     def _on_save_preset_clicked(self):
         """Handle save preset button click."""
@@ -2071,7 +2134,7 @@ class ConfigurationTab(QWidget):
         """Check if data already exists in the database on startup."""
         try:
             # Check if database exists
-            db_path = os.path.join(DATA_DIR, "health_data.db")
+            db_path = os.path.join(DATA_DIR, "health_monitor.db")
             if os.path.exists(db_path):
                 logger.info("Found existing database, attempting to load data")
                 # Set the file path input to indicate database
@@ -2207,7 +2270,7 @@ class ConfigurationTab(QWidget):
         """Check if database exists and show statistics without loading all data."""
         try:
             # Check if database exists
-            db_path = os.path.join(DATA_DIR, "health_data.db")
+            db_path = os.path.join(DATA_DIR, "health_monitor.db")
             if os.path.exists(db_path):
                 logger.info("Found existing database, loading statistics only")
                 
