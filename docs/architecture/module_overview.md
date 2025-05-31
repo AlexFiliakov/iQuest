@@ -294,7 +294,6 @@ flowchart TB
         subgraph "Core UI Services"
             CORE_DASH[core_health_dashboard.py<br/>Dashboard core]
             EXPORT_DLG[export_dialog.py<br/>Export UI]
-            LOADING[loading_screen.py<br/>Loading UI]
             COVERAGE_INT[coverage_integration.py<br/>Coverage display]
             COVERAGE_SVC[coverage_service.py<br/>Coverage data]
         end
