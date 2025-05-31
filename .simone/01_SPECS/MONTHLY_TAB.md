@@ -47,13 +47,22 @@ The Monthly tab provides a comprehensive calendar-based view of health metrics w
   - Statistical significance testing
   - Confidence interval calculation
 
-#### 2. Summary Statistics Cards
+#### 2. Cache Warming Integration (NEW)
+- **Automatic Pre-population**: Cache warming runs after data import
+- **Dynamic Metric Discovery**: No hardcoded metric type filters
+- **Implementation**: `cache_background_refresh.py`
+  - `identify_months_for_cache_population()`: Discovers all type/month combinations
+  - `warm_monthly_metrics_cache()`: Pre-computes monthly statistics
+- **Benefits**: Eliminates "No metrics found in database" warning
+- **Cache Key Pattern**: `monthly_stats|{metric}|{year}|{month}`
+
+#### 3. Summary Statistics Cards
 - **Average**: Mean value for the month with smart formatting
 - **Total**: Sum of all daily values (when applicable)
 - **Best Day**: Maximum daily value with date
 - **Trend**: Direction indicator with percentage change
 
-#### 3. Month-over-Month Analysis (`src/analytics/month_over_month_trends.py`)
+#### 4. Month-over-Month Analysis (`src/analytics/month_over_month_trends.py`)
 - **Trend Detection**:
   - Change point identification
   - Momentum scoring

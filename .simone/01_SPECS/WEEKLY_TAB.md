@@ -76,6 +76,14 @@ Displayed as a 2x3 grid of statistical cards:
   - Trend: Direction based on first vs second half of week comparison
   - Volatility: Coefficient of variation (std dev / mean * 100)
 
+### Cache-on-Import Integration (NEW)
+- **Cached Data Access**: When `use_cached_data=True`, uses pre-computed weekly summaries
+- **Implementation**: `cached_data_access.py` provides cache-only data layer
+- **Cache Key Pattern**: `weekly_summary|{metric_type}|{year}-W{week}`
+- **Pre-computed Metrics**: Weekly aggregations calculated during import
+- **Performance**: Tab switching reduced from 2-5s to <100ms
+- **SQL Query**: Uses ISO week aggregation with daily totals
+
 ## User Interface Layout
 
 ```

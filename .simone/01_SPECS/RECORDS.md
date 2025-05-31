@@ -174,6 +174,18 @@ Apple Health XML → Data Import → Metric Processing → Record Checking → A
 - Efficient streak tracking with incremental updates
 - UI updates batched to prevent excessive redraws
 
+### Cache-on-Import Integration (NEW)
+- **Pre-computed Records**: Personal records can be calculated during import
+- **Cached Statistics**: Record statistics cached for faster UI loading
+- **Implementation**: Integrated with `summary_calculator.py` during import
+- **Benefits**: 
+  - Instant record display after import
+  - No need to recalculate historical records
+  - Reduced database queries for record checking
+- **Cache Key Patterns**:
+  - `record|{metric}|{record_type}|{date}`
+  - `streak|{metric}|{streak_type}|{end_date}`
+
 ### Future Enhancements
 - Advanced achievement categories (seasonal, challenge-based)
 - Social features for comparing achievements

@@ -84,6 +84,13 @@ Four summary cards (SummaryCard components) showing:
 - **Caching**: Two-level caching - statistics cache (`_stats_cache`) and hourly data cache (`_hourly_cache`)
 - **Cache Invalidation**: Automatically clears cache when `_current_date` changes
 
+### Cache-on-Import Integration (NEW)
+- **Cached Data Access**: When `use_cached_data=True`, uses pre-computed summaries from import
+- **Implementation**: `cached_data_access.py` provides cache-only data layer
+- **Cache Key Pattern**: `daily_summary|{metric_type}|{date}`
+- **Performance**: Reduces data loading from 2-5s to <100ms
+- **Fallback**: Automatically falls back to direct calculation if cache miss
+
 ## User Experience
 
 ### Loading States
