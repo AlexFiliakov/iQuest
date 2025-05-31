@@ -177,7 +177,8 @@ class ImportWorker(QThread):
         file_size = os.path.getsize(self.file_path)
         file_size_mb = file_size / (1024 * 1024)
         
-        # Initialize streaming processor
+        # Initialize streaming processor with configured memory limit
+        from src.config import DEFAULT_MEMORY_LIMIT_MB
         processor = XMLStreamingProcessor(memory_limit_mb=DEFAULT_MEMORY_LIMIT_MB)
         
         # Determine if we should use streaming based on file size

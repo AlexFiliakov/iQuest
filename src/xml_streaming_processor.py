@@ -193,7 +193,7 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
             
             # Check memory usage
             if self.memory_monitor and self.memory_monitor.is_over_limit():
-                logger.warning(f"Memory usage over limit: {self.memory_monitor.get_current_usage_mb():.1f}MB")
+                logger.info(f"Memory usage reached {self.memory_monitor.get_current_usage_mb():.1f}MB (limit: {self.memory_monitor.limit_mb}MB) - flushing to disk (normal for large imports)")
                 # Force flush to free memory
                 self._flush_to_database()
     

@@ -1731,7 +1731,6 @@ class MainWindow(QMainWindow):
             # 2. Shutdown any background processors with timeout protection
             # Check if any tabs have background processors
             from PyQt6.QtCore import QTimer
-            import time
             shutdown_start_time = time.time()
             
             for i in range(self.tab_widget.count()):
@@ -1773,7 +1772,7 @@ class MainWindow(QMainWindow):
             # 5. Delete database file
             progress.setLabelText("Deleting database files...")
             QApplication.processEvents()
-            db_path = os.path.join(DATA_DIR, "health_data.db")
+            db_path = os.path.join(DATA_DIR, "health_monitor.db")
             if os.path.exists(db_path):
                 os.remove(db_path)
                 logger.info(f"Deleted database file: {db_path}")

@@ -27,7 +27,7 @@ class TestMemoryMonitorValidation:
         assert monitor.limit_mb == DEFAULT_MEMORY_LIMIT_MB
         
         # Test various valid limits
-        for limit in [100, 256, 512, 1024, 2048, 4096]:
+        for limit in [256, 512, 1024, 2048, 4096]:
             monitor = MemoryMonitor(limit)
             assert monitor.limit_mb == limit
     
@@ -77,7 +77,7 @@ class TestXMLStreamingProcessorValidation:
         assert processor.memory_monitor.limit_mb == DEFAULT_MEMORY_LIMIT_MB
         
         # Test various valid limits
-        for limit in [100, 256, 512, 1024, 2048, 4096]:
+        for limit in [256, 512, 1024, 2048, 4096]:
             processor = XMLStreamingProcessor(limit)
             assert processor.memory_limit_mb == limit
             assert processor.memory_monitor.limit_mb == limit

@@ -49,9 +49,9 @@ MAX_CSV_SIZE_MB = 500
 SUPPORTED_FILE_TYPES = ["csv", "xml"]
 
 # Memory settings for XML streaming processor
-MIN_MEMORY_LIMIT_MB = 50  # Minimum memory limit for streaming processor
-MAX_MEMORY_LIMIT_MB = 8192  # Maximum memory limit (8GB)
-DEFAULT_MEMORY_LIMIT_MB = 500  # Default memory limit for streaming processor
+MIN_MEMORY_LIMIT_MB = 256  # Minimum memory limit for streaming processor
+MAX_MEMORY_LIMIT_MB = 4096  # Maximum memory limit (4GB)
+DEFAULT_MEMORY_LIMIT_MB = 1024  # Default memory limit for streaming processor (1GB)
 
 # Database settings
 DB_FILE_NAME = "health_monitor.db"  # As per SPECS_DB.md
