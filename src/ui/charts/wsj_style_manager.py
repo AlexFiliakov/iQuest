@@ -33,37 +33,37 @@ class WSJStyleManager:
     # Typography configuration
     TYPOGRAPHY = {
         'title': {
-            'family': 'Inter',
+            'family': 'Roboto Condensed',
             'size': 18,
             'weight': 600,
             'color': WARM_PALETTE['text_primary']
         },
         'subtitle': {
-            'family': 'Inter',
+            'family': 'Roboto Condensed',
             'size': 14,
             'weight': 400,
             'color': WARM_PALETTE['text_secondary']
         },
         'axis_label': {
-            'family': 'Inter',
+            'family': 'Roboto',
             'size': 12,
             'weight': 400,
             'color': WARM_PALETTE['text_secondary']
         },
         'tick_label': {
-            'family': 'Inter',
+            'family': 'Roboto',
             'size': 10,
             'weight': 400,
             'color': WARM_PALETTE['text_secondary']
         },
         'legend': {
-            'family': 'Inter',
+            'family': 'Roboto',
             'size': 11,
             'weight': 400,
             'color': WARM_PALETTE['text_primary']
         },
         'annotation': {
-            'family': 'Inter',
+            'family': 'Roboto',
             'size': 10,
             'weight': 400,
             'style': 'italic',
@@ -139,7 +139,7 @@ class WSJStyleManager:
             
             # Font
             'font.family': 'sans-serif',
-            'font.sans-serif': ['Inter', 'Arial', 'DejaVu Sans'],
+            'font.sans-serif': ['Roboto', 'Arial', 'DejaVu Sans'],
             'font.size': 12,
             
             # Lines

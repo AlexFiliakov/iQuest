@@ -547,13 +547,27 @@ class WeeklyMetricsCalculator:
         week_end = week_start + timedelta(days=6)
         
         # Filter data for the specific metric and week
-        # Convert datetime objects to pandas datetime for proper comparison
-        week_start_pd = pd.Timestamp(week_start)
-        week_end_pd = pd.Timestamp(week_end)
-        
-        # Ensure creationDate is in datetime format
+        # Ensure creationDate is in datetime format first
         if 'creationDate' in data.columns:
             data['creationDate'] = pd.to_datetime(data['creationDate'])
+        
+        # Convert datetime objects to pandas datetime for proper comparison
+        # Check if the data has timezone info and match it
+        if not data.empty and 'creationDate' in data.columns and not data['creationDate'].empty:
+            # Get the timezone from the first non-null datetime in the data
+            sample_tz = data['creationDate'].dropna().iloc[0].tz if len(data['creationDate'].dropna()) > 0 else None
+            if sample_tz:
+                # Make week_start and week_end timezone-aware to match the data
+                week_start_pd = pd.Timestamp(week_start).tz_localize('UTC').tz_convert(sample_tz)
+                week_end_pd = pd.Timestamp(week_end).tz_localize('UTC').tz_convert(sample_tz)
+            else:
+                # Data is timezone-naive
+                week_start_pd = pd.Timestamp(week_start)
+                week_end_pd = pd.Timestamp(week_end)
+        else:
+            # No data, use naive timestamps
+            week_start_pd = pd.Timestamp(week_start)
+            week_end_pd = pd.Timestamp(week_end)
         
         mask = (data['type'] == metric_type) & \
                (data['creationDate'] >= week_start_pd) & \

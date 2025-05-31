@@ -337,7 +337,7 @@ class GoalProgressCard(SummaryCard):
         
         # Title
         self.title_label = QLabel("Goal Progress")
-        title_font = QFont()
+        title_font = QFont('Roboto Condensed')
         title_font.setPointSize(config['title_font'])
         title_font.setWeight(QFont.Weight.Medium)
         self.title_label.setFont(title_font)
@@ -346,7 +346,7 @@ class GoalProgressCard(SummaryCard):
         
         # Current vs target
         self.progress_label = QLabel("0 / 0")
-        progress_font = QFont()
+        progress_font = QFont('Roboto')
         progress_font.setPointSize(config['value_font'] - 6)
         progress_font.setBold(True)
         self.progress_label.setFont(progress_font)
@@ -372,7 +372,7 @@ class GoalProgressCard(SummaryCard):
         
         # Completion percentage
         self.percentage_label = QLabel("0%")
-        percentage_font = QFont()
+        percentage_font = QFont('Roboto')
         percentage_font.setPointSize(config['title_font'])
         percentage_font.setBold(True)
         self.percentage_label.setFont(percentage_font)
@@ -432,7 +432,7 @@ class TrendIndicatorWidget(QWidget):
         
         self.label = QLabel("→ 0.0%")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = QFont()
+        font = QFont('Roboto')
         font.setPointSize(12)
         font.setBold(True)
         self.label.setFont(font)
@@ -490,14 +490,14 @@ class ChangeIndicatorWidget(QWidget):
         
         self.change_label = QLabel("No change")
         self.change_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        font = QFont()
+        font = QFont('Roboto Condensed')
         font.setPointSize(14)
         font.setBold(True)
         self.change_label.setFont(font)
         
         self.percentage_label = QLabel("0%")
         self.percentage_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        percentage_font = QFont()
+        percentage_font = QFont('Roboto')
         percentage_font.setPointSize(12)
         self.percentage_label.setFont(percentage_font)
         

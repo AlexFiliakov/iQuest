@@ -145,12 +145,12 @@ class CalendarHeatmapComponent(QWidget):
     def _get_default_fonts(self) -> Dict[str, QFont]:
         """Get default fonts from design system."""
         return {
-            'title': QFont('Poppins', 18, QFont.Weight.Bold),
-            'subtitle': QFont('Inter', 14, QFont.Weight.Normal),
-            'label': QFont('Inter', 11, QFont.Weight.Normal),
-            'label_small': QFont('Inter', 10, QFont.Weight.Normal),
-            'value': QFont('Inter', 13, QFont.Weight.Medium),
-            'value_large': QFont('Poppins', 16, QFont.Weight.Bold)
+            'title': QFont('Roboto Condensed', 18, QFont.Weight.Bold),
+            'subtitle': QFont('Roboto Condensed', 14, QFont.Weight.Normal),
+            'label': QFont('Roboto', 11, QFont.Weight.Normal),
+            'label_small': QFont('Roboto', 10, QFont.Weight.Normal),
+            'value': QFont('Roboto', 13, QFont.Weight.Medium),
+            'value_large': QFont('Roboto Condensed', 16, QFont.Weight.Bold)
         }
         
     def _initialize_color_scales(self) -> Dict[str, List[QColor]]:

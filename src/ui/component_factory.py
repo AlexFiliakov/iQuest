@@ -42,7 +42,8 @@ class ComponentFactory:
                 'border': '#D4C4B7'        # Border color
             },
             'typography': {
-                'font_family': 'Georgia, serif',  # WSJ uses serif fonts
+                'font_family': 'Roboto, sans-serif',  # Use Roboto for body text
+                'heading_font_family': 'Roboto Condensed, sans-serif',  # Use Roboto Condensed for headings
                 'title_size': 16,
                 'subtitle_size': 12,
                 'body_size': 11,

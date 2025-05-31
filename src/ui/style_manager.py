@@ -56,6 +56,10 @@ Attributes:
     FOCUS_COLOR (str): WSJ blue for focus indicators
 """
 
+import os
+from PyQt6.QtGui import QFontDatabase, QFont
+from PyQt6.QtCore import QFile, QIODevice
+
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -84,8 +88,8 @@ class StyleManager:
         - Text: High contrast colors ensuring accessibility compliance
     
     Typography system:
-        - Primary font: Inter for clean, readable interface text
-        - Display font: Poppins for headings and emphasis
+        - Primary font: Roboto for clean, readable interface text
+        - Display font: Roboto Condensed for headings and emphasis
         - Monospace: JetBrains Mono for code and data display
         - Proper font weights and sizes for clear hierarchy
     
@@ -184,14 +188,15 @@ class StyleManager:
         
         Initialization process:
             1. Configure logging for style-related operations
-            2. Set up color palette constants for consistent theming
-            3. Prepare typography system with proper font hierarchies
-            4. Initialize shadow and elevation system
-            5. Configure accessibility features and focus indicators
+            2. Load custom Roboto and Roboto Condensed fonts
+            3. Set up color palette constants for consistent theming
+            4. Prepare typography system with proper font hierarchies
+            5. Initialize shadow and elevation system
+            6. Configure accessibility features and focus indicators
         
         Design system setup:
             - Professional color palette with semantic naming
-            - Modern typography using Inter and Poppins fonts
+            - Modern typography using Roboto and Roboto Condensed fonts
             - Comprehensive shadow system for depth and hierarchy
             - Accessibility-compliant focus indicators
             - Cross-platform visual consistency
@@ -202,6 +207,8 @@ class StyleManager:
             - Optimized color calculations for dynamic theming
         """
         logger.debug("Initializing StyleManager")
+        self.fonts_loaded = False
+        self.load_custom_fonts()
     
     def get_main_window_style(self):
         """Get the main window stylesheet."""
@@ -232,6 +239,8 @@ class StyleManager:
                 background-color: transparent;
                 color: {self.TEXT_PRIMARY};
                 border-radius: 4px;
+                font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
+                font-weight: 500;
             }}
             
             QMenuBar::item:selected {{
@@ -288,6 +297,7 @@ class StyleManager:
                 margin-right: 8px;
                 border: none;
                 border-bottom: 2px solid transparent;
+                font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
                 font-weight: 500;
             }}
             
@@ -726,6 +736,103 @@ class StyleManager:
             }}
         """
     
+    def load_custom_fonts(self):
+        """Load Roboto and Roboto Condensed fonts from assets directory.
+        
+        This method loads all font variations for both Roboto and Roboto Condensed
+        families from the assets/fonts directory. It ensures that the custom fonts
+        are available for use throughout the application.
+        
+        Font loading process:
+            1. Locate the fonts directory relative to the module
+            2. Load Roboto font family (all weights and styles)
+            3. Load Roboto Condensed font family (all weights and styles)
+            4. Set font substitutions for fallback support
+        
+        Returns:
+            bool: True if fonts were loaded successfully, False otherwise.
+        """
+        try:
+            # Get the project root directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
+            fonts_dir = os.path.join(project_root, "assets", "fonts")
+            
+            if not os.path.exists(fonts_dir):
+                logger.warning(f"Fonts directory not found: {fonts_dir}")
+                return False
+            
+            # Load Roboto fonts
+            roboto_dir = os.path.join(fonts_dir, "Roboto", "static")
+            roboto_fonts = [
+                "Roboto-Regular.ttf",
+                "Roboto-Medium.ttf", 
+                "Roboto-Bold.ttf",
+                "Roboto-Light.ttf",
+                "Roboto-Thin.ttf",
+                "Roboto-Black.ttf"
+            ]
+            
+            for font_file in roboto_fonts:
+                font_path = os.path.join(roboto_dir, font_file)
+                if os.path.exists(font_path):
+                    font_id = QFontDatabase.addApplicationFont(font_path)
+                    if font_id == -1:
+                        logger.warning(f"Failed to load font: {font_file}")
+                    else:
+                        logger.debug(f"Loaded font: {font_file}")
+                else:
+                    logger.warning(f"Font file not found: {font_path}")
+            
+            # Load Roboto Condensed fonts
+            roboto_condensed_dir = os.path.join(fonts_dir, "Roboto_Condensed", "static")
+            roboto_condensed_fonts = [
+                "RobotoCondensed-Regular.ttf",
+                "RobotoCondensed-Medium.ttf",
+                "RobotoCondensed-Bold.ttf", 
+                "RobotoCondensed-Light.ttf",
+                "RobotoCondensed-ExtraBold.ttf",
+                "RobotoCondensed-Black.ttf"
+            ]
+            
+            for font_file in roboto_condensed_fonts:
+                font_path = os.path.join(roboto_condensed_dir, font_file)
+                if os.path.exists(font_path):
+                    font_id = QFontDatabase.addApplicationFont(font_path)
+                    if font_id == -1:
+                        logger.warning(f"Failed to load font: {font_file}")
+                    else:
+                        logger.debug(f"Loaded font: {font_file}")
+                else:
+                    logger.warning(f"Font file not found: {font_path}")
+            
+            # Also load the main Roboto Condensed font from the Roboto folder
+            roboto_static_condensed = os.path.join(fonts_dir, "Roboto", "static")
+            condensed_fonts = [
+                "Roboto_Condensed-Regular.ttf",
+                "Roboto_Condensed-Medium.ttf",
+                "Roboto_Condensed-Bold.ttf",
+                "Roboto_Condensed-Light.ttf"
+            ]
+            
+            for font_file in condensed_fonts:
+                font_path = os.path.join(roboto_static_condensed, font_file)
+                if os.path.exists(font_path):
+                    font_id = QFontDatabase.addApplicationFont(font_path)
+                    if font_id == -1:
+                        logger.warning(f"Failed to load font: {font_file}")
+                    else:
+                        logger.debug(f"Loaded font: {font_file}")
+            
+            self.fonts_loaded = True
+            logger.info("Custom fonts loaded successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error loading custom fonts: {e}")
+            self.fonts_loaded = False
+            return False
+    
     def apply_global_style(self, app):
         """Apply global application styling."""
         logger.info("Applying global application style")
@@ -874,6 +981,7 @@ class StyleManager:
             QLabel[class="metric-label"] {{
                 color: {self.TEXT_SECONDARY};
                 font-size: 12px;
+                font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
             }}
         """
     
@@ -914,6 +1022,7 @@ class StyleManager:
                 padding: 8px;
                 border: none;
                 border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
                 font-weight: 600;
             }}
         """
@@ -960,5 +1069,46 @@ class StyleManager:
                     stop: 0 {self.ACCENT_SECONDARY},
                     stop: 1 #0066A1);
                 border-radius: 12px;
+            }}
+        """
+    
+    def get_heading_style(self, level: int = 1, margin_bottom: int = 16):
+        """Get heading style using Roboto Condensed font.
+        
+        Args:
+            level (int): Heading level (1-6). Defaults to 1.
+            margin_bottom (int): Bottom margin in pixels. Defaults to 16.
+            
+        Returns:
+            str: CSS stylesheet for heading.
+        """
+        font_sizes = {
+            1: 28,
+            2: 24,
+            3: 20,
+            4: 18,
+            5: 16,
+            6: 14
+        }
+        
+        font_weights = {
+            1: 700,
+            2: 700,
+            3: 600,
+            4: 600,
+            5: 500,
+            6: 500
+        }
+        
+        size = font_sizes.get(level, 16)
+        weight = font_weights.get(level, 500)
+        
+        return f"""
+            QLabel {{
+                font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
+                font-size: {size}px;
+                font-weight: {weight};
+                color: {self.TEXT_PRIMARY};
+                margin-bottom: {margin_bottom}px;
             }}
         """

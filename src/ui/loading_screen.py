@@ -170,18 +170,7 @@ class LoadingScreen(QWidget):
         
     def _apply_styles(self):
         """Apply styles according to UI specifications."""
-        # Load custom fonts if available
-        try:
-            font_paths = [
-                "fonts/Inter-Regular.ttf",
-                "fonts/Inter-SemiBold.ttf",
-                "fonts/Poppins-SemiBold.ttf",
-                "fonts/JetBrainsMono-Regular.ttf"
-            ]
-            for font_path in font_paths:
-                QFontDatabase.addApplicationFont(font_path)
-        except Exception as e:
-            logger.debug(f"Could not load custom fonts: {e}")
+        # Custom fonts are loaded by StyleManager, so we just reference them here
         
         # Apply stylesheet based on UI_SPECS.md
         self.setStyleSheet("""
@@ -194,7 +183,7 @@ class LoadingScreen(QWidget):
             
             /* Title styling */
             #loadingTitle {
-                font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+                font-family: 'Roboto Condensed', -apple-system, BlinkMacSystemFont, sans-serif;
                 font-size: 32px;
                 font-weight: 600;
                 color: #0F172A;
@@ -223,7 +212,7 @@ class LoadingScreen(QWidget):
             
             /* Message log styling */
             #loadingMessageLog {
-                font-family: 'JetBrains Mono', 'Consolas', monospace;
+                font-family: 'Roboto', 'Consolas', monospace;
                 font-size: 12px;
                 color: #64748B;
                 background-color: #FAFBFC;
