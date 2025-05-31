@@ -345,6 +345,140 @@ sequenceDiagram
     DashboardWidget-->>User: display dashboard
 ```
 
+## Reactive UI Architecture
+
+```mermaid
+classDiagram
+    class ReactiveDataBinding {
+        -ObservableDict data_sources
+        -BindingEngine binding_engine
+        -UpdateScheduler scheduler
+        +bind(widget: QWidget, path: str, transform: Callable) Binding
+        +unbind(binding: Binding) None
+        +update_source(path: str, value: Any) None
+        +batch_update(updates: dict) None
+        -_propagate_changes(path: str) None
+        -_schedule_ui_update(widget: QWidget) None
+    }
+    
+    class ReactiveChangeDetection {
+        -ChangeDetector detector
+        -DiffEngine diff_engine
+        -ChangeHistory history
+        +track_changes(model: Any) None
+        +detect_changes() List[Change]
+        +get_change_summary() dict
+        +revert_changes(change_id: str) None
+        -_compute_diff(old: Any, new: Any) Diff
+    }
+    
+    class ReactiveDataTransformations {
+        -TransformationPipeline pipeline
+        -DataFlowGraph flow_graph
+        -MemoizationCache cache
+        +add_transformation(name: str, transform: Callable) None
+        +chain_transformations(*transforms: str) Pipeline
+        +apply_pipeline(data: Any, pipeline: Pipeline) Any
+        +visualize_data_flow() Graph
+        -_optimize_pipeline(pipeline: Pipeline) Pipeline
+    }
+    
+    class ReactiveHealthIntegration {
+        -HealthDataStream data_stream
+        -RealtimeProcessor processor
+        -EventDispatcher dispatcher
+        +connect_to_health_data() None
+        +subscribe_to_metric(metric: str, callback: Callable) str
+        +unsubscribe(subscription_id: str) None
+        +get_live_metrics() dict
+        -_process_health_event(event: HealthEvent) None
+    }
+    
+    class ReactiveComponentBase {
+        <<abstract>>
+        #ReactiveDataBinding data_binding
+        #ReactiveChangeDetection change_detection
+        #Logger logger
+        +setup_reactive_bindings() None
+        +on_data_change(change: Change) None
+        #bind_property(property: str, source: str) None
+        #transform_data(data: Any) Any
+    }
+    
+    class ModernDashboardWidget {
+        -ReactiveHealthIntegration health_integration
+        -ReactiveDataTransformations transformations
+        -AnimationController animator
+        +initialize_reactive_ui() None
+        +update_with_animation(data: dict) None
+        +apply_modern_theme() None
+        -_setup_data_pipelines() None
+    }
+    
+    ReactiveComponentBase <|-- ModernDashboardWidget
+    ReactiveComponentBase --> ReactiveDataBinding : uses
+    ReactiveComponentBase --> ReactiveChangeDetection : uses
+    ModernDashboardWidget --> ReactiveHealthIntegration : integrates
+    ModernDashboardWidget --> ReactiveDataTransformations : transforms
+    
+    ReactiveDataBinding --> BindingEngine : manages
+    ReactiveChangeDetection --> DiffEngine : detects
+    ReactiveDataTransformations --> TransformationPipeline : processes
+    ReactiveHealthIntegration --> EventDispatcher : dispatches
+    
+    note for ReactiveDataBinding "Two-way data binding with observables"
+    note for ReactiveHealthIntegration "Real-time health data streaming"
+    note for ModernDashboardWidget "Modern UI with reactive patterns"
+```
+
+### Reactive Data Flow
+
+```mermaid
+flowchart TB
+    subgraph "Data Sources"
+        HS[Health Stream]
+        DB[Database]
+        CACHE[Cache Layer]
+        USER[User Input]
+    end
+    
+    subgraph "Reactive Layer"
+        BIND[Data Binding]
+        DETECT[Change Detection]
+        TRANS[Transformations]
+        STREAM[Event Stream]
+    end
+    
+    subgraph "UI Components"
+        MODERN_DAILY[Modern Daily Dashboard]
+        MODERN_WEEKLY[Modern Weekly Dashboard]
+        MODERN_MONTHLY[Modern Monthly Dashboard]
+        MODERN_CONFIG[Modern Configuration]
+    end
+    
+    HS --> STREAM
+    DB --> BIND
+    CACHE --> BIND
+    USER --> DETECT
+    
+    STREAM --> TRANS
+    BIND --> TRANS
+    DETECT --> TRANS
+    
+    TRANS --> MODERN_DAILY
+    TRANS --> MODERN_WEEKLY
+    TRANS --> MODERN_MONTHLY
+    TRANS --> MODERN_CONFIG
+    
+    MODERN_DAILY --> USER
+    MODERN_WEEKLY --> USER
+    MODERN_MONTHLY --> USER
+    
+    style STREAM fill:#4ecdc4,color:#fff
+    style TRANS fill:#f3e5f5
+    style BIND fill:#fff8e1
+```
+
 ## Key Service Layer Patterns
 
 ### Dependency Injection
@@ -366,3 +500,9 @@ sequenceDiagram
 ### Strategy Pattern
 - Pluggable renderers and calculators
 - Runtime algorithm selection based on context
+
+### Reactive Patterns
+- Observable data sources with automatic UI updates
+- Immutable state management with change detection
+- Declarative data transformations and pipelines
+- Event-driven architecture with stream processing

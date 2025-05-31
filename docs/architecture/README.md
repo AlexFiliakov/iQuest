@@ -93,16 +93,19 @@ The application follows a **layered architecture** with clear separation of conc
 | Layer | Modules | Purpose |
 |-------|---------|---------|
 | **Core** | 14 | Entry point, models, database, data import |
-| **Analytics** | 61 | Metrics, ML, insights, predictions |
-| **UI** | 127 | Windows, widgets, charts, interactions |
+| **Analytics** | 71 | Metrics, ML, insights, predictions |
+| **UI** | 142 | Windows, widgets, charts, interactions |
 | **Utils** | 4 | Cross-cutting concerns |
-| **Total** | **207** | Complete application |
+| **Total** | **232** | Complete application |
 
 ### Subsystem Breakdown
-- **Charts Package**: 51 modules for visualization
+- **Charts Package**: 66 modules for visualization
 - **Health Score System**: 6 modules for scoring
 - **Dashboards**: 8 modules for layouts
 - **Accessibility**: 9 modules for WCAG compliance
+- **Evidence System**: 4 modules for medical validation
+- **Reactive UI**: 4 modules for modern UI patterns
+- **Export/Reporting**: 2 modules for report generation
 
 ## 🚀 Getting Started
 

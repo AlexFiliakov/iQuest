@@ -65,12 +65,20 @@ flowchart LR
         Monthly[Monthly Metrics<br/>Calculator]
         Anomaly[Anomaly<br/>Detection]
         Correlation[Correlation<br/>Analysis]
+        Evidence[Evidence-Based<br/>Analysis]
     end
     
     subgraph Presentation
         Dashboard[Dashboard Views<br/>PyQt6]
         Charts[Charts<br/>Matplotlib]
         Reports[Export Reports<br/>PDF/Excel/CSV]
+    end
+    
+    subgraph "Export & Reporting"
+        ExportSys[Export System<br/>Multi-format]
+        ReportGen[Report Generator<br/>Templates]
+        ShareMgr[Share Manager<br/>Distribution]
+        PrintLayout[Print Layout<br/>Manager]
     end
     
     %% Data flow connections
@@ -87,16 +95,26 @@ flowchart LR
     Memory --> Monthly
     Memory --> Anomaly
     Memory --> Correlation
+    Memory --> Evidence
     
     Daily --> Dashboard
     Weekly --> Dashboard
     Monthly --> Dashboard
     Anomaly --> Dashboard
     Correlation --> Dashboard
+    Evidence --> Dashboard
     
     Dashboard --> Charts
     Dashboard --> Reports
     Dashboard --> Journal
+    
+    Charts --> ExportSys
+    Dashboard --> ExportSys
+    ExportSys --> ReportGen
+    ReportGen --> ShareMgr
+    ReportGen --> PrintLayout
+    ShareMgr --> FileSystem
+    PrintLayout --> FileSystem
     
     %% Styling
     style Parser fill:#4ecdc4,color:#fff
@@ -105,6 +123,8 @@ flowchart LR
     style Charts fill:#e8f5e8
     style Cache fill:#fff8e1
     style Journal fill:#fff8e1
+    style ExportSys fill:#4ecdc4,color:#fff
+    style Evidence fill:#e1f5fe
 ```
 
 ## Component Interactions

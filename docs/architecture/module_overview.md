@@ -1,6 +1,6 @@
 # Module Overview
 
-This document provides a comprehensive overview of the 207 Python modules in the Apple Health Monitor Dashboard, organized by their architectural layers and relationships.
+This document provides a comprehensive overview of the 232 Python modules in the Apple Health Monitor Dashboard, organized by their architectural layers and relationships.
 
 ## High-Level Module Architecture
 
@@ -15,7 +15,7 @@ flowchart TB
         XML[xml_streaming_processor.py<br/>XML Parser]
     end
     
-    subgraph "Analytics Engine (61 modules)"
+    subgraph "Analytics Engine (71 modules)"
         subgraph "Calculators"
             DAILY_CALC[daily_metrics_calculator.py<br/>Daily Stats]
             WEEKLY_CALC[weekly_metrics_calculator.py<br/>Weekly Stats]
@@ -36,7 +36,7 @@ flowchart TB
         CACHE[cache_manager.py<br/>Performance Cache]
     end
     
-    subgraph "UI Layer (127 modules)"
+    subgraph "UI Layer (142 modules)"
         subgraph "Main Windows"
             MAIN_WIN[main_window.py<br/>Application Shell]
             CONFIG_TAB[configuration_tab.py<br/>Settings UI]
@@ -184,6 +184,25 @@ flowchart TB
             PEER[peer_group_comparison.py]
             FEEDBACK[feedback_processor.py]
         end
+        
+        subgraph "Evidence-Based System"
+            EVIDENCE_DB[evidence_database.py<br/>Medical guidelines]
+            MED_VALID[medical_evidence_validator.py<br/>Validation]
+            ANNOTATION[health_annotation_system.py<br/>Data annotation]
+            ANNOT_MODELS[annotation_models.py<br/>Annotation types]
+        end
+        
+        subgraph "Advanced Trends & Discovery"
+            TREND_ENGINE[advanced_trend_engine.py<br/>Trend analysis]
+            TREND_MODELS[advanced_trend_models.py<br/>Trend models]
+            CORR_DISC[correlation_discovery.py<br/>Pattern discovery]
+            SUMMARY_CALC[summary_calculator.py<br/>Summaries]
+        end
+        
+        subgraph "Export & Reporting"
+            EXPORT_SYS[export_reporting_system.py<br/>Report generation]
+            OPT_CALC[optimized_calculator_integration.py<br/>Optimized calcs]
+        end
     end
     
     subgraph "Performance Layer"
@@ -207,9 +226,22 @@ flowchart TB
     CORR --> INSIGHTS
     INSIGHTS --> STORY
     
+    EVIDENCE_DB --> MED_VALID
+    ANNOTATION --> ANNOT_MODELS
+    INSIGHTS --> EVIDENCE_DB
+    
+    TREND_ENGINE --> TREND_MODELS
+    TREND_ENGINE --> CORR_DISC
+    CORR --> CORR_DISC
+    
+    EXPORT_SYS --> OPT_CALC
+    ENGINE --> OPT_CALC
+    
     style ENGINE fill:#4ecdc4,color:#fff
     style CACHE fill:#fff8e1
     style INSIGHTS fill:#f3e5f5
+    style EVIDENCE_DB fill:#e1f5fe
+    style EXPORT_SYS fill:#4ecdc4,color:#fff
 ```
 
 ### UI Layer Components
@@ -247,6 +279,31 @@ flowchart TB
             TROPHY[trophy_case_widget.py]
             STORY_WID[data_story_widget.py]
             INSIGHTS_WID[health_insights_widget.py]
+            HEALTH_SCORE_VIZ[health_score_visualizations.py<br/>Score displays]
+            METRIC_COMP[metric_comparison_view.py<br/>Metric comparison]
+        end
+        
+        subgraph "Modern UI Variants"
+            CONFIG_MODERN[configuration_tab_modern.py]
+            GOAL_MODERN[goal_progress_widget_modern.py]
+            DAILY_MODERN[daily_dashboard_widget_modern.py]
+            WEEKLY_MODERN[weekly_dashboard_widget_modern.py]
+            MONTHLY_MODERN[monthly_dashboard_widget_modern.py]
+        end
+        
+        subgraph "Core UI Services"
+            CORE_DASH[core_health_dashboard.py<br/>Dashboard core]
+            EXPORT_DLG[export_dialog.py<br/>Export UI]
+            LOADING[loading_screen.py<br/>Loading UI]
+            COVERAGE_INT[coverage_integration.py<br/>Coverage display]
+            COVERAGE_SVC[coverage_service.py<br/>Coverage data]
+        end
+        
+        subgraph "UI Enhancements"
+            DIALOG_ANIM[dialog_animations.py<br/>Animations]
+            VIEW_TRANS[view_transitions.py<br/>Transitions]
+            STYLED_CAL[styled_calendar_widget.py<br/>Styled calendar]
+            CELEBRATION[celebration_manager.py<br/>Celebrations]
         end
     end
     
@@ -284,7 +341,7 @@ flowchart TB
     style STATS_WID fill:#e8f5e8
 ```
 
-### Charts Subsystem (51 modules)
+### Charts Subsystem (66 modules)
 
 ```mermaid
 flowchart TB
@@ -294,6 +351,8 @@ flowchart TB
         CONFIG[chart_config.py<br/>Configuration]
         FACTORY_MPL[matplotlib_chart_factory.py]
         FACTORY_PQG[pyqtgraph_chart_factory.py]
+        RENDER_FACTORY[chart_renderer_factory.py]
+        QPAINTER[qpainter_chart_widget.py<br/>QPainter rendering]
     end
     
     subgraph "Chart Types"
@@ -313,6 +372,13 @@ flowchart TB
         RESPONSIVE[responsive_chart_manager.py]
         OPTIMIZE[chart_performance_optimizer.py]
         ACCESS[chart_accessibility_manager.py]
+        ADAPTIVE[adaptive_chart_renderer.py<br/>Adaptive rendering]
+        ANNOTATED_WID[annotated_chart_widget.py<br/>Annotation support]
+        ANNOT_INT[annotation_integration.py<br/>Annotation system]
+        OPT_STRUCT[optimized_data_structures.py<br/>Data structures]
+        OPT_LINE[optimized_line_chart.py<br/>Optimized charts]
+        REACTIVE_ENH[reactive_chart_enhancements.py<br/>Reactive features]
+        VIZ_PERF[visualization_performance_optimizer.py]
     end
     
     subgraph "Export System"
@@ -331,6 +397,17 @@ flowchart TB
         TOOLTIP[wsj_tooltip.py]
         KEYBOARD[keyboard_navigation.py]
         DRILL[drill_down_navigator.py]
+        PROG_DRILL[progressive_drill_down.py<br/>Progressive detail]
+        CROSSFILTER[crossfilter_manager.py<br/>Cross-filtering]
+        PERF_MON_INT[performance_monitor.py<br/>Interaction perf]
+    end
+    
+    subgraph "Advanced Visualizations"
+        TREND_VIZ[trend_visualization.py<br/>Trend displays]
+        WSJ_SUITE[wsj_health_visualization_suite.py<br/>WSJ style suite]
+        WSJ_STYLE[wsj_style_manager.py<br/>WSJ theming]
+        SHARE_DASH[shareable_dashboard.py<br/>Sharing support]
+        VIZ_EXAMPLE[visualization_example.py<br/>Demo views]
     end
     
     BASE --> LINE
@@ -352,14 +429,18 @@ flowchart TB
 | Package | Module Count | Key Responsibilities |
 |---------|--------------|---------------------|
 | Core | 14 | Entry point, data models, database, data loading |
-| Analytics | 61 | Metrics calculation, anomaly detection, insights |
+| Analytics | 71 | Metrics calculation, anomaly detection, insights |
 | └─ Health Score | 6 | Health scoring subsystem |
-| UI | 127 | User interface components and widgets |
-| └─ Charts | 51 | Visualization components |
+| └─ Evidence System | 4 | Medical evidence validation |
+| └─ Advanced Trends | 4 | Trend analysis and discovery |
+| └─ Export/Reporting | 2 | Report generation system |
+| UI | 142 | User interface components and widgets |
+| └─ Charts | 66 | Visualization components |
 | └─ Dashboards | 8 | Dashboard management |
 | └─ Accessibility | 9 | WCAG compliance |
+| └─ Reactive UI | 4 | Reactive data binding system |
 | Utils | 4 | Error handling, logging, validation |
-| **Total** | **207** | Complete health monitoring application |
+| **Total** | **232** | Complete health monitoring application |
 
 ## Key Integration Points
 
