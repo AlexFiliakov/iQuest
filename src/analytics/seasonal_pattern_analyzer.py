@@ -317,6 +317,8 @@ class ProphetForecaster:
     
     def _prophet_forecast(self, metric_data: pd.Series, periods: int) -> Dict[str, Any]:
         """Generate forecast using Facebook Prophet."""
+        from prophet import Prophet
+        
         # Prepare data for Prophet
         df = pd.DataFrame({
             'ds': metric_data.index,

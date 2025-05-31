@@ -37,9 +37,9 @@ class GoalManagementSystem:
         """Initialize the goal management system."""
         self.health_db = health_database
         self.db_manager = DatabaseManager()
-        self.daily_calc = DailyMetricsCalculator()
-        self.weekly_calc = WeeklyMetricsCalculator()
-        self.monthly_calc = MonthlyMetricsCalculator()
+        self.daily_calc = DailyMetricsCalculator(health_database)
+        self.weekly_calc = WeeklyMetricsCalculator(health_database)
+        self.monthly_calc = MonthlyMetricsCalculator(health_database)
         self.records_tracker = PersonalRecordsTracker(health_database)
         
         # Initialize database tables

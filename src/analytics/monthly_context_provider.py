@@ -18,6 +18,7 @@ from scipy import stats
 from .weekly_metrics_calculator import WeeklyMetricsCalculator
 from .monthly_metrics_calculator import MonthlyMetricsCalculator
 from .cache_manager import AnalyticsCacheManager
+from .daily_metrics_calculator import DailyMetricsCalculator
 
 
 logger = logging.getLogger(__name__)
@@ -110,11 +111,23 @@ class MonthlyContextProvider:
     - WSJ-style analytics insights
     """
     
-    def __init__(self, cache_manager: AnalyticsCacheManager):
-        """Initialize the monthly context provider."""
+    def __init__(self, cache_manager: AnalyticsCacheManager, 
+                 daily_calculator: Optional[DailyMetricsCalculator] = None):
+        """Initialize the monthly context provider.
+        
+        Args:
+            cache_manager: Cache manager instance
+            daily_calculator: Optional daily calculator instance
+        """
         self.cache = cache_manager
-        self.weekly_calc = WeeklyMetricsCalculator()
-        self.monthly_calc = MonthlyMetricsCalculator()
+        
+        # Create a mock daily calculator if not provided (for testing)
+        if daily_calculator is None:
+            from unittest.mock import Mock
+            daily_calculator = Mock(spec=DailyMetricsCalculator)
+            
+        self.weekly_calc = WeeklyMetricsCalculator(daily_calculator)
+        self.monthly_calc = MonthlyMetricsCalculator(daily_calculator)
         self._goal_targets = {}  # Store monthly goals
         
     def set_monthly_goal(self, metric: str, year: int, month: int, target: float):
@@ -138,14 +151,12 @@ class MonthlyContextProvider:
         
         # Try cache first
         cache_key = f"monthly_context_{year}_{month}_{metric}_{week_num}"
-        if cached := self.cache.get(cache_key):
-            return cached
-            
-        # Calculate context
-        context = self._calculate_week_context(week_num, month, year, metric)
         
-        # Cache for 1 hour
-        self.cache.set(cache_key, context, ttl=3600)
+        def compute_context():
+            return self._calculate_week_context(week_num, month, year, metric)
+        
+        # Use cache.get with compute function
+        context = self.cache.get(cache_key, compute_context, ttl=3600)
         return context
         
     def _calculate_week_context(self, week_num: int, month: int, year: int, metric: str) -> WeekContext:
