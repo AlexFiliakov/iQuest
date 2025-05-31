@@ -7,6 +7,7 @@ during long-running import operations.
 
 import os
 import time
+import uuid
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -19,6 +20,9 @@ try:
     from ..database import db_manager
     from ..config import DATA_DIR
     from ..xml_streaming_processor import XMLStreamingProcessor
+    from ..analytics.summary_calculator import SummaryCalculator
+    from ..analytics.cache_manager import AnalyticsCacheManager
+    from ..data_access import DataAccess
 except (ImportError, ValueError) as e:
     # Fallback for when running in a thread context
     # ValueError catches "attempted relative import with no known parent package"
@@ -35,6 +39,9 @@ except (ImportError, ValueError) as e:
     from src.database import db_manager
     from src.config import DATA_DIR
     from src.xml_streaming_processor import XMLStreamingProcessor
+    from src.analytics.summary_calculator import SummaryCalculator
+    from src.analytics.cache_manager import AnalyticsCacheManager
+    from src.data_access import DataAccess
 
 logger = get_logger(__name__)
 
@@ -47,26 +54,31 @@ class ImportWorker(QThread):
     import_completed = pyqtSignal(dict)           # {success, message, stats}
     import_error = pyqtSignal(str, str)           # (title, message)
     
-    def __init__(self, file_path: str, import_type: str = "auto"):
+    def __init__(self, file_path: str, import_type: str = "auto", include_summaries: bool = True):
         """
         Initialize the import worker.
         
         Args:
             file_path: Path to the file to import
             import_type: Type of import ("xml", "csv", or "auto")
+            include_summaries: Whether to calculate and cache summaries during import
         """
         super().__init__()
         self.file_path = file_path
         self.import_type = import_type
+        self.include_summaries = include_summaries
         self._is_cancelled = False
         self._mutex = QMutex()
         self.data_loader = DataLoader()
+        self.record_count = 0
+        self.db_path = None
+        self.import_id = None
         
         # Auto-detect import type if needed
         if import_type == "auto":
             self.import_type = self._detect_file_type()
         
-        logger.info(f"ImportWorker initialized for {import_type} import: {file_path}")
+        logger.info(f"ImportWorker initialized for {import_type} import: {file_path}, include_summaries={include_summaries}")
     
     def _detect_file_type(self) -> str:
         """Detect file type based on extension."""
@@ -212,6 +224,19 @@ class ImportWorker(QThread):
             # Initialize database manager
             db_manager.initialize_database()
             
+            # Store values for summary calculation
+            self.record_count = record_count
+            self.db_path = db_path
+            self.import_id = str(uuid.uuid4())
+            
+            # Calculate and cache summaries if requested
+            if self.include_summaries and record_count > 0:
+                try:
+                    self._calculate_and_cache_summaries()
+                except Exception as e:
+                    logger.warning(f"Summary caching failed (non-fatal): {e}")
+                    # Don't fail the import if summary caching fails
+            
             self.progress_updated.emit(100, "Import completed successfully!", record_count)
             
             return {
@@ -220,7 +245,8 @@ class ImportWorker(QThread):
                 'record_count': record_count,
                 'file_path': self.file_path,
                 'import_type': 'xml',
-                'file_size_mb': round(file_size_mb, 1)
+                'file_size_mb': round(file_size_mb, 1),
+                'import_id': self.import_id
             }
             
         except Exception as e:
@@ -261,4 +287,38 @@ class ImportWorker(QThread):
             
         except Exception as e:
             logger.error(f"CSV import failed: {e}")
+            raise
+    
+    def _calculate_and_cache_summaries(self) -> None:
+        """Calculate and cache metric summaries after import."""
+        self.progress_updated.emit(91, "Calculating metric summaries...", self.record_count)
+        
+        try:
+            # Create calculator with database access
+            data_access = DataAccess(db_manager)
+            calculator = SummaryCalculator(data_access)
+            
+            # Define progress callback
+            def progress_callback(percentage: float, message: str):
+                # Map calculator progress (0-100) to import progress (91-98)
+                import_progress = 91 + int(percentage * 7 / 100)
+                self.progress_updated.emit(import_progress, message, self.record_count)
+            
+            # Calculate all summaries
+            summaries = calculator.calculate_all_summaries(
+                progress_callback=progress_callback,
+                months_back=12  # Default to 12 months of history
+            )
+            
+            # Cache the summaries
+            self.progress_updated.emit(98, "Caching summaries...", self.record_count)
+            from ..analytics.cache_manager import get_cache_manager
+            cache_manager = get_cache_manager()
+            cache_manager.cache_import_summaries(summaries, self.import_id)
+            
+            self.progress_updated.emit(99, "Summary caching complete", self.record_count)
+            logger.info(f"Successfully cached {summaries['metadata']['metrics_processed']} metrics")
+            
+        except Exception as e:
+            logger.error(f"Error calculating summaries: {e}")
             raise

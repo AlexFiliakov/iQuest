@@ -198,9 +198,17 @@ class ReactiveHealthDataStore(ReactiveDataSource):
             
         # Create new data with the metric update
         new_data = self.data.copy()
+        
+        # Ensure the metric column exists
+        if metric_name not in new_data.columns:
+            new_data[metric_name] = None
+            
         # Add or update the metric
         if timestamp not in new_data.index:
-            new_data.loc[timestamp] = {metric_name: value}
+            # Create a new row with NaN for all columns except the one we're updating
+            new_row = pd.Series(index=new_data.columns, dtype='object')
+            new_row[metric_name] = value
+            new_data.loc[timestamp] = new_row
         else:
             new_data.loc[timestamp, metric_name] = value
             

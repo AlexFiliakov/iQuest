@@ -268,6 +268,9 @@ def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
     except ET.ParseError as e:
         logger.error(f"Failed to parse XML file: {e}")
         raise DataImportError(f"XML parsing failed: {e}")
+    except DatabaseError:
+        # DatabaseError already handles rollback, just re-raise
+        raise
     except Exception as e:
         logger.error(f"Unexpected error during conversion: {e}")
         if conn:

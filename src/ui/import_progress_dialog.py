@@ -295,12 +295,16 @@ class ImportProgressDialog(QDialog):
         self.timer = QTimer()
         self.timer.timeout.connect(self._update_elapsed_time)
     
-    def start_import(self):
-        """Start the import process."""
-        logger.info("Starting import process")
+    def start_import(self, include_summaries: bool = True):
+        """Start the import process.
+        
+        Args:
+            include_summaries: Whether to calculate and cache summaries during import
+        """
+        logger.info(f"Starting import process (include_summaries={include_summaries})")
         
         # Create and setup worker
-        self.worker = ImportWorker(self.file_path, self.import_type)
+        self.worker = ImportWorker(self.file_path, self.import_type, include_summaries)
         self.worker.progress_updated.connect(self._on_progress_updated)
         self.worker.import_completed.connect(self._on_import_completed)
         self.worker.import_error.connect(self._on_import_error)

@@ -142,9 +142,8 @@ class LineChartConfig(ChartConfig):
             
             # Other styles
             line_width=1.5,
-            marker_size=4,
-            show_data_labels=False,
-            animation_enabled=False
+            point_size=4,
+            animate=False
         )
 
 

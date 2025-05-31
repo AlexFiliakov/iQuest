@@ -6,7 +6,7 @@ Provides a centralized way to create reusable components with consistent styling
 from typing import Optional, Dict, Any
 from .summary_cards import SummaryCard
 from .charts.enhanced_line_chart import EnhancedLineChart
-from .charts.chart_config import ChartConfig
+from .charts.chart_config import ChartConfig, LineChartConfig
 from .charts.adaptive_chart_renderer import AdaptiveChartRenderer
 from .charts.optimized_line_chart import OptimizedLineChart
 from .charts.chart_performance_optimizer import ChartPerformanceOptimizer
@@ -115,7 +115,7 @@ class ComponentFactory:
             Either OptimizedLineChart or EnhancedLineChart based on data size
         """
         if config is None:
-            config = ChartConfig.get_wsj_style() if wsj_style else ChartConfig()
+            config = LineChartConfig.get_wsj_style() if wsj_style else LineChartConfig()
         elif wsj_style:
             self._apply_wsj_chart_config(config)
         

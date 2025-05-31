@@ -1237,6 +1237,42 @@ class DailyDashboardWidget(QWidget):
             logger.error(f"Error navigating to today: {e}", exc_info=True)
             QMessageBox.warning(self, "Navigation Error", f"Failed to navigate to today: {e}")
     
+    def _go_to_previous_day(self):
+        """Navigate to the previous day."""
+        try:
+            self._current_date = self._current_date - timedelta(days=1)
+            self._update_date_display()
+            self._refresh_data()
+            self.date_changed.emit(self._current_date)
+        except Exception as e:
+            logger.error(f"Error navigating to previous day: {e}", exc_info=True)
+            QMessageBox.warning(self, "Navigation Error", f"Failed to navigate to previous day: {e}")
+    
+    def _go_to_next_day(self):
+        """Navigate to the next day."""
+        try:
+            if self._current_date < date.today():
+                self._current_date = self._current_date + timedelta(days=1)
+                self._update_date_display()
+                self._refresh_data()
+                self.date_changed.emit(self._current_date)
+        except Exception as e:
+            logger.error(f"Error navigating to next day: {e}", exc_info=True)
+            QMessageBox.warning(self, "Navigation Error", f"Failed to navigate to next day: {e}")
+    
+    def keyPressEvent(self, event):
+        """Handle keyboard navigation."""
+        from PyQt6.QtCore import Qt
+        
+        if event.key() == Qt.Key.Key_Left:
+            self._go_to_previous_day()
+        elif event.key() == Qt.Key.Key_Right:
+            self._go_to_next_day()
+        elif event.key() == Qt.Key.Key_Home:
+            self._go_to_today()
+        else:
+            super().keyPressEvent(event)
+    
     def _update_date_display(self):
         """Update the date display labels."""
         # Update title

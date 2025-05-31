@@ -42,7 +42,8 @@ class AggregationTransformation(DataTransformation):
     """Aggregate data over time periods"""
     
     def __init__(self, period: str, aggregation_func: Union[str, Callable] = 'mean'):
-        self.period = period
+        # Normalize period to use lowercase frequency codes
+        self.period = period.replace('H', 'h').replace('D', 'd').replace('W', 'w').replace('M', 'ME').replace('Y', 'YE')
         self.aggregation_func = aggregation_func
         
     def transform(self, data: pd.DataFrame) -> pd.DataFrame:
