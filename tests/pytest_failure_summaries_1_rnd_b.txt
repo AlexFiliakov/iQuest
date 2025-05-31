@@ -1,0 +1,72 @@
+/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+Using --random-order-bucket=module
+Using --random-order-seed=247384
+
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'random-order': '1.1.1', 'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: random-order-1.1.1, benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1216 items
+
+tests/unit/test_personal_records_tracker.py::TestRecord::test_record_no_previous_value PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestRecordStore::test_get_all_records PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestRecordDetectionLogic::test_missing_data_handling PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestAchievementSystem::test_achievement_system_initialization PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_get_achievements PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_rolling_average_detection PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestRecordDetectionLogic::test_edge_case_equal_values PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestRecordDetectionLogic::test_rolling_average_insufficient_data PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestAchievementSystem::test_improvement_achievement PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestRecordStore::test_add_and_retrieve_record PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestStreakTracker::test_streak_info_retrieval PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_tracker_initialization PASSED [  0%]
+tests/unit/test_personal_records_tracker.py::TestStreakTracker::test_streak_initialization PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_single_day_record_detection PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestAchievementSystem::test_first_record_achievement PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestRecord::test_record_zero_previous_value PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_get_all_records PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestStreakTracker::test_consistency_streak_tracking PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_process_new_record PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestAchievementSystem::test_streak_achievements PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestRecord::test_record_creation PASSED [  1%]
+tests/unit/test_personal_records_tracker.py::TestPersonalRecordsTracker::test_streak_record_detection PASSED [  1%]
+tests/unit/test_predictive_analytics.py::TestForecasters::test_random_forest_forecaster PASSED [  1%]
+tests/unit/test_predictive_analytics.py::TestPredictiveAnalytics::test_forecast_weekly_trend PASSED [  1%]
+tests/unit/test_predictive_analytics.py::TestHealthRiskPredictor::test_trend_risk_detection PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestPredictiveAnalytics::test_predict_next_day PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestForecasters::test_arima_forecast_multiple_periods PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestErrorHandling::test_empty_data PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestABTesting::test_create_experiment PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestErrorHandling::test_insufficient_data PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestIntegration::test_goal_and_risk_integration PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestErrorHandling::test_invalid_goal_dates PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestHealthRiskPredictor::test_assess_health_risks PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestAccuracyTracker::test_track_and_calculate_accuracy PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestFeatureBuilder::test_build_next_features PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestForecasters::test_arima_forecaster PASSED [  2%]
+tests/unit/test_predictive_analytics.py::TestForecasters::test_linear_forecaster PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestABTesting::test_variant_assignment PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestABTesting::test_outcome_recording PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestFeatureBuilder::test_build_features PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestGoalAchievementPredictor::test_goal_types PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestHealthRiskPredictor::test_anomaly_detection PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestPredictiveAnalytics::test_predict_with_context PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestGoalAchievementPredictor::test_predict_goal_achievement PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestIntegration::test_full_prediction_pipeline PASSED [  3%]
+tests/unit/test_predictive_analytics.py::TestFeatureBuilder::test_build_features_with_context PASSED [  3%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_metric_selection PASSED [  3%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_data_summary_display PASSED [  3%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_time_range_selection PASSED [  4%]
+tests/integration/test_config_tab_integration.py::TestConfigTabIntegration::test_config_tab_no_data_message 

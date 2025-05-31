@@ -1,0 +1,117 @@
+/home/alexf/claude-env/lib/python3.12/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.6.0 -- /home/alexf/claude-env/bin/python3
+cachedir: .pytest_cache
+Using --random-order-bucket=module
+Using --random-order-seed=91965
+
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+hypothesis profile 'default'
+Matplotlib: 3.10.3
+Freetype: 2.6.1
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+metadata: {'Python': '3.12.3', 'Platform': 'Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39', 'Packages': {'pytest': '8.3.5', 'pluggy': '1.6.0'}, 'Plugins': {'random-order': '1.1.1', 'benchmark': '5.1.0', 'hypothesis': '6.131.28', 'rerunfailures': '15.1', 'anyio': '4.9.0', 'reverse': '1.8.0', 'mock': '3.14.0', 'mpl': '0.17.0', 'qt': '4.4.0', 'xdist': '3.7.0', 'Faker': '37.3.0', 'timeout': '2.4.0', 'cov': '6.1.1', 'asyncio': '1.0.0', 'html': '4.1.1', 'metadata': '3.1.1'}}
+rootdir: /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports
+configfile: pytest.ini
+plugins: random-order-1.1.1, benchmark-5.1.0, hypothesis-6.131.28, rerunfailures-15.1, anyio-4.9.0, reverse-1.8.0, mock-3.14.0, mpl-0.17.0, qt-4.4.0, xdist-3.7.0, Faker-37.3.0, timeout-2.4.0, cov-6.1.1, asyncio-1.0.0, html-4.1.1, metadata-3.1.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1216 items
+
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_goal_timing_recommendations PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_seasonality_categorization[0.05-SeasonalStrength.NONE] PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_seasonality_categorization[0.4-SeasonalStrength.MODERATE] PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_missing_metric_handling PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_comprehensive_seasonal_analysis PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_weather_correlation PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_pattern_break_detection PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestFourierAnalyzer::test_empty_analysis_for_short_series PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_fourier_analyzer_detects_annual_cycle PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_seasonality_categorization[0.2-SeasonalStrength.WEAK] PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_seasonality_categorization[0.7-SeasonalStrength.STRONG] PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_insufficient_data_handling PASSED [  0%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_prophet_forecaster_fallback PASSED [  1%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestFourierAnalyzer::test_frequency_significance_calculation PASSED [  1%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_polar_plot_data_generation PASSED [  1%]
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_seasonality_categorization[0.9-SeasonalStrength.VERY_STRONG] PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestComparisonResult::test_input_validation PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestComparativeAnalyticsEngine::test_demographic_comparison_with_permission PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestComparativeAnalyticsEngine::test_seasonal_comparison PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestComparisonResult::test_comparison_result_defaults PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestInsightsGenerator::test_historical_insights PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestPrivacyManager::test_value_anonymization PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestInsightsGenerator::test_demographic_insights_generation PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestDemographicCohort::test_cohort_validation PASSED [  1%]
+tests/unit/test_comparative_analytics.py::TestComparisonResult::test_comparison_result_initialization PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestComparativeAnalyticsEngine::test_historical_comparison_trend_detection PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestComparativeAnalyticsEngine::test_demographic_comparison_no_permission PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestComparativeAnalyticsEngine::test_historical_comparison PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestPrivacyManager::test_privacy_manager_initialization PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestComparativeAnalyticsEngine::test_engine_initialization PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestPrivacyManager::test_permission_checking PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestComparisonResult::test_error_handling_in_historical_comparison PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestComparisonResult::test_secure_random_generation PASSED [  2%]
+tests/unit/test_comparative_analytics.py::TestInsightsGenerator::test_seasonal_insights PASSED [  2%]
+tests/unit/test_database.py::TestCacheDAO::test_cache_and_retrieve_metrics PASSED [  2%]
+tests/unit/test_database.py::TestCacheDAO::test_cache_expiration PASSED  [  2%]
+tests/unit/test_database.py::TestModels::test_cached_metric_expiration PASSED [  3%]
+tests/unit/test_database.py::TestJournalDAO::test_search_journal_entries PASSED [  3%]
+tests/unit/test_database.py::TestModels::test_user_preference_type_conversion PASSED [  3%]
+tests/unit/test_database.py::TestJournalDAO::test_save_and_retrieve_journal_entry PASSED [  3%]
+tests/unit/test_database.py::TestJournalDAO::test_upsert_journal_entry PASSED [  3%]
+tests/unit/test_database.py::TestDatabaseManager::test_database_initialization PASSED [  3%]
+tests/unit/test_database.py::TestDatabaseManager::test_default_preferences_inserted PASSED [  3%]
+tests/unit/test_database.py::TestPreferenceDAO::test_get_and_set_preferences PASSED [  3%]
+tests/unit/test_database.py::TestModels::test_journal_entry_validation PASSED [  3%]
+tests/unit/test_monthly_context_provider.py::TestMonthlyContextProvider::test_get_monthly_insights_no_data PASSED [  3%]
+tests/unit/test_monthly_context_provider.py::TestMonthlyContextProvider::test_calculate_goal_progress_with_goal PASSED [  3%]
+tests/unit/test_monthly_context_provider.py::TestMonthlyContextProvider::test_get_week_context_cache_miss FAILED [  3%]
+
+=================================== FAILURES ===================================
+_________ TestMonthlyContextProvider.test_get_week_context_cache_miss __________
+
+self = <tests.unit.test_monthly_context_provider.TestMonthlyContextProvider object at 0x7f34a91cd7c0>
+context_provider = <src.analytics.monthly_context_provider.MonthlyContextProvider object at 0x7f34a7fea630>
+mock_cache_manager = <Mock spec='AnalyticsCacheManager' id='139864133514208'>
+
+    def test_get_week_context_cache_miss(self, context_provider, mock_cache_manager):
+        """Test cache miss scenario with calculation."""
+        mock_cache_manager.get.return_value = None
+    
+        with patch.object(context_provider, '_get_monthly_weekly_data') as mock_data:
+            mock_data.return_value = {1: 50000, 2: 52000, 3: 48000, 4: 55000}
+    
+            result = context_provider.get_week_context(1, 2025, "steps")
+    
+>           assert isinstance(result, WeekContext)
+E           assert False
+E            +  where False = isinstance(None, WeekContext)
+
+tests/unit/test_monthly_context_provider.py:153: AssertionError
+=============================== warnings summary ===============================
+test_calendar_popup.py:16
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/test_calendar_popup.py:16: PytestCollectionWarning: cannot collect test class 'TestWindow' because it has a __init__ constructor (from: test_calendar_popup.py)
+    class TestWindow(QMainWindow):
+
+tests/integration/test_chaos_scenarios.py:571
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/integration/test_chaos_scenarios.py:571: PytestUnknownMarkWarning: Unknown pytest.mark.chaos - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = pytest.mark.chaos
+
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_goal_timing_recommendations
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_goal_timing_recommendations
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_comprehensive_seasonal_analysis
+tests/unit/test_seasonal_pattern_analyzer.py::TestSeasonalPatternAnalyzer::test_pattern_break_detection
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/src/analytics/month_over_month_trends.py:178: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+    ts = ts.resample('M').mean()  # Ensure monthly frequency
+
+tests/unit/test_comparative_analytics.py::TestComparisonResult::test_input_validation
+  /mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports/tests/unit/test_comparative_analytics.py:368: DeprecationWarning: Direct DataFrame usage is deprecated. Please use DataSourceProtocol implementations.
+    daily_calc = DailyMetricsCalculator(test_df)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_monthly_context_provider.py::TestMonthlyContextProvider::test_get_week_context_cache_miss
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============= 1 failed, 47 passed, 7 warnings in 71.64s (0:01:11) ==============
