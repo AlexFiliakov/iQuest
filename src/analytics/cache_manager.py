@@ -519,11 +519,34 @@ class SQLiteCache:
             if self.db_path.exists():
                 # Ensure WAL mode is disabled to prevent lingering connections
                 try:
-                    with sqlite3.connect(self.db_path) as conn:
+                    with sqlite3.connect(self.db_path, timeout=1.0) as conn:
+                        # Disable WAL mode to ensure all data is written to main db file
                         conn.execute("PRAGMA journal_mode=DELETE")
+                        # Force a checkpoint to write any pending changes
                         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                        # Close any open transactions
+                        conn.commit()
                 except Exception as e:
                     logger.debug(f"Could not change journal mode: {e}")
+                
+                # Additional cleanup - remove WAL and SHM files if they exist
+                import time
+                time.sleep(0.1)  # Small delay to ensure connection is fully closed
+                
+                wal_file = Path(str(self.db_path) + "-wal")
+                shm_file = Path(str(self.db_path) + "-shm")
+                
+                for file_path in [wal_file, shm_file]:
+                    if file_path.exists():
+                        try:
+                            file_path.unlink()
+                            logger.debug(f"Removed {file_path.name}")
+                        except Exception as e:
+                            logger.debug(f"Could not remove {file_path.name}: {e}")
+            
+            # Force another garbage collection
+            gc.collect()
+            time.sleep(0.1)  # Give OS time to release file handles
             
             logger.debug("SQLite cache prepared for cleanup")
         except Exception as e:
@@ -974,8 +997,15 @@ def shutdown_cache_manager() -> None:
     """Shutdown the global cache manager."""
     global _cache_manager
     if _cache_manager is not None:
-        _cache_manager.shutdown()
-        _cache_manager = None
+        try:
+            _cache_manager.shutdown()
+        except Exception as e:
+            logger.error(f"Error during cache manager shutdown: {e}")
+        finally:
+            _cache_manager = None
+            # Force garbage collection to release any remaining references
+            import gc
+            gc.collect()
 
 
 def cache_key(*args, **kwargs) -> str:

@@ -601,8 +601,9 @@ class WeeklyDashboardWidget(QWidget):
             if len(available_types) > 0:
                 logger.info(f"First 5 types: {list(available_types[:5])}")
             
-            # Map to display names
+            # Map to display names - support both full HK names and shortened names
             metric_mapping = {
+                # Full HK names
                 'HKQuantityTypeIdentifierStepCount': ('Steps', 'steps'),
                 'HKQuantityTypeIdentifierDistanceWalkingRunning': ('Distance (km)', 'distance'),
                 'HKQuantityTypeIdentifierFlightsClimbed': ('Floors Climbed', 'flights'),
@@ -610,7 +611,22 @@ class WeeklyDashboardWidget(QWidget):
                 'HKQuantityTypeIdentifierHeartRate': ('Heart Rate', 'heart_rate'),
                 'HKQuantityTypeIdentifierRestingHeartRate': ('Resting HR', 'resting_hr'),
                 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': ('HRV', 'hrv'),
-                'HKQuantityTypeIdentifierBodyMass': ('Weight', 'weight')
+                'HKQuantityTypeIdentifierBodyMass': ('Weight', 'weight'),
+                # Shortened names (as they appear in the data)
+                'StepCount': ('Steps', 'steps'),
+                'DistanceWalkingRunning': ('Distance (km)', 'distance'),
+                'FlightsClimbed': ('Floors Climbed', 'flights'),
+                'ActiveEnergyBurned': ('Active Calories', 'calories'),
+                'HeartRate': ('Heart Rate', 'heart_rate'),
+                'RestingHeartRate': ('Resting HR', 'resting_hr'),
+                'HeartRateVariabilitySDNN': ('HRV', 'hrv'),
+                'BodyMass': ('Weight', 'weight'),
+                'BasalEnergyBurned': ('Basal Calories', 'basal_calories'),
+                'MindfulSession': ('Mindful Minutes', 'mindful_minutes'),
+                'SleepAnalysis': ('Sleep Analysis', 'sleep_analysis'),
+                'RespiratoryRate': ('Respiratory Rate', 'respiratory_rate'),
+                'HeadphoneAudioExposure': ('Audio Exposure', 'audio_exposure'),
+                'WalkingStepLength': ('Step Length', 'step_length')
             }
             
             self._available_metrics = []

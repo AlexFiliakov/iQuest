@@ -1479,6 +1479,20 @@ class MainWindow(QMainWindow):
         tab_name = self.tab_widget.tabText(index)
         logger.debug(f"Tab change requested: {tab_name}")
         
+        # Ensure previous tab widget is properly hidden
+        if hasattr(self, 'previous_tab_index'):
+            prev_widget = self.tab_widget.widget(self.previous_tab_index)
+            if prev_widget:
+                # For scroll areas, we need to hide the viewport widget too
+                if isinstance(prev_widget, QScrollArea):
+                    viewport = prev_widget.viewport()
+                    if viewport:
+                        viewport.hide()
+                    content = prev_widget.widget()
+                    if content:
+                        content.hide()
+                prev_widget.hide()
+        
         # Get view types for transition
         from_view = self.tab_to_view_map.get(self.previous_tab_index, ViewType.CONFIG)
         to_view = self.tab_to_view_map.get(index, ViewType.CONFIG)
@@ -1521,12 +1535,42 @@ class MainWindow(QMainWindow):
         # Force the widget to become visible and process pending events
         widget = self.tab_widget.widget(index)
         if widget:
-            widget.show()
-            widget.raise_()
+            # Handle scroll areas specially
+            if isinstance(widget, QScrollArea):
+                widget.show()
+                widget.raise_()
+                viewport = widget.viewport()
+                if viewport:
+                    viewport.show()
+                content = widget.widget()
+                if content:
+                    content.show()
+                    content.raise_()
+                    # Force layout update on the content widget
+                    if content.layout():
+                        content.layout().invalidate()
+                        content.layout().update()
+            else:
+                # Regular widget handling
+                widget.show()
+                widget.raise_()
+                # Force layout update
+                if widget.layout():
+                    widget.layout().invalidate()
+                    widget.layout().update()
+            
+            # Process events to ensure layout updates
             QApplication.processEvents()
         
         # Refresh data for dashboard tabs when switching without animation
         if index == 0:  # Config tab
+            # Specifically ensure Monthly dashboard is hidden when showing Config tab
+            if hasattr(self, 'monthly_dashboard'):
+                self.monthly_dashboard.hide()
+                # Hide all child widgets of monthly dashboard
+                for child in self.monthly_dashboard.findChildren(QWidget):
+                    child.hide()
+            
             # Refresh config tab display if data is loaded
             if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'refresh_display'):
                 self.config_tab.refresh_display()
@@ -1769,44 +1813,64 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
             time.sleep(0.5)
             
-            # 5. Delete database file
-            progress.setLabelText("Deleting database files...")
+            # 5. Clear health data from database while preserving structure and user settings
+            progress.setLabelText("Clearing health data from database...")
             QApplication.processEvents()
-            db_path = os.path.join(DATA_DIR, "health_monitor.db")
-            if os.path.exists(db_path):
-                os.remove(db_path)
-                logger.info(f"Deleted database file: {db_path}")
+            try:
+                deleted_counts = db_manager.clear_all_health_data()
+                total_deleted = sum(deleted_counts.values())
+                logger.info(f"Cleared {total_deleted} health records from database")
+                for table, count in deleted_counts.items():
+                    if count > 0:
+                        logger.info(f"  - Deleted {count} records from {table}")
+            except Exception as e:
+                logger.error(f"Failed to clear health data: {e}")
+                raise
             
             # 6. Delete analytics cache database with retry
             progress.setLabelText("Deleting analytics cache...")
             QApplication.processEvents()
+            
+            # Function to delete cache database and associated files
+            def delete_cache_files(base_path: str) -> bool:
+                """Delete cache database and associated WAL/SHM files."""
+                deleted = False
+                files_to_delete = [
+                    base_path,
+                    f"{base_path}-wal",
+                    f"{base_path}-shm"
+                ]
+                
+                for file_path in files_to_delete:
+                    if os.path.exists(file_path):
+                        for attempt in range(5):  # Increased retry attempts
+                            try:
+                                os.remove(file_path)
+                                logger.info(f"Deleted {file_path}")
+                                deleted = True
+                                break
+                            except PermissionError as e:
+                                if attempt < 4:
+                                    logger.warning(f"File locked: {file_path}, retrying... (attempt {attempt + 1}/5)")
+                                    # Progressively longer waits
+                                    time.sleep(0.5 * (attempt + 1))
+                                    # Try garbage collection to release handles
+                                    import gc
+                                    gc.collect()
+                                else:
+                                    logger.warning(f"Could not delete {file_path} (file locked): {e}")
+                            except Exception as e:
+                                logger.error(f"Unexpected error deleting {file_path}: {e}")
+                                break
+                
+                return deleted
+            
+            # Delete cache in DATA_DIR
             analytics_cache_db = os.path.join(DATA_DIR, "analytics_cache.db")
-            if os.path.exists(analytics_cache_db):
-                for attempt in range(3):
-                    try:
-                        os.remove(analytics_cache_db)
-                        logger.info(f"Deleted analytics cache database: {analytics_cache_db}")
-                        break
-                    except PermissionError as e:
-                        if attempt < 2:
-                            logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
-                            time.sleep(1)
-                        else:
-                            logger.warning(f"Could not delete analytics cache database (file locked): {e}")
+            delete_cache_files(analytics_cache_db)
             
             # Also check in current directory
-            if os.path.exists("analytics_cache.db"):
-                for attempt in range(3):
-                    try:
-                        os.remove("analytics_cache.db")
-                        logger.info("Deleted analytics cache database from current directory")
-                        break
-                    except PermissionError as e:
-                        if attempt < 2:
-                            logger.warning(f"Cache database locked, retrying... (attempt {attempt + 1}/3)")
-                            time.sleep(1)
-                        else:
-                            logger.warning(f"Could not delete analytics cache database (file locked): {e}")
+            delete_cache_files("analytics_cache.db")
             
             # 7. Delete cache directory
             progress.setLabelText("Deleting cache directories...")
@@ -1877,7 +1941,8 @@ class MainWindow(QMainWindow):
             progress.setLabelText("Clearing filter configurations...")
             QApplication.processEvents()
             if hasattr(self.config_tab, 'filter_config_manager'):
-                # This will recreate the database but with empty tables
+                # Clear filter configs - already handled by clear_all_health_data() above
+                # but do it again in case it uses a separate database
                 self.config_tab.filter_config_manager.clear_all_presets()
                 logger.info("Cleared filter configurations")
             
@@ -1935,7 +2000,8 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Data Erased",
-                "All data has been successfully erased.\n\n"
+                "All health data has been successfully erased.\n\n"
+                "Your user preferences and database structure have been preserved.\n"
                 "You can now import new health data."
             )
             
@@ -1981,7 +2047,9 @@ class MainWindow(QMainWindow):
             "<li>All imported health data from the database</li>"
             "<li>All cached calculations and analytics</li>"
             "<li>All filter presets and configurations</li>"
+            "<li>All achievement and personal records</li>"
             "</ul>"
+            "<p>Your user preferences and database structure will be preserved.</p>"
             "<p><b>Are you sure you want to continue?</b></p>",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No

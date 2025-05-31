@@ -47,7 +47,9 @@ class SummaryCalculator:
             data_access: DataAccess instance for database operations
         """
         self.data_access = data_access
-        self.db_path = data_access.db_manager.db_path
+        # Get db_manager directly from DatabaseManager singleton
+        self.db_manager = DatabaseManager()
+        self.db_path = self.db_manager.db_path
         self._total_metrics = 0
         self._processed_metrics = 0
         
@@ -180,7 +182,7 @@ class SummaryCalculator:
         ORDER BY type
         """
         
-        with self.data_access.db_manager.get_connection() as conn:
+        with self.db_manager.get_connection() as conn:
             cursor = conn.execute(query, (months_back,))
             return [row[0] for row in cursor.fetchall()]
             
@@ -226,7 +228,7 @@ class SummaryCalculator:
         
         summaries = {}
         
-        with self.data_access.db_manager.get_connection() as conn:
+        with self.db_manager.get_connection() as conn:
             cursor = conn.execute(
                 query, 
                 (metric_type, start_date.isoformat(), end_date.isoformat())
@@ -284,7 +286,7 @@ class SummaryCalculator:
         
         summaries = {}
         
-        with self.data_access.db_manager.get_connection() as conn:
+        with self.db_manager.get_connection() as conn:
             cursor = conn.execute(
                 query,
                 (metric_type, start_date.isoformat(), end_date.isoformat())
@@ -344,7 +346,7 @@ class SummaryCalculator:
         
         summaries = {}
         
-        with self.data_access.db_manager.get_connection() as conn:
+        with self.db_manager.get_connection() as conn:
             cursor = conn.execute(
                 query,
                 (metric_type, start_date.isoformat(), end_date.isoformat())
