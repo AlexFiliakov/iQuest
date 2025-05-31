@@ -361,3 +361,117 @@ def analytics_cache(cache_tiers: List[str] = None,
         
         return wrapper
     return decorator
+
+
+def identify_months_for_cache_population(db_manager, months_back: int = 12) -> List[Dict[str, Any]]:
+    """Identify months that need cache population based on available health records.
+    
+    This function queries the health_records table to find all unique type and month
+    combinations that have data within the specified time period. It returns results
+    sorted by year descending, month descending, and type alphabetically.
+    
+    Args:
+        db_manager: Database manager instance for executing queries.
+        months_back: Number of months to look back from current date. Defaults to 12.
+        
+    Returns:
+        List[Dict[str, Any]]: List of dictionaries containing:
+            - type: Health metric type (e.g., "StepCount", "HeartRate")
+            - year: Year as string (e.g., "2024")
+            - month: Month as string (e.g., "01", "12")
+            - record_count: Number of records for this type/month combination
+            
+    Example:
+        >>> months = identify_months_for_cache_population(db_manager)
+        >>> for month_data in months:
+        ...     print(f"{month_data['type']} - {month_data['year']}/{month_data['month']}: "
+        ...           f"{month_data['record_count']} records")
+    """
+    query = """
+    -- Identify months that need cache population
+    SELECT DISTINCT 
+        type,
+        strftime('%Y', startDate) as year,
+        strftime('%m', startDate) as month,
+        COUNT(*) as record_count
+    FROM health_records 
+    WHERE DATE(startDate) >= DATE('now', '-' || ? || ' months')
+    GROUP BY type, strftime('%Y', startDate), strftime('%m', startDate)
+    HAVING record_count > 0
+    ORDER BY year DESC, month DESC, type;
+    """
+    
+    try:
+        results = db_manager.execute_query(query, (months_back,))
+        
+        # Convert to list of dictionaries for easier processing
+        months_data = []
+        for row in results:
+            months_data.append({
+                'type': row[0],
+                'year': row[1],
+                'month': row[2],
+                'record_count': row[3]
+            })
+        
+        logger.info(f"Identified {len(months_data)} type/month combinations for cache population")
+        return months_data
+        
+    except Exception as e:
+        logger.error(f"Error identifying months for cache population: {e}")
+        return []
+
+
+def warm_monthly_metrics_cache(cached_monthly_calculator, db_manager, months_back: int = 12) -> Dict[str, bool]:
+    """Warm the cache for monthly metrics based on available data.
+    
+    This function identifies all months with data in the specified time period and
+    pre-populates the cache with monthly statistics for each metric type.
+    
+    Args:
+        cached_monthly_calculator: Instance of CachedMonthlyMetricsCalculator.
+        db_manager: Database manager instance for querying available data.
+        months_back: Number of months to look back from current date. Defaults to 12.
+        
+    Returns:
+        Dict[str, bool]: Dictionary mapping cache keys to success status.
+        
+    Example:
+        >>> from .cached_calculators import create_cached_monthly_calculator
+        >>> calculator = create_cached_monthly_calculator()
+        >>> results = warm_monthly_metrics_cache(calculator, db_manager)
+        >>> success_count = sum(results.values())
+        >>> print(f"Successfully cached {success_count}/{len(results)} monthly metrics")
+    """
+    months_to_cache = identify_months_for_cache_population(db_manager, months_back)
+    results = {}
+    
+    if not months_to_cache:
+        logger.warning("No months identified for cache population")
+        return results
+    
+    logger.info(f"Starting monthly metrics cache warmup for {len(months_to_cache)} type/month combinations")
+    
+    # Group by month for efficient batch processing
+    months_by_period = defaultdict(list)
+    for month_data in months_to_cache:
+        key = (int(month_data['year']), int(month_data['month']))
+        months_by_period[key].append(month_data['type'])
+    
+    # Process each month
+    for (year, month), metrics in months_by_period.items():
+        for metric in metrics:
+            cache_key = f"monthly_stats|{metric}|{year}|{month}"
+            try:
+                # Calculate and cache the monthly statistics
+                _ = cached_monthly_calculator.calculate_monthly_stats(metric, year, month)
+                results[cache_key] = True
+                logger.debug(f"Successfully cached monthly stats for {metric} {year}/{month:02d}")
+            except Exception as e:
+                results[cache_key] = False
+                logger.warning(f"Failed to cache monthly stats for {metric} {year}/{month:02d}: {e}")
+    
+    success_count = sum(results.values())
+    logger.info(f"Monthly cache warmup completed: {success_count}/{len(results)} successful")
+    
+    return results

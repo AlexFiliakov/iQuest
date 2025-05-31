@@ -1374,6 +1374,9 @@ class ConfigurationTab(QWidget):
             
             logger.info(f"Database statistics loaded: {row_count:,} records")
             
+            # Warm the monthly metrics cache in the background
+            self._warm_monthly_metrics_cache_async()
+            
         except Exception as e:
             logger.error(f"Failed to load from database: {e}")
             self.progress_label.setText("Database load failed!")
@@ -2220,3 +2223,64 @@ class ConfigurationTab(QWidget):
                 self._load_from_sqlite()
         except Exception as e:
             logger.warning(f"Could not check database availability: {e}")
+    
+    def _warm_monthly_metrics_cache_async(self):
+        """Warm the monthly metrics cache in the background after data import.
+        
+        This method runs the cache warming process asynchronously to avoid blocking
+        the UI while pre-computing monthly statistics for all available metrics.
+        """
+        try:
+            # Import here to avoid circular dependencies
+            from ..analytics.cache_background_refresh import (
+                warm_monthly_metrics_cache, 
+                identify_months_for_cache_population
+            )
+            from ..analytics.cached_calculators import create_cached_monthly_calculator
+            from ..database import DatabaseManager
+            from concurrent.futures import ThreadPoolExecutor
+            
+            def warm_cache():
+                """Execute cache warming in background thread."""
+                try:
+                    logger.info("Starting monthly metrics cache warming in background")
+                    
+                    # Create instances
+                    db_manager = DatabaseManager()
+                    cached_calculator = create_cached_monthly_calculator()
+                    
+                    # First, identify months to cache (last 12 months by default)
+                    months_data = identify_months_for_cache_population(db_manager, months_back=12)
+                    
+                    if not months_data:
+                        logger.info("No months identified for cache warming")
+                        return
+                    
+                    # Log what we're about to cache
+                    unique_types = set(m['type'] for m in months_data)
+                    unique_months = set((m['year'], m['month']) for m in months_data)
+                    logger.info(f"Warming cache for {len(unique_types)} metric types "
+                              f"across {len(unique_months)} months")
+                    
+                    # Perform the cache warming
+                    results = warm_monthly_metrics_cache(cached_calculator, db_manager, months_back=12)
+                    
+                    # Log results
+                    success_count = sum(results.values())
+                    logger.info(f"Monthly cache warming completed: "
+                              f"{success_count}/{len(results)} entries cached successfully")
+                    
+                except Exception as e:
+                    logger.error(f"Error during cache warming: {e}", exc_info=True)
+            
+            # Execute in background thread to avoid blocking UI
+            executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="cache-warmer")
+            executor.submit(warm_cache)
+            # Don't wait for completion - let it run in background
+            executor.shutdown(wait=False)
+            
+            logger.info("Monthly cache warming task submitted to background thread")
+            
+        except Exception as e:
+            # Don't fail the import if cache warming fails
+            logger.warning(f"Could not start cache warming: {e}")
