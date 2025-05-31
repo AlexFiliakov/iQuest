@@ -212,3 +212,4 @@ installer/*.exe
 /cache
 /data
 analytics_cache.corrupted.bak
+/ignore (old tests)
