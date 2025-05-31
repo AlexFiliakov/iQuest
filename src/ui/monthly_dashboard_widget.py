@@ -46,7 +46,9 @@ class MonthlyDashboardWidget(QWidget):
         """Initialize the monthly dashboard widget."""
         super().__init__(parent)
         
+        # Support both old calculator and new cached access
         self.monthly_calculator = monthly_calculator
+        self.cached_data_access = None
         
         # Try to initialize HealthDatabase
         try:
@@ -101,6 +103,19 @@ class MonthlyDashboardWidget(QWidget):
         
         # Load initial data
         self._load_month_data()
+    
+    def set_cached_data_access(self, cached_access):
+        """Set the cached data access for performance optimization.
+        
+        Args:
+            cached_access: CachedDataAccess instance for reading pre-computed summaries
+        """
+        self.cached_data_access = cached_access
+        # Reload metrics and data with new access method
+        if cached_access:
+            self._load_available_metrics()
+            self._refresh_metric_combo()
+            self._load_month_data()
         
     def _init_metric_mappings(self):
         """Initialize comprehensive metric name mappings."""
@@ -223,9 +238,33 @@ class MonthlyDashboardWidget(QWidget):
         
     def _load_available_metrics(self):
         """Load available metrics from the database with source information."""
-        # If no database connection, use all available metrics
+        # Try cached data access first
+        if self.cached_data_access:
+            logger.info("Loading metrics from cache")
+            available_types = self.cached_data_access.get_available_metrics()
+            
+            self._available_metrics = []
+            for db_type in available_types:
+                # Check if it already exists in our display names
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
+                else:
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    logger.debug(f"Added metric from cache: {clean_type}")
+            
+            if self._available_metrics:
+                self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+                logger.info(f"Loaded {len(self._available_metrics)} metrics from cache")
+                return
+        
+        # Fall back to database if no cached access
         if not self.health_db:
-            logger.warning("No database connection, showing all available metrics")
+            logger.warning("No data access available, showing all available metrics")
             self._available_metrics = [(metric, None) for metric in self._metric_display_names.keys()]
             self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
             return
@@ -278,7 +317,7 @@ class MonthlyDashboardWidget(QWidget):
             
             # If no metrics found, use a basic set
             if not self._available_metrics:
-                logger.warning("No metrics found in database, using basic set")
+                logger.info("No metrics found in database, using default metric set")
                 # Use the types from the log that we know exist
                 basic_metrics = ["StepCount", "DistanceWalkingRunning", "FlightsClimbed", 
                                "DietaryWater", "BodyMass", "HeartRate", "ActiveEnergyBurned",

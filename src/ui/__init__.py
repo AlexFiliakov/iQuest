@@ -26,8 +26,9 @@ themes with extensive customization options for users with different accessibili
 """
 
 from .main_window import MainWindow
+from .loading_screen import LoadingScreen, AppInitializer
 
 # Import accessibility module
 from . import accessibility
 
-__all__ = ['MainWindow', 'accessibility']
+__all__ = ['MainWindow', 'LoadingScreen', 'AppInitializer', 'accessibility']

@@ -164,7 +164,9 @@ class DailyDashboardWidget(QWidget):
         """Initialize the daily dashboard widget."""
         super().__init__(parent)
         
+        # Support both old calculator and new cached access
         self.daily_calculator = daily_calculator
+        self.cached_data_access = None
         self.personal_records = personal_records
         self.day_analyzer = DayOfWeekAnalyzer(daily_calculator) if daily_calculator else None
         
@@ -194,6 +196,17 @@ class DailyDashboardWidget(QWidget):
         # Load initial data
         if self.daily_calculator:
             self._detect_available_metrics()
+            self._load_daily_data()
+    
+    def set_cached_data_access(self, cached_access):
+        """Set the cached data access for performance optimization.
+        
+        Args:
+            cached_access: CachedDataAccess instance for reading pre-computed summaries
+        """
+        self.cached_data_access = cached_access
+        # Reload data with new access method
+        if cached_access:
             self._load_daily_data()
     
     def _setup_ui(self):
@@ -684,17 +697,18 @@ class DailyDashboardWidget(QWidget):
     
     def _detect_available_metrics(self):
         """Detect which metrics are available in the data."""
-        if not self.daily_calculator:
-            logger.warning("No daily calculator available for metric detection")
+        if not self.daily_calculator and not self.cached_data_access:
+            logger.warning("No data access available for metric detection")
             return
             
         try:
-            # Get unique metric types from the data
-            if not hasattr(self.daily_calculator, 'data'):
-                logger.error("Daily calculator has no data attribute")
-                return
-                
-            available_types = self.daily_calculator.data['type'].unique()
+            # Get available metrics from cached access if available
+            if self.cached_data_access:
+                available_types = self.cached_data_access.get_available_metrics()
+                logger.info(f"Found {len(available_types)} metrics from cache")
+            elif self.daily_calculator and hasattr(self.daily_calculator, 'data'):
+                # Fallback to calculator
+                available_types = self.daily_calculator.data['type'].unique()
             logger.info(f"Found {len(available_types)} unique metric types in data")
             
             # Map to our metric names
@@ -764,8 +778,8 @@ class DailyDashboardWidget(QWidget):
         """Load data for the current date."""
         logger.info(f"Loading daily data for {self._current_date}")
         
-        if not self.daily_calculator:
-            logger.debug("No daily calculator available - data not loaded yet")
+        if not self.daily_calculator and not self.cached_data_access:
+            logger.debug("No data access available - data not loaded yet")
             self._show_no_data_message()
             return
             
@@ -826,38 +840,50 @@ class DailyDashboardWidget(QWidget):
     
     def _get_metric_stats(self, metric_name: str) -> Optional[Dict]:
         """Get statistics for a specific metric with caching."""
-        if not self.daily_calculator:
-            return None
-            
         # Check cache first
         cache_key = f"{metric_name}_{self._current_date}"
         if self._cache_date == self._current_date and cache_key in self._stats_cache:
             return self._stats_cache[cache_key]
             
+        # Map metric name to HK type
+        type_mapping = {
+            'steps': 'HKQuantityTypeIdentifierStepCount',
+            'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+            'flights_climbed': 'HKQuantityTypeIdentifierFlightsClimbed',
+            'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned',
+            'heart_rate': 'HKQuantityTypeIdentifierHeartRate',
+            'resting_heart_rate': 'HKQuantityTypeIdentifierRestingHeartRate',
+            'hrv': 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+            'weight': 'HKQuantityTypeIdentifierBodyMass',
+            'body_fat': 'HKQuantityTypeIdentifierBodyFatPercentage'
+        }
+        
+        hk_type = type_mapping.get(metric_name)
+        if not hk_type:
+            return None
+            
         try:
-            # Map metric name to HK type
-            type_mapping = {
-                'steps': 'HKQuantityTypeIdentifierStepCount',
-                'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
-                'flights_climbed': 'HKQuantityTypeIdentifierFlightsClimbed',
-                'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned',
-                'heart_rate': 'HKQuantityTypeIdentifierHeartRate',
-                'resting_heart_rate': 'HKQuantityTypeIdentifierRestingHeartRate',
-                'hrv': 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-                'weight': 'HKQuantityTypeIdentifierBodyMass',
-                'body_fat': 'HKQuantityTypeIdentifierBodyFatPercentage'
-            }
-            
-            hk_type = type_mapping.get(metric_name)
-            if not hk_type:
+            # Use cached data access if available (preferred for performance)
+            if self.cached_data_access:
+                logger.debug(f"Getting cached stats for {metric_name} on {self._current_date}")
+                summary = self.cached_data_access.get_daily_summary(hk_type, self._current_date)
+                
+                if summary:
+                    # Convert cached summary to expected format
+                    today_stats = self.cached_data_access.convert_to_metric_statistics(summary)
+                else:
+                    logger.debug(f"No cached data for {metric_name} on {self._current_date}")
+                    today_stats = None
+                    
+            elif self.daily_calculator:
+                # Fallback to calculator if no cached access
+                logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
+                today_stats = self.daily_calculator.calculate_daily_statistics(
+                    metric=hk_type,
+                    target_date=self._current_date
+                )
+            else:
                 return None
-            
-            # Get value for the current date
-            logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
-            today_stats = self.daily_calculator.calculate_daily_statistics(
-                metric=hk_type,
-                target_date=self._current_date
-            )
             
             logger.debug(f"Stats for {metric_name}: {today_stats}")
             
@@ -866,10 +892,18 @@ class DailyDashboardWidget(QWidget):
                 trend_data = None
                 if metric_name in ['steps', 'active_calories']:  # Only for key metrics
                     yesterday = self._current_date - timedelta(days=1)
-                    yesterday_stats = self.daily_calculator.calculate_daily_statistics(
-                        metric=hk_type,
-                        target_date=yesterday
-                    )
+                    
+                    # Get yesterday's stats using cached access if available
+                    if self.cached_data_access:
+                        yesterday_summary = self.cached_data_access.get_daily_summary(hk_type, yesterday)
+                        yesterday_stats = self.cached_data_access.convert_to_metric_statistics(yesterday_summary) if yesterday_summary else None
+                    elif self.daily_calculator:
+                        yesterday_stats = self.daily_calculator.calculate_daily_statistics(
+                            metric=hk_type,
+                            target_date=yesterday
+                        )
+                    else:
+                        yesterday_stats = None
                     
                     if yesterday_stats and yesterday_stats.count > 0:
                         change = today_stats.mean - yesterday_stats.mean

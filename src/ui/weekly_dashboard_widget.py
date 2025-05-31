@@ -124,8 +124,10 @@ class WeeklyDashboardWidget(QWidget):
         """Initialize the weekly dashboard widget."""
         super().__init__(parent)
         
+        # Support both old calculators and new cached access
         self.weekly_calculator = weekly_calculator
         self.daily_calculator = daily_calculator
+        self.cached_data_access = None
         self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
         self.dow_analyzer = DayOfWeekAnalyzer(daily_calculator.data if hasattr(daily_calculator, 'data') else daily_calculator) if daily_calculator else None
         
@@ -151,6 +153,19 @@ class WeeklyDashboardWidget(QWidget):
         else:
             # Show no data message if no calculator
             self._show_no_data_message()
+    
+    def set_cached_data_access(self, cached_access):
+        """Set the cached data access for performance optimization.
+        
+        Args:
+            cached_access: CachedDataAccess instance for reading pre-computed summaries
+        """
+        self.cached_data_access = cached_access
+        # Reload data with new access method
+        if cached_access:
+            self._detect_available_metrics()
+            if self._available_metrics:
+                self._load_weekly_data()
     
     def _setup_ui(self):
         """Set up the user interface."""
@@ -554,29 +569,33 @@ class WeeklyDashboardWidget(QWidget):
         """Detect available metrics from the data."""
         logger.info("Detecting available metrics...")
         
-        if not self.weekly_calculator:
-            logger.warning("No weekly calculator available")
-            return
-            
-        if not self.weekly_calculator.daily_calculator:
-            logger.warning("No daily calculator available")
+        if not self.weekly_calculator and not self.cached_data_access:
+            logger.warning("No data access available")
             return
             
         try:
-            # Get unique metric types
-            data = self.weekly_calculator.daily_calculator.data
-            if data is None or data.empty:
-                logger.warning("No data available in daily calculator")
-                return
+            # Get available metrics from cache if available
+            if self.cached_data_access:
+                available_types = self.cached_data_access.get_available_metrics()
+                logger.info(f"Found {len(available_types)} metrics from cache")
+            elif self.weekly_calculator and self.weekly_calculator.daily_calculator:
+                # Fallback to calculator
+                data = self.weekly_calculator.daily_calculator.data
+                if data is None or data.empty:
+                    logger.warning("No data available in daily calculator")
+                    return
+                    
+                logger.info(f"Data shape: {data.shape}")
+                logger.info(f"Data columns: {data.columns.tolist()}")
                 
-            logger.info(f"Data shape: {data.shape}")
-            logger.info(f"Data columns: {data.columns.tolist()}")
-            
-            if 'type' not in data.columns:
-                logger.error("'type' column not found in data")
+                if 'type' not in data.columns:
+                    logger.error("'type' column not found in data")
+                    return
+                    
+                available_types = data['type'].unique()
+            else:
+                logger.warning("No data source available")
                 return
-                
-            available_types = data['type'].unique()
             logger.info(f"Available types: {available_types}")
             
             # Map to display names
@@ -641,8 +660,8 @@ class WeeklyDashboardWidget(QWidget):
         """Load data for the current week."""
         logger.info("Loading weekly data...")
         
-        if not self.weekly_calculator:
-            logger.warning("No weekly calculator available - showing no data message")
+        if not self.weekly_calculator and not self.cached_data_access:
+            logger.warning("No data access available - showing no data message")
             self._show_no_data_message()
             return
             
@@ -680,6 +699,52 @@ class WeeklyDashboardWidget(QWidget):
             # Show error to user
             self._show_no_data_message()
     
+    def _get_weekly_data_from_cache(self, metric_type: str, week_start: date):
+        """Get weekly data from cache or calculator.
+        
+        Returns a dict with daily_values and summary stats.
+        """
+        # Create ISO week string for cache lookup
+        iso_week = week_start.strftime('%Y-W%U')
+        
+        if self.cached_data_access:
+            # Try to get from cache
+            logger.info(f"Getting cached weekly data for {metric_type} week {iso_week}")
+            summary = self.cached_data_access.get_weekly_summary(metric_type, iso_week)
+            
+            if summary:
+                # Also get daily values for the week
+                daily_values = {}
+                for i in range(7):
+                    day = week_start + timedelta(days=i)
+                    daily_summary = self.cached_data_access.get_daily_summary(metric_type, day)
+                    if daily_summary:
+                        daily_values[day] = daily_summary.get('sum', 0)
+                
+                # Convert to expected format
+                from types import SimpleNamespace
+                return SimpleNamespace(
+                    avg=summary.get('daily_avg', 0),
+                    total=summary.get('sum', 0),
+                    daily_values=daily_values,
+                    days_with_data=summary.get('days_with_data', len(daily_values))
+                )
+        
+        # Fallback to calculator
+        if self.weekly_calculator:
+            data = self.weekly_calculator.daily_calculator.data.copy()
+            if 'startDate' in data.columns and 'creationDate' not in data.columns:
+                data['creationDate'] = data['startDate']
+            
+            week_start_datetime = datetime.combine(week_start, datetime.min.time())
+            return self.weekly_calculator.calculate_weekly_metrics(
+                data=data,
+                metric_type=metric_type,
+                week_start=week_start_datetime
+            )
+        
+        return None
+    
     def _update_summary_stats(self, metric_type: str):
         """Update the summary statistics cards."""
         logger.info(f"Updating summary stats for metric: {metric_type}")
@@ -687,21 +752,7 @@ class WeeklyDashboardWidget(QWidget):
             # Get weekly data
             logger.info(f"Getting weekly metrics for week starting: {self._current_week_start}")
             
-            # Use the daily calculator data directly
-            data = self.weekly_calculator.daily_calculator.data.copy()
-            
-            # Ensure we have the right column names
-            if 'startDate' in data.columns and 'creationDate' not in data.columns:
-                data['creationDate'] = data['startDate']
-            
-            # Convert date to datetime for the calculator
-            week_start_datetime = datetime.combine(self._current_week_start, datetime.min.time())
-            
-            weekly_data = self.weekly_calculator.calculate_weekly_metrics(
-                data=data,
-                metric_type=metric_type,
-                week_start=week_start_datetime
-            )
+            weekly_data = self._get_weekly_data_from_cache(metric_type, self._current_week_start)
             
             if not weekly_data:
                 logger.warning(f"No weekly data found for metric: {metric_type}")

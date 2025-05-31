@@ -11,9 +11,10 @@ sys.path.insert(0, project_root)
 
 import traceback
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox, QProxyStyle, QStyle
 
+from src.ui.loading_screen import LoadingScreen, AppInitializer
 from src.ui.main_window import MainWindow
 from src.ui.style_manager import StyleManager
 from src.utils.error_handler import ConfigurationError, ErrorContext
@@ -113,16 +114,123 @@ def main():
         app.setApplicationName(APP_NAME)
         app.setOrganizationName(ORGANIZATION_NAME)
 
-        # Apply global styling
-        style_manager = StyleManager()
-        style_manager.apply_global_style(app)
-
-        # Create and show main window
-        with ErrorContext("Creating main window"):
-            window = MainWindow()
-            window.show()
-
-        module_logger.info("Application started successfully")
+        # Show loading screen
+        loading_screen = LoadingScreen()
+        loading_screen.show()
+        
+        # Process events to ensure loading screen is displayed
+        app.processEvents()
+        
+        # Variable to hold main window reference
+        window = None
+        
+        def initialize_application():
+            """Initialize the application in steps with loading feedback."""
+            nonlocal window
+            
+            try:
+                loading_screen.add_message("Initializing style manager...")
+                loading_screen.set_progress(0.1)
+                style_manager = StyleManager()
+                app.processEvents()  # Allow UI to update
+                
+                loading_screen.add_message("Applying global styles...")
+                loading_screen.set_progress(0.15)
+                style_manager.apply_global_style(app)
+                app.processEvents()
+                
+                loading_screen.add_message("Initializing database connection...")
+                loading_screen.set_progress(0.2)
+                from src.database import db_manager
+                app.processEvents()
+                
+                loading_screen.add_message("Setting up data models...")
+                loading_screen.set_progress(0.25)
+                from src.models import JournalEntry, UserPreference
+                app.processEvents()
+                
+                loading_screen.add_message("Loading daily metrics calculator...")
+                loading_screen.set_progress(0.3)
+                from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
+                app.processEvents()
+                
+                loading_screen.add_message("Loading monthly metrics calculator...")
+                loading_screen.set_progress(0.35)
+                from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                app.processEvents()
+                
+                loading_screen.add_message("Initializing cache manager...")
+                loading_screen.set_progress(0.4)
+                from src.analytics.cache_manager import AnalyticsCacheManager
+                app.processEvents()
+                
+                loading_screen.add_message("Loading anomaly detection system...")
+                loading_screen.set_progress(0.45)
+                from src.analytics.anomaly_detection_system import AnomalyDetectionSystem
+                app.processEvents()
+                
+                loading_screen.add_message("Setting up health score calculator...")
+                loading_screen.set_progress(0.5)
+                from src.analytics.health_score.health_score_calculator import HealthScoreCalculator
+                app.processEvents()
+                
+                loading_screen.add_message("Loading UI components...")
+                loading_screen.set_progress(0.55)
+                from src.ui.configuration_tab import ConfigurationTab
+                from src.ui.charts import LineChart, CalendarHeatmapComponent
+                app.processEvents()
+                
+                loading_screen.add_message("Initializing visualization system...")
+                loading_screen.set_progress(0.6)
+                from src.ui.charts.wsj_health_visualization_suite import WSJHealthVisualizationSuite
+                app.processEvents()
+                
+                loading_screen.add_message("Loading dashboard components...")
+                loading_screen.set_progress(0.65)
+                from src.ui.daily_dashboard_widget import DailyDashboardWidget
+                from src.ui.weekly_dashboard_widget import WeeklyDashboardWidget
+                from src.ui.monthly_dashboard_widget import MonthlyDashboardWidget
+                app.processEvents()
+                
+                loading_screen.add_message("Setting up data access layer...")
+                loading_screen.set_progress(0.7)
+                from src.data_access import DataAccess
+                app.processEvents()
+                
+                loading_screen.add_message("Creating main window...")
+                loading_screen.set_progress(0.75)
+                
+                with ErrorContext("Creating main window"):
+                    window = MainWindow(initialization_callback=loading_screen.add_message)
+                    
+                loading_screen.add_message("Finalizing initialization...")
+                loading_screen.set_progress(0.9)
+                
+                # Short delay to ensure users see the final message
+                QTimer.singleShot(500, lambda: finish_initialization())
+                
+            except Exception as e:
+                loading_screen.close()
+                raise e
+                
+        def finish_initialization():
+            """Complete initialization and show main window."""
+            loading_screen.add_message("Application ready!")
+            loading_screen.set_progress(1.0)
+            
+            # Close loading screen and show main window
+            def show_main_window():
+                loading_screen.close()
+                if window:
+                    window.show()
+                    module_logger.info("Application started successfully")
+                    
+            # Short delay to show completion
+            QTimer.singleShot(300, show_main_window)
+        
+        # Start initialization after event loop begins
+        QTimer.singleShot(100, initialize_application)
+        
         sys.exit(app.exec())
 
     except Exception as e:

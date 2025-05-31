@@ -33,6 +33,8 @@ Attributes:
 """
 
 import os
+import shutil
+import time
 from typing import List
 from datetime import date
 from PyQt6.QtWidgets import (
@@ -56,7 +58,7 @@ from ..analytics.personal_records_tracker import PersonalRecordsTracker
 from ..database import db_manager
 from ..config import (
     WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
-    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT
+    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT, DATA_DIR
 )
 
 logger = get_logger(__name__)
@@ -141,7 +143,7 @@ class MainWindow(QMainWindow):
         >>> app.exec()
     """
     
-    def __init__(self):
+    def __init__(self, initialization_callback=None):
         """Initialize the main window.
         
         Sets up the complete window structure including theming, tab navigation,
@@ -159,6 +161,10 @@ class MainWindow(QMainWindow):
             7. Restore previous window state and active tab
             8. Start background status monitoring
         
+        Args:
+            initialization_callback: Optional callback function that receives
+                initialization messages as strings.
+        
         Raises:
             ImportError: If required background trend processor cannot be imported.
             
@@ -167,6 +173,9 @@ class MainWindow(QMainWindow):
         """
         super().__init__()
         logger.info("Initializing main window with tab navigation")
+        self._init_callback = initialization_callback
+        
+        self._report_init("Initializing core managers...")
         
         # Initialize managers
         self.style_manager = StyleManager()
@@ -176,20 +185,27 @@ class MainWindow(QMainWindow):
         accessibility_mode = self.settings_manager.get_setting("accessibility/disable_animations", False)
         self.transition_manager = ViewTransitionManager(accessibility_mode=accessibility_mode)
         
+        self._report_init("Setting up personal records tracker...")
+        
         # Initialize personal records tracker
         self.personal_records_tracker = PersonalRecordsTracker(db_manager)
         
         # Initialize background trend processor
         self.background_trend_processor = None
         try:
+            self._report_init("Initializing background analytics...")
             from ..analytics.background_trend_processor import BackgroundTrendProcessor
             self.background_trend_processor = BackgroundTrendProcessor(db_manager)
             logger.info("Background trend processor initialized")
         except ImportError as e:
             logger.warning(f"Could not initialize background trend processor: {e}")
         
+        self._report_init("Performing database health check...")
+        
         # Perform database health check (G084 infrastructure validation)
         self._perform_database_health_check()
+        
+        self._report_init("Configuring window properties...")
         
         # Set up the window
         self.setWindowTitle(WINDOW_TITLE)
@@ -200,10 +216,20 @@ class MainWindow(QMainWindow):
         # Apply warm color theme
         self._apply_theme()
         
+        self._report_init("Creating menu system...")
+        
         # Create UI components
         self._create_menu_bar()
+        
+        self._report_init("Creating dashboard tabs...")
+        
         self._create_central_widget()
+        
+        self._report_init("Setting up status bar...")
+        
         self._create_status_bar()
+        
+        self._report_init("Restoring window state...")
         
         # Restore window state after UI is created
         self.settings_manager.restore_window_state(self)
@@ -211,12 +237,23 @@ class MainWindow(QMainWindow):
         # Always open to Configuration tab
         self.tab_widget.setCurrentIndex(0)
         
+        self._report_init("Starting background services...")
+        
         # Set up status update timer
         self.status_update_timer = QTimer(self)
         self.status_update_timer.timeout.connect(self._update_trend_status)
         self.status_update_timer.start(2000)  # Update every 2 seconds
         
         logger.info("Main window initialization complete")
+    
+    def _report_init(self, message: str):
+        """Report initialization progress.
+        
+        Args:
+            message: Progress message to report.
+        """
+        if self._init_callback:
+            self._init_callback(message)
     
     def _apply_theme(self):
         """Apply the professional color theme to the window.
@@ -1774,15 +1811,67 @@ class MainWindow(QMainWindow):
                 # 7. Delete cache directory
                 progress.setLabelText("Deleting cache directories...")
                 QApplication.processEvents()
+                
+                # Helper function to safely delete directory on Windows
+                def safe_rmtree(path):
+                    """Safely remove directory tree, handling Windows file locks."""
+                    if not os.path.exists(path):
+                        return
+                        
+                    # First try normal deletion
+                    try:
+                        shutil.rmtree(path)
+                        return True
+                    except Exception as e:
+                        logger.warning(f"First attempt to delete {path} failed: {e}")
+                    
+                    # If that fails, try to remove files individually
+                    try:
+                        # Walk through directory and delete files first
+                        for root, dirs, files in os.walk(path, topdown=False):
+                            for name in files:
+                                file_path = os.path.join(root, name)
+                                try:
+                                    os.chmod(file_path, 0o777)  # Make writable
+                                    os.remove(file_path)
+                                except Exception as e:
+                                    logger.warning(f"Could not delete file {file_path}: {e}")
+                            
+                            # Then try to remove empty directories
+                            for name in dirs:
+                                dir_path = os.path.join(root, name)
+                                try:
+                                    os.chmod(dir_path, 0o777)  # Make writable
+                                    os.rmdir(dir_path)
+                                except Exception as e:
+                                    logger.warning(f"Could not delete directory {dir_path}: {e}")
+                        
+                        # Finally try to remove the root directory
+                        try:
+                            os.chmod(path, 0o777)  # Make writable
+                            os.rmdir(path)
+                            return True
+                        except Exception as e:
+                            logger.warning(f"Could not delete root directory {path}: {e}")
+                            return False
+                            
+                    except Exception as e:
+                        logger.error(f"Failed to manually delete {path}: {e}")
+                        return False
+                
                 cache_dir = os.path.join(DATA_DIR, "cache")
                 if os.path.exists(cache_dir):
-                    shutil.rmtree(cache_dir)
-                    logger.info(f"Deleted cache directory: {cache_dir}")
+                    if safe_rmtree(cache_dir):
+                        logger.info(f"Deleted cache directory: {cache_dir}")
+                    else:
+                        logger.warning(f"Could not completely delete cache directory: {cache_dir}")
                     
                 # Also check for cache in current directory
                 if os.path.exists("cache"):
-                    shutil.rmtree("cache")
-                    logger.info("Deleted cache directory from current directory")
+                    if safe_rmtree("cache"):
+                        logger.info("Deleted cache directory from current directory")
+                    else:
+                        logger.warning("Could not completely delete cache directory from current directory")
                 
                 # 8. Clear filter configurations from database
                 progress.setLabelText("Clearing filter configurations...")
