@@ -481,13 +481,33 @@ run below command at the project root and fix errors until the command passes al
 `pytest --tb=long -v -x --reverse > tests\pytest_failure_summaries_1_rev.txt 2>&1`
 Look for test status in file `tests\pytest_failure_summaries_1_rev.txt` and tests take some time to run. Keep fixing errors until the command passes all tests.
 
-#### Current #####
+pip install pytest-random-order and then run below command at the project root and fix errors until the command passes all tests.
+`pytest --tb=long -v -x --random > tests\pytest_failure_summaries_1_rnd_a.txt 2>&1`
+Look for test status in file `tests\pytest_failure_summaries_1_rnd_a.txt` and tests take some time to run. Keep fixing errors until the command passes all tests
 
-create a general task that is an important hotfix in this print and call this general task `G086_CACHE_ON_IMPORT.md`. Outline the code changes required to implement the summary caching outlined in spec `MONTHLY_SUMMARY_SPEC.md` but to have it occur as part of the data import process, rather than waiting until the tabs are accessed. Then the tabs should navigate using cached summaries and not update the cached summaries unnecessarily, only update cached summaries on subsequent Imports or a click on `View > Refresh`. That also means there is no need to load individual records from the database, which should significantly speed up subsequent load times and program memory size. It also means each tab’s summary queries can be consolidated and centralized, so create subtasks to consolidate the metric summary processes outlined in `METRIC_SPEC.md`. Outline subtasks to accomplish all of this and take advantage of the full benefits, then review the task for details and provide implementation guidance to each subtask. Include approaches to unit testing and integration testing.
+pip install pytest-random-order and then run below command at the project root and fix errors until the command passes all tests.
+`pytest --tb=long -v -x --random > tests\pytest_failure_summaries_1_rnd_b.txt 2>&1`
+Look for test status in file `tests\pytest_failure_summaries_1_rnd_b.txt` and tests take some time to run. Keep fixing errors until the command passes all tests
+
+pip install pytest-random-order and then run below command at the project root and fix errors until the command passes all tests.
+`pytest --tb=long -v -x --random > tests\pytest_failure_summaries_1_rnd_c.txt 2>&1`
+Look for test status in file `tests\pytest_failure_summaries_1_rnd_c.txt` and tests take some time to run. Keep fixing errors until the command passes all tests
+
+pip install pytest-random-order and then run below command at the project root and fix errors until the command passes all tests.
+`pytest --tb=long -v -x --random > tests\pytest_failure_summaries_1_rnd_d.txt 2>&1`
+Look for test status in file `tests\pytest_failure_summaries_1_rnd_d.txt` and tests take some time to run. Keep fixing errors until the command passes all tests
+
+#### Current #####
+update a general task that is an important hotfix in this print, this general task is `G086_CACHE_ON_IMPORT.md`. Outline the code changes required to implement the summary caching outlined in spec `MONTHLY_SUMMARY_SPEC.md` but to have it occur as part of the data import process, rather than waiting until the tabs are accessed. Then the tabs should navigate using cached summaries and not update the cached summaries unnecessarily, only update cached summaries on subsequent Imports or a click on `View > Refresh`. That also means there is no need to load individual records from the database, which should significantly speed up subsequent load times and program memory size. It also means each tab’s summary queries can be consolidated and centralized, so create subtasks to consolidate the metric summary processes outlined in `METRIC_SPEC.md`. Outline subtasks to accomplish all of this and take advantage of the full benefits, then review the task for details and provide implementation guidance to each subtask. Include approaches to unit testing and integration testing. Then review for accuracy and reasonability.
+
 
 
 ### Future ####
-update the spec `METRIC_SPEC.md` with the latest specifications of the methods responsible for discovering and caching available health metrics across all UI tabs in the Apple Health Monitor Dashboard. Then review the spec and fill in implementation details in a concise and understandable way. Provide important implementations.
+update the spec `METRIC_SPEC.md` with the latest specifications of the methods responsible for discovering and caching available health metrics across all UI tabs in the Apple Health Monitor Dashboard. Then review the spec and fill in implementation details in a concise and understandable way. Provide important implementations. Also review the following specs similarly for any updates:
+- `DAILY_TAB.md`
+- `WEEKLY_TAB.md`
+- `MONTHLY_TAB.md`
+- `MONTHLY_SUMMARY_SPEC.md`
 
 
 
