@@ -519,14 +519,15 @@ Fix Records `RECORDS.md`
 
 ### Future ####
 
-
-How would you approach dealing with the warning `apple_health_monitor.src.xml_streaming_processor - WARNING - xml_streaming_processor.py:188 - _process_record() - Memory usage over limit: 542.3MB` when importing large files? It clogs up the logs and isn’t very informative. Do you have a strategy for optimizing the load process, or perhaps we should increase the memory limit cap to 1BG for this notification?
-
-
-
-
-
-
+Rearrange the Configuration tab layout to only have one column of cards:
+- Status optionally displays above everything else when there are messages to display, for example "Loaded N records"
+- "Import Data" is the first section in its own row
+- "Filter Data" is the second section in its own row
+- "Summary Cards" is the third section in its own row
+- "Data Preview" is the fourth section in its own row
+- "Data Statistics" is the fifth section in its own row
+- "Data Sources" is the sixth section in its own row
+That way the user can navigate this tab vertically without wasting horizontal space when they only need to look at one section.
 
 
 -----------
