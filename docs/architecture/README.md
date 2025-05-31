@@ -1,240 +1,145 @@
 # Apple Health Monitor Dashboard - Architecture Documentation
 
-This directory contains comprehensive architecture documentation for the Apple Health Monitor Dashboard, including system diagrams, class relationships, design patterns, and detailed implementation guides.
+This directory contains comprehensive architecture documentation for the Apple Health Monitor Dashboard application, including system diagrams, module relationships, and class structures.
+
+## 📚 Documentation Structure
+
+### [System Context & Data Flow](./context_diagram.md)
+High-level system context showing how the application interacts with external entities and the overall data flow from Apple Health exports through processing to visualization.
+
+**Key diagrams:**
+- System context with external entities
+- Detailed data flow pipeline
+- Component interaction sequences
+- Key design decisions
+
+### [Module Overview](./module_overview.md)
+Comprehensive overview of all 207 Python modules organized by architectural layers, showing dependencies and relationships between packages.
+
+**Key sections:**
+- High-level module architecture (4 layers)
+- Detailed package breakdowns
+- Module statistics by category
+- Key integration points
+
+### [Class Diagrams](./class_diagrams/)
+Detailed UML class diagrams organized by architectural concern:
+
+#### [Core Classes](./class_diagrams/core_classes.md)
+Database management, data access patterns, and fundamental data processing classes.
+- Database singleton and DAO patterns
+- Data loading and XML processing
+- Statistics and analytics core
+- Configuration management
+
+#### [Data Models](./class_diagrams/data_models.md)
+Domain models and database schema design.
+- 7 core dataclasses with validation
+- Database schema (ER diagrams)
+- Analytics models and transformations
+- Enumerations and business logic
+
+#### [Service Layer](./class_diagrams/service_layer.md)
+UI architecture, service coordination, and component interactions.
+- Main window and dashboard structure
+- Component factory and UI services
+- Analytics orchestration
+- Service coordination patterns
 
 ## 🏗️ Architecture Overview
 
-The Apple Health Monitor Dashboard is a sophisticated PyQt6-based desktop application designed for comprehensive Apple Health data analysis and visualization. It implements a robust layered architecture with clear separation of concerns, extensive caching strategies, and modern UI patterns.
+The application follows a **layered architecture** with clear separation of concerns:
 
-### Key Features
-- **150+ Python modules** across all layers
-- **3-tier caching system** for optimal performance  
-- **WSJ-inspired UI design** with professional styling
-- **Comprehensive analytics engine** with health scoring
-- **Real-time data processing** with background workers
-- **Local-first approach** for privacy and security
-
-## 📊 Architecture Diagrams
-
-### 1. [System Context Diagram](./context_diagram.md)
-**Complete system overview showing:**
-- High-level component interactions
-- External system integrations (Apple Health XML, CSV imports)
-- Technology stack context
-- Primary data flow patterns
-- Security and privacy architecture
-
-### 2. [Module Relationship Overview](./module_overview.md)
-**Comprehensive module analysis including:**
-- 150+ module dependencies and relationships
-- Analytics engine architecture (38+ modules)
-- UI layer organization (85+ modules)
-- Core infrastructure components
-- Performance optimization patterns
-
-### 3. Detailed Class Diagrams
-
-#### [Core Infrastructure Classes](./class_diagrams/core_classes.md)
-**Foundation layer components:**
-- DatabaseManager (Thread-safe singleton with connection pooling)
-- Data Access Objects (7 specialized DAOs with caching)
-- XML streaming processor for large file handling
-- Statistics calculator with advanced analytics
-- Configuration management and error handling
-
-#### [Data Models & Domain Objects](./class_diagrams/data_models.md)
-**Rich domain model with 12+ dataclasses:**
-- Journal system with mood tracking and keyword extraction
-- Health scoring models with personalized recommendations
-- Caching models with compression and performance metrics
-- Import tracking with deduplication and statistics
-- User preferences with type-safe storage
-
-#### [Service Layer & UI Architecture](./class_diagrams/service_layer.md)
-**Complete service coordination:**
-- Main window with tab-based navigation
-- Dashboard widgets (Daily, Weekly, Monthly)
-- Analytics service layer with calculator hierarchy
-- Background processing with worker threads
-- Notification and achievement systems
-
-## 🎯 Key Architectural Patterns
-
-### 1. **Layered Architecture**
 ```
-┌─────────────────────────────────────────────────────┐
-│  🎨 Presentation Layer (85+ modules)                │
-│     • MainWindow with tab-based navigation          │
-│     • Dashboard widgets (Daily/Weekly/Monthly)      │
-│     • Chart components with WSJ styling             │
-│     • Custom UI controls and dialogs               │
-├─────────────────────────────────────────────────────┤
-│  ⚙️ Service Layer (Cross-cutting concerns)           │
-│     • StyleManager (WSJ theme system)              │
-│     • ComponentFactory (UI consistency)            │
-│     • NotificationManager (achievements)           │
-│     • PersonalRecordsTracker (gamification)        │
-├─────────────────────────────────────────────────────┤
-│  📊 Analytics Engine (38+ modules)                  │
-│     • Calculator hierarchy (Daily→Weekly→Monthly)   │
-│     • Health scoring with personalization          │
-│     • Anomaly detection and trend analysis         │
-│     • Comparative analytics and insights           │
-├─────────────────────────────────────────────────────┤
-│  💾 Data Access Layer (7 DAOs + Caching)           │
-│     • DAO pattern with specialized classes         │
-│     • 3-tier caching (Memory→SQLite→Disk)         │
-│     • Query optimization and bulk operations       │
-│     • Filter engine with complex criteria          │
-├─────────────────────────────────────────────────────┤
-│  🗄️ Persistence Layer                               │
-│     • SQLite with WAL mode and migrations         │
-│     • 12+ dataclasses with rich domain behavior   │
-│     • XML streaming processor for large files     │
-│     • Backup and data validation systems          │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│         UI Layer (127 modules)          │  PyQt6 widgets, charts, dashboards
+├─────────────────────────────────────────┤
+│      Service Layer (Coordinators)       │  Orchestration, caching, exports
+├─────────────────────────────────────────┤
+│     Analytics Engine (61 modules)       │  Calculations, ML, insights
+├─────────────────────────────────────────┤
+│        Core Layer (14 modules)          │  Models, database, data loading
+├─────────────────────────────────────────┤
+│         Utils Layer (4 modules)         │  Error handling, logging
+└─────────────────────────────────────────┘
 ```
 
-### 2. **Core Design Patterns**
+## 🔑 Key Architectural Patterns
 
-| Pattern | Implementation | Purpose | Location |
-|---------|---------------|---------|----------|
-| **Singleton** | DatabaseManager, StyleManager | Single instances for critical resources | Core infrastructure |
-| **DAO** | 7 specialized data access objects | Clean data layer abstraction | Data access layer |
-| **Factory** | ComponentFactory, ChartFactory | Consistent object creation | Service layer |
-| **Observer** | PyQt signals/slots throughout | Event-driven architecture | All layers |
-| **Strategy** | Multiple calculator/analysis strategies | Pluggable algorithms | Analytics engine |
-| **Template Method** | BaseDashboardWidget hierarchy | Consistent workflow patterns | UI layer |
-| **Protocol** | DataSourceProtocol, ChartProtocol | Interface-based design | Cross-cutting |
-| **Context Manager** | Database connections, caching | Resource safety | Infrastructure |
+### Design Patterns Used
+- **Singleton**: Database connection management
+- **Factory**: Component and chart creation
+- **Observer**: Settings and preference updates
+- **Strategy**: Pluggable algorithms and renderers
+- **DAO**: Data access abstraction
+- **Command**: Analytics task queuing
+- **Facade**: Simplified service interfaces
 
-### 3. **Technology Stack & Dependencies**
+### Performance Optimizations
+- **Multi-level caching**: LRU memory + SQLite persistence
+- **Streaming processing**: Large XML file handling
+- **Connection pooling**: Database efficiency
+- **Progressive loading**: UI responsiveness
+- **Background refresh**: Cache warming
 
-```mermaid
-graph TB
-    subgraph "🖥️ Desktop Application"
-        APP[Apple Health Monitor Dashboard]
-    end
-    
-    subgraph "🎨 UI Framework" 
-        PYQT6[PyQt6 - Modern Desktop UI]
-        MPL[Matplotlib - Chart Rendering]
-        ACCESSIBILITY[WCAG 2.1 AA Support]
-    end
-    
-    subgraph "📊 Data & Analytics"
-        PANDAS[Pandas - Data Analysis] 
-        NUMPY[NumPy - Numerical Computing]
-        STATSMODELS[Statsmodels - Statistics]
-        SKLEARN[Scikit-learn - ML Analytics]
-    end
-    
-    subgraph "💾 Storage & Performance"
-        SQLITE[SQLite - Local Database]
-        CACHING[Multi-tier Caching System]
-        COMPRESSION[Data Compression]
-    end
-    
-    subgraph "🛠️ Development & Quality"
-        PYTEST[PyTest - Testing Framework]
-        SPHINX[Sphinx - Documentation]
-        RUFF[Ruff - Code Quality]
-        MYPY[MyPy - Type Checking]
-    end
-    
-    APP --> PYQT6
-    APP --> PANDAS
-    APP --> SQLITE
-    
-    PYQT6 --> MPL
-    PYQT6 --> ACCESSIBILITY
-    
-    PANDAS --> NUMPY
-    PANDAS --> STATSMODELS
-    PANDAS --> SKLEARN
-    
-    SQLITE --> CACHING
-    CACHING --> COMPRESSION
-    
-    %% Development dependencies
-    APP -.-> PYTEST
-    APP -.-> SPHINX
-    APP -.-> RUFF
-    APP -.-> MYPY
-    
-    %% Styling
-    style APP fill:#4caf50,color:#fff
-    style PYQT6 fill:#2196f3,color:#fff  
-    style PANDAS fill:#ff9800,color:#fff
-    style SQLITE fill:#9c27b0,color:#fff
-```
+### Security & Privacy
+- **Local-only processing**: No cloud connectivity
+- **Secure storage**: Encrypted journal entries
+- **Input validation**: Comprehensive data validation
+- **Error handling**: No sensitive data in logs
 
-### 4. **Performance Architecture**
+## 📊 Module Statistics
 
-- **3-Tier Caching**: Memory (LRU) → SQLite → Compressed disk storage
-- **Background Processing**: Non-blocking UI with QThread workers
-- **Streaming Data**: Large XML files processed in batches
-- **Connection Pooling**: Database connections managed efficiently
-- **Lazy Loading**: UI components and data loaded on demand
+| Layer | Modules | Purpose |
+|-------|---------|---------|
+| **Core** | 14 | Entry point, models, database, data import |
+| **Analytics** | 61 | Metrics, ML, insights, predictions |
+| **UI** | 127 | Windows, widgets, charts, interactions |
+| **Utils** | 4 | Cross-cutting concerns |
+| **Total** | **207** | Complete application |
 
-## 🧭 Quick Navigation Guide
+### Subsystem Breakdown
+- **Charts Package**: 51 modules for visualization
+- **Health Score System**: 6 modules for scoring
+- **Dashboards**: 8 modules for layouts
+- **Accessibility**: 9 modules for WCAG compliance
 
-### For New Developers
-1. **Start here**: [System Context Diagram](./context_diagram.md) - Overall system understanding
-2. **Then read**: [Module Overview](./module_overview.md) - Module relationships and dependencies
-3. **Deep dive**: Choose your area of interest below
+## 🚀 Getting Started
 
-### By Development Area
+1. **New developers**: Start with [System Context](./context_diagram.md) for the big picture
+2. **Module navigation**: Use [Module Overview](./module_overview.md) to find specific components
+3. **Implementation details**: Refer to class diagrams for detailed design
 
-| Area | Primary Documentation | Key Patterns |
-|------|----------------------|--------------|
-| **🔧 Core Infrastructure** | [Core Classes](./class_diagrams/core_classes.md) | Singleton, DAO, Context Manager |
-| **📊 Data Processing** | [Data Models](./class_diagrams/data_models.md) | Domain Model, Factory, Validation |
-| **🎨 UI Development** | [Service Layer](./class_diagrams/service_layer.md) | Observer, Factory, Template Method |
-| **⚡ Performance** | [Module Overview](./module_overview.md) | Strategy, Caching, Background Processing |
-| **🏗️ Architecture** | [Context Diagram](./context_diagram.md) | Layered, Protocol-based, Local-first |
+## 🔧 Maintaining Documentation
 
-### Common Tasks
-- **Adding new charts**: Review Chart Factory patterns in [Service Layer](./class_diagrams/service_layer.md)
-- **Database changes**: Check migration patterns in [Core Classes](./class_diagrams/core_classes.md)
-- **New analytics**: Study calculator hierarchy in [Module Overview](./module_overview.md)
-- **UI modifications**: Understand component factory in [Service Layer](./class_diagrams/service_layer.md)
+When updating the architecture:
 
-## 📈 Metrics & Scale
+1. **Adding modules**: Update module counts in [Module Overview](./module_overview.md)
+2. **New patterns**: Add to relevant class diagrams
+3. **Design changes**: Update affected diagrams and this README
+4. **Dependencies**: Ensure module relationships are accurate
 
-- **📁 Total Modules**: 150+ Python files across all packages
-- **🏗️ Core Infrastructure**: 16 modules (database, models, config)
-- **📊 Analytics Engine**: 38+ modules (calculators, scoring, caching)
-- **🎨 UI Layer**: 85+ modules (widgets, charts, dashboards)
-- **🛠️ Utilities**: 3 modules (error handling, logging, validation)
-- **🧪 Test Coverage**: Comprehensive unit, integration, and performance tests
+### Diagram Tools
+- Diagrams use Mermaid syntax for easy maintenance
+- Test diagrams at [Mermaid Live Editor](https://mermaid.live/)
+- Keep diagrams focused on single concepts
 
-## 🔄 Maintaining Architecture Documentation
+## 📈 Architecture Evolution
 
-### When to Update
-- **New major features**: Update relevant class diagrams
-- **Architecture changes**: Revise context or module diagrams  
-- **New patterns**: Document in appropriate sections
-- **Performance optimizations**: Update caching or processing flows
+The architecture has evolved to support:
+- **Scalability**: From 100MB to 1GB+ data files
+- **Performance**: Sub-200ms UI response times
+- **Features**: 60+ analytics capabilities
+- **Accessibility**: WCAG 2.1 AA compliance
+- **Extensibility**: Plugin architecture for charts
 
-### Update Process
-1. **Identify affected diagrams** from your changes
-2. **Update mermaid code** in relevant .md files
-3. **Test diagram rendering** to ensure validity
-4. **Update this README** if adding new concepts
-5. **Review cross-references** between documents
+## 🔗 Related Documentation
 
-### Tools & Commands
-- Use `.claude/commands/simone/mermaid.md` for diagram maintenance guidance
-- Mermaid Live Editor for testing: https://mermaid.live/
-- VS Code Mermaid extensions for local preview
+- [Testing Guide](../testing_guide.md) - Testing patterns and coverage
+- [Performance Guide](../performance_tuning_guide.md) - Optimization strategies
+- [Development Workflow](../development_workflow.md) - Development processes
+- [API Documentation](../api/) - Detailed API references
 
-## 🎯 Design Philosophy
+---
 
-### Core Principles
-1. **Local-First**: All health data remains on user's machine
-2. **Performance**: 3-tier caching and background processing
-3. **Maintainability**: Clear patterns and comprehensive documentation
-4. **User Experience**: WSJ-inspired design with smooth interactions
-5. **Extensibility**: Protocol-based design enables easy feature addition
-6. **Reliability**: Comprehensive error handling and data validation
+*Last updated: 2025-05-31*

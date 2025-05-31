@@ -1,566 +1,268 @@
-# Apple Health Monitor Dashboard - Core Infrastructure Classes
+# Core Classes
 
-This diagram shows the core data processing classes, their relationships, and key infrastructure components that form the foundation of the application.
+This document details the core classes responsible for database operations, data access patterns, and fundamental data processing in the Apple Health Monitor Dashboard.
 
-## Core Infrastructure Overview
+## Database Management Classes
 
 ```mermaid
 classDiagram
-    %% Database Management Layer
     class DatabaseManager {
-        <<Singleton>>
         -str db_path
-        -bool initialized  
-        -DatabaseManager _instance
+        -Connection _connection
         -Lock _lock
-        -dict _connection_pool
-        +__new__(db_path: str) DatabaseManager
-        +get_connection() Iterator~Connection~
-        +initialize_database() void
-        +execute_query(query: str, params: tuple) List
-        +execute_command(command: str, params: tuple) int
-        +execute_many(command: str, params_list: List) int
-        +table_exists(table_name: str) bool
-        +get_schema_version() int
-        +backup_database(backup_path: str) bool
-        -_ensure_database_exists() void
-        -_apply_migrations(conn: Connection) void
-        -_setup_wal_mode(conn: Connection) void
+        -DatabaseManager _instance
+        +get_instance() DatabaseManager
+        +get_connection() Connection
+        +execute_query(query: str, params: tuple) Cursor
+        +execute_many(query: str, params: list) None
+        +backup_database() None
+        +close() None
+        -_initialize_database() None
+        -_create_tables() None
     }
-
-    %% Data Import and Processing
-    class DataLoader {
-        -Logger logger
+    
+    class HealthDatabase {
         -str db_path
-        -DatabaseManager db_manager
-        -XMLStreamingProcessor processor
+        -Connection conn
+        -Lock lock
         +__init__(db_path: str)
-        +convert_xml_to_sqlite(xml_path: str) int
-        +convert_xml_to_sqlite_with_validation(xml_path: str) Tuple
-        +load_csv(csv_path: str) DataFrame
-        +get_all_records() DataFrame
-        +query_date_range(start: date, end: date, types: List) DataFrame
-        +get_daily_summary(types: List) DataFrame  
-        +get_weekly_summary(types: List) DataFrame
-        +get_monthly_summary(types: List) DataFrame
-        +get_available_types() List[str]
-        +get_date_range() Tuple[date, date]
-        +validate_database() Tuple[bool, str]
-        -_infer_source_name(record_type: str) str
-        -_batch_insert_records(records: List) int
+        +create_tables() None
+        +insert_health_record(record: dict) None
+        +insert_journal_entry(entry: dict) None
+        +get_health_records(filters: dict) List[dict]
+        +get_journal_entries(date_range: tuple) List[dict]
+        +update_user_preference(key: str, value: Any) None
+        +get_user_preferences() dict
+        +close() None
     }
-
-    class XMLStreamingProcessor {
-        -int batch_size
+    
+    class DataAccess {
+        -DatabaseManager db_manager
         -Logger logger
-        +__init__(batch_size: int)
-        +process_xml_file(xml_path: str, callback: Callable) Iterator
-        +validate_xml_structure(xml_path: str) bool
-        -_parse_health_record(element: Element) Dict
-        -_extract_metadata(element: Element) Dict
-    }
-
-    %% DAO Layer Base
-    class BaseDAO {
-        <<abstract>>
-        #DatabaseManager db_manager
-        #Logger logger
-        #str table_name
-        +__init__() void
-        +get_connection() Iterator~Connection~
-        +execute_query(query: str, params: tuple) List
-        +execute_command(query: str, params: tuple) int
-        #_validate_params(params: Dict) bool
-        #_handle_db_error(error: Exception) void
-    }
-
-    %% Core DAOs
-    class JournalDAO {
+        +save_health_records(records: List[HealthRecord]) None
+        +get_health_records(filters: dict) List[HealthRecord]
         +save_journal_entry(entry: JournalEntry) int
-        +get_journal_entries(entry_type: str, limit: int) List~JournalEntry~
-        +get_entries_by_date_range(start: date, end: date) List~JournalEntry~
-        +search_journal_entries(search_term: str) List~JournalEntry~
-        +delete_journal_entry(entry_id: int) bool
-        +update_journal_entry(entry: JournalEntry) bool
-        +get_entry_statistics() Dict
+        +get_journal_entries(start_date: date, end_date: date) List[JournalEntry]
+        +save_user_preference(preference: UserPreference) None
+        +get_user_preferences() List[UserPreference]
+        +save_import_history(history: ImportHistory) None
+        +get_import_history() List[ImportHistory]
+        +save_cached_metric(metric: CachedMetric) None
+        +get_cached_metric(key: str) Optional[CachedMetric]
+        -_record_to_model(record: dict) HealthRecord
+        -_model_to_record(model: HealthRecord) dict
     }
+    
+    DatabaseManager <-- HealthDatabase : uses
+    DatabaseManager <-- DataAccess : uses
+    
+    note for DatabaseManager "Singleton pattern for thread-safe database access"
+    note for DataAccess "DAO pattern implementation"
+```
 
-    class PreferenceDAO {
-        +get_preference(key: str, default: Any) Any
-        +set_preference(key: str, value: Any, data_type: str) void
-        +get_all_preferences() Dict[str, Any]
-        +delete_preference(key: str) bool
-        +reset_to_defaults() void
-        +export_preferences() Dict
-        +import_preferences(prefs: Dict) bool
-        -_serialize_value(value: Any) str
-        -_deserialize_value(value: str, data_type: str) Any
-    }
+## Data Loading and Processing Classes
 
-    class CacheDAO {
-        +cache_metrics(key_params: Dict, data: DataFrame, expires_in: int) void
-        +get_cached_metrics(key_params: Dict) Optional~DataFrame~
-        +invalidate_cache(pattern: str) int
-        +clean_expired_cache() int
-        +get_cache_statistics() Dict
-        +warm_cache(key_params: Dict, data: DataFrame) void
-        -_generate_cache_key(params: Dict) str
-        -_compress_data(data: DataFrame) bytes
-        -_decompress_data(data: bytes) DataFrame
-    }
-
-    class MetricsMetadataDAO {
-        +get_metric_metadata(metric_type: str) Optional~HealthMetricsMetadata~
-        +update_metric_metadata(metadata: HealthMetricsMetadata) void
-        +get_metrics_by_category(category: str) List~HealthMetricsMetadata~
-        +get_all_metric_types() List[str]
-        +register_custom_metric(metadata: HealthMetricsMetadata) void
-        +delete_metric_metadata(metric_type: str) bool
-    }
-
-    class DataSourceDAO {
-        +register_data_source(source: DataSource) void
-        +get_active_sources() List~DataSource~
-        +get_source_by_name(name: str) Optional~DataSource~
-        +update_source_activity(source_name: str, last_active: datetime) void
-        +get_source_statistics() Dict
-        +deactivate_source(source_name: str) void
-    }
-
-    class ImportHistoryDAO {
-        +record_import(history: ImportHistory) int
-        +get_import_history(limit: int) List~ImportHistory~
-        +get_import_by_hash(file_hash: str) Optional~ImportHistory~
-        +is_file_imported(file_hash: str) bool
-        +get_import_statistics() Dict
-        +cleanup_old_imports(days: int) int
-    }
-
-    %% Statistics and Analytics Foundation
-    class StatisticsCalculator {
-        -CacheDAO cache_dao
+```mermaid
+classDiagram
+    class DataLoader {
+        -DataAccess data_access
+        -XMLStreamingProcessor xml_processor
         -Logger logger
-        +__init__()
-        +calculate_basic_stats(data: DataFrame) StatisticsResult
-        +calculate_trend_analysis(data: DataFrame, period: str) TrendResult
-        +calculate_percentiles(data: DataFrame, percentiles: List) Dict
-        +calculate_correlation_matrix(data: DataFrame) DataFrame
-        +calculate_moving_averages(data: DataFrame, windows: List) DataFrame
-        +detect_outliers(data: DataFrame, method: str) List[int]
-        +calculate_z_scores(data: DataFrame) DataFrame
-        -_validate_data(data: DataFrame) bool
-        -_cache_calculation(key: str, result: Any) void
+        -Queue import_queue
+        +load_csv_file(file_path: str, progress_callback: Callable) DataFrame
+        +load_xml_file(file_path: str, progress_callback: Callable) None
+        +process_dataframe(df: DataFrame, source: str) None
+        +get_import_statistics() dict
+        -_validate_csv_structure(df: DataFrame) bool
+        -_process_batch(batch: List[dict]) None
+        -_update_progress(current: int, total: int, callback: Callable) None
     }
-
-    %% Configuration Management
-    class ConfigManager {
-        <<Singleton>>
-        -Dict config_data
-        -str config_path
-        +__init__(config_path: str)
-        +get_config(key: str, default: Any) Any
-        +set_config(key: str, value: Any) void
-        +save_config() bool
-        +load_config() bool
-        +reset_config() void
-        +validate_config() Tuple[bool, List[str]]
-        -_ensure_config_exists() void
+    
+    class XMLStreamingProcessor {
+        -DataAccess data_access
+        -XMLValidator validator
+        -int batch_size
+        -List~dict~ current_batch
+        -dict statistics
+        +__init__(data_access: DataAccess)
+        +process_file(file_path: str, callback: Callable) None
+        +get_statistics() dict
+        -_handle_start_element(name: str, attrs: dict) None
+        -_handle_end_element(name: str) None
+        -_handle_character_data(data: str) None
+        -_flush_batch() None
     }
-
-    %% Relationships
-    DatabaseManager <|.. DataLoader : uses
-    DatabaseManager <|.. BaseDAO : uses
-    DataLoader *-- XMLStreamingProcessor : contains
     
-    BaseDAO <|-- JournalDAO : extends
-    BaseDAO <|-- PreferenceDAO : extends  
-    BaseDAO <|-- CacheDAO : extends
-    BaseDAO <|-- MetricsMetadataDAO : extends
-    BaseDAO <|-- DataSourceDAO : extends
-    BaseDAO <|-- ImportHistoryDAO : extends
+    class XMLValidator {
+        -List~str~ required_fields
+        -dict field_types
+        +validate_structure(root: Element) ValidationResult
+        +validate_record(record: dict) ValidationResult
+        +validate_date_format(date_str: str) bool
+        +validate_numeric_value(value: str, field: str) bool
+        -_check_required_fields(record: dict) List[str]
+        -_validate_field_types(record: dict) List[str]
+    }
     
-    StatisticsCalculator --> CacheDAO : uses
-    StatisticsCalculator --> DatabaseManager : uses
+    class DataFilterEngine {
+        -DataAccess data_access
+        -dict active_filters
+        -Logger logger
+        +apply_filters(data: DataFrame, filters: dict) DataFrame
+        +filter_by_date_range(df: DataFrame, start: date, end: date) DataFrame
+        +filter_by_source(df: DataFrame, sources: List[str]) DataFrame
+        +filter_by_type(df: DataFrame, types: List[str]) DataFrame
+        +get_available_filters(df: DataFrame) dict
+        -_optimize_query(filters: dict) str
+        -_build_query_conditions(filters: dict) List[str]
+    }
     
-    DataLoader --> StatisticsCalculator : creates
+    DataLoader --> XMLStreamingProcessor : uses
+    DataLoader --> DataAccess : saves data
+    XMLStreamingProcessor --> XMLValidator : validates
+    XMLStreamingProcessor --> DataAccess : batch saves
+    DataFilterEngine --> DataAccess : queries
     
-    %% Configuration relationships
-    ConfigManager <.. DatabaseManager : configures
-    ConfigManager <.. DataLoader : configures
-
-    %% Notes
-    note for DatabaseManager "Thread-safe singleton with connection pooling\nSupports WAL mode and automatic migrations"
-    note for BaseDAO "Abstract base providing common DAO functionality\nError handling and logging built-in"
-    note for CacheDAO "3-tier caching: Memory + SQLite + Compressed\nAutomatic expiration and cache warming"
-    note for XMLStreamingProcessor "Handles large XML files efficiently\nBatch processing for memory optimization"
+    note for XMLStreamingProcessor "SAX parser for memory efficiency"
+    note for DataFilterEngine "Optimized query building"
 ```
 
-## Data Processing Pipeline
+## Statistics and Analytics Core
 
 ```mermaid
-flowchart TD
-    subgraph "Data Import Layer"
-        XML[Apple Health XML]
-        CSV[CSV Files]
-        VALIDATOR[XML Validator]
-        STREAM_PROC[XML Streaming Processor]
-    end
+classDiagram
+    class StatisticsCalculator {
+        -DataAccess data_access
+        -Logger logger
+        +calculate_basic_stats(data: Series) BasicStats
+        +calculate_distribution(data: Series) Distribution
+        +calculate_percentiles(data: Series) dict
+        +calculate_moving_average(data: Series, window: int) Series
+        +calculate_trend(data: Series) TrendInfo
+        +perform_hypothesis_test(data1: Series, data2: Series) TestResult
+        -_remove_outliers(data: Series, method: str) Series
+        -_normalize_data(data: Series) Series
+    }
     
-    subgraph "Processing Layer"
-        DATA_LOADER[Data Loader]
-        DB_MGR[Database Manager]
-        STATS_CALC[Statistics Calculator]
-    end
+    class PredictiveAnalytics {
+        -DataAccess data_access
+        -Dict models
+        -Logger logger
+        +train_model(metric: str, data: DataFrame) Model
+        +predict_future(metric: str, periods: int) DataFrame
+        +detect_patterns(data: Series) List[Pattern]
+        +calculate_seasonality(data: Series) SeasonalInfo
+        +forecast_trend(data: Series, days: int) Series
+        -_select_best_model(data: Series) str
+        -_validate_predictions(actual: Series, predicted: Series) float
+    }
     
-    subgraph "Storage Layer"
-        SQLITE[(SQLite Database)]
-        CACHE_L1[L1: Memory Cache]
-        CACHE_L2[L2: SQLite Cache]
-        CACHE_L3[L3: Disk Cache]
-    end
+    class DataAvailabilityService {
+        -DataAccess data_access
+        -Cache availability_cache
+        +check_data_coverage(start: date, end: date) CoverageInfo
+        +get_available_metrics() List[str]
+        +get_date_range_for_metric(metric: str) tuple
+        +calculate_completeness(metric: str, period: str) float
+        +find_data_gaps(metric: str) List[DateRange]
+        -_build_availability_matrix() DataFrame
+        -_cache_availability_info() None
+    }
     
-    subgraph "Access Layer"
-        JOURNAL_DAO[Journal DAO]
-        PREF_DAO[Preference DAO]
-        CACHE_DAO[Cache DAO]
-        META_DAO[Metadata DAO]
-        IMPORT_DAO[Import History DAO]
-        SOURCE_DAO[Data Source DAO]
-    end
+    class FilterConfigManager {
+        -DataAccess data_access
+        -dict current_config
+        -Logger logger
+        +save_filter_config(name: str, config: dict) None
+        +load_filter_config(name: str) dict
+        +get_saved_configs() List[str]
+        +apply_saved_config(name: str) dict
+        +delete_config(name: str) None
+        +export_config(name: str, path: str) None
+        +import_config(path: str) str
+    }
     
-    %% Import flow
-    XML --> VALIDATOR
-    CSV --> VALIDATOR
-    VALIDATOR --> STREAM_PROC
-    STREAM_PROC --> DATA_LOADER
+    StatisticsCalculator --> DataAccess : queries data
+    PredictiveAnalytics --> DataAccess : queries data
+    DataAvailabilityService --> DataAccess : checks coverage
+    FilterConfigManager --> DataAccess : persists configs
     
-    %% Processing flow
-    DATA_LOADER --> DB_MGR
-    DATA_LOADER --> STATS_CALC
-    DB_MGR --> SQLITE
-    
-    %% Caching flow
-    STATS_CALC --> CACHE_L1
-    CACHE_L1 --> CACHE_L2
-    CACHE_L2 --> CACHE_L3
-    
-    %% DAO access
-    DB_MGR --> JOURNAL_DAO
-    DB_MGR --> PREF_DAO
-    DB_MGR --> META_DAO
-    DB_MGR --> IMPORT_DAO
-    DB_MGR --> SOURCE_DAO
-    
-    CACHE_L1 --> CACHE_DAO
-    CACHE_L2 --> CACHE_DAO
-    CACHE_L3 --> CACHE_DAO
-    
-    %% Styling
-    style XML fill:#e1f5fe
-    style SQLITE fill:#f3e5f5
-    style CACHE_L1 fill:#fff8e1
-    style DB_MGR fill:#4ecdc4,color:#fff
-    style STATS_CALC fill:#ff8b94,color:#fff
+    note for PredictiveAnalytics "ML-based forecasting"
+    note for DataAvailabilityService "Tracks data completeness"
 ```
 
-## Core Class Interactions
+## Configuration and Application Core
 
 ```mermaid
-sequenceDiagram
-    participant Client
-    participant DataLoader
-    participant XMLProcessor
-    participant DatabaseManager
-    participant StatsCalculator
-    participant CacheDAO
-    participant Model
-
-    Note over Client,Model: XML Import with Caching Flow
-    Client->>DataLoader: convert_xml_to_sqlite(xml_path)
-    DataLoader->>XMLProcessor: process_xml_file(xml_path)
-    XMLProcessor->>XMLProcessor: Stream parse & validate
-    XMLProcessor-->>DataLoader: Batched records
+classDiagram
+    class Config {
+        <<module>>
+        +APP_NAME: str
+        +VERSION: str
+        +WINDOW_TITLE: str
+        +MIN_WINDOW_SIZE: tuple
+        +DEFAULT_WINDOW_SIZE: tuple
+        +DB_PATH: str
+        +CACHE_DIR: str
+        +LOG_DIR: str
+        +DATE_FORMAT: str
+        +DATETIME_FORMAT: str
+        +COLORS: dict
+        +CHART_STYLE: dict
+        +get_app_dir() Path
+        +get_data_dir() Path
+        +ensure_directories() None
+    }
     
-    DataLoader->>DatabaseManager: get_connection()
-    DatabaseManager-->>DataLoader: DB Connection
-    DataLoader->>DatabaseManager: execute_many(records)
-    DatabaseManager-->>DataLoader: Import count
+    class MainApplication {
+        -QApplication app
+        -MainWindow main_window
+        -DatabaseManager db_manager
+        -Logger logger
+        +__init__(argv: list)
+        +run() int
+        +setup_exception_handling() None
+        +setup_logging() None
+        +check_single_instance() bool
+        -_cleanup() None
+        -_handle_exception(exc_type, exc_value, exc_traceback) None
+    }
     
-    DataLoader->>StatsCalculator: calculate_basic_stats(data)
-    StatsCalculator->>CacheDAO: cache_metrics(key, stats)
-    CacheDAO-->>StatsCalculator: Cache stored
-    StatsCalculator-->>DataLoader: Statistics
+    class Version {
+        <<module>>
+        +__version__: str
+        +__version_info__: tuple
+        +get_version() str
+        +get_version_info() dict
+        +check_for_updates() Optional[str]
+    }
     
-    DataLoader-->>Client: Import completed (count, stats)
-
-    Note over Client,Model: Cached Data Query Flow
-    Client->>CacheDAO: get_cached_metrics(params)
-    CacheDAO->>CacheDAO: Check cache expiration
-    alt Cache Hit
-        CacheDAO-->>Client: Cached DataFrame
-    else Cache Miss
-        CacheDAO->>DatabaseManager: execute_query(sql)
-        DatabaseManager-->>CacheDAO: Raw results
-        CacheDAO->>CacheDAO: Process & cache results
-        CacheDAO-->>Client: Fresh DataFrame
-    end
-
-    Note over Client,Model: Configuration Management
-    Client->>PreferenceDAO: get_preference(key)
-    PreferenceDAO->>DatabaseManager: execute_query()
-    DatabaseManager-->>PreferenceDAO: Raw value
-    PreferenceDAO->>PreferenceDAO: Deserialize value
-    PreferenceDAO-->>Client: Typed value
-```
-
-## Class Interactions
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant DataLoader
-    participant DatabaseManager
-    participant DAO
-    participant Model
-
-    Note over Client,Model: Data Import Flow
-    Client->>DataLoader: convert_xml_to_sqlite()
-    DataLoader->>DataLoader: Parse XML
-    DataLoader->>DatabaseManager: get_connection()
-    DatabaseManager-->>DataLoader: Connection
-    DataLoader->>DatabaseManager: execute_many()
-    DatabaseManager-->>DataLoader: Row count
-
-    Note over Client,Model: Data Query Flow
-    Client->>DAO: get_journal_entries()
-    DAO->>DatabaseManager: execute_query()
-    DatabaseManager-->>DAO: Raw results
-    DAO->>Model: from_dict()
-    Model-->>DAO: Model instance
-    DAO-->>Client: List[JournalEntry]
-
-    Note over Client,Model: Caching Flow
-    Client->>CacheDAO: get_cached_metrics()
-    CacheDAO->>CacheDAO: Check expiration
-    alt Cache Hit
-        CacheDAO-->>Client: Cached DataFrame
-    else Cache Miss
-        CacheDAO->>DatabaseManager: execute_query()
-        DatabaseManager-->>CacheDAO: Results
-        CacheDAO->>CacheDAO: Store in cache
-        CacheDAO-->>Client: Fresh DataFrame
-    end
+    MainApplication --> Config : uses configuration
+    MainApplication --> DatabaseManager : initializes
+    MainApplication --> Version : version info
+    
+    note for Config "Centralized configuration"
+    note for MainApplication "Application entry point"
 ```
 
 ## Key Design Patterns
 
-### 1. Singleton Pattern
-The `DatabaseManager` and `ConfigManager` use thread-safe singleton pattern:
+### Singleton Pattern
+- **DatabaseManager**: Ensures single database connection across the application
+- Thread-safe implementation with locks
 
-```python
-class DatabaseManager:
-    _instance = None
-    _lock = threading.Lock()
-    
-    def __new__(cls, db_path=None):
-        if not cls._instance:
-            with cls._lock:
-                if not cls._instance:
-                    cls._instance = super().__new__(cls)
-                    cls._instance.initialized = False
-        return cls._instance
-```
+### Data Access Object (DAO) Pattern
+- **DataAccess**: Abstracts database operations from business logic
+- Provides model-to-database mapping
 
-**Benefits:**
-- Single point of database access
-- Connection pooling and resource management
-- Thread-safe initialization
+### Factory Pattern
+- **XMLStreamingProcessor**: Creates appropriate parser based on file type
+- **DataLoader**: Creates appropriate loader for CSV/XML
 
-### 2. Context Manager Pattern
-Database connections are managed using context managers for resource safety:
+### Observer Pattern
+- Progress callbacks in data loading operations
+- Real-time UI updates during long operations
 
-```python
-@contextmanager
-def get_connection(self):
-    conn = sqlite3.connect(self.db_path, timeout=30.0)
-    conn.execute("PRAGMA journal_mode=WAL")
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
-```
-
-**Benefits:**
-- Automatic resource cleanup
-- Transaction management
-- Exception safety
-
-### 3. Data Access Object (DAO) Pattern
-Each entity type has a dedicated DAO that encapsulates database operations:
-
-```python
-class JournalDAO(BaseDAO):
-    def __init__(self):
-        super().__init__()
-        self.table_name = "journal_entries"
-        
-    def save_journal_entry(self, entry: JournalEntry) -> int:
-        with self.get_connection() as conn:
-            cursor = conn.execute(
-                self._get_insert_query(),
-                entry.to_dict()
-            )
-            return cursor.lastrowid
-```
-
-**Benefits:**
-- Clean separation of data access logic
-- Consistent error handling
-- Built-in caching integration
-
-### 4. Factory Pattern
-Model classes provide factory methods for object creation:
-
-```python
-@classmethod
-def from_dict(cls, data: Dict[str, Any]) -> 'JournalEntry':
-    """Factory method to create instance from dictionary."""
-    return cls(
-        entry_type=data['entry_type'],
-        content=data['content'],
-        created_at=datetime.fromisoformat(data['created_at'])
-    )
-```
-
-**Benefits:**
-- Flexible object creation
-- Input validation
-- Type safety
-
-### 5. Template Method Pattern
-BaseDAO provides template methods for common operations:
-
-```python
-class BaseDAO:
-    def execute_query(self, query: str, params: tuple = ()) -> List:
-        """Template method for executing queries."""
-        try:
-            self._validate_params(params)
-            with self.get_connection() as conn:
-                return self._execute_and_fetch(conn, query, params)
-        except Exception as e:
-            self._handle_db_error(e)
-            raise
-```
-
-**Benefits:**
-- Consistent error handling
-- Standardized logging
-- Uniform parameter validation
-
-### 6. Strategy Pattern
-Different caching strategies can be plugged in:
-
-```python
-class CacheDAO:
-    def __init__(self, strategy: CacheStrategy = "tiered"):
-        self.strategy = self._get_cache_strategy(strategy)
-    
-    def cache_metrics(self, key: str, data: DataFrame):
-        return self.strategy.cache(key, data)
-```
-
-**Benefits:**
-- Flexible caching approaches
-- Performance optimization
-- Runtime strategy switching
-
-## Performance Optimizations
-
-### 1. Connection Pooling
-```python
-class DatabaseManager:
-    def __init__(self):
-        self._connection_pool = queue.Queue(maxsize=10)
-        self._setup_connection_pool()
-```
-
-### 2. Batch Processing
-```python
-def _batch_insert_records(self, records: List[Dict]) -> int:
-    """Process records in batches for better performance."""
-    batch_size = 1000
-    total_inserted = 0
-    
-    for i in range(0, len(records), batch_size):
-        batch = records[i:i + batch_size]
-        total_inserted += self._insert_batch(batch)
-    
-    return total_inserted
-```
-
-### 3. Lazy Loading
-```python
-class DataLoader:
-    @property
-    def all_records(self) -> DataFrame:
-        """Lazy-load all records only when accessed."""
-        if not hasattr(self, '_all_records'):
-            self._all_records = self._load_all_records()
-        return self._all_records
-```
-
-### 4. Caching Integration
-```python
-def calculate_basic_stats(self, data: DataFrame) -> StatisticsResult:
-    cache_key = self._generate_cache_key(data.columns, len(data))
-    
-    # Check cache first
-    cached_result = self.cache_dao.get_cached_metrics(cache_key)
-    if cached_result is not None:
-        return cached_result
-    
-    # Calculate and cache result
-    result = self._perform_calculation(data)
-    self.cache_dao.cache_metrics(cache_key, result, expires_in=3600)
-    return result
-```
-
-## Error Handling Strategy
-
-### Custom Exception Hierarchy
-```python
-class DatabaseError(Exception):
-    """Base database exception."""
-    pass
-
-class ConnectionError(DatabaseError):
-    """Database connection failed."""
-    pass
-
-class MigrationError(DatabaseError):
-    """Database migration failed."""
-    pass
-
-class DataValidationError(DatabaseError):
-    """Data validation failed."""
-    pass
-```
-
-### Error Context Management
-```python
-def _handle_db_error(self, error: Exception) -> None:
-    """Centralized error handling with context."""
-    self.logger.error(
-        f"Database operation failed in {self.__class__.__name__}",
-        extra={
-            'error_type': type(error).__name__,
-            'table_name': getattr(self, 'table_name', 'unknown'),
-            'operation': getattr(self, '_current_operation', 'unknown')
-        }
-    )
-```
+### Strategy Pattern
+- **DataFilterEngine**: Different filtering strategies based on criteria
+- **StatisticsCalculator**: Multiple statistical methods

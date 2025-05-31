@@ -1,10 +1,10 @@
 # Maintain Mermaid Diagrams
 
-Instructions for maintaining and updating the mermaid diagrams in the current project's architecture documentation.
+Instructions for generating, maintaining and updating the mermaid diagrams in the current project's architecture documentation.
 
 ## 📋 Overview
 
-The architecture documentation includes comprehensive mermaid diagrams that illustrate:
+The architecture documentation should include comprehensive mermaid diagrams that illustrate:
 - System context and component relationships  
 - Module dependencies and data flows (150+ modules)
 - Class hierarchies and interactions
@@ -12,7 +12,7 @@ The architecture documentation includes comprehensive mermaid diagrams that illu
 
 ## 📂 Diagram Locations
 
-All architecture diagrams are stored in `/docs/architecture/`:
+All architecture diagrams are to be stored in `/docs/architecture/`:
 
 ```
 docs/architecture/

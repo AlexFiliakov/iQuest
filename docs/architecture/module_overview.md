@@ -1,515 +1,370 @@
-# Apple Health Monitor Dashboard - Module Overview
+# Module Overview
 
-This diagram shows the detailed relationships between modules across all layers, their dependencies, and data flow patterns throughout the entire application.
+This document provides a comprehensive overview of the 207 Python modules in the Apple Health Monitor Dashboard, organized by their architectural layers and relationships.
 
-## Complete Module Architecture
+## High-Level Module Architecture
 
 ```mermaid
-flowchart TD
-    %% Entry Point
-    MAIN[main.py<br/>🚀 Application Entry]
-
-    %% Core Infrastructure
-    subgraph "Core Infrastructure Layer"
-        direction LR
-        DB[database.py<br/>🗄️ DB Manager<br/>Singleton]
-        DA[data_access.py<br/>📋 DAO Pattern<br/>7 DAOs]
-        MOD[models.py<br/>📊 Data Models<br/>7 Dataclasses]
-        DL[data_loader.py<br/>📥 XML/CSV Import<br/>Streaming]
-        CFG[config.py<br/>⚙️ Configuration<br/>Constants]
+flowchart TB
+    subgraph "Core Layer (14 modules)"
+        MAIN[main.py<br/>Entry Point]
+        CONFIG[config.py<br/>Configuration]
+        MODELS[models.py<br/>Data Models]
+        DB[database.py<br/>DB Manager]
+        LOADER[data_loader.py<br/>Import Engine]
+        XML[xml_streaming_processor.py<br/>XML Parser]
     end
-
-    %% Analytics Engine
-    subgraph "Analytics Engine"
-        direction TB
-        DAILY[daily_metrics_calculator.py<br/>📈 Daily Analytics]
-        MONTHLY[monthly_metrics_calculator.py<br/>📅 Monthly Analytics]
-        CACHE[cache_manager.py<br/>⚡ 3-Tier Cache<br/>LRU/SQLite/Disk]
-        STATS[statistics_calculator.py<br/>📊 Statistical Analysis]
-        subgraph "Health Scoring"
-            HS[health_score_calculator.py<br/>💚 Health Score]
-            COMP[component_calculators.py<br/>🔢 Score Components]
-            PERS[personalization_engine.py<br/>👤 Personalization]
-        end
-        ANOM[anomaly_detection.py<br/>🚨 Anomaly Detection]
-    end
-
-    %% UI Layer
-    subgraph "User Interface Layer"
-        direction TB
-        MW[main_window.py<br/>🏠 Main Window<br/>Tab Navigation]
-        CT[configuration_tab.py<br/>⚙️ Config Tab<br/>Import & Filter]
-        
-        subgraph "Dashboard Widgets"
-            DAILY_DASH[daily_dashboard_widget.py<br/>📅 Daily Dashboard]
-            WEEKLY_DASH[weekly_dashboard_widget.py<br/>📊 Weekly Dashboard]
-            MONTHLY_DASH[monthly_dashboard_widget.py<br/>📈 Monthly Dashboard]
+    
+    subgraph "Analytics Engine (61 modules)"
+        subgraph "Calculators"
+            DAILY_CALC[daily_metrics_calculator.py<br/>Daily Stats]
+            WEEKLY_CALC[weekly_metrics_calculator.py<br/>Weekly Stats]
+            MONTHLY_CALC[monthly_metrics_calculator.py<br/>Monthly Stats]
         end
         
-        subgraph "Chart Components"
-            BASE_CHART[base_chart.py<br/>📊 Chart Base]
-            LINE_CHART[line_chart.py<br/>📈 Line Charts]
-            CAL_HEAT[calendar_heatmap.py<br/>🗓️ Calendar Heatmap]
-            ENHANCED_LINE[enhanced_line_chart.py<br/>⚡ Enhanced Line]
+        subgraph "Advanced Analytics"
+            ANOMALY[anomaly_detection.py<br/>Outlier Detection]
+            CORRELATION[correlation_analyzer.py<br/>Correlations]
+            PREDICT[predictive_analytics.py<br/>Predictions]
         end
         
-        subgraph "UI Components"
-            MULTI_SELECT[multi_select_combo.py<br/>☑️ Multi-Select]
-            STATS_WIDGET[statistics_widget.py<br/>📊 Stats Display]
-            STYLE_MGR[style_manager.py<br/>🎨 WSJ Styling]
+        subgraph "Health Score System"
+            HEALTH_SCORE[health_score_calculator.py<br/>Overall Score]
+            COMPONENTS[component_calculators.py<br/>Sub-scores]
+        end
+        
+        CACHE[cache_manager.py<br/>Performance Cache]
+    end
+    
+    subgraph "UI Layer (127 modules)"
+        subgraph "Main Windows"
+            MAIN_WIN[main_window.py<br/>Application Shell]
+            CONFIG_TAB[configuration_tab.py<br/>Settings UI]
+            DASH_DAILY[daily_dashboard_widget.py<br/>Daily View]
+            DASH_WEEKLY[weekly_dashboard_widget.py<br/>Weekly View]
+            DASH_MONTHLY[monthly_dashboard_widget.py<br/>Monthly View]
+        end
+        
+        subgraph "Charts Package (51 modules)"
+            CHART_BASE[base_chart.py<br/>Chart Framework]
+            LINE_CHART[line_chart.py<br/>Time Series]
+            HEATMAP[calendar_heatmap.py<br/>Calendar View]
+        end
+        
+        STYLE[style_manager.py<br/>Theme Engine]
+    end
+    
+    subgraph "Utils Layer (4 modules)"
+        ERROR[error_handler.py<br/>Error Management]
+        LOG[logging_config.py<br/>Logging]
+        VALIDATOR[xml_validator.py<br/>Validation]
+    end
+    
+    %% Key relationships
+    MAIN --> MAIN_WIN
+    MAIN_WIN --> CONFIG_TAB
+    MAIN_WIN --> DASH_DAILY
+    MAIN_WIN --> DASH_WEEKLY
+    MAIN_WIN --> DASH_MONTHLY
+    
+    CONFIG_TAB --> LOADER
+    LOADER --> XML
+    LOADER --> DB
+    
+    DASH_DAILY --> DAILY_CALC
+    DASH_WEEKLY --> WEEKLY_CALC
+    DASH_MONTHLY --> MONTHLY_CALC
+    
+    DAILY_CALC --> CACHE
+    WEEKLY_CALC --> CACHE
+    MONTHLY_CALC --> CACHE
+    
+    DASH_DAILY --> LINE_CHART
+    DASH_MONTHLY --> HEATMAP
+    
+    %% Styling
+    style MAIN fill:#4ecdc4,color:#fff
+    style MAIN_WIN fill:#e8f5e8
+    style CACHE fill:#fff8e1
+    style DB fill:#f3e5f5
+```
+
+## Detailed Module Breakdown by Package
+
+### Core Layer Structure
+
+```mermaid
+flowchart LR
+    subgraph "Entry & Config"
+        MAIN[main.py]
+        CONFIG[config.py]
+        VERSION[version.py]
+    end
+    
+    subgraph "Data Models"
+        MODELS[models.py<br/>• HealthRecord<br/>• JournalEntry<br/>• UserPreference<br/>• ImportHistory<br/>• CachedMetric<br/>• AggregatedData<br/>• DataAvailability]
+    end
+    
+    subgraph "Database Layer"
+        DATABASE[database.py<br/>Thread-safe SQLite]
+        HEALTH_DB[health_database.py<br/>Health-specific ops]
+        DATA_ACCESS[data_access.py<br/>DAO Pattern]
+    end
+    
+    subgraph "Data Processing"
+        LOADER[data_loader.py<br/>Import orchestrator]
+        XML_PROC[xml_streaming_processor.py<br/>SAX parser]
+        FILTER[data_filter_engine.py<br/>Query engine]
+        AVAIL[data_availability_service.py<br/>Coverage tracking]
+    end
+    
+    subgraph "Core Services"
+        FILTER_MGR[filter_config_manager.py<br/>Filter persistence]
+        STATS_CALC[statistics_calculator.py<br/>Basic statistics]
+        PREDICT_CORE[predictive_analytics.py<br/>ML predictions]
+    end
+    
+    MAIN --> CONFIG
+    MAIN --> MAIN_WIN[To UI Layer]
+    LOADER --> XML_PROC
+    LOADER --> DATABASE
+    DATABASE --> DATA_ACCESS
+    FILTER --> DATA_ACCESS
+    STATS_CALC --> DATA_ACCESS
+    
+    style MAIN fill:#4ecdc4,color:#fff
+    style DATABASE fill:#f3e5f5
+    style LOADER fill:#4ecdc4,color:#fff
+```
+
+### Analytics Engine Architecture
+
+```mermaid
+flowchart TB
+    subgraph "Analytics Orchestration"
+        ENGINE[optimized_analytics_engine.py<br/>Main coordinator]
+        STREAM_LOAD[streaming_data_loader.py<br/>Data streaming]
+        PROG_LOAD[progressive_loader.py<br/>Incremental loading]
+        QUEUE[computation_queue.py<br/>Task queue]
+    end
+    
+    subgraph "Metric Calculators"
+        DAILY[daily_metrics_calculator.py]
+        WEEKLY[weekly_metrics_calculator.py]
+        MONTHLY[monthly_metrics_calculator.py]
+        CACHED_CALC[cached_calculators.py<br/>Memoized calculations]
+        COMP_OVERLAY[comparison_overlay_calculator.py]
+    end
+    
+    subgraph "Pattern Analysis"
+        DOW[day_of_week_analyzer.py<br/>Weekly patterns]
+        SEASONAL[seasonal_pattern_analyzer.py<br/>Yearly patterns]
+        WOW[week_over_week_trends.py<br/>Weekly trends]
+        MOM[month_over_month_trends.py<br/>Monthly trends]
+    end
+    
+    subgraph "Advanced Analytics"
+        subgraph "Anomaly Detection"
+            ANOMALY_SYS[anomaly_detection_system.py]
+            ANOMALY_DET[anomaly_detectors.py]
+            ENSEMBLE[ensemble_detector.py]
+            TEMPORAL[temporal_anomaly_detector.py]
+        end
+        
+        subgraph "Correlation & Insights"
+            CORR[correlation_analyzer.py]
+            CAUSAL[causality_detector.py]
+            STORY[data_story_generator.py]
+            INSIGHTS[health_insights_engine.py]
+        end
+        
+        subgraph "Goals & Records"
+            GOALS[goal_management_system.py]
+            RECORDS[personal_records_tracker.py]
+            PEER[peer_group_comparison.py]
+            FEEDBACK[feedback_processor.py]
         end
     end
-
-    %% Utilities
-    subgraph "Utilities Layer"
-        direction LR
-        ERR[error_handler.py<br/>⚠️ Error Handling<br/>Custom Exceptions]
-        LOG[logging_config.py<br/>📝 Logging<br/>Structured + Rotation]
-        XML_VAL[xml_validator.py<br/>✅ XML Validation<br/>Apple Health]
-        VER[version.py<br/>🔖 Version Info]
+    
+    subgraph "Performance Layer"
+        CACHE[cache_manager.py<br/>LRU + SQLite]
+        BG_REFRESH[cache_background_refresh.py]
+        CONN_POOL[connection_pool.py<br/>DB connections]
+        PERF_MON[performance_monitor.py]
     end
-
-    %% External Dependencies
-    subgraph "External Libraries"
-        direction LR
-        PYQT[PyQt6<br/>🖥️ Desktop UI]
-        PANDAS[Pandas<br/>🐼 Data Analysis]
-        SQLITE[SQLite<br/>🗄️ Database]
-        MPL[Matplotlib<br/>📊 Plotting]
-        NUMPY[NumPy<br/>🔢 Numerics]
-    end
-
-    %% Primary Dependencies (solid lines)
-    MAIN --> MW
-    MAIN --> LOG
-    MAIN --> ERR
     
-    MW --> CT
-    MW --> DAILY_DASH
-    MW --> WEEKLY_DASH
-    MW --> MONTHLY_DASH
-    MW --> STYLE_MGR
-    
-    CT --> DL
-    CT --> DA
-    CT --> MULTI_SELECT
-    
-    DAILY_DASH --> DAILY
-    WEEKLY_DASH --> STATS
-    MONTHLY_DASH --> MONTHLY
-    
-    DAILY_DASH --> LINE_CHART
-    WEEKLY_DASH --> ENHANCED_LINE
-    MONTHLY_DASH --> CAL_HEAT
-    
-    LINE_CHART --> BASE_CHART
-    ENHANCED_LINE --> BASE_CHART
-    CAL_HEAT --> BASE_CHART
-    
-    DAILY --> DA
-    MONTHLY --> DA
-    STATS --> DA
-    CACHE --> DA
-    
-    HS --> COMP
-    HS --> PERS
-    ANOM --> STATS
-    
-    DA --> DB
-    DA --> MOD
-    DL --> DB
-    DL --> MOD
+    ENGINE --> STREAM_LOAD
+    ENGINE --> QUEUE
+    ENGINE --> DAILY
+    ENGINE --> WEEKLY
+    ENGINE --> MONTHLY
     
     DAILY --> CACHE
+    WEEKLY --> CACHE
     MONTHLY --> CACHE
-    STATS --> CACHE
     
-    %% Cross-cutting concerns (dashed lines)
-    ERR -.-> DL
-    ERR -.-> DB
-    ERR -.-> DA
-    ERR -.-> MW
+    ANOMALY_SYS --> ENSEMBLE
+    CORR --> INSIGHTS
+    INSIGHTS --> STORY
     
-    LOG -.-> DL
-    LOG -.-> DB
-    LOG -.-> MW
-    LOG -.-> DAILY
-    LOG -.-> MONTHLY
-    
-    CFG -.-> DB
-    CFG -.-> MW
-    CFG -.-> DL
-    
-    XML_VAL -.-> DL
-    
-    %% External library usage (dotted lines)
-    MW -.-> PYQT
-    BASE_CHART -.-> MPL
-    DA -.-> PANDAS
-    DB -.-> SQLITE
-    STATS -.-> NUMPY
-    DL -.-> PANDAS
-    
-    %% Styling
-    style MAIN fill:#ff6b6b,color:#fff,stroke:#333,stroke-width:3px
-    style DB fill:#4ecdc4,color:#fff,stroke:#333,stroke-width:2px
-    style CACHE fill:#ffe66d,color:#333,stroke:#333,stroke-width:2px
-    style MW fill:#a8e6cf,color:#333,stroke:#333,stroke-width:2px
-    style DAILY fill:#ff8b94,color:#fff,stroke:#333,stroke-width:2px
-    style MONTHLY fill:#ff8b94,color:#fff,stroke:#333,stroke-width:2px
-    style HS fill:#c7ceea,color:#333,stroke:#333,stroke-width:2px
+    style ENGINE fill:#4ecdc4,color:#fff
+    style CACHE fill:#fff8e1
+    style INSIGHTS fill:#f3e5f5
 ```
 
-## Analytics Module Relationships
+### UI Layer Components
 
 ```mermaid
-flowchart LR
-    subgraph "Data Sources"
-        DAO[Data Access Objects<br/>📋 CRUD Operations]
-        CACHE_DB[Cached Data<br/>⚡ Performance Layer]
+flowchart TB
+    subgraph "Application Shell"
+        MAIN_WIN[main_window.py<br/>Tab container]
+        STYLE_MGR[style_manager.py<br/>WSJ theming]
+        SETTINGS[settings_manager.py<br/>Preferences]
+        PREF_TRACK[preference_tracker.py<br/>Usage tracking]
     end
     
-    subgraph "Calculator Layer"
-        DAILY_CALC[DailyMetricsCalculator<br/>📅 Daily Analysis]
-        WEEKLY_CALC[WeeklyMetricsCalculator<br/>📊 Weekly Analysis]
-        MONTHLY_CALC[MonthlyMetricsCalculator<br/>📈 Monthly Analysis]
-        STATS_CALC[StatisticsCalculator<br/>📊 Statistical Analysis]
+    subgraph "Configuration UI"
+        CONFIG_TAB[configuration_tab.py]
+        ADAPT_CONFIG[adaptive_configuration_tab.py]
+        IMPORT_DLG[import_progress_dialog.py]
+        IMPORT_WORK[import_worker.py]
     end
     
-    subgraph "Analysis Services"
-        COMP_ANALYTICS[ComparativeAnalytics<br/>🔄 Comparisons]
-        ANOM_DETECT[AnomalyDetection<br/>🚨 Outlier Detection]
-        TREND_ANALYZER[TrendAnalyzer<br/>📈 Trend Analysis]
-        CORR_ANALYZER[CorrelationAnalyzer<br/>🔗 Correlations]
+    subgraph "Dashboard Widgets"
+        DAILY_DASH[daily_dashboard_widget.py]
+        WEEKLY_DASH[weekly_dashboard_widget.py]
+        MONTHLY_DASH[monthly_dashboard_widget.py]
+        
+        subgraph "Common Components"
+            STATS_WID[statistics_widget.py]
+            SUMM_CARDS[summary_cards.py]
+            TABLE_COMP[table_components.py]
+            TIMELINE[activity_timeline_component.py]
+        end
+        
+        subgraph "Specialized Views"
+            GOAL_PROG[goal_progress_widget.py]
+            TROPHY[trophy_case_widget.py]
+            STORY_WID[data_story_widget.py]
+            INSIGHTS_WID[health_insights_widget.py]
+        end
     end
     
-    subgraph "Health Scoring System"
-        HEALTH_SCORE[HealthScoreCalculator<br/>💚 Overall Score]
-        COMPONENT_CALC[ComponentCalculators<br/>🔢 Score Components]
-        PERSONAL_ENGINE[PersonalizationEngine<br/>👤 User Adaptation]
+    subgraph "Input Components"
+        DATE_EDIT[enhanced_date_edit.py]
+        ADAPT_DATE[adaptive_date_edit.py]
+        MULTI_SEL[multi_select_combo.py]
+        TIME_RANGE[adaptive_time_range_selector.py]
+        SMART_DEF[smart_default_selector.py]
     end
     
-    subgraph "Caching & Performance"
-        CACHE_MGR[CacheManager<br/>⚡ 3-Tier Caching]
-        CACHED_CALC[CachedCalculators<br/>📊 Cached Analytics]
-        BG_REFRESH[BackgroundRefresh<br/>🔄 Cache Warming]
+    subgraph "Visualization Components"
+        TREND_IND[daily_trend_indicator.py]
+        AVAIL_IND[data_availability_indicator.py]
+        COMP_VIZ[comparative_visualization.py]
+        CORR_MATRIX[correlation_matrix_widget.py]
+        OVERLAY[comparison_overlay_widget.py]
     end
     
-    %% Data flow
-    DAO --> DAILY_CALC
-    DAO --> WEEKLY_CALC
-    DAO --> MONTHLY_CALC
-    DAO --> STATS_CALC
+    MAIN_WIN --> CONFIG_TAB
+    MAIN_WIN --> DAILY_DASH
+    MAIN_WIN --> WEEKLY_DASH
+    MAIN_WIN --> MONTHLY_DASH
     
-    CACHE_DB --> DAILY_CALC
-    CACHE_DB --> WEEKLY_CALC
-    CACHE_DB --> MONTHLY_CALC
+    DAILY_DASH --> STATS_WID
+    DAILY_DASH --> SUMM_CARDS
+    WEEKLY_DASH --> TABLE_COMP
+    MONTHLY_DASH --> TIMELINE
     
-    %% Analytics processing
-    DAILY_CALC --> COMP_ANALYTICS
-    WEEKLY_CALC --> COMP_ANALYTICS
-    MONTHLY_CALC --> COMP_ANALYTICS
-    
-    STATS_CALC --> ANOM_DETECT
-    STATS_CALC --> TREND_ANALYZER
-    STATS_CALC --> CORR_ANALYZER
-    
-    %% Health scoring
-    DAILY_CALC --> COMPONENT_CALC
-    WEEKLY_CALC --> COMPONENT_CALC
-    MONTHLY_CALC --> COMPONENT_CALC
-    
-    COMPONENT_CALC --> HEALTH_SCORE
-    PERSONAL_ENGINE --> HEALTH_SCORE
-    TREND_ANALYZER --> HEALTH_SCORE
-    
-    %% Caching layer
-    DAILY_CALC --> CACHE_MGR
-    WEEKLY_CALC --> CACHE_MGR
-    MONTHLY_CALC --> CACHE_MGR
-    STATS_CALC --> CACHE_MGR
-    
-    CACHE_MGR --> CACHED_CALC
-    BG_REFRESH --> CACHE_MGR
-    
-    %% Performance optimization
-    CACHED_CALC --> COMP_ANALYTICS
-    CACHED_CALC --> HEALTH_SCORE
-    
-    %% Styling
-    style DAO fill:#e8f4f8
-    style CACHE_DB fill:#fff8dc
-    style DAILY_CALC fill:#e8f8e8
-    style HEALTH_SCORE fill:#f0e8ff
-    style CACHE_MGR fill:#fff0e8
-```
-
-## UI Component Hierarchy
-
-```mermaid
-flowchart TD
-    subgraph "Main Application Shell"
-        MW[MainWindow<br/>🏠 QMainWindow<br/>Tab Navigation]
-    end
-    
-    subgraph "Primary Tabs"
-        CONFIG_TAB[ConfigurationTab<br/>⚙️ Data Import & Filters]
-        DAILY_TAB[DailyDashboardWidget<br/>📅 Daily Analysis]
-        WEEKLY_TAB[WeeklyDashboardWidget<br/>📊 Weekly Analysis] 
-        MONTHLY_TAB[MonthlyDashboardWidget<br/>📈 Monthly Analysis]
-    end
-    
-    subgraph "Chart System"
-        CHART_FACTORY[ComponentFactory<br/>🏭 Chart Creation]
-        BASE_CHART[BaseChart<br/>📊 Abstract Base]
-        LINE_CHART[LineChart<br/>📈 Basic Line]
-        ENHANCED_LINE[EnhancedLineChart<br/>⚡ Advanced Line]
-        CAL_HEATMAP[CalendarHeatmap<br/>🗓️ Daily Heatmap]
-        WSJ_STYLE[WSJStyleManager<br/>🎨 Professional Styling]
-    end
-    
-    subgraph "Data Input Components"
-        MULTI_SELECT[MultiSelectCombo<br/>☑️ Multi-Selection]
-        DATE_EDIT[EnhancedDateEdit<br/>📅 Date Selection]
-        TIME_RANGE[TimeRangeSelector<br/>⏰ Time Periods]
-    end
-    
-    subgraph "Display Components"
-        STATS_WIDGET[StatisticsWidget<br/>📊 Stats Display]
-        SUMMARY_CARDS[SummaryCards<br/>📋 Key Metrics]
-        TABLE_COMP[TableComponents<br/>📑 Data Tables]
-        TREND_INDICATOR[TrendIndicator<br/>📈 Trend Arrows]
-    end
-    
-    subgraph "Interactive Features"
-        TOOLTIP[InteractiveTooltip<br/>💬 Rich Tooltips]
-        ZOOM[ZoomController<br/>🔍 Chart Zoom]
-        BRUSH[BrushSelector<br/>🖌️ Data Selection]
-        DRILL_DOWN[DrillDownNavigator<br/>🎯 Detail Navigation]
-    end
-    
-    %% Main window relationships
-    MW --> CONFIG_TAB
-    MW --> DAILY_TAB
-    MW --> WEEKLY_TAB
-    MW --> MONTHLY_TAB
-    
-    %% Tab content
-    CONFIG_TAB --> MULTI_SELECT
     CONFIG_TAB --> DATE_EDIT
-    CONFIG_TAB --> TIME_RANGE
+    CONFIG_TAB --> MULTI_SEL
     
-    DAILY_TAB --> CHART_FACTORY
-    WEEKLY_TAB --> CHART_FACTORY
-    MONTHLY_TAB --> CHART_FACTORY
-    
-    DAILY_TAB --> STATS_WIDGET
-    WEEKLY_TAB --> SUMMARY_CARDS
-    MONTHLY_TAB --> TABLE_COMP
-    
-    %% Chart system
-    CHART_FACTORY --> BASE_CHART
-    BASE_CHART --> LINE_CHART
-    BASE_CHART --> ENHANCED_LINE
-    BASE_CHART --> CAL_HEATMAP
-    
-    WSJ_STYLE --> LINE_CHART
-    WSJ_STYLE --> ENHANCED_LINE
-    WSJ_STYLE --> CAL_HEATMAP
-    
-    %% Interactive features
-    LINE_CHART --> TOOLTIP
-    ENHANCED_LINE --> ZOOM
-    ENHANCED_LINE --> BRUSH
-    CAL_HEATMAP --> DRILL_DOWN
-    
-    STATS_WIDGET --> TREND_INDICATOR
-    
-    %% Styling
-    style MW fill:#ff6b6b,color:#fff
-    style CONFIG_TAB fill:#4ecdc4,color:#fff
-    style DAILY_TAB fill:#45b7d1,color:#fff
-    style WEEKLY_TAB fill:#96ceb4,color:#fff
-    style MONTHLY_TAB fill:#feca57,color:#333
-    style CHART_FACTORY fill:#ff9ff3,color:#333
-    style WSJ_STYLE fill:#54a0ff,color:#fff
+    style MAIN_WIN fill:#e8f5e8
+    style DAILY_DASH fill:#e8f5e8
+    style STATS_WID fill:#e8f5e8
 ```
 
-## Module Interaction Patterns
-
-sequenceDiagram
-    participant U as User
-    participant MW as MainWindow
-    participant CT as ConfigurationTab
-    participant DL as DataLoader
-    participant DB as Database
-    participant CACHE as CacheManager
-    participant ANALYTICS as Analytics
-    participant DASHBOARD as Dashboard
-
-    Note over U,DASHBOARD: Application Startup
-    U->>MW: Launch Application
-    MW->>DB: Initialize Database
-    DB->>DB: Create/Update Schema
-    MW->>CACHE: Initialize Cache System
-    MW->>CT: Create Configuration Tab
-
-    Note over U,DASHBOARD: Data Import Flow
-    U->>CT: Select Import File
-    CT->>DL: Import Data
-    DL->>DL: Parse & Validate XML/CSV
-    DL->>DB: Store in SQLite
-    DB->>CACHE: Invalidate Affected Cache
-    CT->>U: Show Import Progress
-
-    Note over U,DASHBOARD: Analytics Processing Flow
-    U->>DASHBOARD: Switch to Dashboard Tab
-    DASHBOARD->>CACHE: Check Cache for Data
-    alt Cache Hit
-        CACHE->>DASHBOARD: Return Cached Results
-    else Cache Miss
-        CACHE->>ANALYTICS: Request Calculations
-        ANALYTICS->>DB: Query Raw Data
-        DB->>ANALYTICS: Return Data
-        ANALYTICS->>ANALYTICS: Perform Analysis
-        ANALYTICS->>CACHE: Store Results
-        CACHE->>DASHBOARD: Return Results
-    end
-    DASHBOARD->>U: Display Visualizations
-
-    Note over U,DASHBOARD: Real-time Filter Updates
-    U->>DASHBOARD: Apply Filter
-    DASHBOARD->>CACHE: Check Filtered Cache
-    CACHE->>ANALYTICS: Calculate if Needed
-    ANALYTICS->>CACHE: Update Cache
-    CACHE->>DASHBOARD: Return Results
-    DASHBOARD->>U: Update Charts
-```
-
-## Data Flow Patterns
+### Charts Subsystem (51 modules)
 
 ```mermaid
-flowchart LR
-    subgraph "Import Pipeline"
-        XML[Apple Health XML]
-        CSV[CSV Files]
-        VALIDATOR[XML Validator]
-        PARSER[Streaming Parser]
-        CLEANER[Data Cleaner]
-        LOADER[Database Loader]
+flowchart TB
+    subgraph "Chart Infrastructure"
+        BASE[base_chart.py<br/>Abstract base]
+        ENH_BASE[enhanced_base_chart.py<br/>Extended features]
+        CONFIG[chart_config.py<br/>Configuration]
+        FACTORY_MPL[matplotlib_chart_factory.py]
+        FACTORY_PQG[pyqtgraph_chart_factory.py]
     end
     
-    subgraph "Processing Pipeline" 
-        RAW_DATA[Raw Health Data]
-        AGGREGATOR[Data Aggregator]
-        CALCULATOR[Metrics Calculator]
-        SCORER[Health Scorer]
-        CACHED_RESULTS[Cached Results]
+    subgraph "Chart Types"
+        LINE[line_chart.py<br/>Time series]
+        ENH_LINE[enhanced_line_chart.py<br/>Interactive]
+        BAR[../bar_chart_component.py]
+        HEATMAP[calendar_heatmap.py<br/>Monthly view]
+        WATERFALL[waterfall_chart.py<br/>Changes]
+        STREAM[stream_graph.py<br/>Stacked area]
+        BUMP[bump_chart.py<br/>Rankings]
+        SMALL_MULT[small_multiples.py<br/>Grid layout]
     end
     
-    subgraph "Visualization Pipeline"
-        FILTER_ENGINE[Filter Engine]
-        CHART_DATA[Chart Data Prep]
-        RENDERER[Chart Renderer]
-        UI_UPDATE[UI Update]
+    subgraph "Enhancements"
+        ANNOTATE[annotation_renderer.py]
+        LAYOUT[annotation_layout_manager.py]
+        RESPONSIVE[responsive_chart_manager.py]
+        OPTIMIZE[chart_performance_optimizer.py]
+        ACCESS[chart_accessibility_manager.py]
     end
     
-    %% Import flow
-    XML --> VALIDATOR
-    CSV --> VALIDATOR
-    VALIDATOR --> PARSER
-    PARSER --> CLEANER
-    CLEANER --> LOADER
-    LOADER --> RAW_DATA
+    subgraph "Export System"
+        EXPORT_MGR[wsj_export_manager.py]
+        IMG_EXPORT[image_exporter.py]
+        PDF_EXPORT[pdf_export_thread.py]
+        HTML_BUILD[html_export_builder.py]
+        DATA_EXPORT[data_exporter.py]
+        SHARE[share_manager.py]
+    end
     
-    %% Processing flow
-    RAW_DATA --> AGGREGATOR
-    AGGREGATOR --> CALCULATOR
-    CALCULATOR --> SCORER
-    SCORER --> CACHED_RESULTS
+    subgraph "Interactions"
+        INTERACT[chart_interaction_manager.py]
+        ZOOM[zoom_controller.py]
+        BRUSH[brush_selector.py]
+        TOOLTIP[wsj_tooltip.py]
+        KEYBOARD[keyboard_navigation.py]
+        DRILL[drill_down_navigator.py]
+    end
     
-    %% Visualization flow
-    CACHED_RESULTS --> FILTER_ENGINE
-    FILTER_ENGINE --> CHART_DATA
-    CHART_DATA --> RENDERER
-    RENDERER --> UI_UPDATE
+    BASE --> LINE
+    BASE --> HEATMAP
+    ENH_BASE --> ENH_LINE
     
-    %% Feedback loops
-    UI_UPDATE -.-> FILTER_ENGINE
-    CACHED_RESULTS -.-> CALCULATOR
+    LINE --> ANNOTATE
+    ENH_LINE --> INTERACT
+    INTERACT --> ZOOM
+    INTERACT --> BRUSH
     
-    %% Styling
-    style XML fill:#e1f5fe
-    style RAW_DATA fill:#f3e5f5
-    style CACHED_RESULTS fill:#fff8e1
-    style UI_UPDATE fill:#e8f5e8
+    style BASE fill:#e8f5e8
+    style EXPORT_MGR fill:#4ecdc4,color:#fff
+    style INTERACT fill:#e8f5e8
 ```
 
-## Key Design Patterns
+### Module Statistics Summary
 
-### 1. Singleton Pattern
-- **Database Manager**: Thread-safe singleton ensuring single connection point
-- **Cache Manager**: Global cache coordination across the application
-- **Style Manager**: Consistent WSJ-inspired theme application
+| Package | Module Count | Key Responsibilities |
+|---------|--------------|---------------------|
+| Core | 14 | Entry point, data models, database, data loading |
+| Analytics | 61 | Metrics calculation, anomaly detection, insights |
+| └─ Health Score | 6 | Health scoring subsystem |
+| UI | 127 | User interface components and widgets |
+| └─ Charts | 51 | Visualization components |
+| └─ Dashboards | 8 | Dashboard management |
+| └─ Accessibility | 9 | WCAG compliance |
+| Utils | 4 | Error handling, logging, validation |
+| **Total** | **207** | Complete health monitoring application |
 
-### 2. Data Access Object (DAO) Pattern
-- **7 Specialized DAOs**: One for each data entity type
-- **Caching Integration**: Built-in performance optimization
-- **Query Abstraction**: Clean separation of data logic from business logic
+## Key Integration Points
 
-### 3. Factory Pattern
-- **Component Factory**: Standardized UI component creation
-- **Chart Factory**: Multiple rendering backend support
-- **Calculator Factory**: Pluggable analytics engines
-
-### 4. Protocol-Based Design
-- **Data Source Protocol**: Flexible data source abstraction
-- **Calculator Protocol**: Interchangeable analysis algorithms
-- **Chart Protocol**: Multiple visualization backends
-
-### 5. Observer Pattern
-- **Qt Signals/Slots**: Reactive UI updates
-- **Cache Invalidation**: Automatic cache refresh on data changes
-- **Real-time Filtering**: Instant UI response to filter changes
-
-### 6. Strategy Pattern
-- **Caching Strategies**: LRU, SQLite, and disk-based caching
-- **Chart Rendering**: Matplotlib vs PyQtGraph backends
-- **Data Processing**: Streaming vs batch processing
-
-## Module Responsibilities Summary
-
-### 🏗️ Core Infrastructure (5 modules)
-- **Database Management**: Thread-safe SQLite operations with migrations
-- **Data Access Layer**: DAO pattern with 7 entity-specific classes  
-- **Data Models**: Type-safe dataclasses with validation
-- **Import Processing**: Streaming XML/CSV parser with validation
-- **Configuration**: Centralized constants and settings
-
-### 📊 Analytics Engine (38+ modules)
-- **Metrics Calculators**: Daily, weekly, monthly statistical analysis
-- **Caching System**: 3-tier performance optimization
-- **Health Scoring**: Comprehensive health assessment with personalization
-- **Anomaly Detection**: Statistical outlier identification
-- **Trend Analysis**: Time-series analysis and forecasting
-
-### 🎨 User Interface (85+ modules)
-- **Main Application**: Tab-based navigation with accessibility
-- **Dashboard Widgets**: Responsive layouts for different time periods
-- **Chart Components**: WSJ-inspired visualizations with interactions
-- **Input Components**: Enhanced form controls with validation
-- **Styling System**: Professional design with warm color palette
-
-### 🛠️ Utilities (3 modules)
-- **Error Handling**: Comprehensive exception hierarchy with decorators
-- **Logging**: Structured logging with rotation and multiple handlers
-- **XML Validation**: Apple Health format validation with detailed reporting
-
-## Performance & Architecture Highlights
-
-- **3-Tier Caching**: Memory (LRU) → SQLite → Compressed disk
-- **Streaming Processing**: Handle large XML files efficiently
-- **Background Processing**: Non-blocking UI with worker threads
-- **Singleton Database**: Connection pooling with transaction safety
-- **Modular Design**: Clear separation of concerns across 150+ modules
-- **Protocol-Based**: Flexible interfaces enabling testing and extensibility
+1. **Data Pipeline**: `main.py` → `data_loader.py` → `xml_streaming_processor.py` → `database.py`
+2. **Analytics Flow**: `database.py` → calculators → `cache_manager.py` → UI widgets
+3. **UI Updates**: Analytics results → dashboard widgets → chart components → user display
+4. **Performance**: All analytics use `cache_manager.py` and `connection_pool.py`
+5. **Consistency**: `style_manager.py` ensures uniform theming across all UI components

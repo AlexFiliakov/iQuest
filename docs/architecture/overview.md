@@ -1,319 +1,222 @@
 # Architecture Overview
 
-This document provides a comprehensive overview of the Apple Health Monitor Dashboard architecture, including system design, component relationships, and key architectural decisions.
+This document provides a high-level overview of the Apple Health Monitor Dashboard architecture, design principles, and technical decisions.
 
-## Table of Contents
+## Architecture Principles
 
-- [System Architecture](#system-architecture)
-- [Core Components](#core-components)
-- [Data Flow](#data-flow)
-- [Design Patterns](#design-patterns)
-- [Technology Stack](#technology-stack)
-- [Security Considerations](#security-considerations)
-- [Performance Optimization](#performance-optimization)
-- [Future Extensibility](#future-extensibility)
+### 1. **Separation of Concerns**
+- Clear boundaries between layers (UI, Service, Analytics, Core)
+- Each module has a single, well-defined responsibility
+- Dependencies flow downward (UI → Service → Analytics → Core)
 
-## System Architecture
+### 2. **Data Privacy First**
+- All processing happens locally on user's machine
+- No cloud connectivity or external data transmission
+- Sensitive health data never leaves the device
 
-The Apple Health Monitor Dashboard follows a layered architecture pattern with clear separation of concerns:
+### 3. **Performance at Scale**
+- Designed to handle 100MB+ XML files efficiently
+- Streaming processing for memory efficiency
+- Multi-level caching for responsive UI
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Presentation Layer                      │
-│  (PyQt6 UI Components, Charts, Tables, Style Manager)    │
-├─────────────────────────────────────────────────────────┤
-│                   Business Logic Layer                    │
-│  (Analytics Engine, Calculators, Pattern Detection)      │
-├─────────────────────────────────────────────────────────┤
-│                    Data Access Layer                      │
-│  (DAOs, Models, Caching, Query Optimization)            │
-├─────────────────────────────────────────────────────────┤
-│                    Storage Layer                          │
-│  (SQLite Database, File System, Import History)          │
-└─────────────────────────────────────────────────────────┘
-```
+### 4. **Extensibility**
+- Plugin architecture for new chart types
+- Configurable analytics pipeline
+- Theme system for customization
 
-## Core Components
-
-### Data Layer
-
-#### Database Manager (`src/database.py`)
-- Singleton pattern implementation for database connection management
-- SQLite with WAL mode for improved concurrency
-- Automatic schema initialization and migration support
-- Connection pooling and transaction management
-
-#### Data Access Objects (`src/data_access.py`)
-Provides abstraction for database operations:
-- **JournalDAO**: Manages journal entries with full CRUD operations
-- **PreferencesDAO**: User preferences and settings persistence
-- **RecentFilesDAO**: Track recently accessed files
-- **CacheDAO**: Performance caching with TTL support
-- **MetricsDAO**: Health metrics metadata storage
-- **DataSourcesDAO**: Track imported data sources
-- **ImportHistoryDAO**: Maintain import audit trail
-
-#### Data Models (`src/models.py`)
-Type-safe dataclasses for all entities:
-```python
-@dataclass
-class HealthMetricsMetadata:
-    metric_type: str
-    source_name: str
-    unit: Optional[str]
-    creation_date: Optional[datetime]
-    # ... additional fields
-```
-
-### Presentation Layer
-
-#### Main Window (`src/ui/main_window.py`)
-- Central application controller
-- Tab-based navigation system
-- Keyboard shortcut management
-- Window state persistence
-
-#### Configuration Tab (`src/ui/configuration_tab.py`)
-- Data import interface (XML/CSV)
-- Advanced filtering options
-- Date range selection
-- Source and metric type filtering
-
-#### Visualization Components
-- **Summary Cards**: Key metrics display with animations
-- **Charts**: Matplotlib-based interactive visualizations
-- **Tables**: Sortable, filterable data grids
-- **Timeline**: Activity visualization over time
-- **Heatmaps**: Calendar-based metric density
-
-#### Style Management (`src/ui/style_manager.py`)
-- Centralized theme management
-- Warm color palette (tan #F5E6D3, orange #FF8C42, yellow #FFD166)
-- Consistent styling across all components
-- Dark mode support (future)
-
-### Business Logic Layer
-
-#### Analytics Engine
-- **Daily Metrics Calculator**: Computes min/max/average/sum statistics
-- **Weekly Metrics Calculator**: 7-day rolling averages and trends
-- **Monthly Metrics Calculator**: Monthly aggregations and comparisons
-- **Pattern Analyzers**: Detect behavioral patterns (Weekend Warrior, etc.)
-
-#### Advanced Analytics
-- **Correlation Engine**: Identify relationships between metrics
-- **Anomaly Detection**: Statistical and ML-based outlier detection
-- **Personal Records Tracker**: Achievement tracking and celebrations
-- **Trend Analysis**: Linear regression and forecasting
-
-#### Data Processing (`src/data_loader.py`)
-- XML to SQLite conversion with streaming parser
-- CSV import with pandas integration
-- Data validation and error handling
-- Progress tracking for large files
-
-### Support Systems
-
-#### Error Handling (`src/utils/error_handler.py`)
-- Decorator-based error handling
-- Context-aware error messages
-- User-friendly error display
-- Automatic error logging
-
-#### Logging (`src/utils/logging_config.py`)
-- Structured logging with rotation
-- Separate error log files
-- Configurable log levels
-- Performance metrics logging
-
-## Data Flow
-
-### Import Flow
-```
-User selects file → Validation → Parser → 
-Database Transaction → Import History → UI Update
-```
-
-### Query Flow
-```
-UI Request → DAO Layer → Cache Check → 
-Database Query → Analytics Processing → 
-Cache Update → UI Response
-```
-
-### Analytics Flow
-```
-Raw Data → Filter Application → Calculation → 
-Statistical Analysis → Visualization → Display
-```
-
-## Design Patterns
-
-### Singleton Pattern
-Used for DatabaseManager to ensure single point of database access:
-```python
-class DatabaseManager:
-    _instance = None
-    
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-```
-
-### Data Access Object (DAO) Pattern
-Abstracts database operations for maintainability:
-```python
-class BaseDAO:
-    def __init__(self, db_manager):
-        self.db = db_manager
-    
-    def create(self, entity):
-        # Implementation
-```
-
-### Observer Pattern
-PyQt6 signals and slots for event-driven architecture:
-```python
-data_imported = pyqtSignal(str)  # Emitted when import completes
-filter_changed = pyqtSignal(dict)  # Emitted when filters update
-```
-
-### Strategy Pattern
-Different calculation strategies for metrics:
-```python
-class MetricsCalculator(ABC):
-    @abstractmethod
-    def calculate(self, data: pd.DataFrame) -> Dict:
-        pass
-```
-
-### Factory Pattern
-Component creation with consistent configuration:
-```python
-class ComponentFactory:
-    @staticmethod
-    def create_summary_card(card_type: str, **kwargs):
-        # Returns appropriate card component
-```
+### 5. **Accessibility**
+- WCAG 2.1 AA compliance built-in
+- Keyboard navigation throughout
+- Screen reader support
 
 ## Technology Stack
 
-### Core Technologies
+```mermaid
+graph TB
+    subgraph "Frontend"
+        PyQt6[PyQt6 - Desktop UI]
+        MPL[Matplotlib - Charts]
+        PQG[PyQtGraph - Performance Charts]
+    end
+    
+    subgraph "Backend"
+        Python[Python 3.10+]
+        Pandas[Pandas - Data Processing]
+        SQLite[SQLite - Storage]
+        NumPy[NumPy - Calculations]
+    end
+    
+    subgraph "Analytics"
+        SciPy[SciPy - Statistics]
+        Sklearn[Scikit-learn - ML]
+        Stats[Statsmodels - Time Series]
+    end
+    
+    subgraph "Infrastructure"
+        PyInstaller[PyInstaller - Packaging]
+        Pytest[Pytest - Testing]
+        Sphinx[Sphinx - Documentation]
+    end
+    
+    PyQt6 --> Python
+    MPL --> Python
+    Python --> Pandas
+    Python --> SQLite
+    Pandas --> NumPy
+    Python --> SciPy
+    
+    style PyQt6 fill:#e8f5e8
+    style Python fill:#4ecdc4,color:#fff
+    style SQLite fill:#f3e5f5
+    style Pandas fill:#fff8e1
+```
 
-- **Python 3.10+**: Modern Python features and type hints
-- **PyQt6**: Cross-platform UI framework
-- **SQLite**: Embedded database with excellent performance
-- **Pandas**: Data manipulation and analysis
-- **Matplotlib**: Scientific plotting and visualization
+## Data Architecture
 
-### Development Tools
+### Data Sources
+- **Primary**: Apple Health XML exports (100MB-1GB+)
+- **Secondary**: Manual journal entries
+- **Cached**: Pre-calculated metrics in SQLite
 
-- **pytest**: Comprehensive testing framework
-- **PyInstaller**: Windows executable packaging
-- **Black**: Code formatting
-- **Pylint**: Code quality checks
+### Data Flow
+1. **Import**: XML/CSV → Streaming Parser → Validation
+2. **Storage**: Validated Data → SQLite Database
+3. **Processing**: Raw Data → Analytics Engine → Metrics
+4. **Caching**: Metrics → Cache Layer → Fast Retrieval
+5. **Display**: Cached Data → UI Components → User
 
-### Key Libraries
+### Storage Strategy
+```mermaid
+graph LR
+    subgraph "Transient"
+        Memory[In-Memory<br/>DataFrames]
+        LRU[LRU Cache<br/>Recent Data]
+    end
+    
+    subgraph "Persistent"
+        SQLite1[Health Records<br/>Database]
+        SQLite2[Cache Database<br/>Metrics]
+        SQLite3[User Database<br/>Preferences]
+    end
+    
+    subgraph "Temporary"
+        Stream[Streaming Buffer<br/>Import Only]
+    end
+    
+    Stream --> Memory
+    Memory --> SQLite1
+    Memory --> LRU
+    LRU --> SQLite2
+```
 
-- **lxml**: Efficient XML parsing
-- **python-dateutil**: Date parsing and manipulation
-- **numpy**: Numerical computations
-- **scipy**: Statistical analysis
+## Security Architecture
 
-## Security Considerations
+### Data Protection
+- **Local Processing**: No network requests
+- **Encryption**: Journal entries encrypted at rest
+- **Access Control**: File system permissions only
+- **Data Validation**: Strict input validation
 
-### Data Privacy
-- All data stored locally on user's machine
-- No network communication or cloud storage
-- Encrypted preferences storage (future)
+### Privacy Features
+- **No Telemetry**: No usage tracking
+- **No Cloud Sync**: All data stays local
+- **Export Control**: User controls all exports
+- **Data Deletion**: Complete data removal option
 
-### Input Validation
-- Strict XML schema validation
-- SQL injection prevention through parameterized queries
-- File type verification before import
+## Performance Architecture
 
-### Error Handling
-- No sensitive data in error messages
-- Secure logging practices
-- Graceful degradation on errors
+### Optimization Strategies
+1. **Lazy Loading**: Calculate only what's visible
+2. **Caching**: Multi-level cache hierarchy
+3. **Streaming**: Process large files in chunks
+4. **Pooling**: Reuse database connections
+5. **Batching**: Group similar operations
 
-## Performance Optimization
+### Performance Targets
+- **Import Speed**: 10MB/second for XML parsing
+- **UI Response**: <200ms for user actions
+- **Chart Render**: <500ms for complex visualizations
+- **Memory Usage**: <500MB for typical usage
+- **Startup Time**: <3 seconds
 
-### Database Optimization
-- Comprehensive indexing strategy
-- Query optimization with EXPLAIN ANALYZE
-- Batch operations for bulk imports
-- Connection pooling
+## Scalability Considerations
 
-### Memory Management
-- Streaming XML parser for large files
-- Chunked data processing
-- Efficient pandas operations
-- Memory profiling in development
+### Current Limits
+- **Data Size**: Tested up to 1GB XML files
+- **Record Count**: Millions of health records
+- **Time Range**: 10+ years of data
+- **Metrics**: 50+ health metric types
 
-### Caching Strategy
-- TTL-based cache for expensive calculations
-- Invalidation on data changes
-- Memory-limited cache size
-- Cache warming on startup
+### Growth Strategy
+- **Partitioning**: Date-based data partitioning
+- **Indexing**: Optimized database indices
+- **Archival**: Old data compression
+- **Sampling**: Statistical sampling for large datasets
 
-### UI Responsiveness
-- Asynchronous operations for long tasks
-- Progress indicators for user feedback
-- Lazy loading for large datasets
-- Virtual scrolling in tables
+## Deployment Architecture
 
-## Future Extensibility
+```mermaid
+graph TB
+    subgraph "Development"
+        Dev[Python Source]
+        Tests[Test Suite]
+        Docs[Documentation]
+    end
+    
+    subgraph "Build"
+        PyInst[PyInstaller Build]
+        Assets[Asset Bundle]
+        Config[Configuration]
+    end
+    
+    subgraph "Distribution"
+        EXE[Windows EXE]
+        Installer[NSIS Installer]
+        Portable[Portable ZIP]
+    end
+    
+    subgraph "User System"
+        Install[Installed App]
+        Data[User Data]
+        Prefs[Preferences]
+    end
+    
+    Dev --> PyInst
+    PyInst --> EXE
+    EXE --> Installer
+    EXE --> Portable
+    Installer --> Install
+    Install --> Data
+    Install --> Prefs
+    
+    style PyInst fill:#4ecdc4,color:#fff
+    style Install fill:#e8f5e8
+```
 
-### Plugin Architecture
-- Planned support for custom analytics plugins
-- Extensible visualization types
-- Custom data importers
+## Future Architecture Considerations
 
-### API Development
-- RESTful API for external integrations
-- Export capabilities (PDF, Excel)
-- Webhook support for automation
+### Planned Enhancements
+1. **Plugin System**: User-installable analytics plugins
+2. **Theme Engine**: Complete UI theming support
+3. **Export Templates**: Customizable report templates
+4. **Automation**: Scheduled imports and reports
 
-### Cloud Features
-- Optional cloud backup
-- Multi-device synchronization
-- Sharing capabilities
+### Potential Expansions
+1. **Multi-Platform**: macOS and Linux support
+2. **Mobile Companion**: View-only mobile app
+3. **Health Device Integration**: Direct device imports
+4. **Advanced ML**: Predictive health insights
 
-### Advanced Analytics
-- Machine learning predictions
-- Advanced statistical models
-- Real-time health monitoring
-- Integration with wearables
+## Architecture Decision Records (ADRs)
 
-## Architectural Decisions
+Key architectural decisions are documented in the `.simone/05_ARCHITECTURE_DECISIONS/` directory. Major decisions include:
 
-### Why SQLite?
-- Zero configuration required
-- Excellent performance for desktop applications
-- ACID compliance
-- Small footprint
+1. **PyQt6 over Electron**: Native performance for large datasets
+2. **SQLite over PostgreSQL**: Zero-configuration deployment
+3. **Local-only processing**: Privacy and security first
+4. **Streaming XML parsing**: Memory efficiency for large files
+5. **Multi-level caching**: Balance between memory and speed
 
-### Why PyQt6?
-- Native look and feel
-- Comprehensive widget library
-- Excellent documentation
-- Cross-platform compatibility
+---
 
-### Why Layered Architecture?
-- Clear separation of concerns
-- Easy testing and maintenance
-- Technology independence
-- Scalability
-
-## Conclusion
-
-The Apple Health Monitor Dashboard architecture prioritizes:
-- **User Experience**: Fast, responsive interface with warm aesthetics
-- **Data Integrity**: Robust validation and error handling
-- **Performance**: Optimized queries and caching
-- **Maintainability**: Clean code structure and patterns
-- **Extensibility**: Plugin architecture and modular design
-
-This architecture provides a solid foundation for current features while allowing for future growth and enhancement.
+*This overview provides the foundation for understanding the Apple Health Monitor Dashboard architecture. For detailed implementation specifics, refer to the other architecture documents.*
