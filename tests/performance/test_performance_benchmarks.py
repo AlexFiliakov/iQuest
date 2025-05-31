@@ -271,40 +271,75 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
     @pytest.mark.benchmark(group="database")
     def test_database_insert_performance(self, benchmark, medium_dataset):
         """Benchmark database insert operations."""
-        from src.database import HealthDatabase
+        from src.database import DatabaseManager
+        from src.data_loader import convert_xml_to_sqlite
+        import tempfile
         
-        # Create in-memory database for testing
-        db = HealthDatabase(':memory:')
-        
-        def insert_data():
-            db.bulk_insert_health_data(medium_dataset)
-            return db.get_record_count()
-        
-        result = benchmark(insert_data)
-        
-        assert result > 0
-        assert benchmark.stats['mean'] < 2.0  # <2s for 10K records
+        # Create temporary database for testing
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=True) as db_file:
+            db_path = db_file.name
+            db = DatabaseManager()
+            
+            def insert_data():
+                # Convert dataframe to health records and insert
+                conn = db.get_connection()
+                try:
+                    medium_dataset.to_sql('health_records', conn, if_exists='append', index=False)
+                    conn.commit()
+                    # Get count to verify
+                    cursor = conn.execute("SELECT COUNT(*) FROM health_records")
+                    return cursor.fetchone()[0]
+                finally:
+                    conn.close()
+            
+            result = benchmark(insert_data)
+            
+            assert result > 0
+            assert benchmark.stats['mean'] < 2.0  # <2s for 10K records
 
     @pytest.mark.benchmark(group="database")
     def test_database_query_performance(self, benchmark, large_dataset):
         """Benchmark database query operations."""
-        from src.database import HealthDatabase
+        from src.database import DatabaseManager
+        import tempfile
         
         # Setup database with data
-        db = HealthDatabase(':memory:')
-        db.bulk_insert_health_data(large_dataset)
-        
-        def query_data():
-            return db.get_data_range(
-                start_date=large_dataset['date'].min(),
-                end_date=large_dataset['date'].max(),
-                metrics=['steps', 'heart_rate_avg']
-            )
-        
-        result = benchmark(query_data)
-        
-        assert len(result) > 0
-        assert benchmark.stats['mean'] < 0.5  # <500ms
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=True) as db_file:
+            db_path = db_file.name
+            db = DatabaseManager()
+            
+            # Insert test data
+            conn = db.get_connection()
+            try:
+                # Ensure the table exists with proper schema
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS health_records (
+                        type TEXT,
+                        sourceName TEXT,
+                        sourceVersion TEXT,
+                        device TEXT,
+                        unit TEXT,
+                        creationDate TEXT,
+                        startDate TEXT,
+                        endDate TEXT,
+                        value REAL
+                    )
+                """)
+                large_dataset.to_sql('health_records', conn, if_exists='append', index=False)
+                conn.commit()
+            finally:
+                conn.close()
+            
+            def query_data():
+                return db.execute_query(
+                    "SELECT * FROM health_records WHERE date >= ? AND date <= ?",
+                    (large_dataset['date'].min(), large_dataset['date'].max())
+                )
+            
+            result = benchmark(query_data)
+            
+            assert len(result) > 0
+            assert benchmark.stats['mean'] < 0.5  # <500ms
 
     # Chart Rendering Performance Tests
     @pytest.mark.benchmark(group="visualization")
@@ -374,7 +409,7 @@ class TestPerformanceBenchmarks(PerformanceBenchmark):
     # Regression Performance Tests
     def test_performance_regression_detection(self, large_dataset):
         """Test to detect performance regressions."""
-        calculator = DailyMetricsCalculator()
+        calculator = DailyMetricsCalculator(large_dataset)
         
         # Expected performance baselines (adjust based on hardware)
         performance_baselines = {

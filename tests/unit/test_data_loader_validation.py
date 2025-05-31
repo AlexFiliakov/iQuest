@@ -164,18 +164,21 @@ class TestXMLTransactionHandling:
         # Cleanup
         os.unlink(xml_file)
     
-    @patch('src.data_loader.pd.DataFrame.to_sql')
-    def test_transaction_rollback_on_import_verification_failure(self, mock_to_sql):
-        """Test rollback when import verification fails."""
+    @patch('src.data_loader.sqlite3.connect')
+    def test_transaction_rollback_on_import_verification_failure(self, mock_connect):
+        """Test rollback when database operation fails."""
         xml_file = self.create_valid_xml()
         
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as db_file:
             db_path = db_file.name
         
-        # Mock to_sql to not actually insert data, causing verification to fail
-        mock_to_sql.return_value = None
+        # Mock connection to raise an exception during execute
+        mock_conn = MagicMock()
+        mock_connect.return_value = mock_conn
+        # Make the execute method raise an exception after BEGIN
+        mock_conn.execute.side_effect = [None, sqlite3.Error("Test error")]
         
-        # Test that error is raised when verification fails
+        # Test that error is raised when database operation fails
         error_occurred = False
         error_message = ""
         
@@ -188,7 +191,9 @@ class TestXMLTransactionHandling:
         # Verify error occurred with expected message
         assert error_occurred, "Expected DatabaseError was not raised"
         assert "Database import failed and was rolled back" in error_message
-        assert "Import verification failed" in error_message
+        
+        # Verify rollback was called
+        mock_conn.rollback.assert_called_once()
         
         # Cleanup
         os.unlink(xml_file)

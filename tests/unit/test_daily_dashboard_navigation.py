@@ -186,6 +186,11 @@ class TestDailyDashboardNavigation:
         daily_dashboard._update_date_display()
         
         if hasattr(daily_dashboard, 'date_label'):
-            # Should show format like "Friday, March 15, 2024"
-            expected_text = test_date.strftime("%A, %B %d, %Y")
-            assert expected_text in daily_dashboard.date_label.text()
+            # Should show the day name for dates that aren't today
+            expected_text = test_date.strftime("%A")  # "Friday"
+            assert daily_dashboard.date_label.text() == expected_text
+            
+        # The full date should be in the date picker
+        if hasattr(daily_dashboard, 'date_picker'):
+            from PyQt6.QtCore import QDate
+            assert daily_dashboard.date_picker.date() == QDate(test_date)

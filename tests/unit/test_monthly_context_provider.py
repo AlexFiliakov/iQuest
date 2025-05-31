@@ -322,7 +322,7 @@ class TestIntegration:
     @pytest.fixture
     def real_cache_manager(self):
         """Create real cache manager for integration testing."""
-        return CacheManager(":memory:")  # In-memory SQLite for testing
+        return CacheManager(l2_db_path=":memory:")  # In-memory SQLite for testing
         
     def test_full_context_calculation_flow(self, real_cache_manager):
         """Test complete context calculation flow."""

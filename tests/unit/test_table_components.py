@@ -366,20 +366,28 @@ class TestMetricTable:
         assert table.table.rowCount() == 0
         assert table.table.columnCount() == 0
     
+    @patch('src.ui.table_components.ExportWorker')
     @patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName')
-    def test_export_data_csv(self, mock_file_dialog, app, sample_data, tmp_path):
+    def test_export_data_csv(self, mock_file_dialog, mock_export_worker_class, app, sample_data, tmp_path):
         """Test CSV export functionality."""
         output_file = tmp_path / "test_export.csv"
         mock_file_dialog.return_value = (str(output_file), "CSV Files (*.csv)")
         
+        # Mock the export worker instance
+        mock_worker_instance = MagicMock()
+        mock_export_worker_class.return_value = mock_worker_instance
+        
         table = MetricTable()
         table.load_data(sample_data)
         
-        # Mock the export worker to avoid threading in tests
-        with patch.object(table, 'export_worker') as mock_worker:
-            table._export_data('csv', False)
-            # Verify export was initiated
-            assert mock_file_dialog.called
+        # Call export data
+        table._export_data('csv', False)
+        
+        # Verify export was initiated
+        assert mock_file_dialog.called
+        assert mock_export_worker_class.called
+        # Verify the worker was started
+        mock_worker_instance.start.assert_called_once()
     
     def test_selected_data_retrieval(self, app, sample_data):
         """Test getting selected data."""

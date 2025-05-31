@@ -110,15 +110,15 @@ class TestMain:
     
     def test_logging_configuration(self):
         """Test detailed logging configuration."""
-        with patch('src.main.logging') as mock_logging:
-            with patch('src.main.Path') as mock_path:
+        with patch('logging.basicConfig') as mock_basic_config:
+            with patch('pathlib.Path') as mock_path:
                 # Mock log directory creation
                 mock_path.return_value.mkdir.return_value = None
                 
                 setup_logging()
                 
                 # Verify logger configuration
-                mock_logging.basicConfig.assert_called_once()
+                mock_basic_config.assert_called_once()
                 
                 # Verify log directory creation attempt
                 mock_path.return_value.mkdir.assert_called()

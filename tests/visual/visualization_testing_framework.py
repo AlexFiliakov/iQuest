@@ -524,7 +524,10 @@ class VisualizationPerformanceTester:
             component = component_class(data=test_data)
             
             if hasattr(component, 'render'):
-                component.render()
+                # For Qt widgets, render to a pixmap
+                from PyQt6.QtGui import QPixmap
+                pixmap = QPixmap(component.size())
+                component.render(pixmap)
                 
             render_time = (time.perf_counter() - start_time) * 1000  # Convert to ms
             
@@ -555,7 +558,10 @@ class VisualizationPerformanceTester:
             component = component_class(data=test_data)
             
             if hasattr(component, 'render'):
-                component.render()
+                # For Qt widgets, render to a pixmap
+                from PyQt6.QtGui import QPixmap
+                pixmap = QPixmap(component.size())
+                component.render(pixmap)
                 
             # Measure memory
             peak_memory = process.memory_info().rss / 1024 / 1024

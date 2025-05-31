@@ -69,7 +69,7 @@ class TestImportProgressDialog:
         
         # Complete the import
         progress_dialog._on_import_completed(result)
-        qtbot.wait(100)
+        qtbot.wait(600)  # Wait for auto-close timer (500ms + buffer)
         
         # Progress should be at 100%
         progress_bar = progress_dialog.findChild(QProgressBar)
@@ -107,10 +107,11 @@ class TestImportProgressDialog:
     
     def test_error_handling(self, progress_dialog, qtbot):
         """Test error display in dialog."""
+        error_title = "Import Error"
         error_message = "Failed to parse XML file"
         
         # Trigger error
-        progress_dialog._on_import_error(error_message)
+        progress_dialog._on_import_error(error_title, error_message)
         qtbot.wait(50)
         
         # Should show error in status

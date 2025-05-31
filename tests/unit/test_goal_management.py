@@ -355,12 +355,12 @@ class TestAdaptiveGoalManager:
         # Plateaued progress
         progress_history = [50, 51, 49, 50, 52, 51, 50,  # Week 1
                           52, 51, 50, 49, 51, 52, 51]     # Week 2
-        assert manager._detect_plateau(progress_history) is True
+        assert manager._detect_plateau(progress_history) == True
         
         # Improving progress
         progress_history = [40, 42, 45, 48, 50, 52, 55,  # Week 1
                           58, 60, 62, 65, 68, 70, 72]     # Week 2
-        assert manager._detect_plateau(progress_history) is False
+        assert manager._detect_plateau(progress_history) == False
 
 
 if __name__ == "__main__":

@@ -119,9 +119,10 @@ class TestConsolidatedWidgets:
         ])
     
     if COMPARISON_OVERLAY_AVAILABLE:
+        # ComparisonOverlayWidget needs figure and axes, so we'll skip it in basic tests
         widget_configs.extend([
-            (ComparisonOverlayWidget, {}, 'comparison_overlay'),
-            (InteractiveLegend, {'items': []}, 'interactive_legend'),
+            # (ComparisonOverlayWidget, {}, 'comparison_overlay'),  # Requires chart_figure and chart_axes
+            (InteractiveLegend, {}, 'interactive_legend'),
         ])
     
     if MONTHLY_CONTEXT_AVAILABLE:
@@ -236,15 +237,18 @@ class TestComparisonOverlayWidgets:
     @pytest.fixture
     def overlay_widget(self, qt_app):
         """Create ComparisonOverlayWidget instance."""
-        widget = ComparisonOverlayWidget()
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+        widget = ComparisonOverlayWidget(fig, ax)
         yield widget
         widget.close()
         widget.deleteLater()
+        plt.close(fig)
     
     @pytest.fixture
     def legend_widget(self, qt_app):
         """Create InteractiveLegend instance."""
-        widget = InteractiveLegend(items=[])
+        widget = InteractiveLegend()
         yield widget
         widget.close()
         widget.deleteLater()

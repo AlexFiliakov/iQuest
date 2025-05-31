@@ -152,8 +152,9 @@ class TestComparisonCard:
         card.update_content(data)
         
         assert card.title_label.text() == 'Weekly Comparison'
-        assert '75000' in card.current_value.text()
-        assert '65000' in card.previous_value.text()
+        # Check that the values are formatted (e.g., '75,000.0' or '75,000')
+        assert '75,000' in card.current_value.text() or '75000' in card.current_value.text()
+        assert '65,000' in card.previous_value.text() or '65000' in card.previous_value.text()
 
 
 class TestGoalProgressCard:
