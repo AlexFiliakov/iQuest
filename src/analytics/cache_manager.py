@@ -74,7 +74,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 import logging
 from collections import OrderedDict
 import tempfile
@@ -787,6 +787,147 @@ class AnalyticsCacheManager:
         
         logger.info(f"Cleaned up expired entries: {results}")
         return results
+    
+    def cache_import_summaries(self, summaries: Dict[str, Any], import_id: str) -> None:
+        """Cache all summaries from import process using simplified SQLite-only storage.
+        
+        This method is optimized for bulk import of pre-computed summaries during
+        the data import process. It bypasses the multi-tier cache and stores
+        directly in SQLite for persistence and simplicity.
+        
+        Args:
+            summaries: Dictionary containing summaries organized by time period:
+                      {
+                          'daily': {metric: {date: stats}},
+                          'weekly': {metric: {week: stats}},
+                          'monthly': {metric: {month: stats}},
+                          'metadata': {...}
+                      }
+            import_id: Unique identifier for this import session
+        
+        Raises:
+            sqlite3.Error: If database operations fail
+        """
+        logger.info(f"Caching import summaries for import_id: {import_id}")
+        
+        with self._lock:
+            try:
+                # Clear previous import's summaries
+                self._clear_previous_import_summaries(import_id)
+                
+                # Prepare batch data for insertion
+                batch_data = []
+                
+                # Process daily summaries
+                for metric, daily_data in summaries.get('daily', {}).items():
+                    for date_str, stats in daily_data.items():
+                        key = cache_key('daily_summary', metric, date_str)
+                        batch_data.append((
+                            key,
+                            json.dumps(stats),
+                            None,  # No TTL for import summaries
+                            json.dumps([]),  # No dependencies
+                            import_id
+                        ))
+                
+                # Process weekly summaries
+                for metric, weekly_data in summaries.get('weekly', {}).items():
+                    for week_str, stats in weekly_data.items():
+                        key = cache_key('weekly_summary', metric, week_str)
+                        batch_data.append((
+                            key,
+                            json.dumps(stats),
+                            None,
+                            json.dumps([]),
+                            import_id
+                        ))
+                
+                # Process monthly summaries
+                for metric, monthly_data in summaries.get('monthly', {}).items():
+                    for month_str, stats in monthly_data.items():
+                        key = cache_key('monthly_summary', metric, month_str)
+                        batch_data.append((
+                            key,
+                            json.dumps(stats),
+                            None,
+                            json.dumps([]),
+                            import_id
+                        ))
+                
+                # Store metadata
+                metadata_key = cache_key('import_metadata', import_id)
+                batch_data.append((
+                    metadata_key,
+                    json.dumps(summaries.get('metadata', {})),
+                    None,
+                    json.dumps([]),
+                    import_id
+                ))
+                
+                # Bulk insert into SQLite cache
+                self._bulk_insert_summaries(batch_data)
+                
+                logger.info(f"Successfully cached {len(batch_data)} summary entries")
+                
+            except Exception as e:
+                logger.error(f"Error caching import summaries: {e}")
+                raise
+    
+    def _clear_previous_import_summaries(self, current_import_id: str) -> None:
+        """Clear summaries from previous imports.
+        
+        Args:
+            current_import_id: The current import ID to preserve
+        """
+        try:
+            # Use a custom query to delete summary entries not from current import
+            with sqlite3.connect(self.l2_cache.db_path) as conn:
+                conn.execute("""
+                    DELETE FROM cache_entries 
+                    WHERE key LIKE '%_summary|%' 
+                    AND key NOT LIKE '%' || ? || '%'
+                """, (current_import_id,))
+                conn.commit()
+                
+                deleted = conn.total_changes
+                if deleted > 0:
+                    logger.info(f"Cleared {deleted} summaries from previous imports")
+                    
+        except sqlite3.Error as e:
+            logger.error(f"Error clearing previous import summaries: {e}")
+    
+    def _bulk_insert_summaries(self, batch_data: List[Tuple]) -> None:
+        """Bulk insert summary data into SQLite cache.
+        
+        Args:
+            batch_data: List of tuples (key, value, ttl, dependencies, import_id)
+        """
+        try:
+            with sqlite3.connect(self.l2_cache.db_path) as conn:
+                # Add import_id column if it doesn't exist
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS cache_entries (
+                        key TEXT PRIMARY KEY,
+                        value BLOB,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        ttl_seconds INTEGER,
+                        dependencies TEXT,
+                        import_id TEXT
+                    )
+                """)
+                
+                # Use executemany for efficient bulk insert
+                conn.executemany("""
+                    INSERT OR REPLACE INTO cache_entries 
+                    (key, value, ttl_seconds, dependencies, import_id)
+                    VALUES (?, ?, ?, ?, ?)
+                """, batch_data)
+                
+                conn.commit()
+                
+        except sqlite3.Error as e:
+            logger.error(f"Error bulk inserting summaries: {e}")
+            raise
     
     def shutdown(self) -> None:
         """Shutdown the cache manager and close all connections."""
