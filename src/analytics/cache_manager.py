@@ -282,7 +282,7 @@ class LRUCache:
 class SQLiteCache:
     """SQLite-based cache for computed aggregates."""
     
-    def __init__(self, db_path: str = "analytics_cache.db"):
+    def __init__(self, db_path: str = "analytics_cache_temp.db"):
         self.db_path = Path(db_path)
         self._connection = None
         self._corrupted = False
@@ -736,7 +736,7 @@ class AnalyticsCacheManager:
     def __init__(self, 
                  l1_maxsize: int = 1000,
                  l1_memory_mb: float = 500.0,
-                 l2_db_path: str = "analytics_cache.db",  # Keep analytics cache for now 
+                 l2_db_path: str = "analytics_cache_temp.db",  # Keep analytics cache for now 
                  l3_cache_dir: str = "./cache/"):
         
         self.l1_cache = LRUCache(maxsize=l1_maxsize, max_memory_mb=l1_memory_mb)

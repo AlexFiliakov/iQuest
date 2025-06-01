@@ -354,7 +354,10 @@ class DatabaseManager:
                 ('favorite_metrics', '[]', 'json'),
                 ('metric_units', '{}', 'json'),
                 ('data_source_colors', '{}', 'json'),
-                ('hide_empty_metrics', 'true', 'boolean')
+                ('hide_empty_metrics', 'true', 'boolean'),
+                ('weekly_selected_metric', None, 'json'),
+                ('monthly_selected_metric', None, 'json'),
+                ('daily_selected_metric', None, 'json')
             ]
             
             for key, value, data_type in default_preferences:

@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, date, timedelta
 import pandas as pd
 import numpy as np
+import json
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
@@ -794,18 +795,37 @@ class WeeklyDashboardWidget(QWidget):
             self.metric_selector.addItem(display_text, metric_tuple)
             logger.debug(f"Added to combo: {display_text}")
         
-        # Restore selection if possible
-        if current_data and current_data in self._available_metrics:
-            index = self._available_metrics.index(current_data)
-            self.metric_selector.setCurrentIndex(index)
-        elif self._current_metric in self._available_metrics:
-            index = self._available_metrics.index(self._current_metric)
-            self.metric_selector.setCurrentIndex(index)
-        else:
-            # Default to first metric
-            self.metric_selector.setCurrentIndex(0)
-            if self._available_metrics:
-                self._current_metric = self._available_metrics[0]
+        # Try to restore saved preference first
+        from ..data_access import PreferenceDAO
+        saved_metric = PreferenceDAO.get_preference('weekly_selected_metric')
+        
+        restored = False
+        if saved_metric:
+            try:
+                saved_tuple = tuple(saved_metric)  # JSON already decoded by PreferenceDAO
+                if saved_tuple in self._available_metrics:
+                    index = self._available_metrics.index(saved_tuple)
+                    self.metric_selector.setCurrentIndex(index)
+                    self._current_metric = saved_tuple
+                    restored = True
+                    logger.info(f"Restored saved metric preference: {saved_tuple}")
+            except Exception as e:
+                logger.error(f"Failed to restore metric preference: {e}")
+        
+        # If preference wasn't restored, fall back to existing logic
+        if not restored:
+            # Restore selection if possible
+            if current_data and current_data in self._available_metrics:
+                index = self._available_metrics.index(current_data)
+                self.metric_selector.setCurrentIndex(index)
+            elif self._current_metric in self._available_metrics:
+                index = self._available_metrics.index(self._current_metric)
+                self.metric_selector.setCurrentIndex(index)
+            else:
+                # Default to first metric
+                self.metric_selector.setCurrentIndex(0)
+                if self._available_metrics:
+                    self._current_metric = self._available_metrics[0]
     
     def _update_week_labels(self):
         """Update the week display labels."""
@@ -1472,6 +1492,16 @@ class WeeklyDashboardWidget(QWidget):
             if metric_tuple:
                 self._current_metric = metric_tuple
                 self._load_weekly_data()
+                
+                # Save preference
+                from ..data_access import PreferenceDAO
+                try:
+                    # Save the metric selection preference
+                    PreferenceDAO.set_preference('weekly_selected_metric', 
+                                              json.dumps(self._current_metric))
+                except Exception as e:
+                    logger.error(f"Failed to save metric preference: {e}")
+                
                 # Emit just the metric type for compatibility
                 self.metric_selected.emit(self._current_metric[0])
                 self.metric_changed.emit(self._current_metric[0])

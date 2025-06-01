@@ -564,8 +564,8 @@ class MainWindow(QMainWindow):
         try:
             from .daily_dashboard_widget import DailyDashboardWidget
             
-            # Create the daily dashboard widget
-            self.daily_dashboard = DailyDashboardWidget()
+            # Create the daily dashboard widget with parent
+            self.daily_dashboard = DailyDashboardWidget(parent=self)
             
             # Connect signals
             if hasattr(self.daily_dashboard, 'metric_selected'):
@@ -646,7 +646,7 @@ class MainWindow(QMainWindow):
         try:
             # Use standard version for now (modern version has display issues)
             from .weekly_dashboard_widget import WeeklyDashboardWidget
-            self.weekly_dashboard = WeeklyDashboardWidget()
+            self.weekly_dashboard = WeeklyDashboardWidget(parent=self)
             logger.info("Using standard WeeklyDashboardWidget")
             
             # Connect signals
@@ -747,13 +747,13 @@ class MainWindow(QMainWindow):
                 monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
                 cached_monthly_calculator = CachedMonthlyMetricsCalculator(monthly_calculator)
                 
-                # Create the monthly dashboard widget with cached calculator
-                self.monthly_dashboard = MonthlyDashboardWidget(monthly_calculator=cached_monthly_calculator)
+                # Create the monthly dashboard widget with cached calculator and parent
+                self.monthly_dashboard = MonthlyDashboardWidget(monthly_calculator=cached_monthly_calculator, parent=self)
                 logger.info("Using MonthlyDashboardWidget with calculator")
             except Exception as calc_error:
                 logger.warning(f"Could not create calculators: {calc_error}")
                 # Create without calculator - will use direct database access
-                self.monthly_dashboard = MonthlyDashboardWidget()
+                self.monthly_dashboard = MonthlyDashboardWidget(parent=self)
                 logger.info("Using MonthlyDashboardWidget without calculator")
             
             # Connect signals if needed

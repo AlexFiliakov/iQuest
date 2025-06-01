@@ -839,10 +839,12 @@ class TrophyCaseWidget(QWidget):
             elif not filter_metric and not filter_source:
                 filtered_achievements += 1
         
+        # Calculate totals (needed for statistics)
+        total_records = sum(len(records) for records in self.records.values())
+        total_achievements = len(self.achievements)
+        
         # Update header stats
         if header_filter == "All Records":
-            total_records = sum(len(records) for records in self.records.values())
-            total_achievements = len(self.achievements)
             self.stats_label.setText(f"{total_records} Records • {total_achievements} Achievements")
         else:
             self.stats_label.setText(f"{filtered_records} Records • {filtered_achievements} Achievements")

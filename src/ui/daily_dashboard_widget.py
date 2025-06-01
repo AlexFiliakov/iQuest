@@ -12,6 +12,7 @@ This widget provides a comprehensive view of daily health data including:
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, date, timedelta
 import pandas as pd
+import json
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
@@ -23,7 +24,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDateTime, QThread, pyqtSlot
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
 
 from .summary_cards import SummaryCard
-from .daily_trend_indicator import DailyTrendIndicator
+from .daily_trend_indicator import DailyTrendIndicator, TrendData
 from .activity_timeline_component import ActivityTimelineComponent
 from .charts.line_chart import LineChart
 from ..analytics.daily_metrics_calculator import DailyMetricsCalculator, MetricStatistics
@@ -116,12 +117,36 @@ class MetricCard(QFrame):
         else:
             self.value_label.setText("--")
             
-        if trend_data:
-            self.trend_indicator.update_trend(
-                trend_data.get('direction', 'stable'),
-                trend_data.get('percentage', 0),
-                trend_data.get('label', '')
+        if trend_data and value is not None:
+            # Create a TrendData object from the trend_data dictionary
+            # Calculate previous value from percentage change if available
+            percentage = trend_data.get('percentage', 0)
+            direction = trend_data.get('direction', 'stable')
+            
+            # Calculate previous value and absolute change
+            if percentage != 0 and direction != 'stable':
+                # If direction is 'down', percentage should be negative
+                actual_percentage = -percentage if direction == 'down' else percentage
+                previous_value = value / (1 + actual_percentage / 100)
+                change_absolute = value - previous_value
+            else:
+                previous_value = value
+                change_absolute = 0
+                actual_percentage = 0
+            
+            # Create TrendData object
+            trend_obj = TrendData(
+                current_value=value,
+                previous_value=previous_value,
+                change_absolute=change_absolute,
+                change_percent=actual_percentage,
+                history=[],  # Empty for now, could be populated if we have historical data
+                dates=[],    # Empty for now
+                unit=self.unit,
+                metric_name=self.metric_name
             )
+            
+            self.trend_indicator.update_trend(trend_obj)
             
     def mousePressEvent(self, event):
         """Handle mouse click."""
@@ -894,13 +919,32 @@ class DailyDashboardWidget(QWidget):
             self.detail_metric_selector.addItem(display_text, metric_tuple)
             logger.debug(f"Added to combo: {display_text}")
         
-        # Restore selection if possible
-        if current_data and current_data in self._available_metrics:
-            index = self._available_metrics.index(current_data)
-            self.detail_metric_selector.setCurrentIndex(index)
-        elif self._current_metric in self._available_metrics:
-            index = self._available_metrics.index(self._current_metric)
-            self.detail_metric_selector.setCurrentIndex(index)
+        # Try to restore saved preference first
+        from ..data_access import PreferenceDAO
+        saved_metric = PreferenceDAO.get_preference('daily_selected_metric')
+        
+        restored = False
+        if saved_metric:
+            try:
+                saved_tuple = tuple(saved_metric)  # JSON already decoded by PreferenceDAO
+                if saved_tuple in self._available_metrics:
+                    index = self._available_metrics.index(saved_tuple)
+                    self.detail_metric_selector.setCurrentIndex(index)
+                    self._selected_metric = saved_tuple
+                    restored = True
+                    logger.info(f"Restored saved metric preference: {saved_tuple}")
+            except Exception as e:
+                logger.error(f"Failed to restore metric preference: {e}")
+        
+        # If preference wasn't restored, fall back to existing logic
+        if not restored:
+            # Restore selection if possible
+            if current_data and current_data in self._available_metrics:
+                index = self._available_metrics.index(current_data)
+                self.detail_metric_selector.setCurrentIndex(index)
+            elif self._current_metric in self._available_metrics:
+                index = self._available_metrics.index(self._current_metric)
+                self.detail_metric_selector.setCurrentIndex(index)
     
     def _create_metric_cards(self):
         """Create metric cards for available metrics."""
@@ -1267,11 +1311,12 @@ class DailyDashboardWidget(QWidget):
                         elif metric_name in ["AppleExerciseTime", "MindfulSession"]:
                             raw_value = raw_value * 60  # Convert minutes back to seconds
                             
-                        is_record = self.personal_records.check_record(
+                        records_found = self.personal_records.check_for_records(
                             hk_type,
                             raw_value,
                             self._current_date
                         )
+                        is_record = len(records_found) > 0
                         if is_record:
                             records.append(metric_name)
         
@@ -1490,6 +1535,15 @@ class DailyDashboardWidget(QWidget):
             if metric_tuple:
                 self._selected_metric = metric_tuple
                 self._update_detail_chart()
+                
+                # Save preference
+                from ..data_access import PreferenceDAO
+                try:
+                    # Save the metric selection preference
+                    PreferenceDAO.set_preference('daily_selected_metric', 
+                                              json.dumps(metric_tuple))
+                except Exception as e:
+                    logger.error(f"Failed to save metric preference: {e}")
     
     def _update_detail_chart(self):
         """Update the detailed metric chart."""
@@ -1825,7 +1879,7 @@ class DailyDashboardWidget(QWidget):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
             from PyQt6.QtCore import Qt
             
-            self.no_data_overlay = QWidget()
+            self.no_data_overlay = QWidget(self)
             self.no_data_overlay.setStyleSheet("""
                 QWidget {
                     background-color: rgba(255, 255, 255, 0.95);
@@ -1880,7 +1934,7 @@ class DailyDashboardWidget(QWidget):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
             from PyQt6.QtCore import Qt
             
-            self.no_data_overlay = QWidget()
+            self.no_data_overlay = QWidget(self)
             self.no_data_overlay.setStyleSheet("""
                 QWidget {
                     background-color: rgba(255, 255, 255, 0.95);

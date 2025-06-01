@@ -1,11 +1,26 @@
+#!/usr/bin/env python3
 """
 Demo script for Month-over-Month Trends Analysis.
 
 This script demonstrates the complete functionality of the month-over-month
 trends analysis system with sample data.
+
+To run this demo:
+    python demos/month_over_month_demo.py
 """
 
+import os
 import sys
+
+# Only run the demo when explicitly executed as a script
+if __name__ != "__main__":
+    # Prevent any window creation when imported as a module
+    print("Warning: month_over_month_demo.py should be run as a script, not imported as a module")
+    sys.exit(0)
+
+# Add the parent directory to sys.path so we can import from src
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import numpy as np
 from datetime import datetime, timedelta
 from typing import List
@@ -49,6 +64,8 @@ class MockMonthlyMetricsCalculator:
 
 def main():
     """Run the month-over-month trends demo."""
+    print("Starting Month-over-Month Trends Demo...")
+    
     app = QApplication(sys.argv)
     
     # Create main window
@@ -62,8 +79,8 @@ def main():
     layout = QVBoxLayout(central_widget)
     
     try:
-        # Import the actual components
-        from month_over_month_widget import MonthOverMonthWidget
+        # Import the actual components from src
+        from src.ui.month_over_month_widget import MonthOverMonthWidget
         
         # Create mock calculator
         mock_calculator = MockMonthlyMetricsCalculator()
@@ -85,7 +102,7 @@ def main():
         layout.addWidget(mom_widget)
         
         # Show instructions
-        print("Month-over-Month Trends Demo")
+        print("\nMonth-over-Month Trends Demo")
         print("=" * 40)
         print("1. Select a metric from the dropdown")
         print("2. Choose the number of months to analyze")
@@ -147,5 +164,6 @@ def main():
     # Run application
     sys.exit(app.exec())
 
+# Only run if executed directly
 if __name__ == "__main__":
     main()
