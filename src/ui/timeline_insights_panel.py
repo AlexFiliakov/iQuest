@@ -131,6 +131,7 @@ class TimelineInsightsPanel(QWidget):
         self.heatmap_widget.time_clicked.connect(
             lambda time, details: self.insight_clicked.emit('heatmap', details)
         )
+        # self.heatmap_widget.setMinimumHeight(800)  # Ensure enough space for heatmap
         self.panels_layout.addWidget(self.heatmap_widget)
         
     def update_insights(self, clusters: Optional[np.ndarray], 

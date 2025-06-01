@@ -126,7 +126,7 @@ class ActivityHeatmapWidget(QFrame):
         layout.addWidget(content_frame)
         
         # Set minimum size
-        self.setMinimumHeight(350)
+        # self.setMinimumHeight(800)
         # self.setFixedHeight(350)
         
     def create_heatmap_grid(self):
