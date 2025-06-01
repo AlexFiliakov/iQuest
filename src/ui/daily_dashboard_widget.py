@@ -53,7 +53,7 @@ class MetricCard(QFrame):
         
     def _setup_ui(self):
         """Set up the card UI."""
-        self.setFixedHeight(120)
+        self.setFixedHeight(180)  # Increased from 120 to 180 for better visibility
         from .style_manager import StyleManager
         style_manager = StyleManager()
         shadow = style_manager.get_shadow_style('md')
@@ -63,7 +63,6 @@ class MetricCard(QFrame):
                 background-color: {style_manager.PRIMARY_BG};
                 border: none;
                 border-radius: 12px;
-                padding: 16px;
             }}
             QFrame:hover {{
                 background-color: {style_manager.TERTIARY_BG};
@@ -79,11 +78,12 @@ class MetricCard(QFrame):
         self.setGraphicsEffect(shadow_effect)
         
         layout = QVBoxLayout(self)
-        layout.setSpacing(8)
+        layout.setSpacing(12)  # Increased spacing for better distribution
+        layout.setContentsMargins(16, 16, 16, 16)  # Add margins inside the card
         
         # Metric name
         self.name_label = QLabel(self.display_name)
-        self.name_label.setFont(QFont('Inter', 11))
+        self.name_label.setFont(QFont('Inter', 12))  # Increased from 11
         self.name_label.setStyleSheet(f"color: {style_manager.TEXT_SECONDARY};")
         layout.addWidget(self.name_label)
         
@@ -92,13 +92,13 @@ class MetricCard(QFrame):
         value_layout.setSpacing(4)
         
         self.value_label = QLabel("--")
-        self.value_label.setFont(QFont('Inter', 24, QFont.Weight.Bold))
+        self.value_label.setFont(QFont('Inter', 32, QFont.Weight.Bold))  # Increased from 24
         self.value_label.setStyleSheet(f"color: {style_manager.ACCENT_PRIMARY};")
         value_layout.addWidget(self.value_label)
         
         if self.unit:
             self.unit_label = QLabel(self.unit)
-            self.unit_label.setFont(QFont('Inter', 12))
+            self.unit_label.setFont(QFont('Inter', 14))  # Increased from 12
             self.unit_label.setStyleSheet(f"color: {style_manager.TEXT_MUTED};")
             self.unit_label.setAlignment(Qt.AlignmentFlag.AlignBottom)
             value_layout.addWidget(self.unit_label)
@@ -106,8 +106,12 @@ class MetricCard(QFrame):
         value_layout.addStretch()
         layout.addLayout(value_layout)
         
+        # Add stretch to center content vertically
+        layout.addStretch(1)
+        
         # Trend indicator
         self.trend_indicator = DailyTrendIndicator(self.metric_name)
+        self.trend_indicator.setMinimumHeight(30)  # Ensure trend indicator has space
         layout.addWidget(self.trend_indicator)
         
     def update_value(self, value: float, trend_data: Optional[Dict] = None):
@@ -719,7 +723,7 @@ class DailyDashboardWidget(QWidget):
         
         # Timeline component
         self.timeline = ActivityTimelineComponent()
-        self.timeline.setFixedHeight(200)
+        self.timeline.setMinimumHeight(400)  # Increased from fixed 200 to minimum 400
         layout.addWidget(self.timeline)
         
         return section

@@ -170,7 +170,10 @@ class ActivityTimelineComponent(QWidget):
         
         # Info panel
         self.info_panel = QGroupBox("Timeline Insights", self)
+        self.info_panel.setMinimumHeight(150)  # Set minimum height for visibility
         info_layout = QVBoxLayout()
+        info_layout.setContentsMargins(10, 15, 10, 15)  # Add proper margins
+        info_layout.setSpacing(8)  # Add spacing between labels
         
         self.active_periods_label = QLabel("Active Periods: -", self)
         self.rest_periods_label = QLabel("Rest Periods: -", self)
