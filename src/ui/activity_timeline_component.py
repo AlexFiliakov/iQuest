@@ -4,29 +4,44 @@ Displays hourly breakdown with radial and linear views, ML clustering, and inter
 Inspired by Wall Street Journal visualization style.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QGroupBox, QScrollArea, QFrame, QSlider,
-    QCheckBox, QSplitter, QButtonGroup, QRadioButton
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRectF, QPointF
-from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPainterPath, QRadialGradient
-import numpy as np
-import pandas as pd
-from typing import Optional, List, Dict, Tuple, Any
-from datetime import datetime, timedelta
+import logging
 import math
 import time
-from sklearn.cluster import KMeans, DBSCAN
-from sklearn.preprocessing import StandardScaler
+import warnings
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 from matplotlib.patches import Rectangle
+from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QRadialGradient
+from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QSlider,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
+from sklearn.cluster import DBSCAN, KMeans
+from sklearn.preprocessing import StandardScaler
+
 from .comparison_overlay_widget import ComparisonOverlayWidget
-import warnings
-import logging
+from .timeline_insights_panel import TimelineInsightsPanel
+
 warnings.filterwarnings('ignore', category=UserWarning)
 
 
@@ -165,32 +180,14 @@ class ActivityTimelineComponent(QWidget):
         
         # Main visualization area
         self.viz_widget = TimelineVisualizationWidget(self)
-        self.viz_widget.setMinimumHeight(600)  # Increased from 400 to 600
+        self.viz_widget.setMinimumHeight(400)  # Reduced to make room for insights panel
         layout.addWidget(self.viz_widget)
         
-        # Info panel
-        self.info_panel = QGroupBox("Timeline Insights", self)
-        self.info_panel.setMinimumHeight(200)  # Increased to accommodate wrapped text
-        info_layout = QVBoxLayout()
-        info_layout.setContentsMargins(10, 15, 10, 15)  # Add proper margins
-        info_layout.setSpacing(8)  # Add spacing between labels
-        
-        self.active_periods_label = QLabel("Active Periods: -", self)
-        self.rest_periods_label = QLabel("Rest Periods: -", self)
-        self.peak_activity_label = QLabel("Peak Activity: -", self)
-        self.patterns_label = QLabel("Patterns: None detected", self)
-        
-        # Enable word wrap for long text
-        self.patterns_label.setWordWrap(True)
-        self.patterns_label.setMinimumHeight(40)  # Ensure space for wrapped text
-        
-        info_layout.addWidget(self.active_periods_label)
-        info_layout.addWidget(self.rest_periods_label)
-        info_layout.addWidget(self.peak_activity_label)
-        info_layout.addWidget(self.patterns_label)
-        
-        self.info_panel.setLayout(info_layout)
-        layout.addWidget(self.info_panel)
+        # New Timeline Insights Panel
+        self.insights_panel = TimelineInsightsPanel(self)
+        self.insights_panel.setMinimumHeight(1200)  # Give significant space to insights
+        self.insights_panel.insight_clicked.connect(self.on_insight_clicked)
+        layout.addWidget(self.insights_panel)
         
         # Apply styling with proper fonts
         self.setStyleSheet(f"""
@@ -476,48 +473,28 @@ class ActivityTimelineComponent(QWidget):
             self.lagged_correlations[lag] = lagged_corr
             
     def update_info_panel(self):
-        """Update the information panel with insights."""
-        if hasattr(self, 'active_periods') and self.active_periods:
-            self.active_periods_label.setText(f"Active Periods: {len(self.active_periods)}")
-        else:
-            self.active_periods_label.setText("Active Periods: -")
+        """Update the insights panel with transformed analytics data."""
+        # Update the new insights panel with user-friendly visualizations
+        if hasattr(self, 'insights_panel'):
+            self.insights_panel.update_insights(
+                self.clusters,
+                self.anomalies,
+                self.grouped_data,
+                self.selected_metrics
+            )
             
-        if hasattr(self, 'rest_periods') and self.rest_periods:
-            self.rest_periods_label.setText(f"Rest Periods: {len(self.rest_periods)}")
-        else:
-            self.rest_periods_label.setText("Rest Periods: -")
-            
-        # Find peak activity time
-        if hasattr(self, 'active_periods') and self.active_periods:
-            peak_time, peak_score = max(self.active_periods, key=lambda x: x[1])
-            self.peak_activity_label.setText(f"Peak Activity: {peak_time.strftime('%H:%M')}")
-        else:
-            self.peak_activity_label.setText("Peak Activity: -")
-            
-        # Pattern detection summary with detailed information
-        if self.clusters is not None:
-            unique_clusters = len(np.unique(self.clusters[self.clusters >= 0]))
-            anomaly_count = np.sum(self.anomalies) if self.anomalies is not None else 0
-            
-            # Get anomaly times for display
-            if self.anomalies is not None and self.grouped_data is not None:
-                anomaly_times = []
-                for idx, is_anomaly in zip(self.grouped_data.index, self.anomalies):
-                    if is_anomaly:
-                        anomaly_times.append(idx.strftime('%H:%M'))
-                
-                if anomaly_times:
-                    # Show first few anomaly times
-                    anomaly_preview = ', '.join(anomaly_times[:3])
-                    if len(anomaly_times) > 3:
-                        anomaly_preview += f" (+{len(anomaly_times)-3} more)"
-                    self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies at {anomaly_preview}")
-                else:
-                    self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies")
-            else:
-                self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies")
-        else:
-            self.patterns_label.setText("Patterns: None detected")
+    def on_insight_clicked(self, insight_type: str, details: dict):
+        """Handle clicks on insight items."""
+        self.logger.info(f"Insight clicked: {insight_type}, details: {details}")
+        # Emit signal or handle interaction as needed
+        if insight_type == 'pattern':
+            self.pattern_detected.emit(details['name'], details)
+        elif insight_type == 'anomaly':
+            # Could show more details or allow user to add notes
+            pass
+        elif insight_type == 'heatmap':
+            # Could zoom to specific time period
+            pass
 
 
 class TimelineVisualizationWidget(QWidget):

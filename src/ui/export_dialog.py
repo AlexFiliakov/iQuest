@@ -7,21 +7,40 @@ and generating various types of health reports and data exports.
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QCheckBox, QListWidget, QListWidgetItem,
-    QGroupBox, QFileDialog, QMessageBox, QProgressDialog,
-    QRadioButton, QButtonGroup, QSpinBox, QTabWidget,
-    QWidget, QGridLayout, QTextEdit, QLineEdit
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QProgressDialog,
+    QPushButton,
+    QRadioButton,
+    QSpinBox,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
-from PyQt6.QtGui import QIcon, QFont
 
 from ..analytics.export_reporting_system import (
-    WSJExportReportingSystem, ExportConfiguration, ExportFormat, 
-    ReportTemplate, ExportProgressManager
+    ExportConfiguration,
+    ExportFormat,
+    ExportProgressManager,
+    ReportTemplate,
+    WSJExportReportingSystem,
 )
 from .adaptive_date_edit import AdaptiveDateEdit
 from .style_manager import StyleManager
@@ -386,7 +405,7 @@ class ExportDialog(QDialog):
         
         self.backup_info_text = QTextEdit(self)
         self.backup_info_text.setReadOnly(True)
-        self.backup_info_text.setMaximumHeight(150)
+        # self.backup_info_text.setMaximumHeight(150)
         self._update_backup_info()
         
         info_layout.addWidget(self.backup_info_text)

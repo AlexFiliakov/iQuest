@@ -8,19 +8,27 @@ This module provides an enhanced version of the monthly dashboard with:
 - Improved alignment and proportions
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, date
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QSizePolicy
-)
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
+from ..utils.logging_config import get_logger
 from .charts.calendar_heatmap import CalendarHeatmapComponent
 from .empty_state_widget import EmptyStateWidget
 from .style_manager import StyleManager
-from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -85,7 +93,7 @@ class ImprovedMonthlyDashboard(QWidget):
     def _create_header(self) -> QWidget:
         """Create improved header with better alignment."""
         header = QFrame()
-        header.setMaximumHeight(60)
+        # header.setMaximumHeight(60)
         header.setStyleSheet(f"""
             QFrame {{
                 background-color: {self.style_manager.SECONDARY_BG};
@@ -203,7 +211,7 @@ class ImprovedMonthlyDashboard(QWidget):
         if self._metric_data:
             self.calendar_heatmap = CalendarHeatmapComponent()
             self.calendar_heatmap.setMinimumHeight(300)
-            self.calendar_heatmap.setMaximumHeight(400)
+            # self.calendar_heatmap.setMaximumHeight(400)
             layout.addWidget(self.calendar_heatmap)
         else:
             # Show empty state instead of calendar when no data

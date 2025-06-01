@@ -128,8 +128,8 @@ class SummaryCard(QWidget):
         self.setStyleSheet(style)
         
         # Add modern shadow effect
-        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
         from PyQt6.QtGui import QColor
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
         
         shadow_effect = QGraphicsDropShadowEffect()
         shadow_effect.setBlurRadius(20)
@@ -442,7 +442,7 @@ class TrendIndicatorWidget(QWidget):
         layout.addWidget(self.label)
         self.setLayout(layout)
         
-        self.setMaximumHeight(30)
+        # self.setMaximumHeight(30)
     
     def set_trend(self, current: float, previous: float):
         """Set trend based on values."""

@@ -5,28 +5,47 @@ This widget integrates the health insights engine with the PyQt6 UI,
 providing an interactive display of evidence-based health insights.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QComboBox, QSpinBox, QTabWidget,
-    QTextEdit, QProgressBar, QGroupBox, QGridLayout,
-    QSizePolicy, QToolButton
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread, pyqtSlot, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QPalette, QColor, QIcon, QPainter, QBrush, QPen
-
-from typing import Dict, List, Optional, Any, Callable, Tuple
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpinBox,
+    QTabWidget,
+    QTextEdit,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..analytics.health_insights_engine import EnhancedHealthInsightsEngine
 from ..analytics.health_insights_models import (
-    HealthInsight, InsightCategory, Priority, EvidenceLevel,
-    InsightBatch
+    EvidenceLevel,
+    HealthInsight,
+    InsightBatch,
+    InsightCategory,
+    Priority,
 )
-from .charts.wsj_style_manager import WSJStyleManager
-from ..analytics.progressive_loader import ProgressiveLoaderCallbacks, ProgressiveResult, LoadingStage
-from .style_manager import StyleManager
+from ..analytics.progressive_loader import (
+    LoadingStage,
+    ProgressiveLoaderCallbacks,
+    ProgressiveResult,
+)
 from ..health_database import HealthDatabase
+from .charts.wsj_style_manager import WSJStyleManager
+from .style_manager import StyleManager
 
 logger = logging.getLogger(__name__)
 
@@ -427,7 +446,7 @@ class HealthInsightsWidget(QWidget):
         
         self.summary_text = QTextEdit(self)
         self.summary_text.setReadOnly(True)
-        self.summary_text.setMaximumHeight(150)
+        # self.summary_text.setMaximumHeight(150)
         layout.addWidget(self.summary_text)
         
         return summary_group

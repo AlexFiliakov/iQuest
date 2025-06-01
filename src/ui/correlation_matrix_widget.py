@@ -3,32 +3,55 @@ Interactive Correlation Matrix Widget
 Provides WSJ-style correlation matrix visualization with progressive disclosure.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QSlider, QGroupBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QToolTip, QMenu, QWidgetAction, QCheckBox,
-    QSpinBox, QProgressBar, QTextEdit, QSplitter, QTabWidget, QFrame, QGridLayout
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF, QRectF, QThread, pyqtSlot
-from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont, QPixmap, QCursor
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import seaborn as sns
-import numpy as np
-import pandas as pd
-from typing import Dict, List, Optional, Any, Tuple
 import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from PyQt6.QtCore import QPointF, QRectF, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QBrush, QColor, QCursor, QFont, QPainter, QPen, QPixmap
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMenu,
+    QProgressBar,
+    QPushButton,
+    QSlider,
+    QSpinBox,
+    QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
+    QWidgetAction,
+)
+
+from ..analytics.causality_detector import CausalityDetector
+from ..analytics.correlation_analyzer import CorrelationAnalyzer
 from ..analytics.correlation_discovery import LayeredCorrelationEngine, WSJStyleManager
 from ..analytics.correlation_models import (
-    CorrelationInsight, CorrelationNetwork, CorrelationMatrixStyle,
-    CorrelationType, EffectSize, CorrelationStrength
+    CorrelationInsight,
+    CorrelationMatrixStyle,
+    CorrelationNetwork,
+    CorrelationStrength,
+    CorrelationType,
+    EffectSize,
 )
-from ..analytics.correlation_analyzer import CorrelationAnalyzer
-from ..analytics.causality_detector import CausalityDetector
 from .style_manager import StyleManager
 
 logger = logging.getLogger(__name__)
@@ -149,7 +172,7 @@ class CorrelationMatrixWidget(QWidget):
         
         # Summary statistics
         self.summary_text = QTextEdit(self)
-        self.summary_text.setMaximumHeight(200)
+        # self.summary_text.setMaximumHeight(200)
         self.summary_text.setReadOnly(True)
         layout.addWidget(QLabel("Analysis Summary:"))
         layout.addWidget(self.summary_text)
@@ -596,8 +619,9 @@ class CorrelationMatrixWidget(QWidget):
 
 if __name__ == "__main__":
     # Test the widget
-    from PyQt6.QtWidgets import QApplication
     import sys
+
+    from PyQt6.QtWidgets import QApplication
     
     app = QApplication(sys.argv)
     

@@ -5,22 +5,30 @@ This widget provides a modern, Wall Street Journal-inspired monthly view of heal
 with tighter layout, better visual hierarchy, and modern design patterns.
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, date, timedelta
 from calendar import monthrange
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
 
+from PyQt6.QtCore import QDate, QEasingCurve, QPropertyAnimation, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPen
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
-    QGraphicsDropShadowEffect
+    QComboBox,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QDate, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QIcon, QPainter, QColor, QPen
 
-from .charts.calendar_heatmap import CalendarHeatmapComponent
-from .statistics_widget import StatisticsWidget
 from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
 from ..utils.logging_config import get_logger
+from .charts.calendar_heatmap import CalendarHeatmapComponent
+from .statistics_widget import StatisticsWidget
 from .style_manager import StyleManager
 
 logger = get_logger(__name__)
@@ -106,7 +114,7 @@ class ModernMonthlyDashboardWidget(QWidget):
     def _create_modern_header(self) -> QWidget:
         """Create the modern dashboard header."""
         header = QWidget(self)
-        header.setMaximumHeight(60)
+        # header.setMaximumHeight(60)
         
         layout = QHBoxLayout(header)
         layout.setContentsMargins(16, 8, 16, 8)

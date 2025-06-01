@@ -3,19 +3,31 @@ Goal Progress Widget for displaying goal tracking and progress.
 Provides visual representation of different goal types.
 """
 
-from typing import List, Optional, Dict, Any
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QMenu, QDialog, QTextEdit,
-    QProgressBar, QGridLayout, QSizePolicy, QGraphicsDropShadowEffect
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QRect
-from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPalette
 import math
 from datetime import date, timedelta
+from typing import Any, Dict, List, Optional
 
-from ..analytics.goal_models import Goal, GoalType, GoalStatus, GoalProgress
+from PyQt6.QtCore import QPropertyAnimation, QRect, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPalette, QPen
+from PyQt6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from ..analytics.goal_management_system import GoalManagementSystem
+from ..analytics.goal_models import Goal, GoalProgress, GoalStatus, GoalType
 
 
 class CircularProgressBar(QWidget):
@@ -245,7 +257,7 @@ class GoalCard(QFrame):
         
         # Mini trend chart
         self.trend_chart = MiniLineChart()
-        self.trend_chart.setMaximumHeight(60)
+        # self.trend_chart.setMaximumHeight(60)
         layout.addWidget(self.trend_chart)
         
         # Make card clickable
@@ -453,7 +465,7 @@ class GoalProgressWidget(QWidget):
         """Create summary statistics widget."""
         widget = QFrame(self)
         widget.setFrameStyle(QFrame.Shape.Box)
-        widget.setMaximumHeight(80)
+        # widget.setMaximumHeight(80)
         
         layout = QHBoxLayout(widget)
         

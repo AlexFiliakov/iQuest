@@ -62,6 +62,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ..analytics.cache_manager import get_cache_manager
 from ..config import DATA_DIR
 from ..data_filter_engine import DataFilterEngine, FilterCriteria
 from ..data_loader import DataLoader, convert_xml_to_sqlite
@@ -69,7 +70,6 @@ from ..database import db_manager
 from ..filter_config_manager import FilterConfig, FilterConfigManager
 from ..statistics_calculator import StatisticsCalculator
 from ..utils.logging_config import get_logger
-from ..analytics.cache_manager import get_cache_manager
 from .component_factory import ComponentFactory
 from .enhanced_date_edit import EnhancedDateEdit
 from .import_progress_dialog import ImportProgressDialog
@@ -832,7 +832,7 @@ class ConfigurationTab(QWidget):
         
         # Set proper height for data visibility
         self.data_preview_table.setMinimumHeight(250)
-        self.data_preview_table.setMaximumHeight(400)
+        # self.data_preview_table.setMaximumHeight(400)
         
         # Apply custom styling for better readability
         self.data_preview_table.setStyleSheet(f"""
@@ -975,7 +975,7 @@ class ConfigurationTab(QWidget):
             wsj_style=True
         )
         self.record_types_table.setMinimumHeight(350)  # Proper height for data exploration
-        self.record_types_table.setMaximumHeight(500)  # Allow expansion if needed
+        # self.record_types_table.setMaximumHeight(500)  # Allow expansion if needed
         
         # Apply compact styling to record types table
         self.record_types_table.setStyleSheet(f"""
@@ -1047,7 +1047,7 @@ class ConfigurationTab(QWidget):
             wsj_style=True
         )
         self.data_sources_table.setMinimumHeight(300)  # Proper height for source list
-        self.data_sources_table.setMaximumHeight(450)  # Allow expansion if needed
+        # self.data_sources_table.setMaximumHeight(450)  # Allow expansion if needed
         
         # Apply compact styling to data sources table
         self.data_sources_table.setStyleSheet(f"""
@@ -1745,7 +1745,7 @@ class ConfigurationTab(QWidget):
     def _on_save_preset_clicked(self):
         """Handle save preset button click."""
         from PyQt6.QtWidgets import QInputDialog
-        
+
         # Get preset name from user
         preset_name, ok = QInputDialog.getText(
             self,
@@ -1784,7 +1784,7 @@ class ConfigurationTab(QWidget):
     
     def _on_load_preset_clicked(self):
         """Handle load preset button click."""
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QListWidget, QDialogButtonBox
+        from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QListWidget, QVBoxLayout
         
         try:
             # Get available presets
@@ -2121,8 +2121,12 @@ class ConfigurationTab(QWidget):
             return
             
         try:
-            from ..analytics import DailyMetricsCalculator, WeeklyMetricsCalculator, MonthlyMetricsCalculator
-            
+            from ..analytics import (
+                DailyMetricsCalculator,
+                MonthlyMetricsCalculator,
+                WeeklyMetricsCalculator,
+            )
+
             # Create daily calculator with the loaded data
             self.daily_calculator = DailyMetricsCalculator(self.data)
             
@@ -2357,13 +2361,14 @@ class ConfigurationTab(QWidget):
         """
         try:
             # Import here to avoid circular dependencies
+            from concurrent.futures import ThreadPoolExecutor
+
             from ..analytics.cache_background_refresh import (
-                warm_monthly_metrics_cache, 
-                identify_months_for_cache_population
+                identify_months_for_cache_population,
+                warm_monthly_metrics_cache,
             )
             from ..analytics.cached_calculators import create_cached_monthly_calculator
             from ..database import DatabaseManager
-            from concurrent.futures import ThreadPoolExecutor
             
             def warm_cache():
                 """Execute cache warming in background thread."""

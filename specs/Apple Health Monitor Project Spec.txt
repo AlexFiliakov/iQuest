@@ -570,6 +570,10 @@ For each iteration, please commit your changes with descriptive commit messages 
 
 
 
+Before taking a screenshot, wait 30 seconds after calling the UI to allow time for it to load, then take the screenshot after 30 seconds.
+
+message_log - change messages
+
 
 -----------
 

@@ -1,18 +1,30 @@
 """Adaptive time range selector with data availability integration."""
 
-from datetime import date, timedelta, datetime
-from typing import Optional, Dict, List
+from datetime import date, datetime, timedelta
+from typing import Dict, List, Optional
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                            QPushButton, QButtonGroup, QFrame)
-from PyQt6.QtCore import Qt, QDate, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QPalette, QColor
+from PyQt6.QtCore import QDate, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QPalette
+from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from ..data_availability_service import (DataAvailabilityService, TimeRange, 
-                                        RangeAvailability, AvailabilityLevel)
-from .smart_default_selector import SmartDefaultSelector, SelectionContext
-from .preference_tracker import PreferenceTracker
 from src.utils.logging_config import get_logger
+
+from ..data_availability_service import (
+    AvailabilityLevel,
+    DataAvailabilityService,
+    RangeAvailability,
+    TimeRange,
+)
+from .preference_tracker import PreferenceTracker
+from .smart_default_selector import SelectionContext, SmartDefaultSelector
 
 logger = get_logger(__name__)
 
@@ -128,7 +140,7 @@ class AdaptiveTimeRangeSelector(QWidget):
         # Status label for feedback
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
-        self.status_label.setMaximumHeight(60)
+        # self.status_label.setMaximumHeight(60)
         status_font = QFont()
         status_font.setPointSize(8)
         self.status_label.setFont(status_font)

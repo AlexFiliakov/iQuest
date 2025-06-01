@@ -9,23 +9,31 @@ Provides respectful, encouraging visualizations for:
 """
 
 import logging
+from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, date
+
 import numpy as np
 import pandas as pd
-
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QGridLayout, QGroupBox, QProgressBar, QToolTip,
-    QApplication, QComboBox
+    QApplication,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QTimer
-from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
 
-from ..analytics.comparative_analytics import (
-    ComparisonResult, HistoricalComparison, ComparisonType
-)
+from ..analytics.comparative_analytics import ComparisonResult, ComparisonType, HistoricalComparison
 from ..health_database import HealthDatabase
+
 # from ..analytics.peer_group_comparison import GroupComparison  # Removed group comparison feature
 
 logger = logging.getLogger(__name__)
@@ -444,7 +452,7 @@ class HistoricalComparisonWidget(QWidget):
         
         # Add a progress indicator
         self.trend_progress = QProgressBar()
-        self.trend_progress.setMaximumHeight(4)
+        # self.trend_progress.setMaximumHeight(4)
         self.trend_progress.setTextVisible(False)
         self.trend_progress.setStyleSheet("""
             QProgressBar {

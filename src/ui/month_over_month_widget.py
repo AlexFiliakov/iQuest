@@ -5,27 +5,39 @@ Integrates all visualization components (waterfall, bump, stream, small multiple
 with the analytics engine for a complete month-over-month analysis dashboard.
 """
 
-from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
-import numpy as np
+from typing import Any, Dict, List, Optional
 
+import numpy as np
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QFont, QPainter, QPixmap
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, QLabel, QFrame,
-    QPushButton, QComboBox, QSpinBox, QCheckBox, QTextEdit, QScrollArea,
-    QGroupBox, QProgressBar, QSplitter
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QSplitter,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QPixmap, QPainter
 
 from ..analytics.month_over_month_trends import MonthOverMonthTrends, TrendAnalysis
 from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
-from .charts.waterfall_chart import WaterfallChartContainer
 from .charts.bump_chart import BumpChartContainer
-from .charts.stream_graph import StreamGraphContainer
-from .charts.small_multiples import SmallMultiplesContainer, SmallMultipleChart
 from .charts.calendar_heatmap import CalendarHeatmapComponent
-from .summary_cards import SummaryCard, SummaryCardType
+from .charts.small_multiples import SmallMultipleChart, SmallMultiplesContainer
+from .charts.stream_graph import StreamGraphContainer
+from .charts.waterfall_chart import WaterfallChartContainer
 from .style_manager import StyleManager
+from .summary_cards import SummaryCard, SummaryCardType
 
 
 class TrendAnalysisWorker(QThread):
@@ -371,7 +383,7 @@ class MonthOverMonthWidget(QWidget):
         stats_layout = QVBoxLayout(stats_group)
         
         self.stats_text = QTextEdit(self)
-        self.stats_text.setMaximumHeight(200)
+        # self.stats_text.setMaximumHeight(200)
         self.stats_text.setReadOnly(True)
         self.stats_text.setStyleSheet("""
             QTextEdit {

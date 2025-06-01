@@ -1,20 +1,21 @@
 """Example of using the multi-metric dashboard layout system."""
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QComboBox
+
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QComboBox, QMainWindow, QPushButton, QVBoxLayout, QWidget
 
 # Add src to path for imports
 sys.path.append('../src')
 
+from ui.charts.base_chart import BaseChart
 from ui.dashboards import (
-    WSJDashboardLayout, 
+    DashboardInteractionCoordinator,
+    DashboardPersistence,
     HealthDashboardTemplates,
     ResponsiveGridManager,
-    DashboardInteractionCoordinator,
-    DashboardPersistence
+    WSJDashboardLayout,
 )
-from ui.charts.base_chart import BaseChart
 
 
 class DemoChart(BaseChart):
@@ -90,7 +91,7 @@ class DashboardDemoWindow(QMainWindow):
     def _create_controls(self) -> QWidget:
         """Create control panel."""
         controls = QWidget()
-        controls.setMaximumHeight(50)
+        # controls.setMaximumHeight(50)
         layout = QHBoxLayout(controls)
         
         # Template selector
@@ -266,5 +267,5 @@ def main():
 
 if __name__ == "__main__":
     # Add missing import
-    from PyQt6.QtWidgets import QLabel, QHBoxLayout
+    from PyQt6.QtWidgets import QHBoxLayout, QLabel
     main()

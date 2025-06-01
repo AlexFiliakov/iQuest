@@ -1,13 +1,13 @@
 """PyQtGraph chart factory for interactive health visualizations."""
 
-from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
-
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 try:
     import pyqtgraph as pg
@@ -16,8 +16,8 @@ except ImportError:
     PYQTGRAPH_AVAILABLE = False
     pg = None
 
-from .wsj_style_manager import WSJStyleManager
 from ...utils.logging_config import get_logger
+from .wsj_style_manager import WSJStyleManager
 
 logger = get_logger(__name__)
 
@@ -564,7 +564,7 @@ class SparklineChart(InteractiveChartWidget):
         
         # Create small plot widget
         self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setMaximumHeight(60)
+        # self.plot_widget.setMaximumHeight(60)
         self.plot_widget.setMinimumHeight(40)
         container.layout().addWidget(self.plot_widget)
         

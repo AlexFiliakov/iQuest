@@ -3,16 +3,18 @@ Integration utilities for adding data coverage indicators to existing widgets.
 Provides easy-to-use functions for adding coverage displays to any UI component.
 """
 
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
-from PyQt6.QtCore import Qt
-from typing import Optional, Dict, Any, Union
-import pandas as pd
 from datetime import date
+from typing import Any, Dict, Optional, Union
 
-from .data_availability_indicator import DataAvailabilityIndicator
-from .coverage_service import CoverageService, create_sample_coverage_data
-from .style_manager import StyleManager
+import pandas as pd
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+
 from src.utils.logging_config import get_logger
+
+from .coverage_service import CoverageService, create_sample_coverage_data
+from .data_availability_indicator import DataAvailabilityIndicator
+from .style_manager import StyleManager
 
 logger = get_logger(__name__)
 
@@ -65,7 +67,7 @@ class CoverageIndicatorWidget(QFrame):
             
             # Coverage indicator
             self.indicator = DataAvailabilityIndicator(self.indicator_type)
-            self.indicator.setMaximumHeight(24)
+            # self.indicator.setMaximumHeight(24)
             layout.addWidget(self.indicator, 1)
             
         else:
@@ -238,7 +240,8 @@ def quick_coverage_timeline(parent: QWidget, title: str = "Timeline") -> Coverag
 # Example usage and demonstration
 if __name__ == "__main__":
     import sys
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLabel
+
+    from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
     
     app = QApplication(sys.argv)
     

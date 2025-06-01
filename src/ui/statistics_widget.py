@@ -3,19 +3,26 @@ Statistics display widget for health data.
 Shows record counts, date ranges, and breakdowns by type and source.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QGroupBox, QScrollArea, QFrame
-)
+from typing import Optional
+
+import pandas as pd
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
-from typing import Optional
-import pandas as pd
-from ..statistics_calculator import BasicStatistics
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
+
 from ..analytics.day_of_week_analyzer import DayOfWeekAnalyzer
+from ..statistics_calculator import BasicStatistics
+from .component_factory import ComponentFactory
 from .summary_cards import SummaryCard
 from .table_components import MetricTable, TableConfig
-from .component_factory import ComponentFactory
 
 
 class StatisticsWidget(QWidget):
@@ -92,7 +99,7 @@ class StatisticsWidget(QWidget):
             multi_select=False
         )
         self.types_table = MetricTable(types_table_config)
-        self.types_table.setMaximumHeight(300)
+        # self.types_table.setMaximumHeight(300)
         self.types_layout.addWidget(self.types_table)
         
         self.types_group.setLayout(self.types_layout)
@@ -112,7 +119,7 @@ class StatisticsWidget(QWidget):
             multi_select=False
         )
         self.sources_table = MetricTable(sources_table_config)
-        self.sources_table.setMaximumHeight(300)
+        # self.sources_table.setMaximumHeight(300)
         self.sources_layout.addWidget(self.sources_table)
         
         self.sources_group.setLayout(self.sources_layout)

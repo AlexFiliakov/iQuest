@@ -1,26 +1,42 @@
 """WSJ-inspired health visualization suite with hybrid rendering approach."""
 
-from typing import Dict, List, Any, Optional, Tuple, Union
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 import io
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                            QLabel, QComboBox, QFileDialog, QMessageBox,
-                            QSplitter, QTabWidget, QMenu, QToolButton, QDialog)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QPixmap, QAction
+import numpy as np
+import pandas as pd
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QAction, QPixmap
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSplitter,
+    QTabWidget,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from .wsj_style_manager import WSJStyleManager
-from .pyqtgraph_chart_factory import PyQtGraphChartFactory
-from .matplotlib_chart_factory import MatplotlibChartFactory, MatplotlibChartWidget
-from .progressive_drill_down import ProgressiveDrillDownWidget
-from .shareable_dashboard import (ShareableDashboardManager, ShareDashboardDialog,
-                                ShareLinkDisplay, SharedDashboardViewer)
 from ...analytics.data_source_protocol import DataSourceProtocol
 from ...utils.logging_config import get_logger
+from .matplotlib_chart_factory import MatplotlibChartFactory, MatplotlibChartWidget
+from .progressive_drill_down import ProgressiveDrillDownWidget
+from .pyqtgraph_chart_factory import PyQtGraphChartFactory
+from .shareable_dashboard import (
+    ShareableDashboardManager,
+    ShareDashboardDialog,
+    SharedDashboardViewer,
+    ShareLinkDisplay,
+)
+from .wsj_style_manager import WSJStyleManager
 
 logger = get_logger(__name__)
 
@@ -134,7 +150,7 @@ class WSJHealthVisualizationSuite(QWidget):
     def _create_toolbar(self) -> QWidget:
         """Create the toolbar with chart selection and export options."""
         toolbar = QWidget(self)
-        toolbar.setMaximumHeight(60)
+        # toolbar.setMaximumHeight(60)
         layout = QHBoxLayout(toolbar)
         layout.setContentsMargins(20, 10, 20, 10)
         

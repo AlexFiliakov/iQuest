@@ -3,23 +3,45 @@ Trophy Case Dashboard Widget for Personal Records Tracker.
 Displays achievements, records, and statistics in an attractive UI.
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, date
 import logging
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
-                            QLabel, QFrame, QScrollArea, QGridLayout,
-                            QPushButton, QTableWidget, QTableWidgetItem,
-                            QHeaderView, QGroupBox, QProgressBar, QSplitter,
-                            QTextEdit, QComboBox, QCheckBox, QSpacerItem,
-                            QSizePolicy, QStackedWidget)
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QTimer
-from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QPainter, QBrush
+from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPixmap
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSpacerItem,
+    QSplitter,
+    QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
-from ..analytics.personal_records_tracker import (PersonalRecordsTracker, Record, 
-                                                 Achievement, RecordType, CelebrationLevel)
-from .celebration_manager import CelebrationManager, SocialShareManager
+from ..analytics.personal_records_tracker import (
+    Achievement,
+    CelebrationLevel,
+    PersonalRecordsTracker,
+    Record,
+    RecordType,
+)
 from ..health_database import HealthDatabase
+from .celebration_manager import CelebrationManager, SocialShareManager
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +103,7 @@ class RecordCardWidget(QFrame):
         metric_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         metric_label.setStyleSheet("color: #333333; background: transparent;")
         metric_label.setWordWrap(True)
-        metric_label.setMaximumHeight(30)
+        # metric_label.setMaximumHeight(30)
         
         # Value with improvement
         value_text = f"{self.record.value:,.0f}"

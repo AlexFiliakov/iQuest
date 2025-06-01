@@ -3,18 +3,28 @@ Data availability indicators for health data coverage visualization.
 Provides various visual representations of data coverage, gaps, and quality.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame,
-    QProgressBar, QToolTip, QSizePolicy
-)
-from PyQt6.QtCore import Qt, QRect, QTimer, pyqtSignal
-from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QFont, QPolygon
-from typing import Dict, List, Optional, Union, NamedTuple, Any
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, NamedTuple, Optional, Union
+
+from PyQt6.QtCore import QRect, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPolygon
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QSizePolicy,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.utils.logging_config import get_logger
+
 from .style_manager import StyleManager
 from .summary_cards import SummaryCard
-from src.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -240,7 +250,7 @@ class HeatStripWidget(QWidget):
     def setup_widget(self):
         """Setup the widget dimensions and tooltip."""
         self.setMinimumHeight(20)
-        self.setMaximumHeight(20)
+        # self.setMaximumHeight(20)
         self.setMinimumWidth(200)
         
         # Set up tooltip
@@ -437,8 +447,9 @@ class DataAvailabilityIndicator(DataAvailabilityCard):
 # Example usage and testing
 if __name__ == "__main__":
     import sys
-    from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
     from datetime import datetime, timedelta
+
+    from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
     
     app = QApplication(sys.argv)
     

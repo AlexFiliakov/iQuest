@@ -1,22 +1,34 @@
 """Shareable dashboard functionality for health visualizations."""
 
-import json
 import base64
 import hashlib
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-import pandas as pd
-from pathlib import Path
+import json
 import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                            QLabel, QLineEdit, QTextEdit, QDialog, QMessageBox,
-                            QGroupBox, QCheckBox, QDateEdit, QComboBox)
-from PyQt6.QtCore import Qt, pyqtSignal, QUrl, QDate, QTimer
+import pandas as pd
+from PyQt6.QtCore import QDate, Qt, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDateEdit,
+    QDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
-from .wsj_style_manager import WSJStyleManager
 from ...utils.logging_config import get_logger
+from .wsj_style_manager import WSJStyleManager
 
 logger = get_logger(__name__)
 
@@ -197,7 +209,7 @@ class ShareDashboardDialog(QDialog):
         
         info_layout.addWidget(QLabel("Description:"))
         self.desc_edit = QTextEdit(self)
-        self.desc_edit.setMaximumHeight(80)
+        # self.desc_edit.setMaximumHeight(80)
         self.desc_edit.setPlainText(self.share_config.description)
         info_layout.addWidget(self.desc_edit)
         
