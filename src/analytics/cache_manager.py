@@ -356,7 +356,8 @@ class SQLiteCache:
                         size_bytes INTEGER,
                         dependencies TEXT,
                         ttl_seconds INTEGER,
-                        expires_at TIMESTAMP
+                        expires_at TIMESTAMP,
+                        import_id TEXT
                     )
                 """)
                 
@@ -377,6 +378,13 @@ class SQLiteCache:
                 conn.execute("PRAGMA journal_mode=WAL")
                 conn.execute("PRAGMA synchronous=NORMAL")
                 conn.execute("PRAGMA cache_size=10000")  # 10MB cache
+                
+                # Add migration for existing databases
+                cursor = conn.execute("PRAGMA table_info(cache_entries)")
+                columns = [row[1] for row in cursor.fetchall()]
+                if 'import_id' not in columns:
+                    conn.execute("ALTER TABLE cache_entries ADD COLUMN import_id TEXT")
+                    logger.info("Added import_id column to cache_entries table")
                 
                 if self._corrupted:
                     logger.info("Successfully created new cache database after corruption recovery")
@@ -440,15 +448,15 @@ class SQLiteCache:
                     # Use SQLite datetime arithmetic for consistent timing
                     conn.execute("""
                         INSERT OR REPLACE INTO cache_entries 
-                        (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
-                        VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, datetime('now', '+' || ? || ' seconds'))
+                        (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at, import_id)
+                        VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, datetime('now', '+' || ? || ' seconds'), NULL)
                     """, (key, value_blob, size_bytes, dependencies_json, ttl, ttl))
                 else:
                     # No expiration
                     conn.execute("""
                         INSERT OR REPLACE INTO cache_entries 
-                        (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
-                        VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL)
+                        (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at, import_id)
+                        VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL, NULL)
                     """, (key, value_blob, size_bytes, dependencies_json, ttl))
                 
         except sqlite3.DatabaseError as e:
@@ -463,14 +471,14 @@ class SQLiteCache:
                         if ttl:
                             conn.execute("""
                                 INSERT OR REPLACE INTO cache_entries 
-                                (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
-                                VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, datetime('now', '+' || ? || ' seconds'))
+                                (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at, import_id)
+                                VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, datetime('now', '+' || ? || ' seconds'), NULL)
                             """, (key, value_blob, size_bytes, dependencies_json, ttl, ttl))
                         else:
                             conn.execute("""
                                 INSERT OR REPLACE INTO cache_entries 
-                                (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at)
-                                VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL)
+                                (key, value, created_at, last_accessed, access_count, size_bytes, dependencies, ttl_seconds, expires_at, import_id)
+                                VALUES (?, ?, datetime('now'), datetime('now'), 1, ?, ?, ?, NULL, NULL)
                             """, (key, value_blob, size_bytes, dependencies_json, ttl))
                     logger.info("Successfully wrote to cache after recovery")
                 except Exception as retry_error:
@@ -571,6 +579,16 @@ class SQLiteCache:
         except Exception as e:
             logger.error(f"Error getting cache size: {e}")
             return 0
+    
+    def clear(self) -> None:
+        """Clear all entries from the SQLite cache."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("DELETE FROM cache_entries")
+                conn.commit()
+                logger.info("Cleared all entries from SQLite cache")
+        except Exception as e:
+            logger.error(f"Error clearing SQLite cache: {e}")
 
 
 class DiskCache:
@@ -693,6 +711,23 @@ class DiskCache:
         except Exception as e:
             logger.error(f"Error getting disk cache size: {e}")
             return 0
+    
+    def clear(self) -> None:
+        """Clear all entries from the disk cache."""
+        try:
+            # Remove all cache files
+            for key in list(self._metadata.keys()):
+                cache_file = self.cache_dir / f"{key}.pkl"
+                if cache_file.exists():
+                    cache_file.unlink()
+            
+            # Clear metadata
+            self._metadata.clear()
+            self._save_metadata()
+            
+            logger.info("Cleared all entries from disk cache")
+        except Exception as e:
+            logger.error(f"Error clearing disk cache: {e}")
 
 
 class AnalyticsCacheManager:
@@ -969,24 +1004,31 @@ class AnalyticsCacheManager:
         """
         try:
             with sqlite3.connect(self.l2_cache.db_path) as conn:
-                # Add import_id column if it doesn't exist
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS cache_entries (
-                        key TEXT PRIMARY KEY,
-                        value BLOB,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        ttl_seconds INTEGER,
-                        dependencies TEXT,
-                        import_id TEXT
-                    )
-                """)
-                
                 # Use executemany for efficient bulk insert
+                # Note: We need to insert with all required columns
+                import time
+                current_time = time.time()
+                
+                # Transform batch_data to include all required columns
+                full_batch_data = []
+                for key, value, ttl_seconds, dependencies, import_id in batch_data:
+                    created_at = current_time
+                    last_accessed = current_time
+                    access_count = 0
+                    size_bytes = len(value) if isinstance(value, (str, bytes)) else 0
+                    expires_at = current_time + ttl_seconds if ttl_seconds else None
+                    
+                    full_batch_data.append((
+                        key, value, created_at, last_accessed, access_count,
+                        size_bytes, dependencies, ttl_seconds, expires_at, import_id
+                    ))
+                
                 conn.executemany("""
                     INSERT OR REPLACE INTO cache_entries 
-                    (key, value, ttl_seconds, dependencies, import_id)
-                    VALUES (?, ?, ?, ?, ?)
-                """, batch_data)
+                    (key, value, created_at, last_accessed, access_count,
+                     size_bytes, dependencies, ttl_seconds, expires_at, import_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, full_batch_data)
                 
                 conn.commit()
                 

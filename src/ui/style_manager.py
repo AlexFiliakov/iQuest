@@ -139,20 +139,20 @@ class StyleManager:
     
     # Color palette constants - Modern WSJ-inspired professional palette
     PRIMARY_BG = "#FFFFFF"       # Clean white background
-    SECONDARY_BG = "#FAFBFC"     # Very light gray for subtle contrast
+    SECONDARY_BG = "#F9FAFB"     # Slightly darker for better contrast
     TERTIARY_BG = "#F3F4F6"      # Light gray for hover states
     SURFACE_ELEVATED = "#FFFFFF" # Elevated surface with shadow
     
-    ACCENT_PRIMARY = "#0F172A"   # Rich black - primary text
+    ACCENT_PRIMARY = "#111827"   # Darker black for better contrast - primary text
     ACCENT_SECONDARY = "#2563EB" # Vibrant blue - CTAs and highlights
     ACCENT_SUCCESS = "#10B981"   # Modern green - positive states
     ACCENT_WARNING = "#F59E0B"   # Modern amber - caution
     ACCENT_ERROR = "#EF4444"     # Modern red - errors
     ACCENT_LIGHT = "#E5E7EB"     # Light gray - subtle borders
     
-    TEXT_PRIMARY = "#0F172A"     # Rich black
-    TEXT_SECONDARY = "#64748B"   # Slate gray
-    TEXT_MUTED = "#94A3B8"       # Light slate
+    TEXT_PRIMARY = "#111827"     # Darker black for better contrast
+    TEXT_SECONDARY = "#4B5563"   # Darker gray for better readability
+    TEXT_MUTED = "#6B7280"       # Darker muted text
     TEXT_INVERSE = "#FFFFFF"     # White on dark
     
     # New accent colors for data visualization
@@ -178,22 +178,22 @@ class StyleManager:
         'inner': 'inset 0 2px 4px rgba(0,0,0,0.06)'
     }
     
-    # Spacing system - 8px grid for consistency
+    # Spacing system - 8px grid for consistency with increased values
     SPACING = {
-        'xs': 4,
-        'sm': 8,
-        'md': 16,
-        'lg': 24,
-        'xl': 32,
-        'xxl': 48
+        'xs': 8,
+        'sm': 12,
+        'md': 20,
+        'lg': 32,
+        'xl': 40,
+        'xxl': 56
     }
     
     # Border radius values for consistent rounding
     RADIUS = {
-        'sm': 4,
-        'md': 6,
-        'lg': 8,
-        'xl': 12
+        'sm': 6,
+        'md': 8,
+        'lg': 12,
+        'xl': 16
     }
     
     def __init__(self):
@@ -311,17 +311,18 @@ class StyleManager:
             QTabBar::tab {{
                 background: transparent;
                 color: {self.TEXT_SECONDARY};
-                padding: 8px 16px;
-                margin-right: 8px;
+                padding: 12px 24px;
+                margin-right: 12px;
                 border: none;
-                border-bottom: 2px solid transparent;
+                border-bottom: 3px solid transparent;
                 font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
                 font-weight: 500;
+                font-size: 14px;
             }}
             
             QTabBar::tab:selected {{
                 color: {self.ACCENT_PRIMARY};
-                border-bottom: 2px solid {self.ACCENT_PRIMARY};
+                border-bottom: 3px solid {self.ACCENT_PRIMARY};
                 font-weight: 600;
             }}
             
@@ -388,12 +389,13 @@ class StyleManager:
                     background-color: {self.ACCENT_SECONDARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 8px 20px;
-                    border-radius: 6px;
+                    padding: 10px 24px;
+                    border-radius: 8px;
                     font-weight: 600;
-                    font-size: 13px;
-                    min-height: 32px;
+                    font-size: 14px;
+                    min-height: 40px;
                     letter-spacing: 0.3px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                 }}
                 
                 QPushButton:hover {{
@@ -420,11 +422,11 @@ class StyleManager:
                     background-color: {self.PRIMARY_BG};
                     color: {self.TEXT_PRIMARY};
                     border: 1px solid {self.ACCENT_LIGHT};
-                    padding: 8px 20px;
-                    border-radius: 6px;
+                    padding: 10px 24px;
+                    border-radius: 8px;
                     font-weight: 500;
-                    font-size: 13px;
-                    min-height: 32px;
+                    font-size: 14px;
+                    min-height: 40px;
                     letter-spacing: 0.3px;
                 }}
                 

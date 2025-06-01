@@ -33,25 +33,25 @@ class SummaryCard(QWidget):
     
     SIZE_CONFIGS = {
         'small': {
-            'min_width': 150,
-            'min_height': 100,
-            'title_font': 12,
-            'value_font': 24,
-            'padding': 10
+            'min_width': 180,
+            'min_height': 120,
+            'title_font': 13,
+            'value_font': 28,
+            'padding': 16
         },
         'medium': {
-            'min_width': 200,
-            'min_height': 150,
-            'title_font': 14,
-            'value_font': 32,
-            'padding': 15
+            'min_width': 240,
+            'min_height': 160,
+            'title_font': 15,
+            'value_font': 36,
+            'padding': 20
         },
         'large': {
-            'min_width': 300,
-            'min_height': 200,
-            'title_font': 16,
+            'min_width': 320,
+            'min_height': 220,
+            'title_font': 17,
             'value_font': 48,
-            'padding': 20
+            'padding': 24
         }
     }
     
@@ -114,13 +114,15 @@ class SummaryCard(QWidget):
         style = f"""
             QFrame#summaryCard {{
                 background-color: {self.style_manager.PRIMARY_BG};
-                border-radius: 12px;
-                border: none;
+                border-radius: 16px;
+                border: 1px solid {self.style_manager.ACCENT_LIGHT};
                 padding: {padding}px;
             }}
             
             QFrame#summaryCard:hover {{
-                background-color: {self.style_manager.TERTIARY_BG};
+                background-color: {self.style_manager.SECONDARY_BG};
+                border-color: {self.style_manager.ACCENT_SECONDARY};
+                transform: translateY(-2px);
             }}
         """
         self.setStyleSheet(style)
@@ -130,10 +132,10 @@ class SummaryCard(QWidget):
         from PyQt6.QtGui import QColor
         
         shadow_effect = QGraphicsDropShadowEffect()
-        shadow_effect.setBlurRadius(15)
+        shadow_effect.setBlurRadius(20)
         shadow_effect.setXOffset(0)
-        shadow_effect.setYOffset(2)
-        shadow_effect.setColor(QColor(0, 0, 0, 40))
+        shadow_effect.setYOffset(4)
+        shadow_effect.setColor(QColor(0, 0, 0, 50))
         self.card_frame.setGraphicsEffect(shadow_effect)
     
     def update_content(self, data: Dict, animate: bool = True):

@@ -82,8 +82,8 @@ class CalendarHeatmapComponent(QWidget):
         self._brush_active = False
         
         # Visual configuration
-        self._cell_size = 15  # Reduced default cell size
-        self._cell_spacing = 2
+        self._cell_size = 18  # Increased cell size for better visibility
+        self._cell_spacing = 3  # Better spacing between cells
         self._show_patterns = False  # For colorblind accessibility
         self._show_today_marker = True
         
@@ -116,8 +116,8 @@ class CalendarHeatmapComponent(QWidget):
         return {
             # Background colors
             'background': QColor('#FFFFFF'),
-            'background_alt': QColor('#F8F9FA'),
-            'tertiary_bg': QColor('#F8F9FA'),
+            'background_alt': QColor('#F3F4F6'),  # Slightly darker for better contrast
+            'tertiary_bg': QColor('#F3F4F6'),
             
             # Grid and axes
             'grid': QColor('#E9ECEF'),
@@ -131,9 +131,9 @@ class CalendarHeatmapComponent(QWidget):
             'error': QColor('#DC3545'),
             
             # Text colors
-            'text': QColor('#212529'),
-            'text_secondary': QColor('#6C757D'),
-            'text_muted': QColor('#ADB5BD'),
+            'text': QColor('#111827'),  # Darker for better contrast
+            'text_secondary': QColor('#4B5563'),  # Darker gray
+            'text_muted': QColor('#6B7280'),  # Darker muted
             'text_inverse': QColor('#FFFFFF'),
             
             # Interactive states
@@ -968,7 +968,7 @@ class CalendarHeatmapComponent(QWidget):
         painter.setPen(self._colors['text_muted'])
         message_rect = QRect(rect.x() + 60, title_rect.bottom() + 10, rect.width() - 120, 40)
         message = "Import your health data to see insights here"
-        painter.drawText(message_rect, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignWordWrap, message)
+        painter.drawText(message_rect, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, message)
         
     def mousePressEvent(self, event):
         """Handle mouse press for selection."""

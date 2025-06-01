@@ -317,17 +317,17 @@ class ConfigurationTab(QWidget):
         
         # Main layout with appropriate spacing - single column
         main_layout = QVBoxLayout(main_widget)
-        main_layout.setContentsMargins(40, 16, 40, 16)  # Wider margins for single column
-        main_layout.setSpacing(20)  # Good spacing between major sections
+        main_layout.setContentsMargins(40, 24, 40, 24)  # Increased margins
+        main_layout.setSpacing(32)  # Increased spacing between major sections
         
-        # Title - smaller and more compact
+        # Title - larger and more prominent
         title = QLabel("Configuration")
         title.setStyleSheet(f"""
             QLabel {{
-                font-size: 18px;
+                font-size: 24px;
                 font-weight: 700;
                 color: {self.style_manager.ACCENT_PRIMARY};
-                margin-bottom: 0px;
+                margin-bottom: 8px;
             }}
         """)
         main_layout.addWidget(title)
@@ -342,7 +342,7 @@ class ConfigurationTab(QWidget):
         content_widget.setMaximumWidth(1200)  # Constrain width for readability
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(20)
+        content_layout.setSpacing(28)
         
         # Add all sections in vertical order
         # 1. Import Data section
@@ -382,8 +382,9 @@ class ConfigurationTab(QWidget):
         section.setStyleSheet(f"""
             QFrame#importSection {{
                 background-color: {self.style_manager.PRIMARY_BG};
-                border-radius: 8px;
-                padding: 12px;
+                border-radius: 12px;
+                padding: 20px;
+                border: 1px solid {self.style_manager.ACCENT_LIGHT};
             }}
         """)
         
@@ -391,18 +392,18 @@ class ConfigurationTab(QWidget):
         section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
         
         layout = QVBoxLayout(section)
-        layout.setSpacing(8)
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(16)
+        layout.setContentsMargins(20, 20, 20, 20)
         
         # Section title
         title = QLabel("Import Data")
         title.setObjectName("sectionTitle")
         title.setStyleSheet(f"""
             QLabel#sectionTitle {{
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: 600;
                 color: {self.style_manager.ACCENT_PRIMARY};
-                margin-bottom: 4px;
+                margin-bottom: 12px;
             }}
         """)
         layout.addWidget(title)
@@ -531,8 +532,9 @@ class ConfigurationTab(QWidget):
         section.setStyleSheet(f"""
             QFrame#filterSection {{
                 background-color: {self.style_manager.PRIMARY_BG};
-                border-radius: 8px;
-                padding: 12px;
+                border-radius: 12px;
+                padding: 20px;
+                border: 1px solid {self.style_manager.ACCENT_LIGHT};
             }}
         """)
         
@@ -540,17 +542,17 @@ class ConfigurationTab(QWidget):
         section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
         
         layout = QVBoxLayout(section)
-        layout.setSpacing(8)
-        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(16)
+        layout.setContentsMargins(20, 20, 20, 20)
         
         # Section title
         title = QLabel("Filter Data")
         title.setStyleSheet(f"""
             QLabel {{
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: 600;
                 color: {self.style_manager.ACCENT_PRIMARY};
-                margin-bottom: 4px;
+                margin-bottom: 12px;
             }}
         """)
         layout.addWidget(title)

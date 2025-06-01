@@ -35,6 +35,11 @@ class CachedDailyMetricsCalculator:
         self.aggregates_ttl = 1800  # 30 minutes for aggregates
         self.outliers_ttl = 7200    # 2 hours for outlier detection
     
+    @property
+    def data(self):
+        """Access the underlying data from the calculator."""
+        return self.calculator.data
+    
     def calculate_statistics(self, metric: str, start_date: date = None, 
                            end_date: date = None, interpolation: str = "none") -> MetricStatistics:
         """Calculate statistics with caching."""
@@ -136,6 +141,33 @@ class CachedDailyMetricsCalculator:
             ttl=self.statistics_ttl,
             dependencies=dependencies
         )
+    
+    def calculate_daily_statistics(self, metric: str, target_date: date) -> Optional[MetricStatistics]:
+        """Calculate statistics for a specific metric on a single date with caching.
+        
+        Args:
+            metric: The health metric type identifier to analyze
+            target_date: The specific date to analyze
+            
+        Returns:
+            MetricStatistics object with calculated values for that date, or None if
+            no data exists for the specified date and metric.
+        """
+        # Use standardized cache key format
+        date_str = target_date.isoformat()
+        key = cache_key("daily_single_stats", metric, date_str)
+        dependencies = [f"metric:{metric}", f"date:{target_date}"]
+        
+        def compute_fn():
+            return self.calculator.calculate_daily_statistics(metric, target_date)
+        
+        return cached_analytics_call(
+            key=key,
+            compute_fn=compute_fn,
+            cache_tiers=['l1', 'l2'],  # Single day stats are frequently accessed
+            ttl=self.statistics_ttl,
+            dependencies=dependencies
+        )
 
 
 class CachedWeeklyMetricsCalculator:
@@ -161,6 +193,24 @@ class CachedWeeklyMetricsCalculator:
     def daily_calculator(self):
         """Access the underlying daily calculator."""
         return self.calculator.daily_calculator
+    
+    def __getattr__(self, name):
+        """Delegate attribute access to the underlying calculator.
+        
+        This allows the CachedWeeklyMetricsCalculator to act as a transparent
+        wrapper, forwarding any method calls not explicitly implemented here
+        to the underlying WeeklyMetricsCalculator instance.
+        
+        Args:
+            name: The attribute name to access
+            
+        Returns:
+            The attribute from the underlying calculator
+            
+        Raises:
+            AttributeError: If the attribute doesn't exist on the underlying calculator
+        """
+        return getattr(self.calculator, name)
     
     def calculate_rolling_stats(self, metric: str, window: int = 7, 
                                start_date: date = None, end_date: date = None) -> pd.DataFrame:

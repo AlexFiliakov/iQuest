@@ -1050,8 +1050,8 @@ class DailyDashboardWidget(QWidget):
                     # Fallback to calculator if no cached access
                     logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
                     today_stats = self.daily_calculator.calculate_daily_statistics(
-                        metric=hk_type,
-                        target_date=self._current_date
+                        hk_type,
+                        self._current_date
                     )
                     daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
                 else:
@@ -1074,8 +1074,8 @@ class DailyDashboardWidget(QWidget):
                             yesterday_value = yesterday_stats.mean if yesterday_stats and yesterday_stats.count > 0 else None
                     elif self.daily_calculator:
                         yesterday_stats = self.daily_calculator.calculate_daily_statistics(
-                            metric=hk_type,
-                            target_date=yesterday
+                            hk_type,
+                            yesterday
                         )
                         yesterday_value = yesterday_stats.mean if yesterday_stats and yesterday_stats.count > 0 else None
                     
