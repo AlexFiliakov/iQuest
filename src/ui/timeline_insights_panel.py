@@ -23,7 +23,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -48,7 +47,7 @@ class TimelineInsightsPanel(QWidget):
     
     # Color palette from project design system
     COLORS = {
-        'background': '#F5E6D3',      # Warm tan background
+        'background': '#FFFFFF',      # White background (changed from tan)
         'card_bg': '#FFFFFF',         # White card background
         'text_primary': '#2C3E50',    # Dark text
         'text_secondary': '#5D6D7E',  # Secondary text
@@ -83,19 +82,8 @@ class TimelineInsightsPanel(QWidget):
         
     def setup_ui(self):
         """Set up the user interface."""
-        # Main layout with scroll area for multiple panels
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-        
-        # Create scroll area for panels
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        
-        # Container widget for scrollable content
-        scroll_content = QWidget()
-        self.panels_layout = QVBoxLayout(scroll_content)
+        # Main layout for panels
+        self.panels_layout = QVBoxLayout(self)
         self.panels_layout.setContentsMargins(10, 10, 10, 10)
         self.panels_layout.setSpacing(15)
         
@@ -107,31 +95,11 @@ class TimelineInsightsPanel(QWidget):
         # Add stretch to push panels to top
         self.panels_layout.addStretch()
         
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
-        
         # Apply styling
         self.setStyleSheet(f"""
             QWidget {{
                 background-color: {self.COLORS['background']};
                 font-family: 'Inter', 'Segoe UI', sans-serif;
-            }}
-            QScrollArea {{
-                border: none;
-                background-color: {self.COLORS['background']};
-            }}
-            QScrollBar:vertical {{
-                background: {self.COLORS['background']};
-                width: 10px;
-                border-radius: 5px;
-            }}
-            QScrollBar::handle:vertical {{
-                background: {self.COLORS['border']};
-                border-radius: 5px;
-                min-height: 20px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background: {self.COLORS['text_secondary']};
             }}
         """)
         

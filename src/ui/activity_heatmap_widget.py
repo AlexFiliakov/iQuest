@@ -30,7 +30,7 @@ class ActivityHeatmapWidget(QFrame):
     # Color palette
     COLORS = {
         'card_bg': '#FFFFFF',
-        'header_bg': '#FFF8F0',
+        'header_bg': '#FFFFFF',      # White header (changed from cream)
         'text_primary': '#2C3E50',
         'text_secondary': '#5D6D7E',
         'grid_lines': '#E0E0E0',

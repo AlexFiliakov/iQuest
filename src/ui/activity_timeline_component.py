@@ -58,15 +58,15 @@ class ActivityTimelineComponent(QWidget):
     
     # Color palette from UI specifications  
     COLORS = {
-        'background': '#F5E6D3',      # Warm tan background
-        'grid': '#A69583',            # Light brown
-        'text': '#5D4E37',            # Dark brown
+        'background': '#FFFFFF',      # White background (changed from tan)
+        'grid': '#E0E0E0',            # Light gray (changed from brown)
+        'text': '#2C3E50',            # Dark text (changed from dark brown)
         'primary': '#FF8C42',         # Warm orange - primary accent
         'secondary': '#FFD166',       # Soft yellow - secondary accent
         'accent': '#95C17B',          # Soft green - success
         'heat_low': '#FFF8F0',        # Light cream
         'heat_high': '#FF8C42',       # Warm orange for intensity
-        'inactive': '#E8E0D8',        # Light gray-brown
+        'inactive': '#F5F5F5',        # Light gray (changed from gray-brown)
         'chart_blue': '#6C9BD1',      # Blue from chart palette
         'chart_purple': '#B79FCB'     # Purple from chart palette
     }
@@ -126,22 +126,22 @@ class ActivityTimelineComponent(QWidget):
         
         header_layout.addStretch()
         
-        # View mode selector
-        view_group = QButtonGroup(self)
-        linear_btn = QRadioButton("Linear", self)
-        radial_btn = QRadioButton("Radial", self)
-        linear_btn.setChecked(True)
+        # # View mode selector
+        # view_group = QButtonGroup(self)
+        # linear_btn = QRadioButton("Linear", self)
+        # radial_btn = QRadioButton("Radial", self)
+        # linear_btn.setChecked(True)
         
-        linear_btn.toggled.connect(lambda checked: self.set_view_mode('linear') if checked else None)
-        radial_btn.toggled.connect(lambda checked: self.set_view_mode('radial') if checked else None)
+        # linear_btn.toggled.connect(lambda checked: self.set_view_mode('linear') if checked else None)
+        # radial_btn.toggled.connect(lambda checked: self.set_view_mode('radial') if checked else None)
         
-        view_group.addButton(linear_btn)
-        view_group.addButton(radial_btn)
+        # view_group.addButton(linear_btn)
+        # view_group.addButton(radial_btn)
         
-        view_label = QLabel("View:", self)
-        header_layout.addWidget(view_label)
-        header_layout.addWidget(linear_btn)
-        header_layout.addWidget(radial_btn)
+        # view_label = QLabel("View:", self)
+        # header_layout.addWidget(view_label)
+        # header_layout.addWidget(linear_btn)
+        # header_layout.addWidget(radial_btn)
         
         # Time grouping selector
         group_label = QLabel("Group by:", self)
