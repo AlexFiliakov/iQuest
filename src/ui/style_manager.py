@@ -178,6 +178,24 @@ class StyleManager:
         'inner': 'inset 0 2px 4px rgba(0,0,0,0.06)'
     }
     
+    # Spacing system - 8px grid for consistency
+    SPACING = {
+        'xs': 4,
+        'sm': 8,
+        'md': 16,
+        'lg': 24,
+        'xl': 32,
+        'xxl': 48
+    }
+    
+    # Border radius values for consistent rounding
+    RADIUS = {
+        'sm': 4,
+        'md': 6,
+        'lg': 8,
+        'xl': 12
+    }
+    
     def __init__(self):
         """Initialize the style manager with design system configuration.
         
