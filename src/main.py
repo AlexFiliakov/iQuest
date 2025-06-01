@@ -129,87 +129,87 @@ def main():
             nonlocal window
             
             try:
-                loading_screen.add_message("Initializing style manager...")
+                loading_screen.add_message("Teaching pixels how to look fabulous...")
                 loading_screen.set_progress(0.1)
                 style_manager = StyleManager()
                 app.processEvents()  # Allow UI to update
                 
                 # Ensure fonts are loaded
                 if not style_manager.fonts_loaded:
-                    loading_screen.add_message("Loading custom fonts...")
+                    loading_screen.add_message("Bribing fonts to show up for work...")
                     style_manager.load_custom_fonts()
                     app.processEvents()
                 
-                loading_screen.add_message("Applying global styles...")
+                loading_screen.add_message("Applying mystical CSS potions...")
                 loading_screen.set_progress(0.15)
                 style_manager.apply_global_style(app)
                 app.processEvents()
                 
-                loading_screen.add_message("Initializing database connection...")
+                loading_screen.add_message("Waking up the sleeping data dragon...")
                 loading_screen.set_progress(0.2)
                 from src.database import db_manager
                 app.processEvents()
                 
-                loading_screen.add_message("Setting up data models...")
+                loading_screen.add_message("Organizing the chaos of 1s and 0s...")
                 loading_screen.set_progress(0.25)
                 from src.models import JournalEntry, UserPreference
                 app.processEvents()
                 
-                loading_screen.add_message("Loading daily metrics calculator...")
+                loading_screen.add_message("Teaching calculators to count past potato...")
                 loading_screen.set_progress(0.3)
                 from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
                 app.processEvents()
                 
-                loading_screen.add_message("Loading monthly metrics calculator...")
+                loading_screen.add_message("Summoning the monthly math spirits...")
                 loading_screen.set_progress(0.35)
                 from src.analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
                 app.processEvents()
                 
-                loading_screen.add_message("Initializing cache manager...")
+                loading_screen.add_message("Installing a photographic memory chip...")
                 loading_screen.set_progress(0.4)
                 from src.analytics.cache_manager import AnalyticsCacheManager
                 app.processEvents()
                 
-                loading_screen.add_message("Loading anomaly detection system...")
+                loading_screen.add_message("Training detectives to spot shenanigans...")
                 loading_screen.set_progress(0.45)
                 from src.analytics.anomaly_detection_system import AnomalyDetectionSystem
                 app.processEvents()
                 
-                loading_screen.add_message("Setting up health score calculator...")
+                loading_screen.add_message("Assembling a panel of very judgmental health gurus...")
                 loading_screen.set_progress(0.5)
                 from src.analytics.health_score.health_score_calculator import HealthScoreCalculator
                 app.processEvents()
                 
-                loading_screen.add_message("Loading UI components...")
+                loading_screen.add_message("Giving buttons their morning coffee...")
                 loading_screen.set_progress(0.55)
                 from src.ui.configuration_tab import ConfigurationTab
                 from src.ui.charts import LineChart, CalendarHeatmapComponent
                 app.processEvents()
                 
-                loading_screen.add_message("Initializing visualization system...")
+                loading_screen.add_message("Teaching charts to make Wall Street jealous...")
                 loading_screen.set_progress(0.6)
                 from src.ui.charts.wsj_health_visualization_suite import WSJHealthVisualizationSuite
                 app.processEvents()
                 
-                loading_screen.add_message("Loading dashboard components...")
+                loading_screen.add_message("Assembling a dashboard that judges your life choices...")
                 loading_screen.set_progress(0.65)
                 from src.ui.daily_dashboard_widget import DailyDashboardWidget
                 from src.ui.weekly_dashboard_widget import WeeklyDashboardWidget
                 from src.ui.monthly_dashboard_widget import MonthlyDashboardWidget
                 app.processEvents()
                 
-                loading_screen.add_message("Setting up data access layer...")
+                loading_screen.add_message("Building a bridge between you and your data...")
                 loading_screen.set_progress(0.7)
                 from src.data_access import DataAccess
                 app.processEvents()
                 
-                loading_screen.add_message("Creating main window...")
+                loading_screen.add_message("Constructing your personal health fortress...")
                 loading_screen.set_progress(0.75)
                 
                 with ErrorContext("Creating main window"):
                     window = MainWindow(initialization_callback=loading_screen.add_message)
                     
-                loading_screen.add_message("Finalizing initialization...")
+                loading_screen.add_message("Putting the finishing touches on your destiny...")
                 loading_screen.set_progress(0.9)
                 
                 # Short delay to ensure users see the final message
@@ -221,7 +221,7 @@ def main():
                 
         def finish_initialization():
             """Complete initialization and show main window."""
-            loading_screen.add_message("Application ready!")
+            loading_screen.add_message("Your health adventure awaits, brave soul!")
             loading_screen.set_progress(1.0)
             
             # Close loading screen and show main window
