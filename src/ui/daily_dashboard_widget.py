@@ -1336,13 +1336,34 @@ class DailyDashboardWidget(QWidget):
             return  # Skip update if not visible
             
         try:
-            # Get hourly data for steps
-            hourly_data = self._get_hourly_data('steps')
-            if hourly_data is not None and not hourly_data.empty:
-                # Simplify data before sending to timeline
-                simplified_data = hourly_data[hourly_data['value'] > 0]
-                if not simplified_data.empty:
-                    self.timeline.set_activity_data(simplified_data)
+            # Collect data for multiple metrics
+            metrics_to_show = ['steps', 'heart_rate', 'active_calories']
+            timeline_data = {}
+            available_metrics = []
+            
+            for metric in metrics_to_show:
+                hourly_data = self._get_hourly_data(metric)
+                if hourly_data is not None and not hourly_data.empty:
+                    # Create datetime index for the current date
+                    hourly_data['datetime'] = pd.to_datetime(
+                        self._current_date.strftime('%Y-%m-%d') + ' ' + 
+                        hourly_data['hour'].astype(str).str.zfill(2) + ':00:00'
+                    )
+                    hourly_data = hourly_data.set_index('datetime')
+                    timeline_data[metric] = hourly_data['value']
+                    available_metrics.append(metric)
+            
+            # Create combined DataFrame if we have any data
+            if timeline_data:
+                combined_df = pd.DataFrame(timeline_data)
+                # Forward fill missing values within each day
+                combined_df = combined_df.ffill().fillna(0)
+                
+                # Update timeline with proper method and data format
+                self.timeline.update_data(combined_df, available_metrics)
+            else:
+                # Clear timeline if no data
+                self.timeline.update_data(pd.DataFrame(), [])
                 
         except Exception as e:
             logger.error(f"Error updating timeline: {e}")
