@@ -20,7 +20,7 @@ from typing import Optional, Dict, Any, List
 from datetime import date, datetime
 
 from src.analytics.cache_manager import get_cache_manager, cache_key
-from src.models import MetricStatistics
+from src.analytics.daily_metrics_calculator import MetricStatistics
 
 logger = logging.getLogger(__name__)
 

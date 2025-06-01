@@ -57,7 +57,7 @@ def main():
     window.setGeometry(100, 100, 1400, 900)
     
     # Create central widget
-    central_widget = QWidget(self)
+    central_widget = QWidget()
     window.setCentralWidget(central_widget)
     layout = QVBoxLayout(central_widget)
     

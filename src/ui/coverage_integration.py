@@ -244,7 +244,7 @@ if __name__ == "__main__":
     
     # Create main window
     main_window = QMainWindow()
-    central_widget = QWidget(self)
+    central_widget = QWidget()
     layout = QVBoxLayout(central_widget)
     
     # Add some sample content

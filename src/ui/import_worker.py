@@ -372,12 +372,149 @@ class ImportWorker(QThread):
             cache_manager = get_cache_manager()
             cache_manager.cache_import_summaries(summaries, self.import_id)
             
+            # Also populate the cached_metrics table in the main database
+            self._populate_cached_metrics_table(summaries)
+            
             self.progress_updated.emit(99, "Summary caching complete", self.record_count)
             logger.info(f"Successfully cached {summaries['metadata']['metrics_processed']} metrics")
             
         except Exception as e:
             logger.error(f"Error calculating summaries: {e}")
             raise
+    
+    def _populate_cached_metrics_table(self, summaries: Dict[str, Any]) -> None:
+        """Populate the cached_metrics table in the main database.
+        
+        Args:
+            summaries: Dictionary containing summaries organized by time period
+        """
+        try:
+            from ..data_access import CacheDAO
+            from datetime import datetime, timedelta
+            
+            logger.info("Populating cached_metrics table in main database")
+            
+            # Process daily summaries
+            for metric, daily_data in summaries.get('daily', {}).items():
+                for date_str, stats in daily_data.items():
+                    try:
+                        # Parse date
+                        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        
+                        # Extract statistics
+                        min_val = stats.get('min')
+                        max_val = stats.get('max')
+                        avg_val = stats.get('mean', stats.get('avg'))
+                        count = stats.get('count', 0)
+                        
+                        # Cache the daily summary
+                        CacheDAO.cache_metrics(
+                            metric_type='daily_summary',
+                            data={
+                                'metric': metric,
+                                'date': date_str,
+                                'stats': stats
+                            },
+                            date_start=date_obj,
+                            date_end=date_obj,
+                            aggregation_type='daily',
+                            health_type=metric,
+                            record_count=count,
+                            min_value=min_val,
+                            max_value=max_val,
+                            avg_value=avg_val,
+                            ttl_hours=24 * 30  # Cache for 30 days
+                        )
+                    except Exception as e:
+                        logger.error(f"Error caching daily metric {metric} for {date_str}: {e}")
+            
+            # Process weekly summaries
+            for metric, weekly_data in summaries.get('weekly', {}).items():
+                for week_str, stats in weekly_data.items():
+                    try:
+                        # Parse week (format: "2024-W01")
+                        year, week = week_str.split('-W')
+                        year = int(year)
+                        week = int(week)
+                        
+                        # Calculate week start and end dates
+                        jan1 = datetime(year, 1, 1).date()
+                        week_start = jan1 + timedelta(days=(week - 1) * 7 - jan1.weekday())
+                        week_end = week_start + timedelta(days=6)
+                        
+                        # Extract statistics
+                        min_val = stats.get('min')
+                        max_val = stats.get('max')
+                        avg_val = stats.get('mean', stats.get('avg'))
+                        count = stats.get('count', 0)
+                        
+                        # Cache the weekly summary
+                        CacheDAO.cache_metrics(
+                            metric_type='weekly_summary',
+                            data={
+                                'metric': metric,
+                                'week': week_str,
+                                'stats': stats
+                            },
+                            date_start=week_start,
+                            date_end=week_end,
+                            aggregation_type='weekly',
+                            health_type=metric,
+                            record_count=count,
+                            min_value=min_val,
+                            max_value=max_val,
+                            avg_value=avg_val,
+                            ttl_hours=24 * 30  # Cache for 30 days
+                        )
+                    except Exception as e:
+                        logger.error(f"Error caching weekly metric {metric} for {week_str}: {e}")
+            
+            # Process monthly summaries
+            for metric, monthly_data in summaries.get('monthly', {}).items():
+                for month_str, stats in monthly_data.items():
+                    try:
+                        # Parse month (format: "2024-01")
+                        year, month = map(int, month_str.split('-'))
+                        
+                        # Calculate month start and end dates
+                        month_start = datetime(year, month, 1).date()
+                        if month == 12:
+                            month_end = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+                        else:
+                            month_end = datetime(year, month + 1, 1).date() - timedelta(days=1)
+                        
+                        # Extract statistics
+                        min_val = stats.get('min')
+                        max_val = stats.get('max')
+                        avg_val = stats.get('mean', stats.get('avg'))
+                        count = stats.get('count', 0)
+                        
+                        # Cache the monthly summary
+                        CacheDAO.cache_metrics(
+                            metric_type='monthly_summary',
+                            data={
+                                'metric': metric,
+                                'month': month_str,
+                                'stats': stats
+                            },
+                            date_start=month_start,
+                            date_end=month_end,
+                            aggregation_type='monthly',
+                            health_type=metric,
+                            record_count=count,
+                            min_value=min_val,
+                            max_value=max_val,
+                            avg_value=avg_val,
+                            ttl_hours=24 * 30  # Cache for 30 days
+                        )
+                    except Exception as e:
+                        logger.error(f"Error caching monthly metric {metric} for {month_str}: {e}")
+            
+            logger.info("Successfully populated cached_metrics table")
+            
+        except Exception as e:
+            logger.error(f"Error populating cached_metrics table: {e}")
+            # Don't raise - this is not critical for import success
     
     def _create_database_backup(self):
         """Create a backup of the current database for rollback."""

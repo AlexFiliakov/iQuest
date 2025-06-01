@@ -157,6 +157,11 @@ class CachedWeeklyMetricsCalculator:
         self.comparisons_ttl = 7200     # 2 hours for comparisons
         self.volatility_ttl = 3600      # 1 hour for volatility
     
+    @property
+    def daily_calculator(self):
+        """Access the underlying daily calculator."""
+        return self.calculator.daily_calculator
+    
     def calculate_rolling_stats(self, metric: str, window: int = 7, 
                                start_date: date = None, end_date: date = None) -> pd.DataFrame:
         """Calculate rolling statistics with caching."""

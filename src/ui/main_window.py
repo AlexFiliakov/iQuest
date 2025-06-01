@@ -2140,8 +2140,8 @@ class MainWindow(QMainWindow):
                     self.daily_dashboard.set_daily_calculator(cached_daily_calculator)
                     
                     # Set up cached data access for pre-computed summaries
-                    from ..analytics.cached_data_access import CachedDataAccess
-                    cached_data_access = CachedDataAccess()
+                    from ..analytics.cached_metrics_access import get_cached_metrics_access
+                    cached_data_access = get_cached_metrics_access()
                     self.daily_dashboard.set_cached_data_access(cached_data_access)
                     
                     # Create and set personal records tracker
