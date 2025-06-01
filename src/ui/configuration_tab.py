@@ -255,11 +255,14 @@ class ConfigurationTab(QWidget):
         
         UI structure:
             Main scroll area containing:
-                - Clean title header with professional typography
-                - Two-column responsive layout for optimal space usage
-                - Left column: Import and filtering controls
-                - Right column: Summary cards and data statistics
-                - Status section: Progress tracking and messages
+                - Optional status message area at the top
+                - Single column vertical layout with sections:
+                  1. Import Data section
+                  2. Filter Data section  
+                  3. Summary Cards section
+                  4. Data Preview section
+                  5. Data Statistics section
+                  6. Data Sources section
         
         Design features:
             - Consistent spacing and margins for professional appearance
@@ -312,9 +315,9 @@ class ConfigurationTab(QWidget):
             }}
         """)
         
-        # Main layout with appropriate spacing
+        # Main layout with appropriate spacing - single column
         main_layout = QVBoxLayout(main_widget)
-        main_layout.setContentsMargins(20, 16, 20, 16)  # Comfortable margins
+        main_layout.setContentsMargins(40, 16, 40, 16)  # Wider margins for single column
         main_layout.setSpacing(20)  # Good spacing between major sections
         
         # Title - smaller and more compact
@@ -329,29 +332,40 @@ class ConfigurationTab(QWidget):
         """)
         main_layout.addWidget(title)
         
-        # Create two-column layout for better space usage
-        content_layout = QHBoxLayout()
+        # Status section at the top (initially hidden)
+        self.status_section = self._create_status_section()
+        self.status_section.setVisible(False)  # Hidden by default
+        main_layout.addWidget(self.status_section)
+        
+        # Single column layout with maximum width constraint
+        content_widget = QWidget()
+        content_widget.setMaximumWidth(1200)  # Constrain width for readability
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(20)
         
-        # Left column
-        left_column = QVBoxLayout()
-        left_column.setSpacing(20)
-        left_column.addWidget(self._create_import_section())
-        left_column.addWidget(self._create_filter_section())
-        left_column.addStretch()
+        # Add all sections in vertical order
+        # 1. Import Data section
+        content_layout.addWidget(self._create_import_section())
         
-        # Right column
-        right_column = QVBoxLayout()
-        right_column.setSpacing(20)
-        right_column.addWidget(self._create_summary_cards_section())
-        right_column.addWidget(self._create_statistics_section())
+        # 2. Filter Data section
+        content_layout.addWidget(self._create_filter_section())
         
-        content_layout.addLayout(left_column, 1)
-        content_layout.addLayout(right_column, 1)
+        # 3. Summary Cards section
+        content_layout.addWidget(self._create_summary_cards_section())
         
-        main_layout.addLayout(content_layout)
-        main_layout.addWidget(self._create_status_section())
-        main_layout.addStretch()
+        # 4-6. Data Preview, Statistics, and Sources sections
+        content_layout.addWidget(self._create_statistics_section())
+        
+        content_layout.addStretch()
+        
+        # Center the content widget horizontally
+        h_layout = QHBoxLayout()
+        h_layout.addStretch()
+        h_layout.addWidget(content_widget)
+        h_layout.addStretch()
+        
+        main_layout.addLayout(h_layout)
         
         # Set the main widget as the scroll area's content
         main_scroll.setWidget(main_widget)
@@ -1114,10 +1128,10 @@ class ConfigurationTab(QWidget):
         """)
         section_layout.addWidget(title_label)
         
-        # Cards layout
-        cards_layout = QHBoxLayout()
-        cards_layout.setContentsMargins(0, 0, 0, 0)
-        cards_layout.setSpacing(12)  # Reduced spacing between cards
+        # Cards layout - using grid for better responsive layout
+        cards_grid = QHBoxLayout()
+        cards_grid.setContentsMargins(0, 0, 0, 0)
+        cards_grid.setSpacing(16)  # Good spacing between cards
         
         # Create summary cards with WSJ styling
         self.total_records_card = self.component_factory.create_metric_card(
@@ -1152,13 +1166,19 @@ class ConfigurationTab(QWidget):
             wsj_style=True
         )
         
-        cards_layout.addWidget(self.total_records_card)
-        cards_layout.addWidget(self.filtered_records_card)
-        cards_layout.addWidget(self.data_source_card)
-        cards_layout.addWidget(self.filter_status_card)
-        cards_layout.addStretch()
+        # Set consistent card sizes
+        for card in [self.total_records_card, self.filtered_records_card, 
+                     self.data_source_card, self.filter_status_card]:
+            card.setMinimumWidth(200)
+            card.setMaximumWidth(300)
         
-        section_layout.addLayout(cards_layout)
+        cards_grid.addWidget(self.total_records_card)
+        cards_grid.addWidget(self.filtered_records_card)
+        cards_grid.addWidget(self.data_source_card)
+        cards_grid.addWidget(self.filter_status_card)
+        cards_grid.addStretch()
+        
+        section_layout.addLayout(cards_grid)
         
         # Ensure minimum height for the section
         section.setMinimumHeight(160)  # Appropriate height for cards
@@ -1177,25 +1197,41 @@ class ConfigurationTab(QWidget):
         section.setObjectName("statusSection")
         section.setStyleSheet(f"""
             QFrame#statusSection {{
-                background-color: {self.style_manager.PRIMARY_BG};
+                background-color: #D4EDDA;
+                border: 1px solid #C3E6CB;
                 border-radius: 8px;
                 padding: 12px;
+                margin-bottom: 10px;
             }}
         """)
-        section.setGraphicsEffect(self.style_manager.create_shadow_effect(blur_radius=8, y_offset=1, opacity=10))
         
         layout = QHBoxLayout(section)
         layout.setContentsMargins(12, 12, 12, 12)
+        
+        # Status icon
+        icon_label = QLabel("ℹ")
+        icon_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 16px;
+                color: #155724;
+                font-weight: bold;
+                margin-right: 8px;
+            }}
+        """)
+        layout.addWidget(icon_label)
         
         self.status_label = QLabel("No data loaded")
         self.status_label.setStyleSheet(f"""
             QLabel {{
                 font-size: 13px;
-                color: {self.style_manager.TEXT_SECONDARY};
+                color: #155724;
+                font-weight: 500;
             }}
         """)
         self.status_label.setToolTip("Shows the current status of loaded data and applied filters")
         layout.addWidget(self.status_label)
+        
+        layout.addStretch()
         
         return section
     
@@ -1304,8 +1340,13 @@ class ConfigurationTab(QWidget):
             # Mark data as available
             self.data_available = True
             
-            # Emit signal
-            self.data_loaded.emit(self.data)
+            # Emit signal if we have valid data
+            if self.data is not None:
+                try:
+                    self.data_loaded.emit(self.data)
+                except Exception as emit_error:
+                    logger.error(f"Error emitting data_loaded signal: {emit_error}")
+                    # Don't let signal emission errors break the import process
             
             logger.info(f"Import UI updated: {row_count} records")
             
@@ -1389,14 +1430,23 @@ class ConfigurationTab(QWidget):
             
             # Get current filtered data or all data for signal emission
             current_data = self.get_filtered_data()
-            if current_data is None or current_data.empty:
+            if current_data is None or (hasattr(current_data, 'empty') and current_data.empty):
                 # Load all data if no filtered data exists
-                current_data = self.data_loader.get_all_records()
-                if current_data is not None:
-                    self.data = current_data
+                try:
+                    current_data = self.data_loader.get_all_records()
+                    if current_data is not None:
+                        self.data = current_data
+                except Exception as e:
+                    logger.warning(f"Could not load all records for signal emission: {e}")
+                    current_data = None
             
-            # Emit signal to notify other components that data is available
-            self.data_loaded.emit(current_data)
+            # Only emit signal if we have valid data
+            if current_data is not None:
+                try:
+                    self.data_loaded.emit(current_data)
+                except Exception as emit_error:
+                    logger.error(f"Error emitting data_loaded signal: {emit_error}")
+                    # Don't let signal emission errors break the load process
             
             logger.info(f"Database statistics loaded: {row_count:,} records")
             
@@ -1438,8 +1488,13 @@ class ConfigurationTab(QWidget):
                 # Initialize calculators with the loaded data
                 self._initialize_calculators()
                 
-                # Emit data loaded signal
-                self.data_loaded.emit(self.data)
+                # Emit data loaded signal if we have valid data
+                if self.data is not None:
+                    try:
+                        self.data_loaded.emit(self.data)
+                    except Exception as emit_error:
+                        logger.error(f"Error emitting data_loaded signal: {emit_error}")
+                        # Don't let signal emission errors break the filtering process
                 
                 logger.info(f"Loaded {len(self.data)} records for filtering")
                 
@@ -2044,8 +2099,13 @@ class ConfigurationTab(QWidget):
     
     def _update_status(self, message):
         """Update the status label with a message."""
-        if hasattr(self, 'status_label'):
+        if hasattr(self, 'status_label') and hasattr(self, 'status_section'):
             self.status_label.setText(message)
+            # Show status section when there's a message
+            if message and message.strip() and message != "No data loaded":
+                self.status_section.setVisible(True)
+            else:
+                self.status_section.setVisible(False)
     
     def _on_statistics_filter_requested(self, filter_type, filter_value):
         """Handle filter request from statistics widget."""

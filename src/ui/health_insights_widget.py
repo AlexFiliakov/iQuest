@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread, pyqtSlot, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QFont, QPalette, QColor, QIcon, QPainter, QBrush, QPen
 
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any, Callable, Tuple
 from datetime import datetime, timedelta
 import logging
 
@@ -26,6 +26,7 @@ from ..analytics.health_insights_models import (
 from .charts.wsj_style_manager import WSJStyleManager
 from ..analytics.progressive_loader import ProgressiveLoaderCallbacks, ProgressiveResult, LoadingStage
 from .style_manager import StyleManager
+from ..health_database import HealthDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -233,21 +234,37 @@ class InsightGenerationThread(QThread):
     def __init__(self, engine: EnhancedHealthInsightsEngine, 
                  user_data: Dict[str, Any],
                  time_period: str = "monthly",
-                 max_insights: int = 5):
+                 max_insights: int = 5,
+                 selected_metric: Optional[str] = None,
+                 source_name: Optional[str] = None):
         super().__init__()
         self.engine = engine
         self.user_data = user_data
         self.time_period = time_period
         self.max_insights = max_insights
+        self.selected_metric = selected_metric
+        self.source_name = source_name
     
     def run(self):
         """Generate insights in background."""
         try:
-            self.progress_update.emit(10, "Analyzing health patterns...")
+            # Update progress message based on metric selection
+            if self.selected_metric and self.selected_metric != "All Metrics":
+                progress_msg = f"Analyzing {self.selected_metric} patterns..."
+            else:
+                progress_msg = "Analyzing health patterns..."
+            
+            self.progress_update.emit(10, progress_msg)
+            
+            # Filter user data if specific metric selected
+            filtered_data = self.user_data
+            if self.selected_metric and self.selected_metric != "All Metrics":
+                # Create filtered data focusing on the selected metric
+                filtered_data = self._filter_data_for_metric(self.user_data, self.selected_metric, self.source_name)
             
             # Generate insights
             insights = self.engine.generate_prioritized_insights(
-                self.user_data,
+                filtered_data,
                 self.time_period,
                 self.max_insights
             )
@@ -258,6 +275,32 @@ class InsightGenerationThread(QThread):
         except Exception as e:
             logger.error(f"Error generating insights: {e}")
             self.error_occurred.emit(str(e))
+    
+    def _filter_data_for_metric(self, user_data: Dict[str, Any], metric: str, source: Optional[str] = None) -> Dict[str, Any]:
+        """Filter user data to focus on specific metric and optionally source."""
+        filtered_data = user_data.copy()
+        
+        # If the data contains metric-specific keys, filter them
+        if 'metrics' in filtered_data:
+            filtered_metrics = {}
+            for key, value in filtered_data['metrics'].items():
+                if metric in key or key == metric:
+                    if source:
+                        # Further filter by source if specified
+                        if isinstance(value, dict) and 'source' in value and value['source'] == source:
+                            filtered_metrics[key] = value
+                    else:
+                        filtered_metrics[key] = value
+            filtered_data['metrics'] = filtered_metrics
+        
+        # Add metadata about the filter
+        filtered_data['filter_metadata'] = {
+            'selected_metric': metric,
+            'source_filter': source,
+            'filter_applied': True
+        }
+        
+        return filtered_data
 
 
 class HealthInsightsWidget(QWidget):
@@ -276,6 +319,14 @@ class HealthInsightsWidget(QWidget):
         self.current_insights: List[HealthInsight] = []
         self.insight_cards: List[InsightCardWidget] = []
         
+        # Health database for metric detection
+        self.health_db = HealthDatabase()
+        
+        # Metric mappings
+        self.metric_mappings = {}
+        self.available_metrics = []
+        self.metric_sources = {}  # metric -> [sources] mapping
+        
         # Generation thread
         self.generation_thread = None
         
@@ -284,6 +335,7 @@ class HealthInsightsWidget(QWidget):
         self._setup_progressive_callbacks()
         
         self.setup_ui()
+        self._init_metric_mappings()
     
     def setup_ui(self):
         """Set up the UI."""
@@ -298,6 +350,17 @@ class HealthInsightsWidget(QWidget):
         header_layout.addWidget(title)
         
         header_layout.addStretch()
+        
+        # Metric selector
+        metric_label = QLabel("Focus on:")
+        header_layout.addWidget(metric_label)
+        
+        self.metric_combo = QComboBox(self)
+        self.metric_combo.setMinimumWidth(200)
+        self.metric_combo.addItem("All Metrics")
+        self.metric_combo.setToolTip("Select a specific metric to focus insights on")
+        self.metric_combo.currentTextChanged.connect(self.on_metric_changed)
+        header_layout.addWidget(self.metric_combo)
         
         # Time period selector
         period_label = QLabel("Time Period:")
@@ -387,6 +450,8 @@ class HealthInsightsWidget(QWidget):
     def set_insights_engine(self, engine: EnhancedHealthInsightsEngine):
         """Set the insights engine."""
         self.insights_engine = engine
+        # Detect available metrics when engine is set
+        self._detect_available_metrics()
     
     def load_insights(self, user_data: Dict[str, Any]):
         """Load insights from user data."""
@@ -403,12 +468,25 @@ class HealthInsightsWidget(QWidget):
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         
+        # Get selected metric and source
+        selected_metric = self.metric_combo.currentText()
+        source_name = None
+        
+        # Check if a source-specific metric is selected
+        if " (" in selected_metric and selected_metric.endswith(")"):
+            # Extract metric and source from format: "Steps (iPhone)"
+            parts = selected_metric.rsplit(" (", 1)
+            selected_metric = parts[0]
+            source_name = parts[1].rstrip(")")
+        
         # Start generation thread
         self.generation_thread = InsightGenerationThread(
             self.insights_engine,
             user_data,
             self.period_combo.currentText().lower(),
-            self.max_insights_spin.value()
+            self.max_insights_spin.value(),
+            selected_metric if selected_metric != "All Metrics" else None,
+            source_name
         )
         
         self.generation_thread.insights_ready.connect(self._on_insights_ready)
@@ -519,6 +597,10 @@ class HealthInsightsWidget(QWidget):
         """Handle max insights change."""
         self.refresh_insights()
     
+    def on_metric_changed(self, metric: str):
+        """Handle metric selection change."""
+        self.refresh_insights()
+    
     # Progressive loading callbacks
     def _on_loading_started(self):
         """Handle loading started."""
@@ -555,3 +637,106 @@ class HealthInsightsWidget(QWidget):
         """Handle loading error."""
         logger.error(f"Loading error: {error}")
         self.progress_bar.setVisible(False)
+    
+    def _init_metric_mappings(self):
+        """Initialize metric type mappings for display."""
+        self.metric_mappings = {
+            # Activity metrics
+            'HKQuantityTypeIdentifierStepCount': 'Steps',
+            'HKQuantityTypeIdentifierDistanceWalkingRunning': 'Walking + Running Distance',
+            'HKQuantityTypeIdentifierActiveEnergyBurned': 'Active Calories',
+            'HKQuantityTypeIdentifierBasalEnergyBurned': 'Resting Calories',
+            'HKQuantityTypeIdentifierFlightsClimbed': 'Flights Climbed',
+            'HKQuantityTypeIdentifierAppleExerciseTime': 'Exercise Minutes',
+            'HKQuantityTypeIdentifierAppleStandTime': 'Stand Hours',
+            
+            # Heart metrics
+            'HKQuantityTypeIdentifierHeartRate': 'Heart Rate',
+            'HKQuantityTypeIdentifierRestingHeartRate': 'Resting Heart Rate',
+            'HKQuantityTypeIdentifierWalkingHeartRateAverage': 'Walking Heart Rate',
+            'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': 'Heart Rate Variability',
+            
+            # Body measurements
+            'HKQuantityTypeIdentifierBodyMass': 'Weight',
+            'HKQuantityTypeIdentifierBodyMassIndex': 'BMI',
+            'HKQuantityTypeIdentifierBodyFatPercentage': 'Body Fat %',
+            
+            # Sleep
+            'HKCategoryTypeIdentifierSleepAnalysis': 'Sleep',
+            
+            # Nutrition
+            'HKQuantityTypeIdentifierDietaryEnergyConsumed': 'Dietary Calories',
+            'HKQuantityTypeIdentifierDietaryProtein': 'Protein',
+            'HKQuantityTypeIdentifierDietaryFatTotal': 'Total Fat',
+            'HKQuantityTypeIdentifierDietaryCarbohydrates': 'Carbohydrates',
+            
+            # Environmental
+            'HKQuantityTypeIdentifierEnvironmentalAudioExposure': 'Environmental Sound',
+            'HKQuantityTypeIdentifierHeadphoneAudioExposure': 'Headphone Audio Exposure',
+            
+            # Respiratory
+            'HKQuantityTypeIdentifierRespiratoryRate': 'Respiratory Rate',
+            'HKQuantityTypeIdentifierOxygenSaturation': 'Blood Oxygen',
+            
+            # Mindfulness
+            'HKCategoryTypeIdentifierMindfulSession': 'Mindfulness Minutes'
+        }
+    
+    def _detect_available_metrics(self):
+        """Detect available metrics from the database."""
+        try:
+            # Get all available metric types
+            available_types = self.health_db.get_available_types()
+            
+            # Clear and rebuild metric combo
+            self.metric_combo.clear()
+            self.metric_combo.addItem("All Metrics")
+            
+            # Track unique metrics and their sources
+            metrics_with_sources = {}  # display_name -> set of sources
+            
+            # Get sources for each metric type
+            from ..database import DatabaseManager
+            db = DatabaseManager()
+            
+            for metric_type in available_types:
+                # Get display name
+                display_name = self.metric_mappings.get(metric_type, metric_type)
+                
+                # Get unique sources for this metric
+                query = """SELECT DISTINCT sourceName 
+                          FROM health_records 
+                          WHERE type = ? AND sourceName IS NOT NULL
+                          ORDER BY sourceName"""
+                
+                results = db.execute_query(query, (metric_type,))
+                sources = [row[0] for row in results if row[0]]
+                
+                if display_name not in metrics_with_sources:
+                    metrics_with_sources[display_name] = set()
+                
+                metrics_with_sources[display_name].update(sources)
+            
+            # Add metrics to combo box
+            sorted_metrics = sorted(metrics_with_sources.keys())
+            for metric in sorted_metrics:
+                # Add general metric option
+                self.metric_combo.addItem(metric)
+                
+                # If there are multiple sources, add source-specific options
+                sources = sorted(metrics_with_sources[metric])
+                if len(sources) > 1:
+                    for source in sources:
+                        # Add source-specific option with indentation
+                        display_text = f"{metric} ({source})"
+                        self.metric_combo.addItem(display_text)
+            
+            # Store for later use
+            self.available_metrics = sorted_metrics
+            self.metric_sources = {k: list(v) for k, v in metrics_with_sources.items()}
+            
+        except Exception as e:
+            logger.error(f"Error detecting available metrics: {e}")
+            # Keep just "All Metrics" option on error
+            self.metric_combo.clear()
+            self.metric_combo.addItem("All Metrics")

@@ -30,6 +30,7 @@ from ..analytics.daily_metrics_calculator import DailyMetricsCalculator, MetricS
 from ..analytics.personal_records_tracker import PersonalRecordsTracker
 from ..analytics.day_of_week_analyzer import DayOfWeekAnalyzer
 from ..utils.logging_config import get_logger
+from ..health_database import HealthDatabase
 
 logger = get_logger(__name__)
 
@@ -105,7 +106,7 @@ class MetricCard(QFrame):
         layout.addLayout(value_layout)
         
         # Trend indicator
-        self.trend_indicator = DailyTrendIndicator()
+        self.trend_indicator = DailyTrendIndicator(self.metric_name)
         layout.addWidget(self.trend_indicator)
         
     def update_value(self, value: float, trend_data: Optional[Dict] = None):
@@ -170,10 +171,21 @@ class DailyDashboardWidget(QWidget):
         self.personal_records = personal_records
         self.day_analyzer = DayOfWeekAnalyzer(daily_calculator) if daily_calculator else None
         
+        # Try to initialize HealthDatabase
+        try:
+            self.health_db = HealthDatabase()
+        except Exception as e:
+            logger.error(f"Failed to initialize HealthDatabase: {e}")
+            self.health_db = None
+        
         self._current_date = date.today()
         self._metric_cards = {}
-        self._available_metrics = []
+        self._available_metrics = []  # List of (metric_type, source) tuples
+        self._current_metric = ("StepCount", None)  # Default to aggregated steps
         self._selected_metric = None
+        
+        # Initialize metric mappings
+        self._init_metric_mappings()
         
         # Auto-refresh timer
         self.refresh_timer = QTimer(self)
@@ -196,6 +208,7 @@ class DailyDashboardWidget(QWidget):
         # Load initial data
         if self.daily_calculator:
             self._detect_available_metrics()
+            self._refresh_metric_combo()
             self._load_daily_data()
     
     def set_cached_data_access(self, cached_access):
@@ -207,6 +220,8 @@ class DailyDashboardWidget(QWidget):
         self.cached_data_access = cached_access
         # Reload data with new access method
         if cached_access:
+            self._detect_available_metrics()
+            self._refresh_metric_combo()
             self._load_daily_data()
     
     def _setup_ui(self):
@@ -221,7 +236,7 @@ class DailyDashboardWidget(QWidget):
         main_layout.addWidget(self.header_widget)
         
         # Content area with scroll
-        scroll_area = QScrollArea(self)
+        scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -246,7 +261,7 @@ class DailyDashboardWidget(QWidget):
         """)
         
         # Content widget
-        content_widget = QWidget(self)
+        content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
         content_layout.setSpacing(20)
         
@@ -271,9 +286,85 @@ class DailyDashboardWidget(QWidget):
         scroll_area.setWidget(content_widget)
         main_layout.addWidget(scroll_area)
     
+    def _init_metric_mappings(self):
+        """Initialize comprehensive metric name mappings."""
+        # Map database metric types (without HK prefix) to display names
+        self._metric_display_names = {
+            # Activity & Fitness
+            "StepCount": "Steps",
+            "DistanceWalkingRunning": "Walking + Running Distance",
+            "FlightsClimbed": "Flights Climbed",
+            "ActiveEnergyBurned": "Active Calories",
+            "BasalEnergyBurned": "Resting Calories",
+            "AppleExerciseTime": "Exercise Minutes",
+            "AppleStandHour": "Stand Hours",
+            
+            # Cardiovascular
+            "HeartRate": "Heart Rate",
+            "RestingHeartRate": "Resting Heart Rate",
+            "WalkingHeartRateAverage": "Walking Heart Rate",
+            "HeartRateVariabilitySDNN": "Heart Rate Variability",
+            "BloodPressureSystolic": "Blood Pressure (Systolic)",
+            "BloodPressureDiastolic": "Blood Pressure (Diastolic)",
+            
+            # Body Measurements
+            "BodyMass": "Body Weight",
+            "LeanBodyMass": "Lean Body Mass",
+            "BodyMassIndex": "BMI",
+            "BodyFatPercentage": "Body Fat %",
+            "Height": "Height",
+            
+            # Mobility & Balance
+            "WalkingSpeed": "Walking Speed",
+            "WalkingStepLength": "Step Length",
+            "WalkingAsymmetryPercentage": "Walking Asymmetry",
+            "WalkingDoubleSupportPercentage": "Double Support %",
+            "AppleWalkingSteadiness": "Walking Steadiness",
+            
+            # Respiratory
+            "RespiratoryRate": "Respiratory Rate",
+            "VO2Max": "VO2 Max",
+            
+            # Sleep
+            "SleepAnalysis": "Sleep Analysis",
+            
+            # Nutrition
+            "DietaryEnergyConsumed": "Calories Consumed",
+            "DietaryProtein": "Protein",
+            "DietaryCarbohydrates": "Carbohydrates",
+            "DietaryFatTotal": "Total Fat",
+            "DietaryWater": "Water",
+            
+            # Environmental
+            "HeadphoneAudioExposure": "Headphone Audio Exposure",
+            
+            # Mindfulness
+            "MindfulSession": "Mindful Minutes",
+        }
+        
+        # Map database metric types to units for display
+        self._metric_units = {
+            "StepCount": "steps",
+            "DistanceWalkingRunning": "km",
+            "FlightsClimbed": "flights",
+            "ActiveEnergyBurned": "kcal",
+            "BasalEnergyBurned": "kcal",
+            "AppleExerciseTime": "min",
+            "AppleStandHour": "hours",
+            "HeartRate": "bpm",
+            "RestingHeartRate": "bpm",
+            "WalkingHeartRateAverage": "bpm",
+            "HeartRateVariabilitySDNN": "ms",
+            "BodyMass": "kg",
+            "RespiratoryRate": "bpm",
+            "MindfulSession": "min",
+            "HeadphoneAudioExposure": "dB",
+            "DietaryWater": "mL",
+        }
+    
     def _create_header(self) -> QWidget:
         """Create the dashboard header with date selector and refresh."""
-        header = QFrame(self)
+        header = QFrame()
         header.setStyleSheet("""
             QFrame {
                 background-color: #FFF8F0;
@@ -316,7 +407,7 @@ class DailyDashboardWidget(QWidget):
         from PyQt6.QtWidgets import QDateEdit
         from PyQt6.QtCore import QDate
         
-        self.date_picker = QDateEdit(self)
+        self.date_picker = QDateEdit()
         self.date_picker.setDate(QDate(self._current_date))
         self.date_picker.setCalendarPopup(True)
         self.date_picker.setDisplayFormat("MMMM d, yyyy")
@@ -544,7 +635,7 @@ class DailyDashboardWidget(QWidget):
     
     def _create_metric_cards_section(self) -> QWidget:
         """Create the metric cards grid section."""
-        section = QWidget(self)
+        section = QWidget()
         layout = QVBoxLayout(section)
         layout.setSpacing(16)
         
@@ -691,61 +782,163 @@ class DailyDashboardWidget(QWidget):
             if hasattr(self, 'view_selector'):
                 self.view_selector.currentTextChanged.connect(self._filter_metric_cards)
             if hasattr(self, 'detail_metric_selector'):
-                self.detail_metric_selector.currentTextChanged.connect(self._update_detail_chart)
+                self.detail_metric_selector.currentIndexChanged.connect(self._on_detail_metric_changed)
         except Exception as e:
             logger.error(f"Error setting up connections: {e}", exc_info=True)
     
     def _detect_available_metrics(self):
-        """Detect which metrics are available in the data."""
-        if not self.daily_calculator and not self.cached_data_access:
-            logger.warning("No data access available for metric detection")
-            return
-            
-        try:
-            # Get available metrics from cached access if available
-            if self.cached_data_access:
-                available_types = self.cached_data_access.get_available_metrics()
-                logger.info(f"Found {len(available_types)} metrics from cache")
-            elif self.daily_calculator and hasattr(self.daily_calculator, 'data'):
-                # Fallback to calculator
-                available_types = self.daily_calculator.data['type'].unique()
-            logger.info(f"Found {len(available_types)} unique metric types in data")
-            
-            # Map to our metric names
-            metric_mapping = {
-                'HKQuantityTypeIdentifierStepCount': 'steps',
-                'HKQuantityTypeIdentifierDistanceWalkingRunning': 'distance',
-                'HKQuantityTypeIdentifierFlightsClimbed': 'flights_climbed',
-                'HKQuantityTypeIdentifierActiveEnergyBurned': 'active_calories',
-                'HKQuantityTypeIdentifierHeartRate': 'heart_rate',
-                'HKQuantityTypeIdentifierRestingHeartRate': 'resting_heart_rate',
-                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': 'hrv',
-                'HKQuantityTypeIdentifierBodyMass': 'weight',
-                'HKQuantityTypeIdentifierBodyFatPercentage': 'body_fat'
-            }
+        """Load available metrics from the database with source information."""
+        logger.info("Loading available metrics with source information...")
+        
+        # Initialize metric mappings if not already done
+        if not hasattr(self, '_metric_display_names'):
+            self._init_metric_mappings()
+        
+        # Try cached data access first
+        if self.cached_data_access:
+            logger.info("Loading metrics from cache")
+            available_types = self.cached_data_access.get_available_metrics()
             
             self._available_metrics = []
-            for hk_type, metric_name in metric_mapping.items():
-                if hk_type in available_types:
-                    self._available_metrics.append(metric_name)
-                    logger.debug(f"Found metric: {metric_name} (from {hk_type})")
-                    
-            # Sort by priority
-            self._available_metrics.sort(
-                key=lambda x: self.METRIC_CONFIG.get(x, {}).get('priority', 999)
-            )
+            for db_type in available_types:
+                # Check if it already exists in our display names
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
+                else:
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    logger.debug(f"Added metric from cache: {clean_type}")
             
-            logger.info(f"Detected {len(self._available_metrics)} available metrics: {self._available_metrics}")
+            if self._available_metrics:
+                self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+                logger.info(f"Loaded {len(self._available_metrics)} metrics from cache")
+                return
+        
+        # Fall back to database if no cached access
+        if not self.health_db:
+            logger.warning("No data access available - cannot load metrics")
+            self._available_metrics = []
+            return
+        
+        try:
+            # Get all available types from database
+            db_types = self.health_db.get_available_types()
+            logger.info(f"Found {len(db_types)} types in database")
+            
+            # Get all available sources
+            sources = self.health_db.get_available_sources()
+            logger.info(f"Found {len(sources)} data sources in database")
+            
+            # Build list of (metric, source) tuples
+            self._available_metrics = []
+            seen_metrics = set()
+            
+            # First, add aggregated metrics (no source specified) for all available types
+            for db_type in db_types:
+                # Check if it already exists in our display names
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
+                else:
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    seen_metrics.add(clean_type)
+                    logger.debug(f"Added aggregated metric: {clean_type}")
+            
+            # Then, add source-specific metrics
+            for source in sources:
+                types_for_source = self.health_db.get_types_for_source(source)
+                
+                for db_type in types_for_source:
+                    # Check if it already exists in our display names
+                    if db_type in self._metric_display_names:
+                        clean_type = db_type
+                    else:
+                        # If not, try stripping HK prefixes
+                        clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                    
+                    # Only include metrics we have display names for
+                    if clean_type in self._metric_display_names:
+                        self._available_metrics.append((clean_type, source))
+                        logger.debug(f"Added metric: {clean_type} from {source}")
+            
+            # Sort by display name and source for better UX
+            self._available_metrics.sort(key=lambda x: (
+                self._metric_display_names.get(x[0], x[0]), 
+                x[1] if x[1] else ""  # Put "All Sources" first
+            ))
+            
+            logger.info(f"Loaded {len(self._available_metrics)} metric-source combinations")
             
         except Exception as e:
-            logger.error(f"Error detecting available metrics: {e}", exc_info=True)
+            logger.error(f"Error loading available metrics: {e}", exc_info=True)
             self._available_metrics = []
+    
+    def _refresh_metric_combo(self):
+        """Refresh the detail metric combo box with current available metrics."""
+        if not hasattr(self, 'detail_metric_selector'):
+            return
+            
+        # Save current selection
+        current_index = self.detail_metric_selector.currentIndex()
+        current_data = self.detail_metric_selector.itemData(current_index) if current_index >= 0 else None
+        
+        # Clear and repopulate
+        self.detail_metric_selector.clear()
+        logger.info(f"Refreshing combo box with {len(self._available_metrics)} metrics")
+        
+        if not self._available_metrics:
+            # No metrics available - add placeholder
+            self.detail_metric_selector.addItem("No metrics available", None)
+            self.detail_metric_selector.setEnabled(False)
+            logger.warning("No metrics available to display")
+            return
+        
+        # Enable combo box if it was disabled
+        self.detail_metric_selector.setEnabled(True)
+        
+        for metric_tuple in self._available_metrics:
+            metric, source = metric_tuple
+            display_name = self._metric_display_names.get(metric, metric)
+            
+            # Format display text based on source
+            if source:
+                display_text = f"{display_name} - {source}"
+            else:
+                display_text = f"{display_name} (All Sources)"
+                
+            self.detail_metric_selector.addItem(display_text, metric_tuple)
+            logger.debug(f"Added to combo: {display_text}")
+        
+        # Restore selection if possible
+        if current_data and current_data in self._available_metrics:
+            index = self._available_metrics.index(current_data)
+            self.detail_metric_selector.setCurrentIndex(index)
+        elif self._current_metric in self._available_metrics:
+            index = self._available_metrics.index(self._current_metric)
+            self.detail_metric_selector.setCurrentIndex(index)
     
     def _create_metric_cards(self):
         """Create metric cards for available metrics."""
+        # Get unique metric types (ignore sources for cards)
+        unique_metrics = []
+        seen = set()
+        for metric_tuple in self._available_metrics:
+            metric_type = metric_tuple[0]
+            if metric_type not in seen:
+                unique_metrics.append(metric_type)
+                seen.add(metric_type)
+        
         # Only recreate if metrics have changed
         current_metrics = set(self._metric_cards.keys())
-        new_metrics = set(self._available_metrics[:8])
+        new_metrics = set(unique_metrics[:8])
         
         if current_metrics == new_metrics:
             return  # No need to recreate
@@ -759,13 +952,14 @@ class DailyDashboardWidget(QWidget):
         
         # Create cards for up to 8 metrics
         cols = 4
-        for i, metric_name in enumerate(self._available_metrics[:8]):
-            config = self.METRIC_CONFIG.get(metric_name, {})
+        for i, metric_name in enumerate(unique_metrics[:8]):
+            display_name = self._metric_display_names.get(metric_name, metric_name)
+            unit = self._metric_units.get(metric_name, '')
             
             card = MetricCard(
                 metric_name,
-                config.get('display', metric_name),
-                config.get('unit', '')
+                display_name,
+                unit
             )
             card.clicked.connect(self._on_metric_card_clicked)
             
@@ -804,7 +998,8 @@ class DailyDashboardWidget(QWidget):
             # Process metrics immediately without batching
             for metric_name, card in self._metric_cards.items():
                 try:
-                    stats = self._get_metric_stats(metric_name)
+                    # For metric cards, we show aggregated data (all sources)
+                    stats = self._get_metric_stats((metric_name, None))
                     if stats and stats['value'] is not None:
                         card.update_value(stats['value'], stats.get('trend'))
                         has_any_data = True
@@ -838,76 +1033,78 @@ class DailyDashboardWidget(QWidget):
             logger.error(f"Error loading daily data: {e}", exc_info=True)
             self._show_error_message(str(e))
     
-    def _get_metric_stats(self, metric_name: str) -> Optional[Dict]:
+    def _get_metric_stats(self, metric_tuple) -> Optional[Dict]:
         """Get statistics for a specific metric with caching."""
+        # Handle both old format (string) and new format (tuple)
+        if isinstance(metric_tuple, str):
+            metric_name = metric_tuple
+            source = None
+        else:
+            metric_name, source = metric_tuple
+            
         # Check cache first
-        cache_key = f"{metric_name}_{self._current_date}"
+        cache_key = f"{metric_name}_{source}_{self._current_date}"
         if self._cache_date == self._current_date and cache_key in self._stats_cache:
             return self._stats_cache[cache_key]
             
-        # Map metric name to HK type
-        type_mapping = {
-            'steps': 'HKQuantityTypeIdentifierStepCount',
-            'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
-            'flights_climbed': 'HKQuantityTypeIdentifierFlightsClimbed',
-            'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned',
-            'heart_rate': 'HKQuantityTypeIdentifierHeartRate',
-            'resting_heart_rate': 'HKQuantityTypeIdentifierRestingHeartRate',
-            'hrv': 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-            'weight': 'HKQuantityTypeIdentifierBodyMass',
-            'body_fat': 'HKQuantityTypeIdentifierBodyFatPercentage'
-        }
-        
-        hk_type = type_mapping.get(metric_name)
+        # Get the database format for this metric
+        hk_type = self._get_database_metric_type(metric_name)
         if not hk_type:
             return None
             
         try:
-            # Use cached data access if available (preferred for performance)
-            if self.cached_data_access:
-                logger.debug(f"Getting cached stats for {metric_name} on {self._current_date}")
-                summary = self.cached_data_access.get_daily_summary(hk_type, self._current_date)
-                
-                if summary:
-                    # Convert cached summary to expected format
-                    today_stats = self.cached_data_access.convert_to_metric_statistics(summary)
-                else:
-                    logger.debug(f"No cached data for {metric_name} on {self._current_date}")
-                    today_stats = None
-                    
-            elif self.daily_calculator:
-                # Fallback to calculator if no cached access
-                logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
-                today_stats = self.daily_calculator.calculate_daily_statistics(
-                    metric=hk_type,
-                    target_date=self._current_date
-                )
+            # Get daily value based on source
+            if source:
+                # Get source-specific data
+                daily_value = self._get_source_specific_daily_value(hk_type, self._current_date, source)
             else:
-                return None
+                # Get aggregated data from all sources
+                if self.cached_data_access:
+                    logger.debug(f"Getting cached stats for {metric_name} on {self._current_date}")
+                    summary = self.cached_data_access.get_daily_summary(hk_type, self._current_date)
+                    
+                    if summary:
+                        # Convert cached summary to expected format
+                        today_stats = self.cached_data_access.convert_to_metric_statistics(summary)
+                        daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
+                    else:
+                        daily_value = None
+                elif self.daily_calculator:
+                    # Fallback to calculator if no cached access
+                    logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
+                    today_stats = self.daily_calculator.calculate_daily_statistics(
+                        metric=hk_type,
+                        target_date=self._current_date
+                    )
+                    daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
+                else:
+                    daily_value = None
             
-            logger.debug(f"Stats for {metric_name}: {today_stats}")
+            logger.debug(f"Stats for {metric_name} (source: {source}): {daily_value}")
             
-            if today_stats and today_stats.count > 0:
-                # Calculate trend only for visible metrics
+            if daily_value is not None:
+                # Calculate trend only for visible metrics and aggregated data
                 trend_data = None
-                if metric_name in ['steps', 'active_calories']:  # Only for key metrics
+                if not source and metric_name in ['StepCount', 'ActiveEnergyBurned']:  # Only for key aggregated metrics
                     yesterday = self._current_date - timedelta(days=1)
                     
-                    # Get yesterday's stats using cached access if available
+                    # Get yesterday's stats
+                    yesterday_value = None
                     if self.cached_data_access:
                         yesterday_summary = self.cached_data_access.get_daily_summary(hk_type, yesterday)
-                        yesterday_stats = self.cached_data_access.convert_to_metric_statistics(yesterday_summary) if yesterday_summary else None
+                        if yesterday_summary:
+                            yesterday_stats = self.cached_data_access.convert_to_metric_statistics(yesterday_summary)
+                            yesterday_value = yesterday_stats.mean if yesterday_stats and yesterday_stats.count > 0 else None
                     elif self.daily_calculator:
                         yesterday_stats = self.daily_calculator.calculate_daily_statistics(
                             metric=hk_type,
                             target_date=yesterday
                         )
-                    else:
-                        yesterday_stats = None
+                        yesterday_value = yesterday_stats.mean if yesterday_stats and yesterday_stats.count > 0 else None
                     
-                    if yesterday_stats and yesterday_stats.count > 0:
-                        change = today_stats.mean - yesterday_stats.mean
-                        pct_change = (change / yesterday_stats.mean * 100) if yesterday_stats.mean else 0
+                    if yesterday_value is not None and yesterday_value > 0:
+                        change = daily_value - yesterday_value
+                        pct_change = (change / yesterday_value * 100)
                         
                         trend_data = {
                             'direction': 'up' if change > 0 else 'down' if change < 0 else 'stable',
@@ -915,14 +1112,12 @@ class DailyDashboardWidget(QWidget):
                             'label': f"{pct_change:+.1f}% vs yesterday"
                         }
                 
-                # Convert distance to km
-                value = today_stats.mean
-                if metric_name == 'distance' and value:
-                    value = value / 1000  # Convert meters to km
+                # Convert value for display
+                display_value = self._convert_value_for_display(daily_value, metric_name)
                 
                 result = {
-                    'value': value,
-                    'count': today_stats.count,
+                    'value': display_value,
+                    'count': 1,  # We have data
                     'trend': trend_data
                 }
                 
@@ -1076,27 +1271,32 @@ class DailyDashboardWidget(QWidget):
         if not self.personal_records:
             return records
             
-        # Check each metric for records
-        for metric_name in self._available_metrics:
-            stats = self._get_metric_stats(metric_name)
-            if stats and stats['value']:
-                # Map to HK type for personal records
-                type_mapping = {
-                    'steps': 'HKQuantityTypeIdentifierStepCount',
-                    'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
-                    'flights_climbed': 'HKQuantityTypeIdentifierFlightsClimbed',
-                    'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned'
-                }
-                
-                hk_type = type_mapping.get(metric_name)
-                if hk_type:
-                    is_record = self.personal_records.check_record(
-                        hk_type,
-                        stats['value'],
-                        self._current_date
-                    )
-                    if is_record:
-                        records.append(metric_name)
+        # Check each unique metric type for records (ignore sources)
+        seen_metrics = set()
+        for metric_tuple in self._available_metrics:
+            metric_name = metric_tuple[0]
+            if metric_name not in seen_metrics:
+                seen_metrics.add(metric_name)
+                # Check aggregated data for records
+                stats = self._get_metric_stats((metric_name, None))
+                if stats and stats['value']:
+                    # Get database metric type
+                    hk_type = self._get_database_metric_type(metric_name)
+                    if hk_type:
+                        # Convert display value back to raw value for record checking
+                        raw_value = stats['value']
+                        if metric_name == "DistanceWalkingRunning":
+                            raw_value = raw_value * 1000  # Convert km back to meters
+                        elif metric_name in ["AppleExerciseTime", "MindfulSession"]:
+                            raw_value = raw_value * 60  # Convert minutes back to seconds
+                            
+                        is_record = self.personal_records.check_record(
+                            hk_type,
+                            raw_value,
+                            self._current_date
+                        )
+                        if is_record:
+                            records.append(metric_name)
         
         return records
     
@@ -1125,53 +1325,88 @@ class DailyDashboardWidget(QWidget):
         except Exception as e:
             logger.error(f"Error updating timeline: {e}")
     
-    def _get_hourly_data(self, metric_name: str) -> Optional[pd.DataFrame]:
+    def _get_hourly_data(self, metric_tuple) -> Optional[pd.DataFrame]:
         """Get hourly data for a metric with caching."""
-        if not self.daily_calculator:
+        if not self.daily_calculator and not self.health_db:
             return None
             
+        # Handle both old format (string) and new format (tuple)
+        if isinstance(metric_tuple, str):
+            metric_name = metric_tuple
+            source = None
+        else:
+            metric_name, source = metric_tuple
+            
         # Check cache
-        cache_key = f"hourly_{metric_name}_{self._current_date}"
+        cache_key = f"hourly_{metric_name}_{source}_{self._current_date}"
         if hasattr(self, '_hourly_cache') and cache_key in self._hourly_cache:
             return self._hourly_cache[cache_key]
             
         try:
-            type_mapping = {
-                'steps': 'HKQuantityTypeIdentifierStepCount',
-                'active_calories': 'HKQuantityTypeIdentifierActiveEnergyBurned',
-                'distance': 'HKQuantityTypeIdentifierDistanceWalkingRunning',
-                'flights_climbed': 'HKQuantityTypeIdentifierFlightsClimbed'
-            }
-            
-            hk_type = type_mapping.get(metric_name)
+            # Get database metric type
+            hk_type = self._get_database_metric_type(metric_name)
             if not hk_type:
                 return None
             
-            # Filter data for current date and metric
-            mask = (self.daily_calculator.data['type'] == hk_type) & \
-                   (pd.to_datetime(self.daily_calculator.data['creationDate']).dt.date == self._current_date)
-            data = self.daily_calculator.data.loc[mask].copy()
+            hourly = None
             
-            if data.empty:
-                return None
+            if source and self.health_db:
+                # Get source-specific hourly data from database
+                db = self.health_db.db_manager
+                query = """
+                    SELECT 
+                        CAST(strftime('%H', startDate) AS INTEGER) as hour,
+                        SUM(CAST(value AS FLOAT)) as hourly_total
+                    FROM health_records
+                    WHERE type = ?
+                    AND DATE(startDate) = ?
+                    AND sourceName = ?
+                    AND value IS NOT NULL
+                    GROUP BY hour
+                    ORDER BY hour
+                """
+                
+                result = db.execute_query(query, (hk_type, self._current_date.isoformat(), source))
+                
+                if result:
+                    hourly = pd.DataFrame(result, columns=['hour', 'value'])
+                    # Convert values for display
+                    hourly['value'] = hourly['value'].apply(lambda x: self._convert_value_for_display(x, metric_name))
+                else:
+                    return None
+                    
+            elif self.daily_calculator and hasattr(self.daily_calculator, 'data'):
+                # Use calculator data for aggregated metrics
+                # Filter data for current date and metric
+                mask = (self.daily_calculator.data['type'] == hk_type) & \
+                       (pd.to_datetime(self.daily_calculator.data['creationDate']).dt.date == self._current_date)
+                data = self.daily_calculator.data.loc[mask].copy()
+                
+                if data.empty:
+                    return None
+                
+                # Group by hour
+                data['hour'] = pd.to_datetime(data['creationDate']).dt.hour
+                hourly = data.groupby('hour')['value'].sum().reset_index()
+                
+                # Convert values for display
+                hourly['value'] = hourly['value'].apply(lambda x: self._convert_value_for_display(x, metric_name))
             
-            # Group by hour - more efficient
-            data['hour'] = pd.to_datetime(data['creationDate']).dt.hour
-            hourly = data.groupby('hour')['value'].sum().reset_index()
-            
-            # Only fill hours with actual data range
-            if not hourly.empty:
+            if hourly is not None and not hourly.empty:
+                # Only fill hours with actual data range
                 min_hour = hourly['hour'].min()
                 max_hour = hourly['hour'].max()
                 hour_range = pd.DataFrame({'hour': range(min_hour, max_hour + 1)})
                 hourly = hour_range.merge(hourly, on='hour', how='left').fillna(0)
+                
+                # Cache result
+                if not hasattr(self, '_hourly_cache'):
+                    self._hourly_cache = {}
+                self._hourly_cache[cache_key] = hourly
+                
+                return hourly
             
-            # Cache result
-            if not hasattr(self, '_hourly_cache'):
-                self._hourly_cache = {}
-            self._hourly_cache[cache_key] = hourly
-            
-            return hourly
+            return None
             
         except Exception as e:
             logger.error(f"Error getting hourly data: {e}")
@@ -1179,12 +1414,105 @@ class DailyDashboardWidget(QWidget):
     
     def _populate_detail_selector(self):
         """Populate the detail metric selector."""
-        self.detail_metric_selector.clear()
+        # This is now handled by _refresh_metric_combo
+        self._refresh_metric_combo()
+    
+    def _get_database_metric_type(self, clean_metric: str) -> str:
+        """Convert a clean metric name to the format stored in the database.
         
-        for metric_name in self._available_metrics:
-            config = self.METRIC_CONFIG.get(metric_name, {})
-            display_name = f"{config.get('icon', '')} {config.get('display', metric_name)}"
-            self.detail_metric_selector.addItem(display_name, metric_name)
+        Args:
+            clean_metric: Metric name without HK prefix (e.g., 'StepCount')
+            
+        Returns:
+            The metric type as stored in the database
+        """
+        # First check if the metric exists as-is in the database
+        if self.health_db:
+            available_types = self.health_db.get_available_types()
+            
+            # Check if clean name exists directly
+            if clean_metric in available_types:
+                return clean_metric
+                
+            # Check with HK prefix for quantities
+            hk_quantity = f"HKQuantityTypeIdentifier{clean_metric}"
+            if hk_quantity in available_types:
+                return hk_quantity
+                
+            # Check with HK prefix for categories
+            hk_category = f"HKCategoryTypeIdentifier{clean_metric}"
+            if hk_category in available_types:
+                return hk_category
+        
+        # Default: assume it needs HK prefix based on known category types
+        if clean_metric in ["SleepAnalysis", "MindfulSession", "HKDataTypeSleepDurationGoal"]:
+            return f"HKCategoryTypeIdentifier{clean_metric}"
+        else:
+            return f"HKQuantityTypeIdentifier{clean_metric}"
+    
+    def _get_source_specific_daily_value(self, metric_type: str, date: date, source: str) -> Optional[float]:
+        """Get daily aggregate value for a specific metric, date, and source."""
+        try:
+            # Query the database directly for source-specific data
+            if not self.health_db:
+                logger.warning("No health database connection available")
+                return None
+                
+            # Use the existing database manager from health_db
+            db = self.health_db.db_manager
+            
+            # Query for sum of values for this metric, date, and source
+            query = """
+                SELECT SUM(CAST(value AS FLOAT)) as daily_total
+                FROM health_records
+                WHERE type = ?
+                AND DATE(startDate) = ?
+                AND sourceName = ?
+                AND value IS NOT NULL
+            """
+            
+            result = db.execute_query(query, (metric_type, date.isoformat(), source))
+            
+            if result and result[0][0] is not None:
+                value = float(result[0][0])
+                logger.debug(f"Got value {value} for {metric_type} on {date} from {source}")
+                return value
+            else:
+                logger.debug(f"No data found for {metric_type} on {date} from {source}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error getting source-specific daily value: {e}", exc_info=True)
+            return None
+    
+    def _convert_value_for_display(self, value: float, metric: str) -> float:
+        """Convert raw value to display units based on metric type."""
+        if metric == "DistanceWalkingRunning":
+            return value / 1000  # Convert meters to km
+        elif metric == "SleepAnalysis":
+            return value / 3600  # Convert seconds to hours
+        elif metric == "BodyMass" or metric == "LeanBodyMass":
+            return value  # Already in kg
+        elif metric == "Height":
+            return value * 100  # Convert meters to cm
+        elif metric == "WalkingSpeed":
+            return value * 3.6  # Convert m/s to km/h
+        elif metric == "WalkingStepLength":
+            return value * 100  # Convert meters to cm
+        elif metric in ["AppleExerciseTime", "MindfulSession"]:
+            return value / 60  # Convert seconds to minutes
+        elif metric == "DietaryWater":
+            return value  # Already in mL
+        else:
+            return value  # Return as-is for other metrics
+    
+    def _on_detail_metric_changed(self, index: int):
+        """Handle detail metric selection change."""
+        if index >= 0:
+            metric_tuple = self.detail_metric_selector.itemData(index)
+            if metric_tuple:
+                self._selected_metric = metric_tuple
+                self._update_detail_chart()
     
     def _update_detail_chart(self):
         """Update the detailed metric chart."""
@@ -1197,14 +1525,20 @@ class DailyDashboardWidget(QWidget):
             return
             
         try:
-            # Get selected metric
-            metric_name = self.detail_metric_selector.currentData()
-            if not metric_name:
+            # Get selected metric tuple
+            current_index = self.detail_metric_selector.currentIndex()
+            if current_index < 0:
                 return
+                
+            metric_tuple = self.detail_metric_selector.itemData(current_index)
+            if not metric_tuple:
+                return
+                
+            metric_name, source = metric_tuple
             
             # Defer heavy chart update
             def update_chart():
-                hourly_data = self._get_hourly_data(metric_name)
+                hourly_data = self._get_hourly_data(metric_tuple)
                 if hourly_data is None or hourly_data.empty:
                     return
                 
@@ -1218,11 +1552,19 @@ class DailyDashboardWidget(QWidget):
                 y_data = hourly_data['value'].tolist()
                 
                 # Update chart
-                config = self.METRIC_CONFIG.get(metric_name, {})
+                display_name = self._metric_display_names.get(metric_name, metric_name)
+                unit = self._metric_units.get(metric_name, '')
+                
+                # Add source to title if specific source selected
+                if source:
+                    title = f"{display_name} ({source}) - Today"
+                else:
+                    title = f"{display_name} - Today"
+                    
                 self.detail_chart.set_labels(
-                    title=f"{config.get('display', metric_name)} - Today",
+                    title=title,
                     x_label="Hour",
-                    y_label=config.get('unit', 'Value')
+                    y_label=unit if unit else 'Value'
                 )
                 
                 # Prepare data points for LineChart
@@ -1433,9 +1775,9 @@ class DailyDashboardWidget(QWidget):
             self._pending_update = False
             logger.info(f"Performing delayed update for {self._current_date}")
             
-            # Check if calculator is available
-            if not self.daily_calculator:
-                logger.debug("No daily calculator available for delayed update")
+            # Check if data access is available
+            if not self.daily_calculator and not self.cached_data_access and not self.health_db:
+                logger.debug("No data access available for delayed update")
                 self._show_no_data_message()
                 return
                 
@@ -1451,13 +1793,21 @@ class DailyDashboardWidget(QWidget):
     
     def _on_metric_card_clicked(self, metric_name: str):
         """Handle metric card click."""
-        self._selected_metric = metric_name
-        
-        # Update detail selector
-        for i in range(self.detail_metric_selector.count()):
-            if self.detail_metric_selector.itemData(i) == metric_name:
-                self.detail_metric_selector.setCurrentIndex(i)
+        # Find the first matching metric tuple with this metric type
+        selected_tuple = None
+        for metric_tuple in self._available_metrics:
+            if metric_tuple[0] == metric_name:
+                selected_tuple = metric_tuple
                 break
+                
+        if selected_tuple:
+            self._selected_metric = selected_tuple
+            
+            # Update detail selector
+            for i in range(self.detail_metric_selector.count()):
+                if self.detail_metric_selector.itemData(i) == selected_tuple:
+                    self.detail_metric_selector.setCurrentIndex(i)
+                    break
         
         self.metric_selected.emit(metric_name)
     
@@ -1490,6 +1840,7 @@ class DailyDashboardWidget(QWidget):
         
         # Detect metrics and load data immediately
         self._detect_available_metrics()
+        self._refresh_metric_combo()
         self._load_daily_data()
     
     def set_personal_records(self, tracker: PersonalRecordsTracker):
@@ -1504,7 +1855,7 @@ class DailyDashboardWidget(QWidget):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
             from PyQt6.QtCore import Qt
             
-            self.no_data_overlay = QWidget(self)
+            self.no_data_overlay = QWidget()
             self.no_data_overlay.setStyleSheet("""
                 QWidget {
                     background-color: rgba(255, 255, 255, 0.95);
@@ -1559,7 +1910,7 @@ class DailyDashboardWidget(QWidget):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
             from PyQt6.QtCore import Qt
             
-            self.no_data_overlay = QWidget(self)
+            self.no_data_overlay = QWidget()
             self.no_data_overlay.setStyleSheet("""
                 QWidget {
                     background-color: rgba(255, 255, 255, 0.95);
@@ -1659,11 +2010,14 @@ class DailyDashboardWidget(QWidget):
         # Clear any leftover content from other tabs
         self._hide_no_data_message()
         # Force immediate refresh when widget is shown
-        if self.daily_calculator:
+        if self.daily_calculator or self.cached_data_access or self.health_db:
             # Clear cache to ensure fresh data
             self._stats_cache.clear()
             if hasattr(self, '_hourly_cache'):
                 self._hourly_cache.clear()
+            # Detect available metrics
+            self._detect_available_metrics()
+            self._refresh_metric_combo()
             # Load data immediately
             self._load_daily_data()
         else:

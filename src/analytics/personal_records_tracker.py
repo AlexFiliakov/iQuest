@@ -56,6 +56,7 @@ class Record:
     improvement_margin: Optional[float] = None
     window_days: Optional[int] = None
     streak_type: Optional[str] = None
+    source: Optional[str] = None  # Source name (e.g., "iPhone", "Apple Watch")
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     
@@ -139,22 +140,23 @@ class PersonalRecordsTracker:
             logger.info("Tables should be created by database.py migration system")
     
     def check_for_records(self, metric: str, value: float, date_val: date, 
-                         source_data: Optional[pd.DataFrame] = None) -> List[Record]:
+                         source_data: Optional[pd.DataFrame] = None,
+                         source: Optional[str] = None) -> List[Record]:
         """Check if new value sets any records."""
         new_records = []
         
         try:
             # Check single-day records
-            single_day_records = self._check_single_day_records(metric, value, date_val)
+            single_day_records = self._check_single_day_records(metric, value, date_val, source)
             new_records.extend(single_day_records)
             
             # Check rolling average records if we have source data
             if source_data is not None:
-                rolling_records = self._check_rolling_average_records(metric, value, date_val, source_data)
+                rolling_records = self._check_rolling_average_records(metric, value, date_val, source_data, source)
                 new_records.extend(rolling_records)
             
             # Check streak records
-            streak_records = self._check_streak_records(metric, value, date_val, source_data)
+            streak_records = self._check_streak_records(metric, value, date_val, source_data, source)
             new_records.extend(streak_records)
             
             # Process new records
@@ -166,7 +168,7 @@ class PersonalRecordsTracker:
         
         return new_records
     
-    def _check_single_day_records(self, metric: str, value: float, date_val: date) -> List[Record]:
+    def _check_single_day_records(self, metric: str, value: float, date_val: date, source: Optional[str] = None) -> List[Record]:
         """Check for single-day records (max/min)."""
         records = []
         
@@ -181,7 +183,8 @@ class PersonalRecordsTracker:
                 metric=metric,
                 value=value,
                 date=date_val,
-                previous_value=current_max.value if current_max else None
+                previous_value=current_max.value if current_max else None,
+                source=source
             )
             records.append(record)
         
@@ -192,14 +195,15 @@ class PersonalRecordsTracker:
                 metric=metric,
                 value=value,
                 date=date_val,
-                previous_value=current_min.value if current_min else None
+                previous_value=current_min.value if current_min else None,
+                source=source
             )
             records.append(record)
         
         return records
     
     def _check_rolling_average_records(self, metric: str, value: float, date_val: date, 
-                                     source_data: pd.DataFrame) -> List[Record]:
+                                     source_data: pd.DataFrame, source: Optional[str] = None) -> List[Record]:
         """Check for rolling average records."""
         records = []
         
@@ -230,7 +234,8 @@ class PersonalRecordsTracker:
                             value=avg_value,
                             date=date_val,
                             previous_value=current_record.value if current_record else None,
-                            window_days=window
+                            window_days=window,
+                            source=source
                         )
                         records.append(record)
                         
@@ -240,7 +245,7 @@ class PersonalRecordsTracker:
         return records
     
     def _check_streak_records(self, metric: str, value: float, date_val: date,
-                            source_data: Optional[pd.DataFrame]) -> List[Record]:
+                            source_data: Optional[pd.DataFrame], source: Optional[str] = None) -> List[Record]:
         """Check for streak records."""
         records = []
         
@@ -256,7 +261,8 @@ class PersonalRecordsTracker:
                     value=float(streak_info.best_length),
                     date=date_val,
                     previous_value=float(streak_info.previous_length) if streak_info.previous_length > 0 else None,
-                    streak_type=streak_info.streak_type
+                    streak_type=streak_info.streak_type,
+                    source=source
                 )
                 records.append(record)
                 
@@ -415,6 +421,7 @@ class RecordStore:
             improvement_margin=row['improvement_percentage'],
             window_days=window_days,
             streak_type=streak_type,
+            source=row.get('source') if hasattr(row, 'get') else row['source'] if 'source' in row.keys() else None,  # Get source if present
             metadata={},  # No metadata column in actual schema
             created_at=datetime.fromisoformat(row['created_at'])
         )

@@ -19,6 +19,7 @@ from PyQt6.QtGui import QFont, QPixmap, QIcon, QPalette, QColor, QPainter, QBrus
 from ..analytics.personal_records_tracker import (PersonalRecordsTracker, Record, 
                                                  Achievement, RecordType, CelebrationLevel)
 from .celebration_manager import CelebrationManager, SocialShareManager
+from ..health_database import HealthDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +93,20 @@ class RecordCardWidget(QFrame):
         value_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         value_label.setStyleSheet("color: #FF8C42; background: transparent;")
         
+        # Source information (if available)
+        if hasattr(self.record, 'source') and self.record.source:
+            source_label = QLabel(f"Source: {self.record.source}")
+            source_label.setFont(QFont("Arial", 8))
+            source_label.setStyleSheet("color: #6C757D; background: transparent;")
+            source_label.setWordWrap(True)
+        else:
+            source_label = None
+        
         layout.addLayout(header_layout)
         layout.addWidget(metric_label)
         layout.addWidget(value_label)
+        if source_label:
+            layout.addWidget(source_label)
         layout.addStretch()
 
 
@@ -237,6 +249,9 @@ class TrophyCaseWidget(QWidget):
         self.celebration_manager = CelebrationManager(self)
         self.social_manager = SocialShareManager()
         self.record_map = {}  # Initialize record map
+        self.health_db = HealthDatabase()  # Initialize health database
+        self.metric_mappings = {}  # Map formatted metric names to actual metric identifiers
+        self.source_metric_map = {}  # Map source-specific combinations
         self.setup_ui()
         self.load_data()
         
@@ -321,8 +336,31 @@ class TrophyCaseWidget(QWidget):
         self.stats_label.setFont(QFont("Arial", 10))
         self.stats_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         
+        # Metric filter in header
+        self.header_metric_filter = QComboBox(self)
+        self.header_metric_filter.setMaximumWidth(250)
+        self.header_metric_filter.setStyleSheet("""
+            QComboBox {
+                background-color: rgba(255, 255, 255, 0.9);
+                color: #333333;
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            QComboBox:hover {
+                background-color: rgba(255, 255, 255, 1.0);
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+        """)
+        self.header_metric_filter.currentTextChanged.connect(self._on_header_metric_changed)
+        
         header_layout.addWidget(title_label)
         header_layout.addStretch()
+        header_layout.addWidget(QLabel("Metric:", header_frame))
+        header_layout.addWidget(self.header_metric_filter)
         header_layout.addWidget(self.stats_label)
         
         header_frame.setLayout(header_layout)
@@ -494,6 +532,10 @@ class TrophyCaseWidget(QWidget):
     def load_data(self):
         """Load data from tracker."""
         try:
+            # Initialize metric mappings and detect available metrics
+            self._init_metric_mappings()
+            self._detect_available_metrics()
+            
             # Load records
             self.records = self.tracker.get_all_records()
             
@@ -524,13 +566,53 @@ class TrophyCaseWidget(QWidget):
             # Update statistics
             self.update_statistics()
             
-            # Update metric filter
+            # Update metric filters
             self.update_metric_filter()
+            self._update_header_metric_filter()
             
         except Exception as e:
             logger.error(f"Error loading trophy case data: {e}")
             import traceback
             traceback.print_exc()
+            
+    def _init_metric_mappings(self):
+        """Initialize metric name mappings."""
+        try:
+            # Get all available types from the database
+            metric_types = self.health_db.get_available_types()
+            
+            # Create mappings for display names
+            import re
+            for metric in metric_types:
+                # Format metric name for display
+                display_name = metric.replace('HKQuantityTypeIdentifier', '').replace('HKCategoryTypeIdentifier', '')
+                display_name = re.sub(r'([A-Z])', r' \1', display_name).strip()
+                self.metric_mappings[display_name] = metric
+                
+        except Exception as e:
+            logger.error(f"Error initializing metric mappings: {e}")
+            
+    def _detect_available_metrics(self):
+        """Detect available metrics and their sources."""
+        try:
+            # Get all sources
+            sources = self.health_db.get_available_sources()
+            
+            # For each source, get its available metrics
+            for source in sources:
+                types = self.health_db.get_types_for_source(source)
+                for metric_type in types:
+                    # Create formatted display name
+                    import re
+                    display_name = metric_type.replace('HKQuantityTypeIdentifier', '').replace('HKCategoryTypeIdentifier', '')
+                    display_name = re.sub(r'([A-Z])', r' \1', display_name).strip()
+                    
+                    # Store source-specific combination
+                    combo_key = f"{display_name} - {source}"
+                    self.source_metric_map[combo_key] = (metric_type, source)
+                    
+        except Exception as e:
+            logger.error(f"Error detecting available metrics: {e}")
             
     def populate_records(self):
         """Populate records display."""
@@ -543,6 +625,22 @@ class TrophyCaseWidget(QWidget):
         # Get filter selections
         metric_filter = self.metric_filter.currentText()
         type_filter = self.record_type_filter.currentText()
+        header_filter = self.header_metric_filter.currentText()
+        
+        # Parse header filter for source-specific filtering
+        filter_metric = None
+        filter_source = None
+        if header_filter != "All Records":
+            if " - " in header_filter:
+                # Source-specific filter
+                parts = header_filter.split(" - ")
+                metric_display = parts[0]
+                filter_source = parts[1]
+                # Get actual metric identifier
+                filter_metric = self.metric_mappings.get(metric_display, metric_display)
+            else:
+                # Metric-only filter
+                filter_metric = self.metric_mappings.get(header_filter, header_filter)
         
         # Add record cards
         row, col = 0, 0
@@ -555,8 +653,16 @@ class TrophyCaseWidget(QWidget):
                 continue
                 
             for record in records:
-                # Apply metric filter
+                # Apply metric filter from dropdown
                 if metric_filter != "All Metrics" and record.metric != metric_filter:
+                    continue
+                    
+                # Apply header metric/source filter
+                if filter_metric and record.metric != filter_metric:
+                    continue
+                    
+                # Apply source filter if specified
+                if filter_source and hasattr(record, 'source') and record.source != filter_source:
                     continue
                     
                 card = RecordCardWidget(record)
@@ -571,7 +677,11 @@ class TrophyCaseWidget(QWidget):
         
         # Add empty state if no records
         if row == 0 and col == 0:
-            empty_label = QLabel("No personal records yet. Keep tracking your health data!")
+            empty_text = "No personal records yet. Keep tracking your health data!"
+            if header_filter != "All Records":
+                empty_text = f"No records found for {header_filter}"
+                
+            empty_label = QLabel(empty_text)
             empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_label.setStyleSheet("""
                 QLabel {
@@ -581,6 +691,46 @@ class TrophyCaseWidget(QWidget):
                 }
             """)
             self.records_layout.addWidget(empty_label, 0, 0, 1, 3)
+            
+    def _update_header_metric_filter(self):
+        """Update the header metric filter with available options."""
+        try:
+            current = self.header_metric_filter.currentText()
+            self.header_metric_filter.blockSignals(True)
+            self.header_metric_filter.clear()
+            
+            # Add "All Records" option
+            self.header_metric_filter.addItem("All Records")
+            
+            # Add metric-only options
+            for display_name in sorted(self.metric_mappings.keys()):
+                self.header_metric_filter.addItem(display_name)
+                
+            # Add separator
+            if self.source_metric_map:
+                self.header_metric_filter.insertSeparator(self.header_metric_filter.count())
+                
+            # Add source-specific options
+            for combo_key in sorted(self.source_metric_map.keys()):
+                self.header_metric_filter.addItem(combo_key)
+                
+            # Restore selection
+            index = self.header_metric_filter.findText(current)
+            if index >= 0:
+                self.header_metric_filter.setCurrentIndex(index)
+            else:
+                self.header_metric_filter.setCurrentIndex(0)
+                
+            self.header_metric_filter.blockSignals(False)
+            
+        except Exception as e:
+            logger.error(f"Error updating header metric filter: {e}")
+            
+    def _on_header_metric_changed(self, text: str):
+        """Handle header metric filter change."""
+        self.populate_records()
+        self.populate_badges()
+        self.update_statistics()
                     
     def populate_badges(self):
         """Populate badges display."""
@@ -590,6 +740,24 @@ class TrophyCaseWidget(QWidget):
             if child:
                 child.deleteLater()
         
+        # Get header filter
+        header_filter = self.header_metric_filter.currentText()
+        
+        # Parse header filter for source-specific filtering
+        filter_metric = None
+        filter_source = None
+        if header_filter != "All Records":
+            if " - " in header_filter:
+                # Source-specific filter
+                parts = header_filter.split(" - ")
+                metric_display = parts[0]
+                filter_source = parts[1]
+                # Get actual metric identifier
+                filter_metric = self.metric_mappings.get(metric_display, metric_display)
+            else:
+                # Metric-only filter
+                filter_metric = self.metric_mappings.get(header_filter, header_filter)
+        
         # Add achievement badges
         row, col = 0, 0
         badges_added = 0
@@ -597,24 +765,43 @@ class TrophyCaseWidget(QWidget):
         for achievement in self.achievements:
             # Get the metric name from the associated record
             metric_name = None
+            should_show = True
+            
             if hasattr(achievement, 'trigger_record_id') and achievement.trigger_record_id:
                 if achievement.trigger_record_id in self.record_map:
                     record = self.record_map[achievement.trigger_record_id]
                     metric_name = record.metric
+                    
+                    # Apply metric filter
+                    if filter_metric and record.metric != filter_metric:
+                        should_show = False
+                        
+                    # Apply source filter if specified
+                    if filter_source and hasattr(record, 'source') and record.source != filter_source:
+                        should_show = False
+            else:
+                # If no trigger record and we have a filter, don't show
+                if filter_metric or filter_source:
+                    should_show = False
             
-            badge = AchievementBadgeWidget(achievement, metric_name)
-            badge.show()  # Ensure badge is visible
-            self.badges_layout.addWidget(badge, row, col)
-            badges_added += 1
-            
-            col += 1
-            if col >= 4:  # 4 badges per row for better visibility
-                col = 0
-                row += 1
+            if should_show:
+                badge = AchievementBadgeWidget(achievement, metric_name)
+                badge.show()  # Ensure badge is visible
+                self.badges_layout.addWidget(badge, row, col)
+                badges_added += 1
+                
+                col += 1
+                if col >= 4:  # 4 badges per row for better visibility
+                    col = 0
+                    row += 1
         
         # Add empty state if no badges
         if badges_added == 0:
-            empty_label = QLabel("No achievements unlocked yet. Keep tracking your health data to earn badges!")
+            empty_text = "No achievements unlocked yet. Keep tracking your health data to earn badges!"
+            if header_filter != "All Records":
+                empty_text = f"No achievements found for {header_filter}"
+                
+            empty_label = QLabel(empty_text)
             empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_label.setStyleSheet("""
                 QLabel {
@@ -628,11 +815,54 @@ class TrophyCaseWidget(QWidget):
                 
     def update_statistics(self):
         """Update summary statistics."""
-        total_records = sum(len(records) for records in self.records.values())
-        total_achievements = len(self.achievements)
+        # Get header filter
+        header_filter = self.header_metric_filter.currentText()
+        
+        # Count filtered records and achievements
+        filtered_records = 0
+        filtered_achievements = 0
+        
+        # Parse header filter
+        filter_metric = None
+        filter_source = None
+        if header_filter != "All Records":
+            if " - " in header_filter:
+                parts = header_filter.split(" - ")
+                metric_display = parts[0]
+                filter_source = parts[1]
+                filter_metric = self.metric_mappings.get(metric_display, metric_display)
+            else:
+                filter_metric = self.metric_mappings.get(header_filter, header_filter)
+        
+        # Count records based on filter
+        for record_type, records in self.records.items():
+            for record in records:
+                if filter_metric and record.metric != filter_metric:
+                    continue
+                if filter_source and hasattr(record, 'source') and record.source != filter_source:
+                    continue
+                filtered_records += 1
+                
+        # Count achievements based on filter
+        for achievement in self.achievements:
+            if hasattr(achievement, 'trigger_record_id') and achievement.trigger_record_id:
+                if achievement.trigger_record_id in self.record_map:
+                    record = self.record_map[achievement.trigger_record_id]
+                    if filter_metric and record.metric != filter_metric:
+                        continue
+                    if filter_source and hasattr(record, 'source') and record.source != filter_source:
+                        continue
+                    filtered_achievements += 1
+            elif not filter_metric and not filter_source:
+                filtered_achievements += 1
         
         # Update header stats
-        self.stats_label.setText(f"{total_records} Records • {total_achievements} Achievements")
+        if header_filter == "All Records":
+            total_records = sum(len(records) for records in self.records.values())
+            total_achievements = len(self.achievements)
+            self.stats_label.setText(f"{total_records} Records • {total_achievements} Achievements")
+        else:
+            self.stats_label.setText(f"{filtered_records} Records • {filtered_achievements} Achievements")
         
         # Update stats tab
         for i in reversed(range(self.stats_layout.count())):
@@ -723,56 +953,13 @@ class TrophyCaseWidget(QWidget):
     def filter_records(self):
         """Filter displayed records."""
         self.populate_records()  # Re-populate with current filters
+        self.update_statistics()  # Update statistics for filtered view
         
     def filter_badges(self):
         """Filter displayed badges."""
-        # Clear existing badges
-        for i in reversed(range(self.badges_layout.count())):
-            child = self.badges_layout.takeAt(i).widget()
-            if child:
-                child.deleteLater()
-        
-        # Get filter selection
-        rarity_filter = self.rarity_filter.currentText().lower()
-        
-        # Add achievement badges
-        row, col = 0, 0
-        badges_added = 0
-        
-        for achievement in self.achievements:
-            # Apply rarity filter
-            if rarity_filter != "all rarities" and achievement.rarity != rarity_filter:
-                continue
-            
-            # Get the metric name from the associated record
-            metric_name = None
-            if hasattr(achievement, 'trigger_record_id') and achievement.trigger_record_id:
-                if achievement.trigger_record_id in self.record_map:
-                    record = self.record_map[achievement.trigger_record_id]
-                    metric_name = record.metric
-                    
-            badge = AchievementBadgeWidget(achievement, metric_name)
-            badge.show()  # Ensure badge is visible
-            self.badges_layout.addWidget(badge, row, col)
-            badges_added += 1
-            
-            col += 1
-            if col >= 4:  # 4 badges per row for better visibility
-                col = 0
-                row += 1
-        
-        # Add empty state if no badges
-        if row == 0 and col == 0:
-            empty_label = QLabel("No badges found matching the selected rarity")
-            empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty_label.setStyleSheet("""
-                QLabel {
-                    font-size: 14px;
-                    color: #8B7355;
-                    padding: 40px;
-                }
-            """)
-            self.badges_layout.addWidget(empty_label, 0, 0, 1, 5)
+        # Use populate_badges which already handles all filtering
+        self.populate_badges()
+        self.update_statistics()  # Update statistics for filtered view
         
     def export_records(self):
         """Export records to file."""

@@ -10,14 +10,14 @@ Provides respectful, encouraging visualizations for:
 
 import logging
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, date
 import numpy as np
 import pandas as pd
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QGridLayout, QGroupBox, QProgressBar, QToolTip,
-    QApplication
+    QApplication, QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
@@ -25,6 +25,7 @@ from PyQt6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
 from ..analytics.comparative_analytics import (
     ComparisonResult, HistoricalComparison, ComparisonType
 )
+from ..health_database import HealthDatabase
 # from ..analytics.peer_group_comparison import GroupComparison  # Removed group comparison feature
 
 logger = logging.getLogger(__name__)
@@ -290,17 +291,95 @@ class HistoricalComparisonWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.comparative_engine = None
-        self.current_metric = None
-        self.metric_mapping = {
-            "Steps": "HKQuantityTypeIdentifierStepCount",
-            "Active Energy": "HKQuantityTypeIdentifierActiveEnergyBurned",
-            "Heart Rate": "HKQuantityTypeIdentifierRestingHeartRate",
-            "Sleep": "HKCategoryTypeIdentifierSleepAnalysis",
-            "Exercise Minutes": "HKQuantityTypeIdentifierAppleExerciseTime",
-            "Stand Hours": "HKQuantityTypeIdentifierAppleStandHour",
-            "Walking Speed": "HKQuantityTypeIdentifierWalkingSpeed"
-        }
+        self.current_metric = ("StepCount", None)  # Default to aggregated steps
+        self._available_metrics = []  # List of (metric_type, source) tuples
+        
+        # Try to initialize HealthDatabase
+        try:
+            self.health_db = HealthDatabase()
+        except Exception as e:
+            logger.error(f"Failed to initialize HealthDatabase: {e}")
+            self.health_db = None
+        
+        # Initialize metric mappings
+        self._init_metric_mappings()
         self.setup_ui()
+        
+    def _init_metric_mappings(self):
+        """Initialize comprehensive metric name mappings."""
+        # Map database metric types (without HK prefix) to display names
+        self._metric_display_names = {
+            # Activity & Fitness
+            "StepCount": "Steps",
+            "DistanceWalkingRunning": "Walking + Running Distance",
+            "FlightsClimbed": "Flights Climbed",
+            "ActiveEnergyBurned": "Active Calories",
+            "BasalEnergyBurned": "Resting Calories",
+            "AppleExerciseTime": "Exercise Minutes",
+            "AppleStandHour": "Stand Hours",
+            
+            # Cardiovascular
+            "HeartRate": "Heart Rate",
+            "RestingHeartRate": "Resting Heart Rate",
+            "WalkingHeartRateAverage": "Walking Heart Rate",
+            "HeartRateVariabilitySDNN": "Heart Rate Variability",
+            "BloodPressureSystolic": "Blood Pressure (Systolic)",
+            "BloodPressureDiastolic": "Blood Pressure (Diastolic)",
+            
+            # Body Measurements
+            "BodyMass": "Body Weight",
+            "LeanBodyMass": "Lean Body Mass",
+            "BodyMassIndex": "BMI",
+            "BodyFatPercentage": "Body Fat %",
+            "Height": "Height",
+            
+            # Mobility & Balance
+            "WalkingSpeed": "Walking Speed",
+            "WalkingStepLength": "Step Length",
+            "WalkingAsymmetryPercentage": "Walking Asymmetry",
+            "WalkingDoubleSupportPercentage": "Double Support %",
+            "AppleWalkingSteadiness": "Walking Steadiness",
+            
+            # Respiratory
+            "RespiratoryRate": "Respiratory Rate",
+            "VO2Max": "VO2 Max",
+            
+            # Sleep
+            "SleepAnalysis": "Sleep Analysis",
+            
+            # Nutrition
+            "DietaryEnergyConsumed": "Calories Consumed",
+            "DietaryProtein": "Protein",
+            "DietaryCarbohydrates": "Carbohydrates",
+            "DietaryFatTotal": "Total Fat",
+            "DietaryWater": "Water",
+            
+            # Environmental
+            "HeadphoneAudioExposure": "Headphone Audio Exposure",
+            
+            # Mindfulness
+            "MindfulSession": "Mindful Minutes",
+        }
+        
+        # Map database metric types to units for display
+        self._metric_units = {
+            "StepCount": "steps",
+            "DistanceWalkingRunning": "km",
+            "FlightsClimbed": "flights",
+            "ActiveEnergyBurned": "kcal",
+            "BasalEnergyBurned": "kcal",
+            "AppleExerciseTime": "min",
+            "AppleStandHour": "hours",
+            "HeartRate": "bpm",
+            "RestingHeartRate": "bpm",
+            "WalkingHeartRateAverage": "bpm",
+            "HeartRateVariabilitySDNN": "ms",
+            "BodyMass": "kg",
+            "RespiratoryRate": "bpm",
+            "MindfulSession": "min",
+            "HeadphoneAudioExposure": "dB",
+            "DietaryWater": "mL",
+        }
         
     def setup_ui(self):
         """Initialize the UI."""
@@ -325,14 +404,8 @@ class HistoricalComparisonWidget(QWidget):
         metric_label.setStyleSheet("font-size: 12px; color: #666666;")
         header_layout.addWidget(metric_label)
         
-        from PyQt6.QtWidgets import QComboBox
         self.metric_selector = QComboBox()
-        self.metric_selector.setMinimumWidth(200)
-        self.metric_selector.addItems([
-            "Steps", "Active Energy", "Heart Rate", "Sleep",
-            "Exercise Minutes", "Stand Hours", "Walking Speed"
-        ])
-        self.metric_selector.currentTextChanged.connect(self.on_metric_changed)
+        self.metric_selector.setMinimumWidth(300)
         header_layout.addWidget(self.metric_selector)
         
         layout.addLayout(header_layout)
@@ -370,7 +443,6 @@ class HistoricalComparisonWidget(QWidget):
         self.trend_label.setStyleSheet("color: #666666;")
         
         # Add a progress indicator
-        from PyQt6.QtWidgets import QProgressBar
         self.trend_progress = QProgressBar()
         self.trend_progress.setMaximumHeight(4)
         self.trend_progress.setTextVisible(False)
@@ -394,12 +466,168 @@ class HistoricalComparisonWidget(QWidget):
         layout.addWidget(self.trend_frame)
         layout.addWidget(self.trend_progress)
         
-    def on_metric_changed(self, metric_name: str):
+        # Detect and populate available metrics
+        if self.health_db:
+            self._detect_available_metrics()
+            self._refresh_metric_combo()
+        
+        # Connect signal after all UI elements are created
+        self.metric_selector.currentIndexChanged.connect(self.on_metric_changed)
+        
+    def _detect_available_metrics(self):
+        """Load available metrics from the database with source information."""
+        logger.info("Loading available metrics with source information...")
+        
+        if not self.health_db:
+            logger.warning("No health database available")
+            self._available_metrics = []
+            return
+            
+        try:
+            # Get all available types from database
+            db_types = self.health_db.get_available_types()
+            logger.info(f"Found {len(db_types)} types in database")
+            
+            # Get all available sources
+            sources = self.health_db.get_available_sources()
+            logger.info(f"Found {len(sources)} data sources in database")
+            
+            # Build list of (metric, source) tuples
+            self._available_metrics = []
+            seen_metrics = set()
+            
+            # First, add aggregated metrics (no source specified) for all available types
+            for db_type in db_types:
+                # Check if it already exists in our display names
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
+                else:
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    seen_metrics.add(clean_type)
+                    logger.debug(f"Added aggregated metric: {clean_type}")
+            
+            # Then, add source-specific metrics
+            for source in sources:
+                types_for_source = self.health_db.get_types_for_source(source)
+                
+                for db_type in types_for_source:
+                    # Check if it already exists in our display names
+                    if db_type in self._metric_display_names:
+                        clean_type = db_type
+                    else:
+                        # If not, try stripping HK prefixes
+                        clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                    
+                    # Only include metrics we have display names for
+                    if clean_type in self._metric_display_names:
+                        self._available_metrics.append((clean_type, source))
+                        logger.debug(f"Added metric: {clean_type} from {source}")
+            
+            # Sort by display name and source for better UX
+            self._available_metrics.sort(key=lambda x: (
+                self._metric_display_names.get(x[0], x[0]), 
+                x[1] if x[1] else ""  # Put "All Sources" first
+            ))
+            
+            logger.info(f"Loaded {len(self._available_metrics)} metric-source combinations")
+            
+        except Exception as e:
+            logger.error(f"Error loading available metrics: {e}", exc_info=True)
+            self._available_metrics = []
+    
+    def _refresh_metric_combo(self):
+        """Refresh the metric combo box with current available metrics."""
+        # Save current selection
+        current_index = self.metric_selector.currentIndex()
+        current_data = self.metric_selector.itemData(current_index) if current_index >= 0 else None
+        
+        # Clear and repopulate
+        self.metric_selector.clear()
+        logger.info(f"Refreshing combo box with {len(self._available_metrics)} metrics")
+        
+        if not self._available_metrics:
+            # No metrics available - add placeholder
+            self.metric_selector.addItem("No metrics available", None)
+            self.metric_selector.setEnabled(False)
+            logger.warning("No metrics available to display")
+            return
+        
+        # Enable combo box if it was disabled
+        self.metric_selector.setEnabled(True)
+        
+        for metric_tuple in self._available_metrics:
+            metric, source = metric_tuple
+            display_name = self._metric_display_names.get(metric, metric)
+            
+            # Format display text based on source
+            if source:
+                display_text = f"{display_name} - {source}"
+            else:
+                display_text = f"{display_name} (All Sources)"
+                
+            self.metric_selector.addItem(display_text, metric_tuple)
+            logger.debug(f"Added to combo: {display_text}")
+        
+        # Restore selection if possible
+        if current_data and current_data in self._available_metrics:
+            index = self._available_metrics.index(current_data)
+            self.metric_selector.setCurrentIndex(index)
+        elif self.current_metric in self._available_metrics:
+            index = self._available_metrics.index(self.current_metric)
+            self.metric_selector.setCurrentIndex(index)
+        else:
+            # Default to first item
+            self.metric_selector.setCurrentIndex(0)
+    
+    def on_metric_changed(self, index: int):
         """Handle metric selection change."""
-        if metric_name in self.metric_mapping:
-            self.current_metric = self.metric_mapping[metric_name]
-            self.metric_changed.emit(self.current_metric)
-            self.update_data()
+        if index >= 0:
+            metric_tuple = self.metric_selector.itemData(index)
+            if metric_tuple:
+                self.current_metric = metric_tuple
+                # Emit the database metric type for compatibility
+                metric_type, source = metric_tuple
+                db_type = self._get_database_metric_type(metric_type)
+                self.metric_changed.emit(db_type)
+                self.update_data()
+    
+    def _get_database_metric_type(self, clean_metric: str) -> str:
+        """Convert a clean metric name to the format stored in the database.
+        
+        Args:
+            clean_metric: Metric name without HK prefix (e.g., 'StepCount')
+            
+        Returns:
+            The metric type as stored in the database
+        """
+        # First check if the metric exists as-is in the database
+        if self.health_db:
+            available_types = self.health_db.get_available_types()
+            
+            # Check if clean name exists directly
+            if clean_metric in available_types:
+                return clean_metric
+                
+            # Check with HK prefix for quantities
+            hk_quantity = f"HKQuantityTypeIdentifier{clean_metric}"
+            if hk_quantity in available_types:
+                return hk_quantity
+                
+            # Check with HK prefix for categories
+            hk_category = f"HKCategoryTypeIdentifier{clean_metric}"
+            if hk_category in available_types:
+                return hk_category
+        
+        # Default: assume it needs HK prefix based on known category types
+        if clean_metric in ["SleepAnalysis", "MindfulSession", "HKDataTypeSleepDurationGoal"]:
+            return f"HKCategoryTypeIdentifier{clean_metric}"
+        else:
+            return f"HKQuantityTypeIdentifier{clean_metric}"
     
     def set_comparative_engine(self, engine):
         """Set the comparative analytics engine."""
@@ -425,9 +653,12 @@ class HistoricalComparisonWidget(QWidget):
         
         try:
             # Get comparison data
+            metric_type, source = self.current_metric
+            db_type = self._get_database_metric_type(metric_type)
+            
             self._update_status("Checking for cached trends...")
             comparison = self.comparative_engine.compare_to_historical(
-                self.current_metric,
+                db_type,
                 datetime.now()
             )
             
@@ -465,7 +696,6 @@ class HistoricalComparisonWidget(QWidget):
             
         try:
             # Get data for different periods
-            from datetime import datetime, timedelta
             now = datetime.now()
             
             # 7-day average
@@ -473,7 +703,7 @@ class HistoricalComparisonWidget(QWidget):
             self.trend_progress.setValue(1)
             QApplication.processEvents()  # Update UI
             
-            week_ago = now - timedelta(days=7)
+            week_ago = now - pd.Timedelta(days=7)
             week_stats = self._get_period_stats(week_ago, now, "7-day")
             if week_stats:
                 self.week_card.set_value(week_stats['mean'], self._determine_trend(week_stats))
@@ -486,7 +716,7 @@ class HistoricalComparisonWidget(QWidget):
             self.trend_progress.setValue(2)
             QApplication.processEvents()
             
-            month_ago = now - timedelta(days=30)
+            month_ago = now - pd.Timedelta(days=30)
             month_stats = self._get_period_stats(month_ago, now, "30-day")
             if month_stats:
                 self.month_card.set_value(month_stats['mean'], self._determine_trend(month_stats))
@@ -499,7 +729,7 @@ class HistoricalComparisonWidget(QWidget):
             self.trend_progress.setValue(3)
             QApplication.processEvents()
             
-            quarter_ago = now - timedelta(days=90)
+            quarter_ago = now - pd.Timedelta(days=90)
             quarter_stats = self._get_period_stats(quarter_ago, now, "90-day")
             if quarter_stats:
                 self.quarter_card.set_value(quarter_stats['mean'], self._determine_trend(quarter_stats))
@@ -512,7 +742,7 @@ class HistoricalComparisonWidget(QWidget):
             self.trend_progress.setValue(4)
             QApplication.processEvents()
             
-            year_ago = now - timedelta(days=365)
+            year_ago = now - pd.Timedelta(days=365)
             year_stats = self._get_period_stats(year_ago, now, "365-day")
             if year_stats:
                 self.year_card.set_value(year_stats['mean'], self._determine_trend(year_stats))
@@ -534,6 +764,10 @@ class HistoricalComparisonWidget(QWidget):
         """Get statistics for a specific period."""
         try:
             if self.comparative_engine:
+                # Get current metric and source
+                metric_type, source = self.current_metric
+                db_type = self._get_database_metric_type(metric_type)
+                
                 # Update status with period details
                 self._update_status(f"Accessing {period_name} data ({start_date.strftime('%m/%d')} to {end_date.strftime('%m/%d')})...")
                 
@@ -543,11 +777,22 @@ class HistoricalComparisonWidget(QWidget):
                     
                     # Try different methods to get data
                     data = None
-                    if hasattr(calc, 'calculate_statistics'):
+                    if source:
+                        # Get source-specific data
+                        self._update_status(f"Retrieving {period_name} data from {source}...")
+                        daily_values = self._get_source_specific_period_data(db_type, start_date, end_date, source)
+                        if daily_values:
+                            return {
+                                'mean': np.mean(daily_values),
+                                'std': np.std(daily_values),
+                                'count': len(daily_values),
+                                'period': period_name
+                            }
+                    elif hasattr(calc, 'calculate_statistics'):
                         self._update_status(f"Retrieving {period_name} aggregated statistics...")
                         # Get aggregated stats for the period
                         try:
-                            stats = calc.calculate_statistics(self.current_metric, start_date, end_date)
+                            stats = calc.calculate_statistics(db_type, start_date, end_date)
                             if stats and hasattr(stats, 'mean'):
                                 return {
                                     'mean': stats.mean,
@@ -567,7 +812,7 @@ class HistoricalComparisonWidget(QWidget):
                                 # Find the column for our metric
                                 metric_col = None
                                 for col in summaries.columns:
-                                    if self.current_metric in col or col == self.current_metric:
+                                    if db_type in col or col == db_type:
                                         metric_col = col
                                         break
                                 
@@ -587,24 +832,29 @@ class HistoricalComparisonWidget(QWidget):
                     # Fallback: try to get raw data
                     if hasattr(calc, 'data') and calc.data is not None:
                         self._update_status(f"Analyzing raw {period_name} data...")
-                        import pandas as pd
                         df = calc.data
                         if isinstance(df, pd.DataFrame) and 'type' in df.columns:
                             # Filter by metric type and date range
-                            mask = (df['type'] == self.current_metric)
+                            mask = (df['type'] == db_type)
                             if 'creationDate' in df.columns:
                                 dates = pd.to_datetime(df['creationDate'])
                                 mask &= (dates >= pd.to_datetime(start_date)) & (dates <= pd.to_datetime(end_date))
+                            
+                            # Apply source filter if specified
+                            if source and 'sourceName' in df.columns:
+                                mask &= (df['sourceName'] == source)
                             
                             metric_data = df[mask]
                             if len(metric_data) > 0 and 'value' in metric_data.columns:
                                 self._update_status(f"Processing {len(metric_data)} {period_name} records...")
                                 values = pd.to_numeric(metric_data['value'], errors='coerce').dropna()
                                 if len(values) > 0:
+                                    # Convert values for display
+                                    display_values = values.apply(lambda x: self._convert_value_for_display(x, metric_type))
                                     return {
-                                        'mean': values.mean(),
-                                        'std': values.std(),
-                                        'count': len(values),
+                                        'mean': display_values.mean(),
+                                        'std': display_values.std(),
+                                        'count': len(display_values),
                                         'period': period_name
                                     }
                             else:
@@ -614,6 +864,71 @@ class HistoricalComparisonWidget(QWidget):
             logger.error(f"Error getting {period_name} stats: {e}")
             self._update_status(f"Error processing {period_name}: {str(e)}", is_error=True)
         return None
+    
+    def _get_source_specific_period_data(self, metric_type: str, start_date, end_date, source: str) -> Optional[List[float]]:
+        """Get daily aggregate values for a specific metric, date range, and source."""
+        try:
+            if not self.health_db:
+                logger.warning("No health database connection available")
+                return None
+                
+            # Use the existing database manager from health_db
+            db = self.health_db.db_manager
+            
+            # Query for daily sums for this metric, date range, and source
+            query = """
+                SELECT 
+                    DATE(startDate) as date,
+                    SUM(CAST(value AS FLOAT)) as daily_total
+                FROM health_records
+                WHERE type = ?
+                AND DATE(startDate) BETWEEN ? AND ?
+                AND sourceName = ?
+                AND value IS NOT NULL
+                GROUP BY DATE(startDate)
+                ORDER BY date
+            """
+            
+            result = db.execute_query(query, (
+                metric_type,
+                start_date.strftime('%Y-%m-%d'),
+                end_date.strftime('%Y-%m-%d'),
+                source
+            ))
+            
+            if result:
+                # Extract just the daily totals
+                daily_values = [float(row[1]) for row in result]
+                logger.debug(f"Got {len(daily_values)} daily values for {metric_type} from {source}")
+                return daily_values
+            else:
+                logger.debug(f"No data found for {metric_type} from {source} in date range")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error getting source-specific period data: {e}", exc_info=True)
+            return None
+    
+    def _convert_value_for_display(self, value: float, metric: str) -> float:
+        """Convert raw value to display units based on metric type."""
+        if metric == "DistanceWalkingRunning":
+            return value / 1000  # Convert meters to km
+        elif metric == "SleepAnalysis":
+            return value / 3600  # Convert seconds to hours
+        elif metric == "BodyMass" or metric == "LeanBodyMass":
+            return value  # Already in kg
+        elif metric == "Height":
+            return value * 100  # Convert meters to cm
+        elif metric == "WalkingSpeed":
+            return value * 3.6  # Convert m/s to km/h
+        elif metric == "WalkingStepLength":
+            return value * 100  # Convert meters to cm
+        elif metric in ["AppleExerciseTime", "MindfulSession"]:
+            return value / 60  # Convert seconds to minutes
+        elif metric == "DietaryWater":
+            return value  # Already in mL
+        else:
+            return value  # Return as-is for other metrics
     
     def _determine_trend(self, stats):
         """Determine trend based on statistics."""
@@ -965,9 +1280,8 @@ class SeasonalTrendsWidget(QWidget):
                 analyzer = self.comparative_engine.seasonal_analyzer
                 
                 # Analyze seasonal patterns
-                from datetime import datetime, timedelta
                 end_date = datetime.now()
-                start_date = end_date - timedelta(days=365)
+                start_date = end_date - pd.Timedelta(days=365)
                 
                 patterns = analyzer.analyze_seasonal_patterns(
                     self.current_metric,
@@ -1082,7 +1396,7 @@ class ComparativeAnalyticsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.comparative_engine = None
-        self.current_metric = 'HKQuantityTypeIdentifierStepCount'
+        self.current_metric = ("StepCount", None)  # Default to aggregated steps
         self.setup_ui()
         
     def setup_ui(self):
@@ -1195,6 +1509,7 @@ class ComparativeAnalyticsWidget(QWidget):
     
     def on_metric_changed(self, metric: str):
         """Handle metric change from historical widget."""
+        # Metric is already the database type from the widget
         self.current_metric = metric
         self.set_current_metric(metric)
     
@@ -1215,7 +1530,7 @@ class ComparativeAnalyticsWidget(QWidget):
             engine.background_processor.queue_trend_calculation(self.current_metric, priority=10)
             
         # Initialize historical widget with default metric
-        self.historical_widget.on_metric_changed("Steps")
+        self.historical_widget.on_metric_changed(0)  # Select first item in combo
             
     def set_current_metric(self, metric: str):
         """Set the current metric and update display."""

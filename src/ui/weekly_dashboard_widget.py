@@ -30,6 +30,7 @@ from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator, Weekl
 from ..analytics.day_of_week_analyzer import DayOfWeekAnalyzer
 from ..analytics.week_over_week_trends import WeekOverWeekTrends
 from ..utils.logging_config import get_logger
+from ..health_database import HealthDatabase
 
 logger = get_logger(__name__)
 
@@ -118,7 +119,8 @@ class WeeklyDashboardWidget(QWidget):
     
     # Signals
     week_changed = pyqtSignal(date, date)  # start_date, end_date
-    metric_selected = pyqtSignal(str)
+    metric_selected = pyqtSignal(str)  # Emits just the metric type for compatibility
+    metric_changed = pyqtSignal(str)  # Alias for compatibility
     
     def __init__(self, weekly_calculator=None, daily_calculator=None, parent=None):
         """Initialize the weekly dashboard widget."""
@@ -131,13 +133,20 @@ class WeeklyDashboardWidget(QWidget):
         self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
         self.dow_analyzer = DayOfWeekAnalyzer(daily_calculator.data if hasattr(daily_calculator, 'data') else daily_calculator) if daily_calculator else None
         
+        # Try to initialize HealthDatabase
+        try:
+            self.health_db = HealthDatabase()
+        except Exception as e:
+            logger.error(f"Failed to initialize HealthDatabase: {e}")
+            self.health_db = None
+        
         # Calculate current week boundaries
         today = date.today()
         self._current_week_start = today - timedelta(days=today.weekday())  # Monday
         self._current_week_end = self._current_week_start + timedelta(days=6)  # Sunday
         
-        self._available_metrics = []
-        self._selected_metric = "steps"
+        self._available_metrics = []  # List of (metric_type, source) tuples
+        self._current_metric = ("StepCount", None)  # Default to aggregated steps
         
         self._setup_ui()
         self._setup_connections()
@@ -179,7 +188,7 @@ class WeeklyDashboardWidget(QWidget):
         main_layout.addWidget(header)
         
         # Content area with scroll
-        scroll_area = QScrollArea(self)
+        scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -207,7 +216,7 @@ class WeeklyDashboardWidget(QWidget):
         """)
         
         # Content widget
-        content_widget = QWidget(self)
+        content_widget = QWidget()
         content_widget.setStyleSheet("background-color: white;")
         content_layout = QVBoxLayout(content_widget)
         content_layout.setSpacing(20)
@@ -235,7 +244,7 @@ class WeeklyDashboardWidget(QWidget):
     
     def _create_header(self) -> QWidget:
         """Create the dashboard header with week navigation."""
-        header = QFrame(self)
+        header = QFrame()
         header.setStyleSheet("""
             QFrame {
                 background-color: #FFF8F0;
@@ -526,7 +535,7 @@ class WeeklyDashboardWidget(QWidget):
         view_layout.addWidget(view_label)
         
         # Radio buttons for view selection
-        self.view_group = QButtonGroup(self)
+        self.view_group = QButtonGroup()
         
         self.daily_view_rb = QRadioButton("Daily Values")
         self.daily_view_rb.setChecked(True)
@@ -565,94 +574,238 @@ class WeeklyDashboardWidget(QWidget):
         self.metric_selector.currentTextChanged.connect(self._on_metric_changed)
         self.view_group.buttonClicked.connect(self._update_trend_chart)
     
-    def _detect_available_metrics(self):
-        """Detect available metrics from the data."""
-        logger.info("Detecting available metrics...")
+    def _init_metric_mappings(self):
+        """Initialize comprehensive metric name mappings."""
+        # Map database metric types (without HK prefix) to display names
+        self._metric_display_names = {
+            # Activity & Fitness
+            "StepCount": "Steps",
+            "DistanceWalkingRunning": "Walking + Running Distance",
+            "FlightsClimbed": "Flights Climbed",
+            "ActiveEnergyBurned": "Active Calories",
+            "BasalEnergyBurned": "Resting Calories",
+            "AppleExerciseTime": "Exercise Minutes",
+            "AppleStandHour": "Stand Hours",
+            
+            # Cardiovascular
+            "HeartRate": "Heart Rate",
+            "RestingHeartRate": "Resting Heart Rate",
+            "WalkingHeartRateAverage": "Walking Heart Rate",
+            "HeartRateVariabilitySDNN": "Heart Rate Variability",
+            "BloodPressureSystolic": "Blood Pressure (Systolic)",
+            "BloodPressureDiastolic": "Blood Pressure (Diastolic)",
+            
+            # Body Measurements
+            "BodyMass": "Body Weight",
+            "LeanBodyMass": "Lean Body Mass",
+            "BodyMassIndex": "BMI",
+            "BodyFatPercentage": "Body Fat %",
+            "Height": "Height",
+            
+            # Mobility & Balance
+            "WalkingSpeed": "Walking Speed",
+            "WalkingStepLength": "Step Length",
+            "WalkingAsymmetryPercentage": "Walking Asymmetry",
+            "WalkingDoubleSupportPercentage": "Double Support %",
+            "AppleWalkingSteadiness": "Walking Steadiness",
+            
+            # Respiratory
+            "RespiratoryRate": "Respiratory Rate",
+            "VO2Max": "VO2 Max",
+            
+            # Sleep
+            "SleepAnalysis": "Sleep Analysis",
+            
+            # Nutrition
+            "DietaryEnergyConsumed": "Calories Consumed",
+            "DietaryProtein": "Protein",
+            "DietaryCarbohydrates": "Carbohydrates",
+            "DietaryFatTotal": "Total Fat",
+            "DietaryWater": "Water",
+            
+            # Environmental
+            "HeadphoneAudioExposure": "Headphone Audio Exposure",
+            
+            # Mindfulness
+            "MindfulSession": "Mindful Minutes",
+        }
         
-        if not self.weekly_calculator and not self.cached_data_access:
-            logger.warning("No data access available")
-            return
-            
-        try:
-            # Get available metrics from cache if available
-            if self.cached_data_access:
-                available_types = self.cached_data_access.get_available_metrics()
-                logger.info(f"Found {len(available_types)} metrics from cache")
-            elif self.weekly_calculator and self.weekly_calculator.daily_calculator:
-                # Fallback to calculator
-                data = self.weekly_calculator.daily_calculator.data
-                if data is None or data.empty:
-                    logger.warning("No data available in daily calculator")
-                    return
-                    
-                logger.info(f"Data shape: {data.shape}")
-                logger.info(f"Data columns: {data.columns.tolist()}")
-                
-                if 'type' not in data.columns:
-                    logger.error("'type' column not found in data")
-                    return
-                    
-                available_types = data['type'].unique()
-            else:
-                logger.warning("No data source available")
-                return
-            logger.info(f"Available types: {available_types}")
-            logger.info(f"Number of available types: {len(available_types)}")
-            if len(available_types) > 0:
-                logger.info(f"First 5 types: {list(available_types[:5])}")
-            
-            # Map to display names - support both full HK names and shortened names
-            metric_mapping = {
-                # Full HK names
-                'HKQuantityTypeIdentifierStepCount': ('Steps', 'steps'),
-                'HKQuantityTypeIdentifierDistanceWalkingRunning': ('Distance (km)', 'distance'),
-                'HKQuantityTypeIdentifierFlightsClimbed': ('Floors Climbed', 'flights'),
-                'HKQuantityTypeIdentifierActiveEnergyBurned': ('Active Calories', 'calories'),
-                'HKQuantityTypeIdentifierHeartRate': ('Heart Rate', 'heart_rate'),
-                'HKQuantityTypeIdentifierRestingHeartRate': ('Resting HR', 'resting_hr'),
-                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': ('HRV', 'hrv'),
-                'HKQuantityTypeIdentifierBodyMass': ('Weight', 'weight'),
-                # Shortened names (as they appear in the data)
-                'StepCount': ('Steps', 'steps'),
-                'DistanceWalkingRunning': ('Distance (km)', 'distance'),
-                'FlightsClimbed': ('Floors Climbed', 'flights'),
-                'ActiveEnergyBurned': ('Active Calories', 'calories'),
-                'HeartRate': ('Heart Rate', 'heart_rate'),
-                'RestingHeartRate': ('Resting HR', 'resting_hr'),
-                'HeartRateVariabilitySDNN': ('HRV', 'hrv'),
-                'BodyMass': ('Weight', 'weight'),
-                'BasalEnergyBurned': ('Basal Calories', 'basal_calories'),
-                'MindfulSession': ('Mindful Minutes', 'mindful_minutes'),
-                'SleepAnalysis': ('Sleep Analysis', 'sleep_analysis'),
-                'RespiratoryRate': ('Respiratory Rate', 'respiratory_rate'),
-                'HeadphoneAudioExposure': ('Audio Exposure', 'audio_exposure'),
-                'WalkingStepLength': ('Step Length', 'step_length')
-            }
+        # Map database metric types to units for display
+        self._metric_units = {
+            "StepCount": "steps",
+            "DistanceWalkingRunning": "km",
+            "FlightsClimbed": "flights",
+            "ActiveEnergyBurned": "kcal",
+            "BasalEnergyBurned": "kcal",
+            "AppleExerciseTime": "min",
+            "AppleStandHour": "hours",
+            "HeartRate": "bpm",
+            "RestingHeartRate": "bpm",
+            "WalkingHeartRateAverage": "bpm",
+            "HeartRateVariabilitySDNN": "ms",
+            "BodyMass": "kg",
+            "RespiratoryRate": "bpm",
+            "MindfulSession": "min",
+            "HeadphoneAudioExposure": "dB",
+            "DietaryWater": "mL",
+        }
+    
+    def _detect_available_metrics(self):
+        """Load available metrics from the database with source information."""
+        logger.info("Loading available metrics with source information...")
+        
+        # Initialize metric mappings if not already done
+        if not hasattr(self, '_metric_display_names'):
+            self._init_metric_mappings()
+        
+        # Try cached data access first
+        if self.cached_data_access:
+            logger.info("Loading metrics from cache")
+            available_types = self.cached_data_access.get_available_metrics()
             
             self._available_metrics = []
-            self.metric_selector.clear()
-            
-            for hk_type, (display_name, metric_key) in metric_mapping.items():
-                if hk_type in available_types:
-                    self._available_metrics.append((hk_type, metric_key))
-                    self.metric_selector.addItem(display_name, hk_type)
-                    logger.info(f"Added metric: {display_name} ({hk_type})")
+            for db_type in available_types:
+                # Check if it already exists in our display names
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
                 else:
-                    # Log why metrics weren't matched for debugging
-                    if hk_type == 'HKQuantityTypeIdentifierStepCount' and len(available_types) > 0:
-                        logger.debug(f"Steps not found. Checking first type: '{available_types[0]}' vs '{hk_type}'")
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    logger.debug(f"Added metric from cache: {clean_type}")
             
             if self._available_metrics:
-                self._selected_metric = self._available_metrics[0][0]
-                self.metric_selector.setCurrentIndex(0)
-                logger.info(f"Selected first metric: {self._selected_metric}")
-            else:
-                logger.warning("No available metrics found")
-                logger.warning(f"Searched for: {list(metric_mapping.keys())}")
-                logger.warning(f"Available in data: {list(available_types[:10]) if len(available_types) > 0 else 'None'}")
+                self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+                logger.info(f"Loaded {len(self._available_metrics)} metrics from cache")
+                self._refresh_metric_combo()
+                return
+        
+        # Fall back to database if no cached access
+        if not self.health_db:
+            logger.warning("No data access available - cannot load metrics")
+            self._available_metrics = []
+            self._refresh_metric_combo()
+            return
+        
+        try:
+            # Get all available types from database
+            db_types = self.health_db.get_available_types()
+            logger.info(f"Found {len(db_types)} types in database")
+            
+            # Get all available sources
+            sources = self.health_db.get_available_sources()
+            logger.info(f"Found {len(sources)} data sources in database")
+            
+            # Build list of (metric, source) tuples
+            self._available_metrics = []
+            seen_metrics = set()
+            
+            # First, add aggregated metrics (no source specified) for all available types
+            for db_type in db_types:
+                # Types in the database might already have HK prefix stripped
+                if db_type in self._metric_display_names:
+                    clean_type = db_type
+                else:
+                    # If not, try stripping HK prefixes
+                    clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
                 
+                # Only include metrics we have display names for
+                if clean_type in self._metric_display_names:
+                    self._available_metrics.append((clean_type, None))
+                    seen_metrics.add(clean_type)
+                    logger.debug(f"Added aggregated metric: {clean_type}")
+            
+            # Then, add source-specific metrics
+            for source in sources:
+                types_for_source = self.health_db.get_types_for_source(source)
+                
+                for db_type in types_for_source:
+                    # Check if it already exists in our display names
+                    if db_type in self._metric_display_names:
+                        clean_type = db_type
+                    else:
+                        # If not, try stripping HK prefixes
+                        clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                    
+                    # Only include metrics we have display names for
+                    if clean_type in self._metric_display_names:
+                        self._available_metrics.append((clean_type, source))
+                        logger.debug(f"Added metric: {clean_type} from {source}")
+            
+            # If no metrics found, log warning but don't use defaults
+            if not self._available_metrics:
+                logger.warning("No metrics found in database - data may not be loaded or filtered out")
+            
+            # Sort by display name and source for better UX
+            self._available_metrics.sort(key=lambda x: (
+                self._metric_display_names.get(x[0], x[0]), 
+                x[1] if x[1] else ""  # Put "All Sources" first
+            ))
+            
+            logger.info(f"Loaded {len(self._available_metrics)} metric-source combinations")
+            
+            # Refresh the metric combo box
+            self._refresh_metric_combo()
+            
         except Exception as e:
-            logger.error(f"Error detecting available metrics: {e}", exc_info=True)
+            logger.error(f"Error loading available metrics: {e}", exc_info=True)
+            # Don't fall back to defaults - let the UI show "no data" state
+            self._available_metrics = []
+            self._refresh_metric_combo()
+    
+    def _refresh_metric_combo(self):
+        """Refresh the metric combo box with current available metrics."""
+        if not hasattr(self, 'metric_selector'):
+            return
+            
+        # Save current selection
+        current_index = self.metric_selector.currentIndex()
+        current_data = self.metric_selector.itemData(current_index) if current_index >= 0 else None
+        
+        # Clear and repopulate
+        self.metric_selector.clear()
+        logger.info(f"Refreshing combo box with {len(self._available_metrics)} metrics")
+        
+        if not self._available_metrics:
+            # No metrics available - add placeholder
+            self.metric_selector.addItem("No metrics available", None)
+            self.metric_selector.setEnabled(False)
+            logger.warning("No metrics available to display")
+            # Clear displays
+            self._show_no_data_message()
+            return
+        
+        # Enable combo box if it was disabled
+        self.metric_selector.setEnabled(True)
+        
+        for metric_tuple in self._available_metrics:
+            metric, source = metric_tuple
+            display_name = self._metric_display_names.get(metric, metric)
+            
+            # Format display text based on source
+            if source:
+                display_text = f"{display_name} - {source}"
+            else:
+                display_text = f"{display_name} (All Sources)"
+                
+            self.metric_selector.addItem(display_text, metric_tuple)
+            logger.debug(f"Added to combo: {display_text}")
+        
+        # Restore selection if possible
+        if current_data and current_data in self._available_metrics:
+            index = self._available_metrics.index(current_data)
+            self.metric_selector.setCurrentIndex(index)
+        elif self._current_metric in self._available_metrics:
+            index = self._available_metrics.index(self._current_metric)
+            self.metric_selector.setCurrentIndex(index)
+        else:
+            # Default to first metric
+            self.metric_selector.setCurrentIndex(0)
+            if self._available_metrics:
+                self._current_metric = self._available_metrics[0]
     
     def _update_week_labels(self):
         """Update the week display labels."""
@@ -695,21 +848,22 @@ class WeeklyDashboardWidget(QWidget):
             self._hide_no_data_message()
             
             # Get selected metric
-            metric_type = self.metric_selector.currentData()
-            if not metric_type:
-                logger.warning("No metric type selected")
+            if not hasattr(self, '_current_metric') or not self._current_metric:
+                logger.warning("No metric selected")
                 return
             
-            logger.info(f"Loading data for metric: {metric_type}")
+            # Extract metric type and source from tuple
+            metric_type, source = self._current_metric
+            logger.info(f"Loading data for metric: {metric_type}, source: {source}")
             
             # Calculate weekly statistics
-            self._update_summary_stats(metric_type)
+            self._update_summary_stats(metric_type, source)
             
             # Update week-over-week comparison
-            self._update_wow_comparison(metric_type)
+            self._update_wow_comparison(metric_type, source)
             
             # Update day-of-week patterns
-            self._update_dow_patterns(metric_type)
+            self._update_dow_patterns(metric_type, source)
             
             # Update trend chart
             self._update_trend_chart()
@@ -724,16 +878,58 @@ class WeeklyDashboardWidget(QWidget):
             # Show error to user
             self._show_no_data_message()
     
-    def _get_weekly_data_from_cache(self, metric_type: str, week_start: date):
+    def _get_source_specific_daily_value(self, metric_type: str, target_date: date, source: Optional[str] = None) -> Optional[float]:
+        """Get daily value for a specific metric and source.
+        
+        Args:
+            metric_type: The metric type (e.g., 'StepCount')
+            target_date: The date to get value for
+            source: The specific source name (e.g., 'iPhone') or None for all sources
+            
+        Returns:
+            Daily value or None if not found
+        """
+        try:
+            # Import DatabaseManager to execute queries
+            from ..database import DatabaseManager
+            db = DatabaseManager()
+            
+            # Query the database directly for source-specific data
+            query = """
+                SELECT SUM(value) as total_value
+                FROM health_records
+                WHERE type = ? 
+                AND DATE(creationDate) = ?
+            """
+            params = [metric_type, target_date.isoformat()]
+            
+            if source:
+                query += " AND sourceName = ?"
+                params.append(source)
+                
+            result = db.execute_query(query, params)
+            if result and result[0]['total_value'] is not None:
+                return float(result[0]['total_value'])
+        except Exception as e:
+            logger.error(f"Error getting source-specific daily value: {e}")
+            
+        return None
+
+    def _get_weekly_data_from_cache(self, metric_type: str, week_start: date, source: Optional[str] = None):
         """Get weekly data from cache or calculator.
+        
+        Args:
+            metric_type: The metric type
+            week_start: Start date of the week
+            source: Optional source name for filtering
         
         Returns a dict with daily_values and summary stats.
         """
         # Create ISO week string for cache lookup
         iso_week = week_start.strftime('%Y-W%U')
         
-        if self.cached_data_access:
-            # Try to get from cache
+        if self.cached_data_access and not source:
+            # Try to get from cache only for aggregated data (no source specified)
             logger.info(f"Getting cached weekly data for {metric_type} week {iso_week}")
             summary = self.cached_data_access.get_weekly_summary(metric_type, iso_week)
             
@@ -752,11 +948,44 @@ class WeeklyDashboardWidget(QWidget):
                     avg=summary.get('daily_avg', 0),
                     total=summary.get('sum', 0),
                     daily_values=daily_values,
-                    days_with_data=summary.get('days_with_data', len(daily_values))
+                    days_with_data=summary.get('days_with_data', len(daily_values)),
+                    trend_direction=summary.get('trend_direction', 'stable')
+                )
+        
+        # For source-specific data or when cache misses, calculate directly
+        if source and self.health_db:
+            # Get daily values for source-specific data
+            daily_values = {}
+            for i in range(7):
+                day = week_start + timedelta(days=i)
+                value = self._get_source_specific_daily_value(metric_type, day, source)
+                if value is not None:
+                    daily_values[day] = value
+                    
+            if daily_values:
+                values = list(daily_values.values())
+                total = sum(values)
+                avg = total / 7  # Weekly average (7 days)
+                
+                # Determine trend
+                if len(values) >= 3:
+                    first_half = sum(values[:len(values)//2])
+                    second_half = sum(values[len(values)//2:])
+                    trend_direction = "up" if second_half > first_half else "down" if second_half < first_half else "stable"
+                else:
+                    trend_direction = "stable"
+                
+                from types import SimpleNamespace
+                return SimpleNamespace(
+                    avg=avg,
+                    total=total,
+                    daily_values=daily_values,
+                    days_with_data=len(daily_values),
+                    trend_direction=trend_direction
                 )
         
         # Fallback to calculator
-        if self.weekly_calculator:
+        if self.weekly_calculator and not source:
             data = self.weekly_calculator.daily_calculator.data.copy()
             if 'startDate' in data.columns and 'creationDate' not in data.columns:
                 data['creationDate'] = data['startDate']
@@ -770,17 +999,17 @@ class WeeklyDashboardWidget(QWidget):
         
         return None
     
-    def _update_summary_stats(self, metric_type: str):
+    def _update_summary_stats(self, metric_type: str, source: Optional[str] = None):
         """Update the summary statistics cards."""
-        logger.info(f"Updating summary stats for metric: {metric_type}")
+        logger.info(f"Updating summary stats for metric: {metric_type}, source: {source}")
         try:
             # Get weekly data
             logger.info(f"Getting weekly metrics for week starting: {self._current_week_start}")
             
-            weekly_data = self._get_weekly_data_from_cache(metric_type, self._current_week_start)
+            weekly_data = self._get_weekly_data_from_cache(metric_type, self._current_week_start, source)
             
             if not weekly_data:
-                logger.warning(f"No weekly data found for metric: {metric_type}")
+                logger.warning(f"No weekly data found for metric: {metric_type}, source: {source}")
                 return
             
             logger.info(f"Got weekly data: avg={weekly_data.avg}, days={len(weekly_data.daily_values)}")
@@ -844,7 +1073,7 @@ class WeeklyDashboardWidget(QWidget):
         except Exception as e:
             logger.error(f"Error updating summary stats: {e}", exc_info=True)
     
-    def _update_wow_comparison(self, metric_type: str):
+    def _update_wow_comparison(self, metric_type: str, source: Optional[str] = None):
         """Update week-over-week comparison."""
         if not self.wow_analyzer:
             return
@@ -861,7 +1090,7 @@ class WeeklyDashboardWidget(QWidget):
         except Exception as e:
             logger.error(f"Error updating WoW comparison: {e}")
     
-    def _update_dow_patterns(self, metric_type: str):
+    def _update_dow_patterns(self, metric_type: str, source: Optional[str] = None):
         """Update day-of-week patterns."""
         if not self.dow_analyzer:
             return
@@ -920,13 +1149,18 @@ class WeeklyDashboardWidget(QWidget):
     
     def _update_trend_chart(self):
         """Update the trend chart based on selected view."""
-        if not self.weekly_calculator:
-            return
-            
         try:
-            metric_type = self.metric_selector.currentData()
-            if not metric_type:
+            # Get the current metric tuple from the selector
+            current_index = self.metric_selector.currentIndex()
+            if current_index < 0:
                 return
+                
+            metric_tuple = self.metric_selector.itemData(current_index)
+            if not metric_tuple:
+                return
+                
+            metric_type, source = metric_tuple
+            logger.info(f"Updating trend chart for metric: {metric_type}, source: {source}")
             
             # Get daily data for the week
             start_date = self._current_week_start
@@ -936,40 +1170,78 @@ class WeeklyDashboardWidget(QWidget):
             view_id = self.view_group.checkedId()
             
             if view_id == 0:  # Daily values
-                data = self.weekly_calculator.daily_calculator.calculate_daily_aggregates(
-                    metric=metric_type,
-                    start_date=start_date,
-                    end_date=end_date
-                )
-                
-                if not data.empty:
-                    x_data = [d.strftime("%a") for d in data.index]
-                    y_data = data.values.tolist()
-                    # Prepare data points for LineChart
-                    data_points = [
-                        {'x': i, 'y': y, 'label': x}
-                        for i, (x, y) in enumerate(zip(x_data, y_data))
-                    ]
+                if source and self.health_db:
+                    # Get source-specific daily values
+                    daily_values = []
+                    dates = []
+                    for i in range(7):
+                        day = start_date + timedelta(days=i)
+                        value = self._get_source_specific_daily_value(metric_type, day, source)
+                        if value is not None:
+                            daily_values.append(value)
+                            dates.append(day)
+                        else:
+                            daily_values.append(0)  # Use 0 for missing days
+                            dates.append(day)
                     
-                    # Set y-range
-                    if y_data:
-                        y_min = min(y_data) * 0.9
-                        y_max = max(y_data) * 1.1
-                        self.trend_chart.set_y_range(y_min, y_max)
+                    if any(v > 0 for v in daily_values):
+                        x_data = [d.strftime("%a") for d in dates]
+                        y_data = daily_values
+                        # Prepare data points for LineChart
+                        data_points = [
+                            {'x': i, 'y': y, 'label': x}
+                            for i, (x, y) in enumerate(zip(x_data, y_data))
+                        ]
+                        
+                        # Set y-range
+                        non_zero_values = [v for v in y_data if v > 0]
+                        if non_zero_values:
+                            y_min = min(non_zero_values) * 0.9
+                            y_max = max(non_zero_values) * 1.1
+                            self.trend_chart.set_y_range(y_min, y_max)
+                        
+                        self.trend_chart.set_data(data_points)
+                elif self.weekly_calculator:
+                    # Use calculator for aggregated data
+                    data = self.weekly_calculator.daily_calculator.calculate_daily_aggregates(
+                        metric=metric_type,
+                        start_date=start_date,
+                        end_date=end_date
+                    )
                     
-                    self.trend_chart.set_data(data_points)
+                    if not data.empty:
+                        x_data = [d.strftime("%a") for d in data.index]
+                        y_data = data.values.tolist()
+                        # Prepare data points for LineChart
+                        data_points = [
+                            {'x': i, 'y': y, 'label': x}
+                            for i, (x, y) in enumerate(zip(x_data, y_data))
+                        ]
+                        
+                        # Set y-range
+                        if y_data:
+                            y_min = min(y_data) * 0.9
+                            y_max = max(y_data) * 1.1
+                            self.trend_chart.set_y_range(y_min, y_max)
+                        
+                        self.trend_chart.set_data(data_points)
                     
             elif view_id == 1:  # Cumulative
-                data = self.weekly_calculator.daily_calculator.calculate_daily_aggregates(
-                    metric=metric_type,
-                    start_date=start_date,
-                    end_date=end_date
-                )
-                
-                if not data.empty:
-                    cumulative = data.cumsum()
-                    x_data = [d.strftime("%a") for d in cumulative.index]
-                    y_data = cumulative.values.tolist()
+                if source and self.health_db:
+                    # Get source-specific cumulative values
+                    daily_values = []
+                    dates = []
+                    cumulative_sum = 0
+                    for i in range(7):
+                        day = start_date + timedelta(days=i)
+                        value = self._get_source_specific_daily_value(metric_type, day, source)
+                        if value is not None:
+                            cumulative_sum += value
+                        daily_values.append(cumulative_sum)
+                        dates.append(day)
+                    
+                    x_data = [d.strftime("%a") for d in dates]
+                    y_data = daily_values
                     # Prepare data points for LineChart
                     data_points = [
                         {'x': i, 'y': y, 'label': x}
@@ -977,42 +1249,109 @@ class WeeklyDashboardWidget(QWidget):
                     ]
                     
                     # Set y-range
-                    if y_data:
+                    if y_data and max(y_data) > 0:
                         y_min = 0  # Cumulative starts at 0
                         y_max = max(y_data) * 1.1
                         self.trend_chart.set_y_range(y_min, y_max)
                     
                     self.trend_chart.set_data(data_points)
+                elif self.weekly_calculator:
+                    # Use calculator for aggregated data
+                    data = self.weekly_calculator.daily_calculator.calculate_daily_aggregates(
+                        metric=metric_type,
+                        start_date=start_date,
+                        end_date=end_date
+                    )
+                    
+                    if not data.empty:
+                        cumulative = data.cumsum()
+                        x_data = [d.strftime("%a") for d in cumulative.index]
+                        y_data = cumulative.values.tolist()
+                        # Prepare data points for LineChart
+                        data_points = [
+                            {'x': i, 'y': y, 'label': x}
+                            for i, (x, y) in enumerate(zip(x_data, y_data))
+                        ]
+                        
+                        # Set y-range
+                        if y_data:
+                            y_min = 0  # Cumulative starts at 0
+                            y_max = max(y_data) * 1.1
+                            self.trend_chart.set_y_range(y_min, y_max)
+                        
+                        self.trend_chart.set_data(data_points)
                     
             elif view_id == 2:  # 7-day rolling average
-                # Get extended data for rolling average
-                extended_start = start_date - timedelta(days=6)
-                data = self.weekly_calculator.daily_calculator.calculate_daily_aggregates(
-                    metric=metric_type,
-                    start_date=extended_start,
-                    end_date=end_date
-                )
-                
-                if not data.empty:
-                    rolling = data.rolling(window=7, min_periods=1).mean()
-                    # Filter to current week
-                    rolling = rolling[rolling.index >= pd.to_datetime(start_date)]
+                if source and self.health_db:
+                    # Get extended data for rolling average
+                    extended_start = start_date - timedelta(days=6)
+                    all_values = []
+                    all_dates = []
                     
-                    x_data = [d.strftime("%a") for d in rolling.index]
-                    y_data = rolling.values.tolist()
-                    # Prepare data points for LineChart
-                    data_points = [
-                        {'x': i, 'y': y, 'label': x}
-                        for i, (x, y) in enumerate(zip(x_data, y_data))
-                    ]
+                    # Get 13 days of data (6 before + 7 week days)
+                    for i in range(13):
+                        day = extended_start + timedelta(days=i)
+                        value = self._get_source_specific_daily_value(metric_type, day, source)
+                        all_values.append(value if value is not None else 0)
+                        all_dates.append(day)
                     
-                    # Set y-range
-                    if y_data:
-                        y_min = min(y_data) * 0.9
-                        y_max = max(y_data) * 1.1
-                        self.trend_chart.set_y_range(y_min, y_max)
+                    # Calculate rolling average for the week
+                    rolling_values = []
+                    dates = []
+                    for i in range(6, 13):  # Week days only
+                        window_values = [v for v in all_values[i-6:i+1] if v > 0]
+                        if window_values:
+                            rolling_values.append(sum(window_values) / len(window_values))
+                        else:
+                            rolling_values.append(0)
+                        dates.append(all_dates[i])
                     
-                    self.trend_chart.set_data(data_points)
+                    if any(v > 0 for v in rolling_values):
+                        x_data = [d.strftime("%a") for d in dates]
+                        y_data = rolling_values
+                        # Prepare data points for LineChart
+                        data_points = [
+                            {'x': i, 'y': y, 'label': x}
+                            for i, (x, y) in enumerate(zip(x_data, y_data))
+                        ]
+                        
+                        # Set y-range
+                        non_zero_values = [v for v in y_data if v > 0]
+                        if non_zero_values:
+                            y_min = min(non_zero_values) * 0.9
+                            y_max = max(non_zero_values) * 1.1
+                            self.trend_chart.set_y_range(y_min, y_max)
+                        
+                        self.trend_chart.set_data(data_points)
+                elif self.weekly_calculator:
+                    # Get extended data for rolling average
+                    extended_start = start_date - timedelta(days=6)
+                    data = self.weekly_calculator.daily_calculator.calculate_daily_aggregates(
+                        metric=metric_type,
+                        start_date=extended_start,
+                        end_date=end_date
+                    )
+                    
+                    if not data.empty:
+                        rolling = data.rolling(window=7, min_periods=1).mean()
+                        # Filter to current week
+                        rolling = rolling[rolling.index >= pd.to_datetime(start_date)]
+                        
+                        x_data = [d.strftime("%a") for d in rolling.index]
+                        y_data = rolling.values.tolist()
+                        # Prepare data points for LineChart
+                        data_points = [
+                            {'x': i, 'y': y, 'label': x}
+                            for i, (x, y) in enumerate(zip(x_data, y_data))
+                        ]
+                        
+                        # Set y-range
+                        if y_data:
+                            y_min = min(y_data) * 0.9
+                            y_max = max(y_data) * 1.1
+                            self.trend_chart.set_y_range(y_min, y_max)
+                        
+                        self.trend_chart.set_data(data_points)
                     
         except Exception as e:
             logger.error(f"Error updating trend chart: {e}")
@@ -1025,7 +1364,8 @@ class WeeklyDashboardWidget(QWidget):
         if not hasattr(self, 'no_data_overlay'):
             from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
             
-            self.no_data_overlay = QWidget(self)
+            self.no_data_overlay = QWidget()
+            self.no_data_overlay.setParent(self)
             self.no_data_overlay.setStyleSheet("""
                 QWidget {
                     background-color: rgba(255, 255, 255, 1.0);
@@ -1125,10 +1465,20 @@ class WeeklyDashboardWidget(QWidget):
     
     def _on_metric_changed(self):
         """Handle metric selection change."""
-        self._load_weekly_data()
-        metric_key = self.metric_selector.currentData()
-        if metric_key:
-            self.metric_selected.emit(metric_key)
+        # Get the metric tuple from the combo box data
+        current_index = self.metric_selector.currentIndex()
+        if current_index >= 0:
+            metric_tuple = self.metric_selector.itemData(current_index)
+            if metric_tuple:
+                self._current_metric = metric_tuple
+                self._load_weekly_data()
+                # Emit just the metric type for compatibility
+                self.metric_selected.emit(self._current_metric[0])
+                self.metric_changed.emit(self._current_metric[0])
+            else:
+                # No valid metric selected (e.g., "No metrics available")
+                logger.warning("No valid metric selected")
+                self._show_no_data_message()
     
     def set_calculators(self, weekly_calculator: WeeklyMetricsCalculator, 
                        daily_calculator=None):

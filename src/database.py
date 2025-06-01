@@ -728,6 +728,23 @@ class DatabaseManager:
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (4)")
             logger.info("Migration 4 applied successfully")
+        
+        # Migration 5: Add source column to personal_records table
+        if current_version < 5:
+            logger.info("Applying migration 5: Adding source column to personal_records")
+            
+            # Add source column to personal_records table
+            cursor.execute("""
+                ALTER TABLE personal_records 
+                ADD COLUMN source VARCHAR(255)
+            """)
+            
+            # Create index on source for performance
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_personal_records_source ON personal_records(source)")
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (5)")
+            logger.info("Migration 5 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute SELECT query and return all matching rows.
