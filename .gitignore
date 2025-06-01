@@ -213,3 +213,5 @@ installer/*.exe
 /data
 analytics_cache.corrupted.bak
 /ignore (old tests)
+analytics_cache_temp.db-shm
+analytics_cache_temp.db-wal
