@@ -7,18 +7,22 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-def take_screenshot():
-    """Capture screenshot of primary monitor and save to ad hoc directory."""
+def take_screenshot(monitor_number=1):
+    """Capture screenshot of specified monitor and save to ad hoc directory.
+    
+    Args:
+        monitor_number: The monitor number to capture (1-based index, default=1)
+    """
     # Create ad hoc directory if it doesn't exist
     ad_hoc_dir = Path("ad hoc")
     ad_hoc_dir.mkdir(exist_ok=True)
     
-    # Generate filename with timestamp
+    # Generate filename with timestamp and monitor number
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"screenshot_{timestamp}.png"
+    filename = f"screenshot_monitor{monitor_number}_{timestamp}.png"
     filepath = ad_hoc_dir / filename
     
-    # PowerShell command to capture primary monitor with DPI awareness
+    # PowerShell command to capture specific monitor with DPI awareness
     ps_command = f"""
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
@@ -47,12 +51,25 @@ def take_screenshot():
     $scalingFactor = 1.5
     Write-Host "Using scaling factor: 150%"
     
-    # Get primary screen bounds
-    $primaryScreen = [System.Windows.Forms.Screen]::PrimaryScreen
-    $bounds = $primaryScreen.Bounds
+    # Get all screens
+    $screens = [System.Windows.Forms.Screen]::AllScreens
     
-    # For high DPI, the bounds are already in physical pixels when DPI aware
-    Write-Host "Screen bounds: $($bounds.Width)x$($bounds.Height)"
+    # Monitor number (1-based to 0-based index)
+    $monitorIndex = {monitor_number - 1}
+    
+    # Check if monitor exists
+    if ($monitorIndex -ge $screens.Count) {{
+        Write-Error "Monitor {monitor_number} not found. Only $($screens.Count) monitor(s) available."
+        exit 1
+    }}
+    
+    # Get the specified monitor
+    $targetScreen = $screens[$monitorIndex]
+    $bounds = $targetScreen.Bounds
+    
+    # Display monitor info
+    Write-Host "Capturing monitor {monitor_number}: $($targetScreen.DeviceName)"
+    Write-Host "Screen bounds: $($bounds.Width)x$($bounds.Height) at ($($bounds.X), $($bounds.Y))"
     
     # Create bitmap with screen dimensions
     $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
@@ -65,7 +82,7 @@ def take_screenshot():
     $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
     
     # Copy from screen
-    $graphics.CopyFromScreen($bounds.Left, $bounds.Top, 0, 0, $bounds.Size)
+    $graphics.CopyFromScreen($bounds.X, $bounds.Y, 0, 0, $bounds.Size)
     
     # Save the image
     $bitmap.Save('{filepath}', [System.Drawing.Imaging.ImageFormat]::Png)
@@ -182,7 +199,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--all", 
         action="store_true", 
-        help="Capture all monitors instead of just primary"
+        help="Capture all monitors instead of just a specific monitor"
+    )
+    parser.add_argument(
+        "--monitor",
+        type=int,
+        default=1,
+        help="Monitor number to capture (default: 1)"
     )
     
     args = parser.parse_args()
@@ -190,4 +213,4 @@ if __name__ == "__main__":
     if args.all:
         take_screenshot_all_monitors()
     else:
-        take_screenshot()
+        take_screenshot(args.monitor)

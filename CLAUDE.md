@@ -187,9 +187,35 @@ mypy src/
 ```
 
 ## Taking Screenshots
-When prompted to take a screenshot, use the appropriate function in:
-`Bash(cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py)`
-and save it to the specified path. If the screenshot path is not explicitly specified, come up with a short descriptive name based on the request context and image content and save the image to directory `ad hoc/`.
+
+The project includes a `take_screenshot.py` utility for capturing screenshots in Windows via WSL. This script provides two main functions:
+
+### Primary Monitor Screenshot
+To capture only the primary monitor:
+```bash
+cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py
+```
+This calls the `take_screenshot()` function which captures the primary monitor and saves it to `ad hoc/screenshot_YYYYMMDD_HHMMSS.png`.
+
+### Specific Monitor Screenshot
+To capture a specific monitor:
+```bash
+cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py --monitor X
+```
+This calls the `take_screenshot()` function which captures monitor X and saves it to `ad hoc/screenshot_YYYYMMDD_HHMMSS.png`.
+
+### All Monitors Screenshot
+To capture all monitors in a single image:
+```bash
+cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py --all
+```
+This calls the `take_screenshot_all_monitors()` function which captures the entire virtual screen (all monitors combined) and saves it to `ad hoc/screenshot_all_monitors_YYYYMMDD_HHMMSS.png`.
+
+### Usage Notes
+- Screenshots are automatically saved to the `ad hoc/` directory with timestamps
+- The script uses PowerShell to capture screenshots in WSL environments
+- If a specific path is requested, you can modify the script or copy the file after capture
+- The script will display monitor information when capturing all monitors
 
 ## 📁 Key Configuration Files
 
