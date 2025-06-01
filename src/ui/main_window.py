@@ -2184,7 +2184,12 @@ class MainWindow(QMainWindow):
         
         # Trigger health insights generation if available
         if hasattr(self, 'health_insights_widget') and data is not None:
-            self._refresh_health_insights()
+            # Prepare user data for health insights
+            user_data = {
+                'data': data,
+                'timezone': get_local_timezone() if 'get_local_timezone' in locals() else None
+            }
+            self.health_insights_widget.load_insights(user_data)
     
     def _refresh_weekly_data(self):
         """Refresh data in the weekly dashboard."""

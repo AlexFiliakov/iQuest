@@ -548,6 +548,37 @@ Rearrange the Configuration tab layout to only have one column of cards:
 That way the user can navigate this tab vertically without wasting horizontal space when they only need to look at one section.
 
 
+
+Take a screenshot of the left side of my screen and save it to `ad hoc/screenshot.pdf`
+
+
+cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py
+
+
+
+I need you to help me improve the user interface of my desktop application. Please follow these steps in order:
+
+1. **Launch the application**: Start the interface by running the appropriate command for my project
+2. **Wait 30 seconds**: Wait for the UI to fully load
+3. **Capture the current state**: Take a screenshot of the application using the take_screenshot.py script
+4. **Analyze the interface**: Find the UI for this application in the screenshot, then review the UI screenshot for:
+   - Visual hierarchy and information architecture
+   - Color contrast and accessibility compliance
+   - Element spacing, alignment, and proportions
+   - Typography choices and readability
+   - User experience flow and intuitive navigation
+   - Consistency with modern design principles
+5. **Develop improvement plan**: Create a prioritized list of specific UI improvements with rationale
+6. **Validate the plan**: Review your suggestions against established design principles and ensure they're technically feasible with the current framework
+7. **Close the application**: Properly shut down the interface
+8. **Implement changes**: Make the necessary code modifications to address the identified improvements
+9. **Iterate**: Repeat this entire process until the interface meets professional standards and follows best practices
+
+For each iteration, please commit your changes with descriptive commit messages so we can track the evolution of the interface and easily revert if needed.
+
+
+
+
 -----------
 
 

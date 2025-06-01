@@ -928,12 +928,47 @@ class CalendarHeatmapComponent(QWidget):
         painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, title)
         
     def _draw_no_data_message(self, painter: QPainter, rect: QRect):
-        """Draw a message when no data is available."""
-        painter.setFont(self._fonts['subtitle'])
-        painter.setPen(self._colors['text_muted'])
+        """Draw a helpful message when no data is available."""
+        # Draw a subtle background
+        bg_rect = rect.adjusted(40, 40, -40, -40)
+        painter.fillRect(bg_rect, QColor("#FAFBFC"))
         
-        message = "No metric data available for the selected period"
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, message)
+        # Draw icon placeholder
+        icon_size = 60
+        icon_rect = QRect(
+            rect.center().x() - icon_size // 2,
+            rect.center().y() - icon_size - 40,
+            icon_size,
+            icon_size
+        )
+        painter.setBrush(QColor("#E0E7FF"))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(icon_rect)
+        
+        # Draw simple chart icon
+        painter.setPen(QColor("#4F46E5"))
+        bar_width = 8
+        bar_spacing = 4
+        start_x = icon_rect.center().x() - (3 * bar_width + 2 * bar_spacing) // 2
+        
+        heights = [20, 30, 25]
+        for i, h in enumerate(heights):
+            x = start_x + i * (bar_width + bar_spacing)
+            y = icon_rect.center().y() + 10 - h // 2
+            painter.fillRect(x, y, bar_width, h, QColor("#4F46E5"))
+        
+        # Draw title
+        painter.setFont(QFont("Inter", 16, QFont.Weight.DemiBold))
+        painter.setPen(self._colors['text'])
+        title_rect = QRect(rect.x(), icon_rect.bottom() + 20, rect.width(), 30)
+        painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, "No Data Available")
+        
+        # Draw message
+        painter.setFont(QFont("Inter", 12))
+        painter.setPen(self._colors['text_muted'])
+        message_rect = QRect(rect.x() + 60, title_rect.bottom() + 10, rect.width() - 120, 40)
+        message = "Import your health data to see insights here"
+        painter.drawText(message_rect, Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignWordWrap, message)
         
     def mousePressEvent(self, event):
         """Handle mouse press for selection."""

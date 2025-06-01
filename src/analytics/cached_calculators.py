@@ -298,6 +298,7 @@ class CachedMonthlyMetricsCalculator:
         self.comparisons_ttl = 14400      # 4 hours for YoY comparisons
         self.growth_rates_ttl = 21600     # 6 hours for growth rate analysis
         self.distributions_ttl = 7200     # 2 hours for distribution analysis
+        self.aggregates_ttl = 1800        # 30 minutes for daily aggregates
     
     def calculate_monthly_stats(self, metric: str, year: int, month: int) -> MonthlyMetrics:
         """Calculate monthly statistics with caching."""
@@ -416,6 +417,33 @@ class CachedMonthlyMetricsCalculator:
             compute_fn=compute_fn,
             cache_tiers=['l1', 'l2', 'l3'],
             ttl=self.monthly_stats_ttl,
+            dependencies=dependencies
+        )
+    
+    def get_daily_aggregate(self, metric: str, date: date) -> Optional[float]:
+        """
+        Get daily aggregate value for a specific metric and date with caching.
+        
+        Args:
+            metric: The metric type to analyze (e.g., 'HKQuantityTypeIdentifierStepCount')
+            date: The date to get data for
+            
+        Returns:
+            The daily aggregate value or None if no data exists
+        """
+        # Use standardized cache key format
+        date_str = date.isoformat()
+        key = cache_key("daily_aggregate", metric, date_str)
+        dependencies = [f"metric:{metric}", f"date:{date}"]
+        
+        def compute_fn():
+            return self.calculator.get_daily_aggregate(metric, date)
+        
+        return cached_analytics_call(
+            key=key,
+            compute_fn=compute_fn,
+            cache_tiers=['l1', 'l2'],  # Daily aggregates are frequently accessed
+            ttl=self.aggregates_ttl,
             dependencies=dependencies
         )
 
