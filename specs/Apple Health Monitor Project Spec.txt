@@ -516,6 +516,24 @@ Implement a loading screen while the app loads, which displays the message log t
 Fix Records `RECORDS.md`
 
 
+`cached_metrics` table of the database does not seem to get populated. Can you please investigate and put together a task in `.simone/04_GENERAL_TASKS/G088_CACHE_METRICS.md` specifying what needs to be   │
+│   done to remediate the metric caching, and what metrics should be cached. This should be leveraged by the Daily tab, the Weekly tab, and the Monthly tab in order to speed up loading of metrics. After      │
+│   all, the underlying data only refreshes when the user imports, so on import or delete of data, the summary and aggregate metrics should get cached. Then, review your task proposal, fill in the details    │
+│   of the required subtasks to be done. Then, analyze the task and its subtasks one more time closely to recommend implementation approaches, with pros and cons where multiple options are viable.  
+
+
+
+Since you believe refreshing is not needed, please go ahead and remove all the Refresh buttons from the UI:
+- Refresh buttons on the Configuration Tab in subsection "Data Preview", "Data Statistics", and "Data Sources". You can see a screenshot of the relevant tab sections in `ad hoc/configuration_tab.png`
+- navbar "View > Refresh" and the whole View navbar is unnecessary then, so remove it.
+- Help Tab and Help menu have "F5" as the refresh shortcut. Disable this shortcut and remove references from these two help sections.
+- Refresh button on the Daily tab (it's a refresh icon)
+- Insights tab has a "Refresh" button
+- Remove any other Refresh UI elements that I missed anywhere else in the application.
+
+
+
+
 
 ### Future ####
 

@@ -186,6 +186,11 @@ ruff check src/
 mypy src/
 ```
 
+## Taking Screenshots
+When prompted to take a screenshot, use the appropriate function in:
+`Bash(cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py)`
+and save it to the specified path. If the screenshot path is not explicitly specified, come up with a short descriptive name based on the request context and image content and save the image to directory `ad hoc/`.
+
 ## 📁 Key Configuration Files
 
 - **pyproject.toml**: Project configuration and dependencies
