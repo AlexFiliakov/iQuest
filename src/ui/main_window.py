@@ -190,6 +190,15 @@ class MainWindow(QMainWindow):
         # Initialize personal records tracker
         self.personal_records_tracker = PersonalRecordsTracker(db_manager)
         
+        # Cache calculator instances to avoid recreation
+        self._calculator_cache = {
+            'daily': None,
+            'weekly': None,
+            'monthly': None,
+            'daily_base': None  # Base calculator used by weekly/monthly
+        }
+        self._last_data_hash = None
+        
         # Initialize background trend processor
         self.background_trend_processor = None
         try:
@@ -1465,115 +1474,276 @@ class MainWindow(QMainWindow):
         self.status_bar.setToolTip("Shows the current application status")
     
     def _on_tab_changed(self, index):
-        """Handle tab change event with smooth transitions."""
+        """Handle tab change event with proper widget state management."""
         tab_name = self.tab_widget.tabText(index)
-        logger.debug(f"Tab change requested: {tab_name}")
+        logger.debug(f"Tab change requested: {self.previous_tab_index} -> {index} ({tab_name})")
         
-        # Ensure previous tab widget is properly hidden
+        # Log current widget states for debugging
+        for i in range(self.tab_widget.count()):
+            w = self.tab_widget.widget(i)
+            if w:
+                logger.debug(f"Tab {i}: visible={w.isVisible()}, enabled={w.isEnabled()}")
+        
+        # Store current widget state before switching
         if hasattr(self, 'previous_tab_index'):
-            prev_widget = self.tab_widget.widget(self.previous_tab_index)
-            if prev_widget:
-                # For scroll areas, we need to hide the viewport widget too
-                if isinstance(prev_widget, QScrollArea):
-                    viewport = prev_widget.viewport()
-                    if viewport:
-                        viewport.hide()
-                    content = prev_widget.widget()
-                    if content:
-                        content.hide()
-                prev_widget.hide()
+            self._save_widget_state(self.previous_tab_index)
         
-        # Get view types for transition
-        from_view = self.tab_to_view_map.get(self.previous_tab_index, ViewType.CONFIG)
-        to_view = self.tab_to_view_map.get(index, ViewType.CONFIG)
-        
-        # Get widgets for transition
-        from_widget = self.tab_widget.widget(self.previous_tab_index)
-        to_widget = self.tab_widget.widget(index)
-        
-        # Only perform transition for dashboard tabs (Daily, Weekly, Monthly)
-        dashboard_tabs = [1, 2, 3]  # Daily, Weekly, Monthly indices
-        should_animate = (self.previous_tab_index in dashboard_tabs and 
-                         index in dashboard_tabs and
-                         from_widget is not None and 
-                         to_widget is not None)
-        
-        # Disable animations for Daily and Monthly tabs to fix refresh issues
-        if index == 1 or index == 3:  # Daily tab or Monthly tab
-            should_animate = False
+        # TEMPORARY: Disable all animations to fix refresh issues
+        # TODO: Re-enable animations once core issues are resolved
+        should_animate = False
         
         if should_animate:
-            # Perform animated transition
+            # Animation path (currently disabled)
+            from_view = self.tab_to_view_map.get(self.previous_tab_index, ViewType.CONFIG)
+            to_view = self.tab_to_view_map.get(index, ViewType.CONFIG)
+            from_widget = self.tab_widget.widget(self.previous_tab_index)
+            to_widget = self.tab_widget.widget(index)
+            
             self.transition_manager.transition_to(
                 from_widget, to_widget, from_view, to_view
             )
         else:
-            # Immediate transition for non-dashboard tabs
-            self._complete_tab_change(index, tab_name)
+            # Use simplified immediate transition
+            self._immediate_tab_switch(index, tab_name)
         
         # Update previous tab index
         self.previous_tab_index = index
     
-    def _complete_tab_change(self, index: int, tab_name: str):
-        """Complete tab change without animation."""
-        logger.debug(f"Switched to tab: {tab_name}")
-        self._update_trend_status()
+    def _save_widget_state(self, tab_index: int):
+        """Save the state of a widget before switching away."""
+        widget = self.tab_widget.widget(tab_index)
+        if not widget:
+            return
+            
+        # Store any relevant state (scroll positions, selections, etc.)
+        # This can be expanded based on specific widget needs
+        state = {
+            'index': tab_index,
+            'visible': widget.isVisible(),
+            'enabled': widget.isEnabled()
+        }
         
-        # Save the current tab index immediately
-        self.settings_manager.set_setting("MainWindow/lastActiveTab", index)
+        if isinstance(widget, QScrollArea):
+            state['scroll_x'] = widget.horizontalScrollBar().value()
+            state['scroll_y'] = widget.verticalScrollBar().value()
+            
+        logger.debug(f"Saved state for tab {tab_index}: {state}")
+    
+    def _immediate_tab_switch(self, index: int, tab_name: str):
+        """Perform immediate tab switch without animations."""
+        logger.debug(f"Performing immediate tab switch to {index} ({tab_name})")
         
-        # Force the widget to become visible and process pending events
+        # Hide all tabs first to ensure clean state
+        for i in range(self.tab_widget.count()):
+            widget = self.tab_widget.widget(i)
+            if widget and i != index:
+                widget.setVisible(False)
+                # Special handling for scroll areas
+                if isinstance(widget, QScrollArea):
+                    content = widget.widget()
+                    if content:
+                        content.setVisible(False)
+        
+        # Show the target tab
         widget = self.tab_widget.widget(index)
         if widget:
-            # Handle scroll areas specially
+            widget.setVisible(True)
+            # Special handling for scroll areas
             if isinstance(widget, QScrollArea):
-                widget.show()
-                widget.raise_()
-                viewport = widget.viewport()
-                if viewport:
-                    viewport.show()
                 content = widget.widget()
                 if content:
-                    content.show()
-                    content.raise_()
-                    # Force layout update on the content widget
-                    if content.layout():
-                        content.layout().invalidate()
-                        content.layout().update()
-            else:
-                # Regular widget handling
-                widget.show()
-                widget.raise_()
-                # Force layout update
-                if widget.layout():
-                    widget.layout().invalidate()
-                    widget.layout().update()
+                    content.setVisible(True)
             
-            # Process events to ensure layout updates
-            QApplication.processEvents()
+            # Ensure widget is properly updated
+            widget.update()
+            
+        # Complete the transition
+        self._complete_tab_change(index, tab_name)
+    
+    def _complete_tab_change(self, index: int, tab_name: str):
+        """Complete tab change without animation - simplified version."""
+        logger.debug(f"Completing tab change to: {tab_name}")
+        self._update_trend_status()
         
-        # Refresh data for dashboard tabs when switching without animation
-        if index == 0:  # Config tab
-            # Specifically ensure Monthly dashboard is hidden when showing Config tab
-            if hasattr(self, 'monthly_dashboard'):
-                self.monthly_dashboard.hide()
-                # Hide all child widgets of monthly dashboard
-                for child in self.monthly_dashboard.findChildren(QWidget):
-                    child.hide()
+        # Save the current tab index
+        self.settings_manager.set_setting("MainWindow/lastActiveTab", index)
+        
+        # Unified refresh method without delays
+        self._refresh_tab_data(index)
+    
+    def _refresh_tab_data(self, tab_index: int):
+        """Unified tab refresh method without delays or complex logic."""
+        widget = self.tab_widget.widget(tab_index)
+        if not widget or not widget.isVisible():
+            logger.debug(f"Tab {tab_index} not visible, skipping refresh")
+            return
             
-            # Refresh config tab display if data is loaded
+        # Get data without recreation
+        data = self._get_current_data()
+        if data is None:
+            logger.warning(f"No data available for tab {tab_index}")
+            return
+        
+        logger.debug(f"Refreshing tab {tab_index} with {len(data)} records")
+        
+        # Refresh specific tab
+        if tab_index == 0:  # Config tab
             if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'refresh_display'):
                 self.config_tab.refresh_display()
-        elif index == 1:  # Daily tab
-            # Add a small delay to ensure tab is fully visible
-            QTimer.singleShot(50, self._refresh_daily_data)
-        elif index == 2:  # Weekly tab
-            self._refresh_weekly_data()
-        elif index == 3:  # Monthly tab
-            # Add a small delay to ensure tab is fully visible before refresh
-            QTimer.singleShot(50, self._refresh_monthly_data)
-        elif index == 4:  # Compare tab
-            self._refresh_comparative_data()
+        elif tab_index == 1:  # Daily tab
+            self._refresh_daily_with_data(data)
+        elif tab_index == 2:  # Weekly tab
+            self._refresh_weekly_with_data(data)
+        elif tab_index == 3:  # Monthly tab
+            self._refresh_monthly_with_data(data)
+        elif tab_index == 4:  # Compare tab
+            self._refresh_comparative_with_data(data)
+    
+    def _get_current_data(self):
+        """Get current data from configuration tab."""
+        if not hasattr(self, 'config_tab'):
+            return None
+            
+        data = None
+        if hasattr(self.config_tab, 'get_filtered_data'):
+            data = self.config_tab.get_filtered_data()
+        elif hasattr(self.config_tab, 'filtered_data'):
+            data = self.config_tab.filtered_data
+        elif hasattr(self.config_tab, 'data'):
+            data = self.config_tab.data
+            
+        return data if data is not None and not data.empty else None
+    
+    def _get_or_create_calculators(self, data):
+        """Get existing calculators or create new ones if data changed."""
+        if data is None:
+            return None
+            
+        # Check if data has changed
+        data_hash = hash(str(data.shape) + str(data.columns.tolist()) + str(len(data)))
+        
+        if self._last_data_hash == data_hash and self._calculator_cache['daily_base'] is not None:
+            logger.debug("Using cached calculators")
+            return self._calculator_cache
+        
+        logger.debug("Creating new calculators due to data change")
+        
+        # Create new calculators only when data changes
+        from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+        from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+        from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+        from ..analytics.cached_calculators import (
+            CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, 
+            CachedMonthlyMetricsCalculator
+        )
+        
+        # Get local timezone
+        local_tz = get_local_timezone()
+        
+        # Create base daily calculator
+        daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
+        self._calculator_cache['daily_base'] = daily_calculator
+        
+        # Create cached daily calculator
+        self._calculator_cache['daily'] = CachedDailyMetricsCalculator(daily_calculator)
+        
+        # Create weekly calculator with the daily calculator
+        weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
+        self._calculator_cache['weekly'] = CachedWeeklyMetricsCalculator(weekly_calculator)
+        
+        # Create monthly calculator with the daily calculator
+        monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
+        self._calculator_cache['monthly'] = CachedMonthlyMetricsCalculator(monthly_calculator)
+        
+        self._last_data_hash = data_hash
+        return self._calculator_cache
+    
+    def _refresh_daily_with_data(self, data):
+        """Refresh daily dashboard with cached calculators."""
+        logger.debug("Refreshing daily dashboard")
+        if not hasattr(self, 'daily_dashboard'):
+            return
+            
+        calculators = self._get_or_create_calculators(data)
+        if not calculators:
+            return
+            
+        # Set the cached calculator in the daily dashboard
+        self.daily_dashboard.set_daily_calculator(calculators['daily'])
+        
+        # Set up cached data access for pre-computed summaries
+        from ..analytics.cached_metrics_access import get_cached_metrics_access
+        cached_data_access = get_cached_metrics_access()
+        self.daily_dashboard.set_cached_data_access(cached_data_access)
+        
+        # Set personal records tracker
+        self.daily_dashboard.set_personal_records(self.personal_records_tracker)
+        
+        logger.info(f"Daily dashboard refreshed with {len(data)} records")
+    
+    def _refresh_weekly_with_data(self, data):
+        """Refresh weekly dashboard with cached calculators."""
+        logger.debug("Refreshing weekly dashboard")
+        if not hasattr(self, 'weekly_dashboard'):
+            return
+            
+        calculators = self._get_or_create_calculators(data)
+        if not calculators:
+            return
+            
+        # Set the cached calculator in the weekly dashboard
+        if hasattr(self.weekly_dashboard, 'set_weekly_calculator'):
+            self.weekly_dashboard.set_weekly_calculator(calculators['weekly'])
+        
+        # Set up cached data access for pre-computed summaries
+        from ..analytics.cached_data_access import CachedDataAccess
+        cached_data_access = CachedDataAccess()
+        if hasattr(self.weekly_dashboard, 'set_cached_data_access'):
+            self.weekly_dashboard.set_cached_data_access(cached_data_access)
+        
+        logger.info(f"Weekly dashboard refreshed with {len(data)} records")
+    
+    def _refresh_monthly_with_data(self, data):
+        """Refresh monthly dashboard with cached calculators."""
+        logger.debug("Refreshing monthly dashboard")
+        if not hasattr(self, 'monthly_dashboard'):
+            return
+            
+        calculators = self._get_or_create_calculators(data)
+        if not calculators:
+            return
+            
+        # Set the cached calculator in the monthly dashboard
+        if hasattr(self.monthly_dashboard, 'set_data_source'):
+            self.monthly_dashboard.set_data_source(calculators['monthly'])
+        
+        # Set up cached data access for pre-computed summaries
+        from ..analytics.cached_data_access import CachedDataAccess
+        cached_data_access = CachedDataAccess()
+        if hasattr(self.monthly_dashboard, 'set_cached_data_access'):
+            self.monthly_dashboard.set_cached_data_access(cached_data_access)
+        
+        logger.info(f"Monthly dashboard refreshed with {len(data)} records")
+    
+    def _refresh_comparative_with_data(self, data):
+        """Refresh comparative analytics with cached calculators."""
+        logger.debug("Refreshing comparative analytics")
+        if not hasattr(self, 'comparative_engine') or not hasattr(self, 'comparative_widget'):
+            return
+            
+        calculators = self._get_or_create_calculators(data)
+        if not calculators:
+            return
+            
+        # Update comparative engine with cached calculators
+        self.comparative_engine.daily_calculator = calculators['daily']
+        self.comparative_engine.weekly_calculator = calculators['weekly']
+        self.comparative_engine.monthly_calculator = calculators['monthly']
+        
+        # Re-set the engine in the widget to trigger updates
+        self.comparative_widget.set_comparative_engine(self.comparative_engine)
+        
+        logger.info("Comparative analytics refreshed with new data")
     
     def _on_transition_started(self, from_view: ViewType, to_view: ViewType):
         """Handle transition start."""
@@ -1581,27 +1751,13 @@ class MainWindow(QMainWindow):
         self._update_trend_status()
     
     def _on_transition_completed(self, target_view: ViewType):
-        """Handle transition completion."""
+        """Handle transition completion - simplified version."""
         logger.debug(f"Transition completed: {target_view.value}")
         
-        # Update status bar
+        # Simply complete the tab change - refresh is handled by _complete_tab_change
         current_index = self.tab_widget.currentIndex()
         tab_name = self.tab_widget.tabText(current_index)
         self._complete_tab_change(current_index, tab_name)
-        
-        # Refresh data for dashboard tabs when transitioning to them
-        if current_index == 0:  # Config tab index
-            # Refresh config tab display if data is loaded
-            if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'refresh_display'):
-                self.config_tab.refresh_display()
-        elif current_index == 1:  # Daily tab index
-            self._refresh_daily_data()
-        elif current_index == 2:  # Weekly tab index
-            self._refresh_weekly_data()
-        elif current_index == 3:  # Monthly tab index
-            self._refresh_monthly_data()
-        elif current_index == 4:  # Compare tab index
-            self._refresh_comparative_data()
     
     def _on_transition_interrupted(self):
         """Handle transition interruption."""

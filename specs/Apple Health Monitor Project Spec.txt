@@ -537,28 +537,20 @@ Since you believe refreshing is not needed, please go ahead and remove all the R
 
 ### Future ####
 
-Rearrange the Configuration tab layout to only have one column of cards:
-- Status optionally displays above everything else when there are messages to display, for example "Loaded N records"
-- "Import Data" is the first section in its own row
-- "Filter Data" is the second section in its own row
-- "Summary Cards" is the third section in its own row
-- "Data Preview" is the fourth section in its own row
-- "Data Statistics" is the fifth section in its own row
-- "Data Sources" is the sixth section in its own row
-That way the user can navigate this tab vertically without wasting horizontal space when they only need to look at one section.
 
+Let's improve the "Activity Timeline" UI section of the Daily Tab, which you can see in screenshot `ad hoc/daily_tab_activity_timeline.png`. There is a lot of analytics happening under the hood: we have clustering, anomaly detection, etc. But none of that is visible to the user currently. The implementation specification to improve this section of the application is outlined in `.simone/01_SPECS/ACTIVITY_TIMELINE.md`. Please create a general task `G089_ACTIVITY_TIMELINE.md` outlining specific steps to complete the spec, then review your task for accuracy and outline subtasks that will guide development.
 
-
-Take a screenshot of the left side of my screen and save it to `ad hoc/screenshot.pdf`
 
 
 cd "/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports" && python take_screenshot.py
 
 
 
+
+
 I need you to help me improve the user interface of my desktop application. Please follow these steps in order:
 
-1. **Launch the application**: Start the interface by running the appropriate command for my project
+1. **Launch the application**: Start the interface by running the appropriate command for my project. Use the `demos/` folder to launch independent UI components.
 2. **Wait 30 seconds**: Wait for the UI to fully load
 3. **Capture the current state**: Take a screenshot of the application using the take_screenshot.py script
 4. **Analyze the interface**: Find the UI for this application in the screenshot, then review the UI screenshot for:

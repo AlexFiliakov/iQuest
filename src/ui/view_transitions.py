@@ -339,54 +339,18 @@ class ViewTransitionManager(QObject):
     def transition_to(self, from_widget: QWidget, to_widget: QWidget, 
                      from_view: ViewType, to_view: ViewType, 
                      duration: int = None) -> bool:
-        """Orchestrate transition to target view."""
-        if duration is None:
-            duration = 0 if self.accessibility_mode else self.default_duration
-            
-        logger.info(f"Starting transition: {from_view.value} → {to_view.value}")
+        """Simplified transition - always use immediate transition to fix issues."""
+        logger.info(f"Transition requested: {from_view.value} → {to_view.value}")
         
-        # Interrupt any current animation
-        self._interrupt_current_animation()
-        
-        # Capture current state
-        current_state = self.state_manager.capture_state(from_view, from_widget)
-        
-        # Determine transition type
-        transition_type = self._determine_transition_type(from_view, to_view)
+        # TEMPORARY: Always use immediate transition until animation issues are resolved
+        # TODO: Re-enable animations once tab switching is stable
         
         # Emit transition started signal
         self.transition_started.emit(from_view, to_view)
         
-        # Start performance monitoring
-        self.performance_monitor.start_tracking()
-        
-        if not self.enable_animations or duration == 0:
-            # Immediate transition for accessibility mode
-            self._complete_immediate_transition(to_view)
-            return True
-            
-        # Create and execute animation
-        try:
-            animation = self._create_transition_animation(
-                from_widget, to_widget, transition_type, duration
-            )
-            
-            if animation:
-                self.current_animation_group = animation
-                animation.finished.connect(lambda: self._on_transition_complete(to_view))
-                animation.start()
-                
-                self.current_view = to_view
-                return True
-            else:
-                # Fallback to immediate transition
-                self._complete_immediate_transition(to_view)
-                return True
-                
-        except Exception as e:
-            logger.error(f"Animation creation failed: {e}")
-            self._complete_immediate_transition(to_view)
-            return False
+        # Always use immediate transition
+        self._complete_immediate_transition(to_view)
+        return True
             
     def _determine_transition_type(self, from_view: ViewType, to_view: ViewType) -> TransitionType:
         """Determine the appropriate transition type based on view types."""

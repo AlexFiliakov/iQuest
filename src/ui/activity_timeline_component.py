@@ -165,12 +165,12 @@ class ActivityTimelineComponent(QWidget):
         
         # Main visualization area
         self.viz_widget = TimelineVisualizationWidget(self)
-        self.viz_widget.setMinimumHeight(400)
+        self.viz_widget.setMinimumHeight(600)  # Increased from 400 to 600
         layout.addWidget(self.viz_widget)
         
         # Info panel
         self.info_panel = QGroupBox("Timeline Insights", self)
-        self.info_panel.setMinimumHeight(150)  # Set minimum height for visibility
+        self.info_panel.setMinimumHeight(200)  # Increased to accommodate wrapped text
         info_layout = QVBoxLayout()
         info_layout.setContentsMargins(10, 15, 10, 15)  # Add proper margins
         info_layout.setSpacing(8)  # Add spacing between labels
@@ -179,6 +179,10 @@ class ActivityTimelineComponent(QWidget):
         self.rest_periods_label = QLabel("Rest Periods: -", self)
         self.peak_activity_label = QLabel("Peak Activity: -", self)
         self.patterns_label = QLabel("Patterns: None detected", self)
+        
+        # Enable word wrap for long text
+        self.patterns_label.setWordWrap(True)
+        self.patterns_label.setMinimumHeight(40)  # Ensure space for wrapped text
         
         info_layout.addWidget(self.active_periods_label)
         info_layout.addWidget(self.rest_periods_label)
@@ -490,11 +494,28 @@ class ActivityTimelineComponent(QWidget):
         else:
             self.peak_activity_label.setText("Peak Activity: -")
             
-        # Pattern detection summary
+        # Pattern detection summary with detailed information
         if self.clusters is not None:
-            unique_clusters = len(np.unique(self.clusters))
+            unique_clusters = len(np.unique(self.clusters[self.clusters >= 0]))
             anomaly_count = np.sum(self.anomalies) if self.anomalies is not None else 0
-            self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies")
+            
+            # Get anomaly times for display
+            if self.anomalies is not None and self.grouped_data is not None:
+                anomaly_times = []
+                for idx, is_anomaly in zip(self.grouped_data.index, self.anomalies):
+                    if is_anomaly:
+                        anomaly_times.append(idx.strftime('%H:%M'))
+                
+                if anomaly_times:
+                    # Show first few anomaly times
+                    anomaly_preview = ', '.join(anomaly_times[:3])
+                    if len(anomaly_times) > 3:
+                        anomaly_preview += f" (+{len(anomaly_times)-3} more)"
+                    self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies at {anomaly_preview}")
+                else:
+                    self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies")
+            else:
+                self.patterns_label.setText(f"Patterns: {unique_clusters} clusters, {anomaly_count} anomalies")
         else:
             self.patterns_label.setText("Patterns: None detected")
 
@@ -508,8 +529,8 @@ class TimelineVisualizationWidget(QWidget):
         self.setMinimumHeight(400)
         self.setMouseTracking(True)
         
-        # Matplotlib figure for linear view
-        self.figure = Figure(figsize=(10, 4), facecolor=parent.COLORS['background'])
+        # Matplotlib figure for linear view - increased size
+        self.figure = Figure(figsize=(12, 6), facecolor=parent.COLORS['background'])
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setParent(self)
         
@@ -540,6 +561,15 @@ class TimelineVisualizationWidget(QWidget):
         self.figure.clear()
         
         if not hasattr(self.timeline, 'grouped_data') or self.timeline.grouped_data is None or self.timeline.grouped_data.empty:
+            # Draw empty state message
+            ax = self.figure.add_subplot(111)
+            ax.set_facecolor(self.timeline.COLORS['background'])
+            ax.text(0.5, 0.5, 'No data available for the selected time range', 
+                   transform=ax.transAxes, ha='center', va='center',
+                   fontsize=14, color=self.timeline.COLORS['text'])
+            ax.set_xticks([])
+            ax.set_yticks([])
+            self.canvas.draw()
             return
             
         ax = self.figure.add_subplot(111)
@@ -555,47 +585,87 @@ class TimelineVisualizationWidget(QWidget):
         # Prepare data
         times = self.timeline.grouped_data.index
         
-        # Plot each metric
+        # Plot each metric with improved visibility
+        metric_height = 0.8  # Height of each metric bar
+        metric_spacing = 1.0  # Spacing between metrics
+        
+        # Create a colormap for each metric
+        metric_colors = {
+            'steps': '#FF8C42',      # Warm orange
+            'heart_rate': '#6C9BD1',  # Blue
+            'active_calories': '#95C17B'  # Green
+        }
+        
         for i, metric in enumerate(self.timeline.selected_metrics):
             if (metric, 'mean') in self.timeline.grouped_data.columns:
                 values = self.timeline.grouped_data[(metric, 'mean')].fillna(0)
                 
-                # Create heat gradient effect
-                for j, (time, value) in enumerate(zip(times, values)):
-                    if value > 0:
-                        # Calculate color intensity
-                        max_val = values.max() if values.max() > 0 else 1
-                        intensity = value / max_val
+                # Get base color for this metric
+                base_color = metric_colors.get(metric, self.timeline.COLORS['primary'])
+                
+                # Plot as a line chart with filled area
+                y_base = i * metric_spacing
+                y_values = values / values.max() * metric_height if values.max() > 0 else values
+                
+                # Create x values for plotting
+                x_values = [mdates.date2num(t) for t in times]
+                
+                # Plot filled area
+                ax.fill_between(x_values, y_base, y_base + y_values, 
+                              color=base_color, alpha=0.6, label=metric)
+                
+                # Plot line on top
+                ax.plot(x_values, y_base + y_values, color=base_color, 
+                       linewidth=2, alpha=0.9)
+                
+                # Add metric label on the left
+                ax.text(ax.get_xlim()[0] - 0.01, y_base + metric_height/2, metric,
+                       ha='right', va='center', fontsize=10, 
+                       color=self.timeline.COLORS['text'],
+                       transform=ax.get_yaxis_transform())
+        
+        # Set y-axis limits
+        ax.set_ylim(-0.2, len(self.timeline.selected_metrics) * metric_spacing)
                         
-                        # Create gradient color
-                        color = self.interpolate_color(
-                            self.timeline.COLORS['heat_low'],
-                            self.timeline.COLORS['heat_high'],
-                            intensity
-                        )
-                        
-                        # Draw bar
-                        width = 1.0 / (24 * 60 / self.timeline.time_grouping)
-                        rect = Rectangle(
-                            (mdates.date2num(time), i),
-                            width,
-                            intensity,
-                            facecolor=color,
-                            edgecolor='none',
-                            alpha=0.8
-                        )
-                        ax.add_patch(rect)
-                        
-        # Highlight patterns if enabled
-        if self.timeline.show_patterns and self.timeline.anomalies is not None:
-            for j, (time, is_anomaly) in enumerate(zip(times, self.timeline.anomalies)):
-                if is_anomaly:
+        # Show cluster assignments if clustering is enabled
+        if self.timeline.clustering_enabled and self.timeline.clusters is not None:
+            # Create cluster color map
+            cluster_colors = ['#6C9BD1', '#B79FCB', '#95C17B', '#FFD166']  # Chart palette colors
+            
+            # Draw cluster backgrounds
+            for j, (time, cluster) in enumerate(zip(times, self.timeline.clusters)):
+                if cluster >= 0:  # Valid cluster (not noise)
+                    color = cluster_colors[cluster % len(cluster_colors)]
                     ax.axvspan(
                         mdates.date2num(time),
                         mdates.date2num(time + timedelta(minutes=self.timeline.time_grouping)),
-                        alpha=0.2,
-                        color=self.timeline.COLORS['secondary']
+                        alpha=0.1,
+                        color=color,
+                        zorder=0
                     )
+        
+        # Highlight anomalies if enabled
+        if self.timeline.show_patterns and self.timeline.anomalies is not None:
+            anomaly_times = []
+            for j, (time, is_anomaly) in enumerate(zip(times, self.timeline.anomalies)):
+                if is_anomaly:
+                    anomaly_times.append(time)
+                    # Draw red border around anomaly periods
+                    ax.axvspan(
+                        mdates.date2num(time),
+                        mdates.date2num(time + timedelta(minutes=self.timeline.time_grouping)),
+                        alpha=0.3,
+                        color='red',
+                        edgecolor='red',
+                        linewidth=2,
+                        zorder=10
+                    )
+            
+            # Add anomaly markers at the top
+            if anomaly_times:
+                for anom_time in anomaly_times:
+                    ax.annotate('⚠', xy=(mdates.date2num(anom_time), ax.get_ylim()[1]*0.95),
+                              fontsize=16, color='red', ha='center', va='top')
                     
         # Format x-axis
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
@@ -603,12 +673,33 @@ class TimelineVisualizationWidget(QWidget):
         
         # Labels
         ax.set_xlabel('Time of Day', fontsize=11, color=self.timeline.COLORS['text'])
-        ax.set_ylabel('Activity Intensity', fontsize=11, color=self.timeline.COLORS['text'])
-        ax.set_title('24-Hour Activity Pattern', fontsize=14, fontweight='bold', 
+        ax.set_ylabel('Metrics', fontsize=11, color=self.timeline.COLORS['text'])
+        ax.set_title('24-Hour Activity Pattern with Clustering Analysis', fontsize=14, fontweight='bold', 
                      color=self.timeline.COLORS['text'], pad=20)
+        
+        # Hide y-axis ticks since we're using custom labels
+        ax.set_yticks([])
         
         # Grid
         ax.grid(True, axis='y', linestyle=':', color=self.timeline.COLORS['grid'], alpha=0.5)
+        
+        # Add legend for clusters if enabled
+        if self.timeline.clustering_enabled and self.timeline.clusters is not None:
+            from matplotlib.patches import Patch
+            cluster_colors = ['#6C9BD1', '#B79FCB', '#95C17B', '#FFD166']
+            unique_clusters = np.unique(self.timeline.clusters[self.timeline.clusters >= 0])
+            legend_elements = []
+            
+            for cluster in unique_clusters:
+                color = cluster_colors[cluster % len(cluster_colors)]
+                legend_elements.append(Patch(facecolor=color, alpha=0.3, label=f'Cluster {cluster + 1}'))
+            
+            if self.timeline.anomalies is not None and np.any(self.timeline.anomalies):
+                legend_elements.append(Patch(facecolor='red', alpha=0.3, label='Anomaly'))
+            
+            if legend_elements:
+                ax.legend(handles=legend_elements, loc='upper right', frameon=True, 
+                         facecolor='white', edgecolor=self.timeline.COLORS['grid'])
         
         # Show correlations if enabled
         if self.timeline.show_correlations and hasattr(self.timeline, 'correlations') and self.timeline.correlations is not None:
