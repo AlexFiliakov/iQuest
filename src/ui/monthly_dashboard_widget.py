@@ -5,24 +5,33 @@ This widget provides the monthly view of health metrics with calendar heatmap vi
 summary statistics, and month navigation controls.
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, date, timedelta
-from calendar import monthrange
 import json
+from calendar import monthrange
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy, QButtonGroup,
-    QApplication
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QDate
+from PyQt6.QtCore import QDate, Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
+from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+from ..health_database import HealthDatabase
+from ..utils.logging_config import get_logger
 from .charts.calendar_heatmap import CalendarHeatmapComponent
 from .statistics_widget import StatisticsWidget
-from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
-from ..utils.logging_config import get_logger
-from ..health_database import HealthDatabase
 
 logger = get_logger(__name__)
 
@@ -1225,7 +1234,7 @@ class MonthlyDashboardWidget(QWidget):
         """Get daily aggregate value directly from database."""
         try:
             from ..database import db_manager
-            
+
             # Query database for the specific date
             query = """
                 SELECT SUM(value) as total_value
