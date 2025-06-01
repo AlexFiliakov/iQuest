@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Callable, Any, Tuple
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from .cache_manager import get_cache_manager, CacheEntry
+from .cache_manager import get_cache_manager, CacheEntry, cache_key
 
 logger = logging.getLogger(__name__)
 
@@ -461,14 +461,16 @@ def warm_monthly_metrics_cache(cached_monthly_calculator, db_manager, months_bac
     # Process each month
     for (year, month), metrics in months_by_period.items():
         for metric in metrics:
-            cache_key = f"monthly_stats|{metric}|{year}|{month}"
+            # Use standardized cache key format
+            month_str = f"{year:04d}-{month:02d}"
+            cache_key_str = cache_key("monthly_summary", metric, month_str)
             try:
                 # Calculate and cache the monthly statistics
                 _ = cached_monthly_calculator.calculate_monthly_stats(metric, year, month)
-                results[cache_key] = True
+                results[cache_key_str] = True
                 logger.debug(f"Successfully cached monthly stats for {metric} {year}/{month:02d}")
             except Exception as e:
-                results[cache_key] = False
+                results[cache_key_str] = False
                 logger.warning(f"Failed to cache monthly stats for {metric} {year}/{month:02d}: {e}")
     
     success_count = sum(results.values())

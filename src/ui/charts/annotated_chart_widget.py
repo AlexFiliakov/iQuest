@@ -96,10 +96,6 @@ class AnnotatedHealthChart(QWidget):
         # Action buttons
         button_layout = QHBoxLayout()
         
-        refresh_btn = QPushButton("Refresh Annotations")
-        refresh_btn.clicked.connect(self.refresh_annotations)
-        button_layout.addWidget(refresh_btn)
-        
         clear_btn = QPushButton("Clear All")
         clear_btn.clicked.connect(self.clear_annotations)
         button_layout.addWidget(clear_btn)
@@ -131,32 +127,7 @@ class AnnotatedHealthChart(QWidget):
         self.data = data
         self.metric_type = metric_type
         
-        # Generate annotations
-        self.refresh_annotations()
-    
-    def refresh_annotations(self):
-        """Refresh annotations based on current data and settings"""
-        if not hasattr(self, 'data') or self.data is None:
-            return
-        
-        # Get enabled annotation types
-        enabled_types = [
-            ann_type for ann_type, checkbox in self.type_checkboxes.items()
-            if checkbox.isChecked()
-        ]
-        
-        # Update max annotations based on density
-        self.annotation_system.max_annotations_per_chart = self.density_slider.value()
-        
-        # Generate annotations
-        self.annotations = self.annotation_system.generate_annotations(
-            data=self.data,
-            metric_type=self.metric_type,
-            annotation_types=enabled_types
-        )
-        
-        # Render annotations
-        self._render_annotations()
+        # Annotations will be generated automatically when data changes
     
     def _render_annotations(self):
         """Render annotations on the chart"""

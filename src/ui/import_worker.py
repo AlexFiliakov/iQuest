@@ -115,6 +115,14 @@ class ImportWorker(QThread):
             # Create database backup for rollback
             self._create_database_backup()
             
+            # Invalidate existing cache before import
+            try:
+                from ..analytics.cache_manager import invalidate_all_cache
+                invalidate_all_cache()
+                logger.info("Invalidated cache before import")
+            except Exception as e:
+                logger.warning(f"Could not invalidate cache before import: {e}")
+            
             if self.import_type == 'xml':
                 result = self._import_xml()
             elif self.import_type == 'csv':

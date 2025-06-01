@@ -137,10 +137,6 @@ class CorrelationMatrixWidget(QWidget):
         button_group = QGroupBox("Actions")
         button_layout = QVBoxLayout(button_group)
         
-        self.refresh_btn = QPushButton("Refresh Analysis")
-        self.refresh_btn.clicked.connect(self.refresh_analysis)
-        button_layout.addWidget(self.refresh_btn)
-        
         self.export_btn = QPushButton("Export Matrix")
         self.export_btn.clicked.connect(self.export_correlation_matrix)
         button_layout.addWidget(self.export_btn)
@@ -257,18 +253,6 @@ class CorrelationMatrixWidget(QWidget):
         min_corr = value / 100.0  # Convert to 0.0-0.8 range
         self.min_corr_label.setText(f"{min_corr:.2f}")
         self.update_correlation_matrix()
-    
-    def refresh_analysis(self):
-        """Refresh the correlation analysis."""
-        if self.analyzer is None:
-            self.status_label.setText("No data loaded")
-            return
-        
-        try:
-            self.status_label.setText("Calculating correlations...")
-            QTimer.singleShot(10, self._perform_analysis)
-        except Exception as e:
-            self.status_label.setText(f"Error: {str(e)}")
     
     def _perform_analysis(self):
         """Perform the actual analysis (called asynchronously)."""

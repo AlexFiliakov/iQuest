@@ -39,7 +39,9 @@ class CachedDailyMetricsCalculator:
                            end_date: date = None, interpolation: str = "none") -> MetricStatistics:
         """Calculate statistics with caching."""
         
-        key = f"daily_stats|{cache_key(metric, start_date, end_date, interpolation)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        key = cache_key("daily_stats", metric, interpolation, date_range)
         dependencies = [f"metric:{metric}", f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -57,7 +59,10 @@ class CachedDailyMetricsCalculator:
                             start_date: date = None, end_date: date = None) -> Dict[int, float]:
         """Calculate percentiles with caching."""
         
-        key = f"daily_percentiles|{cache_key(metric, percentiles, start_date, end_date)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        percentiles_str = "_".join(map(str, percentiles))
+        key = cache_key("daily_percentiles", metric, f"p{percentiles_str}", date_range)
         dependencies = [f"metric:{metric}", f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -75,7 +80,9 @@ class CachedDailyMetricsCalculator:
                        start_date: date = None, end_date: date = None) -> pd.Series:
         """Detect outliers with caching."""
         
-        key = f"daily_outliers|{cache_key(metric, method, start_date, end_date)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        key = cache_key("daily_outliers", metric, method, date_range)
         dependencies = [f"metric:{metric}", f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -93,7 +100,9 @@ class CachedDailyMetricsCalculator:
                                   start_date: date = None, end_date: date = None) -> pd.Series:
         """Calculate daily aggregates with caching."""
         
-        key = f"daily_aggregates|{cache_key(metric, aggregation, start_date, end_date)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        key = cache_key("daily_aggregates", metric, aggregation, date_range)
         dependencies = [f"metric:{metric}", f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -111,7 +120,10 @@ class CachedDailyMetricsCalculator:
                            end_date: date = None) -> Dict[str, MetricStatistics]:
         """Get metrics summary with caching."""
         
-        key = f"daily_summary|{cache_key(metrics, start_date, end_date)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        metrics_str = "_".join(sorted(metrics))
+        key = cache_key("daily_multi_summary", metrics_str, date_range)
         dependencies = [f"metric:{m}" for m in metrics] + [f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -149,7 +161,9 @@ class CachedWeeklyMetricsCalculator:
                                start_date: date = None, end_date: date = None) -> pd.DataFrame:
         """Calculate rolling statistics with caching."""
         
-        key = f"weekly_rolling|{cache_key(metric, window, start_date, end_date)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        key = cache_key("weekly_rolling", metric, f"w{window}", date_range)
         dependencies = [f"metric:{metric}", f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -166,7 +180,9 @@ class CachedWeeklyMetricsCalculator:
     def compare_week_to_date(self, metric: str, current_week: int, year: int) -> WeekComparison:
         """Compare week-to-date with caching."""
         
-        key = f"weekly_comparison|{cache_key(metric, current_week, year)}"
+        # Use standardized cache key format
+        week_str = f"{year:04d}-W{current_week:02d}"
+        key = cache_key("weekly_comparison", metric, week_str)
         dependencies = [f"metric:{metric}", f"week:{year}:{current_week}"]
         
         def compute_fn():
@@ -187,7 +203,10 @@ class CachedWeeklyMetricsCalculator:
         if windows is None:
             windows = [7, 14, 28]
         
-        key = f"weekly_ma|{cache_key(metric, windows, start_date, end_date)}"
+        # Use standardized cache key format
+        date_range = f"{start_date.isoformat()}_{end_date.isoformat()}"
+        windows_str = "_".join(map(str, windows))
+        key = cache_key("weekly_ma", metric, f"w{windows_str}", date_range)
         dependencies = [f"metric:{metric}", f"date_range:{start_date}:{end_date}"]
         
         def compute_fn():
@@ -278,7 +297,9 @@ class CachedMonthlyMetricsCalculator:
     def calculate_monthly_stats(self, metric: str, year: int, month: int) -> MonthlyMetrics:
         """Calculate monthly statistics with caching."""
         
-        key = f"monthly_stats|{cache_key(metric, year, month)}"
+        # Use standardized cache key format for consistency with import summaries
+        month_str = f"{year:04d}-{month:02d}"
+        key = cache_key("monthly_summary", metric, month_str)
         dependencies = [f"metric:{metric}", f"month:{year}:{month}"]
         
         def compute_fn():
@@ -296,7 +317,9 @@ class CachedMonthlyMetricsCalculator:
                               years_back: int = 1) -> MonthlyComparison:
         """Compare year-over-year with caching."""
         
-        key = f"monthly_yoy|{cache_key(metric, month, target_year, years_back)}"
+        # Use standardized cache key format
+        period_key = f"{target_year:04d}-{month:02d}_yb{years_back}"
+        key = cache_key("monthly_yoy", metric, period_key)
         dependencies = [f"metric:{metric}", f"month:{target_year}:{month}"]
         
         def compute_fn():
@@ -314,7 +337,9 @@ class CachedMonthlyMetricsCalculator:
                              end_year: int, end_month: int) -> GrowthRateInfo:
         """Calculate growth rate with caching."""
         
-        key = f"monthly_growth|{cache_key(metric, periods, end_year, end_month)}"
+        # Use standardized cache key format
+        period_key = f"p{periods}_{end_year:04d}-{end_month:02d}"
+        key = cache_key("monthly_growth", metric, period_key)
         dependencies = [f"metric:{metric}", f"period_end:{end_year}:{end_month}"]
         
         def compute_fn():
@@ -331,7 +356,9 @@ class CachedMonthlyMetricsCalculator:
     def analyze_distribution(self, metric: str, year: int, month: int):
         """Analyze distribution with caching."""
         
-        key = f"monthly_distribution|{cache_key(metric, year, month)}"
+        # Use standardized cache key format
+        month_str = f"{year:04d}-{month:02d}"
+        key = cache_key("monthly_distribution", metric, month_str)
         dependencies = [f"metric:{metric}", f"month:{year}:{month}"]
         
         def compute_fn():
@@ -349,7 +376,10 @@ class CachedMonthlyMetricsCalculator:
                                          year_month_pairs: List[Tuple[int, int]]) -> Dict[str, Dict[Tuple[int, int], MonthlyMetrics]]:
         """Calculate multiple months in parallel with caching."""
         
-        key = f"monthly_multi|{cache_key(metrics, year_month_pairs)}"
+        # Use standardized cache key format
+        metrics_str = "_".join(sorted(metrics))
+        periods_str = "_".join(f"{y:04d}-{m:02d}" for y, m in sorted(year_month_pairs))
+        key = cache_key("monthly_multi", metrics_str, periods_str)
         dependencies = ([f"metric:{m}" for m in metrics] + 
                        [f"month:{y}:{m}" for y, m in year_month_pairs])
         
@@ -367,7 +397,10 @@ class CachedMonthlyMetricsCalculator:
     def get_monthly_summary(self, metrics: List[str], year: int, month: int) -> Dict[str, Dict[str, Union[float, bool]]]:
         """Get monthly summary with caching."""
         
-        key = f"monthly_summary|{cache_key(metrics, year, month)}"
+        # Use standardized cache key format
+        month_str = f"{year:04d}-{month:02d}"
+        metrics_str = "_".join(sorted(metrics))
+        key = cache_key("monthly_multi_summary", metrics_str, month_str)
         dependencies = [f"metric:{m}" for m in metrics] + [f"month:{year}:{month}"]
         
         def compute_fn():

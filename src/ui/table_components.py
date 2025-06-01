@@ -447,10 +447,6 @@ class MetricTable(QWidget):
         self.columns_button = QPushButton("📋 Columns")
         self.columns_button.clicked.connect(self._show_column_menu)
         
-        # Refresh button
-        self.refresh_button = QPushButton("🔄 Refresh")
-        self.refresh_button.clicked.connect(self._refresh_data)
-        
         # Info label
         self.info_label = QLabel(self)
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -458,7 +454,6 @@ class MetricTable(QWidget):
         layout.addWidget(self.export_button)
         layout.addWidget(self.filter_button)
         layout.addWidget(self.columns_button)
-        layout.addWidget(self.refresh_button)
         layout.addStretch()
         layout.addWidget(self.info_label)
         
@@ -540,7 +535,7 @@ class MetricTable(QWidget):
         
         # Button styling
         button_style = self.style_manager.get_button_style("secondary")
-        for button in [self.export_button, self.filter_button, self.columns_button, self.refresh_button]:
+        for button in [self.export_button, self.filter_button, self.columns_button]:
             button.setStyleSheet(button_style)
         
         # Scroll bar styling
@@ -853,13 +848,6 @@ class MetricTable(QWidget):
             menu.addAction(action)
         
         menu.exec(self.columns_button.mapToGlobal(self.columns_button.rect().bottomLeft()))
-    
-    def _refresh_data(self):
-        """Refresh table display."""
-        if self.data is not None:
-            # Reapply filters and update display
-            self._apply_filters(self.active_filters)
-            logger.info("Table data refreshed")
     
     def get_selected_data(self) -> Optional[pd.DataFrame]:
         """Get currently selected rows as DataFrame."""

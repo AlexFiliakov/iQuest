@@ -306,9 +306,6 @@ class MainWindow(QMainWindow):
                 - Erase All Data: Secure data removal with confirmation
                 - Exit: Close application with Ctrl+Q
                 
-            View menu:
-                - Refresh: Refresh current view with F5 shortcut
-                
             Help menu:
                 - Keyboard Shortcuts: Reference dialog with Ctrl+?
                 - About: Application information dialog
@@ -404,17 +401,6 @@ class MainWindow(QMainWindow):
         exit_action.setToolTip("Close the Apple Health Monitor application (Ctrl+Q)")
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
-        
-        # View menu
-        view_menu = menu_bar.addMenu("&View")
-        
-        # Refresh action
-        refresh_action = QAction("&Refresh", self)
-        refresh_action.setShortcut("F5")
-        refresh_action.setStatusTip("Refresh current view")
-        refresh_action.setToolTip("Refresh the current dashboard view (F5)")
-        refresh_action.triggered.connect(self._on_refresh)
-        view_menu.addAction(refresh_action)
         
         # Help menu
         help_menu = menu_bar.addMenu("&Help")
@@ -738,6 +724,10 @@ class MainWindow(QMainWindow):
         """
         try:
             from .monthly_dashboard_widget import MonthlyDashboardWidget
+            from ..analytics.cached_calculators import (
+                CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, 
+                CachedMonthlyMetricsCalculator
+            )
             from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
             from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
             from ..analytics.data_source_protocol import DataAccessAdapter
@@ -749,14 +739,16 @@ class MainWindow(QMainWindow):
                 data_access = DataAccess()
                 data_adapter = DataAccessAdapter(data_access)
                 
-                # Create daily calculator first (required by monthly calculator)
+                # Create cached daily calculator first (required by monthly calculator)
                 daily_calculator = DailyMetricsCalculator(data_adapter)
+                cached_daily_calculator = CachedDailyMetricsCalculator(daily_calculator)
                 
-                # Create monthly calculator with the daily calculator
+                # Create cached monthly calculator with the daily calculator
                 monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
+                cached_monthly_calculator = CachedMonthlyMetricsCalculator(monthly_calculator)
                 
-                # Create the monthly dashboard widget with calculator
-                self.monthly_dashboard = MonthlyDashboardWidget(monthly_calculator=monthly_calculator)
+                # Create the monthly dashboard widget with cached calculator
+                self.monthly_dashboard = MonthlyDashboardWidget(monthly_calculator=cached_monthly_calculator)
                 logger.info("Using MonthlyDashboardWidget with calculator")
             except Exception as calc_error:
                 logger.warning(f"Could not create calculators: {calc_error}")
@@ -983,7 +975,6 @@ class MainWindow(QMainWindow):
             self.health_insights_widget.set_insights_engine(insights_engine)
             
             # Connect signals
-            self.health_insights_widget.refresh_requested.connect(self._refresh_health_insights)
             self.health_insights_widget.insight_selected.connect(self._on_insight_selected)
             
             self.tab_widget.addTab(self.health_insights_widget, "💡 Insights")
@@ -1187,8 +1178,7 @@ class MainWindow(QMainWindow):
             [
                 ("Ctrl+O", "Import data file (CSV or XML)"),
                 ("Ctrl+S", "Save configuration"),
-                ("Ctrl+Q", "Exit application"),
-                ("F5", "Refresh current view")
+                ("Ctrl+Q", "Exit application")
             ]
         )
         content_layout.addWidget(file_section)
@@ -1649,13 +1639,6 @@ class MainWindow(QMainWindow):
                 "Configuration saving functionality is available in the Configuration tab."
             )
     
-    def _on_refresh(self):
-        """Handle refresh action."""
-        logger.info("Refresh action triggered")
-        current_tab = self.tab_widget.tabText(self.tab_widget.currentIndex())
-        self.status_bar.showMessage(f"Refreshing {current_tab}...")
-        # Placeholder for refresh functionality
-    
     def _on_show_shortcuts(self):
         """Show keyboard shortcuts reference dialog."""
         logger.info("Keyboard shortcuts dialog requested")
@@ -1675,7 +1658,6 @@ class MainWindow(QMainWindow):
         <tr><td><b>Ctrl+O</b></td><td>Import data file (CSV or XML)</td></tr>
         <tr><td><b>Ctrl+S</b></td><td>Save configuration</td></tr>
         <tr><td><b>Ctrl+Q</b></td><td>Exit application</td></tr>
-        <tr><td><b>F5</b></td><td>Refresh current view</td></tr>
         </table>
         
         <h3>Configuration Tab</h3>
@@ -2146,14 +2128,21 @@ class MainWindow(QMainWindow):
                     data = self.config_tab.filtered_data
                     
                 if data is not None and not data.empty:
-                    # Create daily calculator with the data
+                    # Create cached daily calculator with the data
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+                    from ..analytics.cached_calculators import CachedDailyMetricsCalculator
                     # Get local timezone
                     local_tz = get_local_timezone()
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
+                    cached_daily_calculator = CachedDailyMetricsCalculator(daily_calculator)
                     
-                    # Set the calculator in the daily dashboard
-                    self.daily_dashboard.set_daily_calculator(daily_calculator)
+                    # Set the cached calculator in the daily dashboard
+                    self.daily_dashboard.set_daily_calculator(cached_daily_calculator)
+                    
+                    # Set up cached data access for pre-computed summaries
+                    from ..analytics.cached_data_access import CachedDataAccess
+                    cached_data_access = CachedDataAccess()
+                    self.daily_dashboard.set_cached_data_access(cached_data_access)
                     
                     # Create and set personal records tracker
                     if not hasattr(self, 'personal_records_tracker'):
@@ -2210,20 +2199,29 @@ class MainWindow(QMainWindow):
                     data = self.config_tab.filtered_data
                     
                 if data is not None and not data.empty:
-                    # Create daily calculator first
+                    # Create cached calculators
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+                    from ..analytics.cached_calculators import CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator
                     # Get local timezone
                     local_tz = get_local_timezone()
                     
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
+                    cached_daily_calculator = CachedDailyMetricsCalculator(daily_calculator)
                     
-                    # Create weekly calculator with the daily calculator
+                    # Create cached weekly calculator with the daily calculator
                     weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
+                    cached_weekly_calculator = CachedWeeklyMetricsCalculator(weekly_calculator)
                     
-                    # Set the calculator in the weekly dashboard
+                    # Set the cached calculator in the weekly dashboard
                     if hasattr(self.weekly_dashboard, 'set_weekly_calculator'):
-                        self.weekly_dashboard.set_weekly_calculator(weekly_calculator)
+                        self.weekly_dashboard.set_weekly_calculator(cached_weekly_calculator)
+                    
+                    # Set up cached data access for pre-computed summaries
+                    from ..analytics.cached_data_access import CachedDataAccess
+                    cached_data_access = CachedDataAccess()
+                    if hasattr(self.weekly_dashboard, 'set_cached_data_access'):
+                        self.weekly_dashboard.set_cached_data_access(cached_data_access)
                     
                     logger.info(f"Set weekly calculator with {len(data)} records")
                 else:
@@ -2247,20 +2245,29 @@ class MainWindow(QMainWindow):
                     data = self.config_tab.filtered_data
                     
                 if data is not None and not data.empty:
-                    # Create daily calculator first
+                    # Create cached calculators
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                    from ..analytics.cached_calculators import CachedDailyMetricsCalculator, CachedMonthlyMetricsCalculator
                     # Get local timezone
                     local_tz = get_local_timezone()
                     
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
+                    cached_daily_calculator = CachedDailyMetricsCalculator(daily_calculator)
                     
-                    # Create monthly calculator with the daily calculator
+                    # Create cached monthly calculator with the daily calculator
                     monthly_calculator = MonthlyMetricsCalculator(daily_calculator)
+                    cached_monthly_calculator = CachedMonthlyMetricsCalculator(monthly_calculator)
                     
-                    # Set the calculator in the monthly dashboard
+                    # Set the cached calculator in the monthly dashboard
                     if hasattr(self.monthly_dashboard, 'set_data_source'):
-                        self.monthly_dashboard.set_data_source(monthly_calculator)
+                        self.monthly_dashboard.set_data_source(cached_monthly_calculator)
+                    
+                    # Set up cached data access for pre-computed summaries
+                    from ..analytics.cached_data_access import CachedDataAccess
+                    cached_data_access = CachedDataAccess()
+                    if hasattr(self.monthly_dashboard, 'set_cached_data_access'):
+                        self.monthly_dashboard.set_cached_data_access(cached_data_access)
                     
                     logger.info(f"Set monthly calculator with {len(data)} records")
                 else:
@@ -2311,21 +2318,30 @@ class MainWindow(QMainWindow):
                         logger.error(f"Failed to load data for comparative analytics: {e}")
                 
                 if data is not None and not data.empty:
-                    # Create calculators
+                    # Create cached calculators
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                    from ..analytics.cached_calculators import (
+                        CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, 
+                        CachedMonthlyMetricsCalculator
+                    )
                     # Get local timezone
                     local_tz = get_local_timezone()
                     
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
-                    weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
-                    monthly_calculator = MonthlyMetricsCalculator(data)
+                    cached_daily_calculator = CachedDailyMetricsCalculator(daily_calculator)
                     
-                    # Update comparative engine
-                    self.comparative_engine.daily_calculator = daily_calculator
-                    self.comparative_engine.weekly_calculator = weekly_calculator
-                    self.comparative_engine.monthly_calculator = monthly_calculator
+                    weekly_calculator = WeeklyMetricsCalculator(daily_calculator)
+                    cached_weekly_calculator = CachedWeeklyMetricsCalculator(weekly_calculator)
+                    
+                    monthly_calculator = MonthlyMetricsCalculator(data)
+                    cached_monthly_calculator = CachedMonthlyMetricsCalculator(monthly_calculator)
+                    
+                    # Update comparative engine with cached calculators
+                    self.comparative_engine.daily_calculator = cached_daily_calculator
+                    self.comparative_engine.weekly_calculator = cached_weekly_calculator
+                    self.comparative_engine.monthly_calculator = cached_monthly_calculator
                     
                     # Re-set the engine in the widget to trigger updates
                     self.comparative_widget.set_comparative_engine(self.comparative_engine)
@@ -2361,27 +2377,6 @@ class MainWindow(QMainWindow):
         """Handle metric selection signal from weekly dashboard."""
         logger.info(f"Weekly metric selected: {metric}")
         self.status_bar.showMessage(f"Weekly view: {metric}")
-    
-    def _refresh_health_insights(self):
-        """Refresh health insights based on current data."""
-        logger.info("Refreshing health insights")
-        
-        # Get current data from configuration tab
-        if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'get_filtered_data'):
-            data = self.config_tab.get_filtered_data()
-            
-            if data is not None and not data.empty:
-                # Convert data to format expected by insights engine
-                user_data = self._prepare_data_for_insights(data)
-                
-                # Load insights
-                if hasattr(self, 'health_insights_widget'):
-                    self.health_insights_widget.load_insights(user_data)
-                    self.status_bar.showMessage("Generating health insights...")
-            else:
-                self.status_bar.showMessage("No data available for insights")
-        else:
-            self.status_bar.showMessage("Load data first to generate insights")
     
     def _on_insight_selected(self, insight):
         """Handle insight selection."""

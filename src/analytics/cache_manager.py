@@ -360,13 +360,23 @@ class SQLiteCache:
                     )
                 """)
                 
+                # Performance indexes
                 conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_expires_at ON cache_entries(expires_at)
                 """)
                 
                 conn.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_last_accessed ON cache_entries(last_accessed)
+                """)
+                
+                conn.execute("""
                     CREATE INDEX IF NOT EXISTS idx_created_at ON cache_entries(created_at)
                 """)
+                
+                # Enable WAL mode for better concurrent performance
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA synchronous=NORMAL")
+                conn.execute("PRAGMA cache_size=10000")  # 10MB cache
                 
                 if self._corrupted:
                     logger.info("Successfully created new cache database after corruption recovery")
@@ -551,6 +561,16 @@ class SQLiteCache:
             logger.debug("SQLite cache prepared for cleanup")
         except Exception as e:
             logger.error(f"Error closing SQLite cache: {e}")
+    
+    def get_size(self) -> int:
+        """Get the number of entries in the cache."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("SELECT COUNT(*) FROM cache_entries")
+                return cursor.fetchone()[0]
+        except Exception as e:
+            logger.error(f"Error getting cache size: {e}")
+            return 0
 
 
 class DiskCache:
@@ -665,6 +685,14 @@ class DiskCache:
             self._save_metadata()
         
         return count
+    
+    def get_size(self) -> int:
+        """Get the number of entries in the cache."""
+        try:
+            return len(self._metadata)
+        except Exception as e:
+            logger.error(f"Error getting disk cache size: {e}")
+            return 0
 
 
 class AnalyticsCacheManager:
@@ -673,7 +701,7 @@ class AnalyticsCacheManager:
     def __init__(self, 
                  l1_maxsize: int = 1000,
                  l1_memory_mb: float = 500.0,
-                 l2_db_path: str = "analytics_cache.db", 
+                 l2_db_path: str = "analytics_cache.db",  # Keep analytics cache for now 
                  l3_cache_dir: str = "./cache/"):
         
         self.l1_cache = LRUCache(maxsize=l1_maxsize, max_memory_mb=l1_memory_mb)
@@ -708,6 +736,7 @@ class AnalyticsCacheManager:
                     return result
                 else:
                     self.metrics.l1_misses += 1
+                    logger.debug(f"L1 cache miss: {key}")
             
             # Try L2 cache
             if 'l2' in cache_tiers:
@@ -965,6 +994,76 @@ class AnalyticsCacheManager:
             logger.error(f"Error bulk inserting summaries: {e}")
             raise
     
+    def get_cache_health_diagnostics(self) -> Dict[str, Any]:
+        """Get comprehensive cache health and performance metrics.
+        
+        Returns:
+            Dict containing cache health information including hit rates,
+            memory usage, entry counts, and performance statistics.
+        """
+        with self._lock:
+            # Get current cache sizes
+            l1_size = len(self.l1_cache._cache)
+            l1_memory_mb = self.l1_cache._current_memory / (1024 * 1024)
+            
+            l2_size = self.l2_cache.get_size()
+            l3_size = self.l3_cache.get_size()
+            
+            return {
+                'hit_rates': {
+                    'l1': self.metrics.l1_hit_rate,
+                    'l2': self.metrics.l2_hit_rate,
+                    'l3': self.metrics.l3_hit_rate,
+                    'overall': self.metrics.overall_hit_rate
+                },
+                'cache_sizes': {
+                    'l1_entries': l1_size,
+                    'l1_memory_mb': round(l1_memory_mb, 2),
+                    'l1_max_memory_mb': self.l1_cache.max_memory_bytes / (1024 * 1024),
+                    'l2_entries': l2_size,
+                    'l3_entries': l3_size
+                },
+                'request_counts': {
+                    'total_requests': self.metrics.total_requests,
+                    'l1_hits': self.metrics.l1_hits,
+                    'l1_misses': self.metrics.l1_misses,
+                    'l2_hits': self.metrics.l2_hits,
+                    'l2_misses': self.metrics.l2_misses,
+                    'l3_hits': self.metrics.l3_hits,
+                    'l3_misses': self.metrics.l3_misses
+                },
+                'health_status': self._get_cache_health_status()
+            }
+    
+    def _get_cache_health_status(self) -> str:
+        """Determine overall cache health status."""
+        overall_hit_rate = self.metrics.overall_hit_rate
+        
+        if overall_hit_rate >= 0.9:
+            return "excellent"
+        elif overall_hit_rate >= 0.7:
+            return "good"
+        elif overall_hit_rate >= 0.5:
+            return "fair"
+        else:
+            return "poor"
+    
+    def invalidate_all_cache(self) -> None:
+        """Clear all cache tiers completely."""
+        with self._lock:
+            logger.info("Invalidating all cache entries")
+            
+            # Clear L1 cache
+            self.l1_cache.clear()
+            
+            # Clear L2 cache
+            self.l2_cache.clear()
+            
+            # Clear L3 cache 
+            self.l3_cache.clear()
+            
+            logger.info("All cache entries invalidated")
+    
     def shutdown(self) -> None:
         """Shutdown the cache manager and close all connections."""
         with self._lock:
@@ -992,6 +1091,40 @@ def get_cache_manager() -> AnalyticsCacheManager:
         _cache_manager = AnalyticsCacheManager()
     return _cache_manager
 
+
+def get_cache_diagnostics() -> Dict[str, Any]:
+    """Get cache health diagnostics from the global cache manager."""
+    global _cache_manager
+    if _cache_manager is not None:
+        try:
+            return _cache_manager.get_cache_health_diagnostics()
+        except Exception as e:
+            logger.error(f"Error getting cache diagnostics: {e}")
+            return {}
+    return {}
+
+def invalidate_all_cache() -> None:
+    """Invalidate all cache entries in the global cache manager."""
+    global _cache_manager
+    if _cache_manager is not None:
+        try:
+            _cache_manager.invalidate_all_cache()
+            logger.info("Successfully cleared all cache entries")
+        except Exception as e:
+            logger.error(f"Error invalidating cache: {e}")
+
+def clear_cache_manually() -> bool:
+    """Manually clear all cache for user-initiated cache management.
+    
+    Returns:
+        bool: True if cache was cleared successfully, False otherwise.
+    """
+    try:
+        invalidate_all_cache()
+        return True
+    except Exception as e:
+        logger.error(f"Error clearing cache manually: {e}")
+        return False
 
 def shutdown_cache_manager() -> None:
     """Shutdown the global cache manager."""

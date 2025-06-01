@@ -307,7 +307,6 @@ class HealthInsightsWidget(QWidget):
     """Main widget for displaying health insights and recommendations."""
     
     insight_selected = pyqtSignal(HealthInsight)
-    refresh_requested = pyqtSignal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -382,11 +381,6 @@ class HealthInsightsWidget(QWidget):
         self.max_insights_spin.setSuffix(" insights")
         self.max_insights_spin.valueChanged.connect(self.on_max_insights_changed)
         header_layout.addWidget(self.max_insights_spin)
-        
-        # Refresh button
-        self.refresh_button = QPushButton("Refresh")
-        self.refresh_button.clicked.connect(self.refresh_insights)
-        header_layout.addWidget(self.refresh_button)
         
         layout.addLayout(header_layout)
         
@@ -585,21 +579,20 @@ class HealthInsightsWidget(QWidget):
         summary = self.insights_engine.generate_weekly_summary(self.current_insights)
         self.summary_text.setHtml(summary.replace('\n', '<br>').replace('**', '<b>').replace('*', '<i>'))
     
-    def refresh_insights(self):
-        """Refresh insights."""
-        self.refresh_requested.emit()
-    
     def on_period_changed(self, period: str):
         """Handle period change."""
-        self.refresh_insights()
+        # Period change handled automatically through reactive updates
+        pass
     
     def on_max_insights_changed(self, value: int):
         """Handle max insights change."""
-        self.refresh_insights()
+        # Max insights change handled automatically through reactive updates
+        pass
     
     def on_metric_changed(self, metric: str):
         """Handle metric selection change."""
-        self.refresh_insights()
+        # Metric change handled automatically through reactive updates
+        pass
     
     # Progressive loading callbacks
     def _on_loading_started(self):

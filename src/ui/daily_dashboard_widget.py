@@ -145,7 +145,6 @@ class DailyDashboardWidget(QWidget):
     # Signals
     metric_selected = pyqtSignal(str)
     date_changed = pyqtSignal(date)
-    refresh_requested = pyqtSignal()
     
     # Common health metrics configuration
     METRIC_CONFIG = {
@@ -187,10 +186,6 @@ class DailyDashboardWidget(QWidget):
         # Initialize metric mappings
         self._init_metric_mappings()
         
-        # Auto-refresh timer
-        self.refresh_timer = QTimer(self)
-        self.refresh_timer.timeout.connect(self._auto_refresh)
-        self.refresh_timer.start(60000)  # Refresh every minute
         
         # Debounce timer for updates
         self._update_timer = QTimer()
@@ -521,24 +516,6 @@ class DailyDashboardWidget(QWidget):
         """)
         self.today_btn.setEnabled(self._current_date != date.today())
         layout.addWidget(self.today_btn)
-        
-        # Refresh button
-        self.refresh_btn = QPushButton("🔄")
-        self.refresh_btn.setFixedSize(40, 40)
-        self.refresh_btn.setStyleSheet("""
-            QPushButton {
-                background-color: white;
-                border: 1px solid rgba(139, 115, 85, 0.2);
-                border-radius: 20px;
-                font-size: 16px;
-            }
-            QPushButton:hover {
-                background-color: #FFF8F0;
-                border: 2px solid #FF8C42;
-            }
-        """)
-        self.refresh_btn.setToolTip("Refresh data")
-        layout.addWidget(self.refresh_btn)
         
         return header
     
@@ -1757,17 +1734,11 @@ class DailyDashboardWidget(QWidget):
                     self._hourly_cache.clear()
             # Load data immediately
             self._load_daily_data()
-            self.refresh_requested.emit()
         else:
             # Use debounced update if already pending
             self._pending_update = True
             self._update_timer.stop()
             self._update_timer.start(50)  # Reduced to 50ms for better responsiveness
-    
-    def _auto_refresh(self):
-        """Auto-refresh data if viewing today."""
-        if self._current_date == date.today():
-            self._refresh_data()
     
     def _perform_delayed_update(self):
         """Perform the actual update after debounce delay."""
@@ -1789,7 +1760,6 @@ class DailyDashboardWidget(QWidget):
                     self._hourly_cache.clear()
             # Then reload data
             self._load_daily_data()
-            self.refresh_requested.emit()
     
     def _on_metric_card_clicked(self, metric_name: str):
         """Handle metric card click."""

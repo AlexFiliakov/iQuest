@@ -491,22 +491,6 @@ class TrophyCaseWidget(QWidget):
         """Create action buttons at bottom."""
         button_layout = QHBoxLayout()
         
-        refresh_btn = QPushButton("🔄 Refresh")
-        refresh_btn.clicked.connect(self.load_data)
-        refresh_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #118AB2;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0F7A94;
-            }
-        """)
-        
         export_btn = QPushButton("📤 Export Records")
         export_btn.clicked.connect(self.export_records)
         export_btn.setStyleSheet("""
@@ -523,7 +507,6 @@ class TrophyCaseWidget(QWidget):
             }
         """)
         
-        button_layout.addWidget(refresh_btn)
         button_layout.addWidget(export_btn)
         button_layout.addStretch()
         

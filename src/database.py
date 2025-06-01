@@ -1078,9 +1078,11 @@ class DatabaseManager:
         """
         logger.info("Starting comprehensive health data erasure")
         
-        # First, shutdown the analytics cache manager to close all connections
+        # First, invalidate all cache entries then shutdown the cache manager
         try:
-            from .analytics.cache_manager import shutdown_cache_manager
+            from .analytics.cache_manager import invalidate_all_cache, shutdown_cache_manager
+            invalidate_all_cache()
+            logger.info("Invalidated all analytics cache entries")
             shutdown_cache_manager()
             logger.info("Shut down analytics cache manager")
         except Exception as e:
