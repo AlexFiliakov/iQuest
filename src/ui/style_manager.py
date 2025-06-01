@@ -145,7 +145,7 @@ class StyleManager:
     
     ACCENT_PRIMARY = "#111827"   # Darker black for better contrast - primary text
     ACCENT_SECONDARY = "#2563EB" # Vibrant blue - CTAs and highlights
-    ACCENT_SUCCESS = "#10B981"   # Modern green - positive states
+    ACCENT_SUCCESS = "#059669"   # Darker green for better contrast (WCAG AA compliant)
     ACCENT_WARNING = "#F59E0B"   # Modern amber - caution
     ACCENT_ERROR = "#EF4444"     # Modern red - errors
     ACCENT_LIGHT = "#E5E7EB"     # Light gray - subtle borders
@@ -178,14 +178,14 @@ class StyleManager:
         'inner': 'inset 0 2px 4px rgba(0,0,0,0.06)'
     }
     
-    # Spacing system - 8px grid for consistency with increased values
+    # Spacing system - 8px grid for consistency
     SPACING = {
         'xs': 8,
-        'sm': 12,
-        'md': 20,
+        'sm': 16,
+        'md': 24,
         'lg': 32,
         'xl': 40,
-        'xxl': 56
+        'xxl': 48
     }
     
     # Border radius values for consistent rounding
@@ -295,7 +295,7 @@ class StyleManager:
         """
     
     def get_tab_widget_style(self):
-        """Get the tab widget stylesheet with modern underline indicators."""
+        """Get the tab widget stylesheet with enhanced visibility for selected tabs."""
         return f"""
             QTabWidget::pane {{
                 background-color: {self.PRIMARY_BG};
@@ -304,30 +304,36 @@ class StyleManager:
             }}
             
             QTabBar {{
-                background-color: transparent;
-                border-bottom: 1px solid {self.ACCENT_LIGHT};
+                background-color: {self.PRIMARY_BG};
+                border-bottom: 2px solid {self.ACCENT_LIGHT};
             }}
             
             QTabBar::tab {{
                 background: transparent;
                 color: {self.TEXT_SECONDARY};
-                padding: 12px 24px;
-                margin-right: 12px;
+                padding: 16px 32px;
+                margin-right: 8px;
                 border: none;
-                border-bottom: 3px solid transparent;
+                border-bottom: 4px solid transparent;
                 font-family: 'Roboto Condensed', 'Segoe UI', -apple-system, sans-serif;
                 font-weight: 500;
-                font-size: 14px;
+                font-size: 15px;
+                transition: all 0.2s ease;
             }}
             
             QTabBar::tab:selected {{
                 color: {self.ACCENT_PRIMARY};
-                border-bottom: 3px solid {self.ACCENT_PRIMARY};
+                background-color: rgba(37, 99, 235, 0.08);
+                border-bottom: 4px solid {self.ACCENT_SECONDARY};
                 font-weight: 600;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
             }}
             
             QTabBar::tab:hover:!selected {{
                 color: {self.TEXT_PRIMARY};
+                background-color: {self.TERTIARY_BG};
+                border-bottom: 4px solid rgba(37, 99, 235, 0.3);
             }}
             
             QTabBar::tab:first {{
@@ -353,6 +359,7 @@ class StyleManager:
                 - "primary": High-emphasis blue button for main actions
                 - "secondary": Medium-emphasis outlined button for secondary actions
                 - "ghost": Low-emphasis text button for subtle actions
+                - "danger": Red outlined button for destructive actions
         
         Returns:
             str: Complete CSS stylesheet for the specified button type.
@@ -389,31 +396,35 @@ class StyleManager:
                     background-color: {self.ACCENT_SECONDARY};
                     color: {self.TEXT_INVERSE};
                     border: none;
-                    padding: 10px 24px;
+                    padding: 12px 28px;
                     border-radius: 8px;
                     font-weight: 600;
                     font-size: 14px;
-                    min-height: 40px;
-                    letter-spacing: 0.3px;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+                    min-height: 44px;
+                    letter-spacing: 0.5px;
+                    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+                    font-family: 'Roboto', 'Segoe UI', -apple-system, sans-serif;
                 }}
                 
                 QPushButton:hover {{
                     background-color: #1D4ED8;
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
                 }}
                 
                 QPushButton:pressed {{
                     background-color: #1E40AF;
+                    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.15);
                 }}
                 
                 QPushButton:disabled {{
                     background-color: {self.TEXT_MUTED};
                     color: {self.SECONDARY_BG};
+                    box-shadow: none;
                 }}
                 
                 QPushButton:focus {{
                     outline: none;
-                    border: 2px solid {self.FOCUS_SHADOW};
+                    border: 2px solid {self.FOCUS_COLOR};
                 }}
             """
         elif button_type == "secondary":
@@ -421,13 +432,14 @@ class StyleManager:
                 QPushButton {{
                     background-color: {self.PRIMARY_BG};
                     color: {self.TEXT_PRIMARY};
-                    border: 1px solid {self.ACCENT_LIGHT};
-                    padding: 10px 24px;
+                    border: 2px solid {self.ACCENT_LIGHT};
+                    padding: 10px 26px;
                     border-radius: 8px;
                     font-weight: 500;
                     font-size: 14px;
-                    min-height: 40px;
-                    letter-spacing: 0.3px;
+                    min-height: 44px;
+                    letter-spacing: 0.5px;
+                    font-family: 'Roboto', 'Segoe UI', -apple-system, sans-serif;
                 }}
                 
                 QPushButton:hover {{
@@ -448,7 +460,7 @@ class StyleManager:
                 
                 QPushButton:focus {{
                     outline: none;
-                    border: 2px solid {self.FOCUS_SHADOW};
+                    border: 2px solid {self.FOCUS_COLOR};
                 }}
             """
         elif button_type == "ghost":
@@ -480,6 +492,43 @@ class StyleManager:
                 QPushButton:focus {{
                     outline: none;
                     border: 3px solid rgba(91,103,112,0.25);
+                }}
+            """
+        elif button_type == "danger":
+            return f"""
+                QPushButton {{
+                    background-color: {self.PRIMARY_BG};
+                    color: {self.ACCENT_ERROR};
+                    border: 2px solid {self.ACCENT_ERROR};
+                    padding: 10px 26px;
+                    border-radius: 8px;
+                    font-weight: 500;
+                    font-size: 14px;
+                    min-height: 44px;
+                    letter-spacing: 0.5px;
+                    font-family: 'Roboto', 'Segoe UI', -apple-system, sans-serif;
+                }}
+                
+                QPushButton:hover {{
+                    background-color: {self.ACCENT_ERROR};
+                    color: {self.TEXT_INVERSE};
+                    border-color: {self.ACCENT_ERROR};
+                }}
+                
+                QPushButton:pressed {{
+                    background-color: #DC2626;
+                    border-color: #DC2626;
+                }}
+                
+                QPushButton:disabled {{
+                    border-color: #FCA5A5;
+                    color: #FCA5A5;
+                    background-color: transparent;
+                }}
+                
+                QPushButton:focus {{
+                    outline: none;
+                    border: 2px solid {self.FOCUS_COLOR};
                 }}
             """
     
@@ -604,11 +653,12 @@ class StyleManager:
             QLineEdit, QTextEdit, QSpinBox, QComboBox, QDateEdit {{
                 background-color: {self.PRIMARY_BG};
                 border: 1px solid {self.ACCENT_LIGHT};
-                border-radius: 4px;
+                border-radius: 8px;
                 padding: 0 16px;
                 height: 40px;
-                font-size: 13px;
+                font-size: 14px;
                 color: {self.TEXT_PRIMARY};
+                font-family: 'Roboto', 'Segoe UI', -apple-system, sans-serif;
             }}
             
             QTextEdit {{
@@ -618,13 +668,14 @@ class StyleManager:
             }}
             
             QLineEdit:hover, QTextEdit:hover, QSpinBox:hover, QComboBox:hover, QDateEdit:hover {{
-                border-color: {self.ACCENT_SECONDARY};
+                border-color: rgba(37, 99, 235, 0.5);
+                background-color: rgba(37, 99, 235, 0.02);
             }}
             
             QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {{
-                border-color: {self.ACCENT_PRIMARY};
+                border: 2px solid {self.ACCENT_SECONDARY};
                 outline: none;
-                border: 1px solid {self.ACCENT_PRIMARY};
+                padding: 0 15px;
             }}
             
             QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {{
@@ -1110,12 +1161,12 @@ class StyleManager:
             str: CSS stylesheet for heading.
         """
         font_sizes = {
-            1: 28,
-            2: 24,
-            3: 20,
-            4: 18,
-            5: 16,
-            6: 14
+            1: 32,
+            2: 28,
+            3: 24,
+            4: 20,
+            5: 18,
+            6: 16
         }
         
         font_weights = {
@@ -1137,5 +1188,77 @@ class StyleManager:
                 font-weight: {weight};
                 color: {self.TEXT_PRIMARY};
                 margin-bottom: {margin_bottom}px;
+                line-height: 1.2;
+            }}
+        """
+    
+    def get_form_label_style(self):
+        """Get consistent form label style."""
+        return f"""
+            QLabel {{
+                font-size: 14px;
+                font-weight: 500;
+                color: {self.TEXT_PRIMARY};
+                margin-bottom: {self.SPACING['xs']}px;
+                font-family: 'Roboto', 'Segoe UI', -apple-system, sans-serif;
+            }}
+        """
+    
+    def get_grid_spacing(self, multiplier: int = 1) -> int:
+        """Get spacing value based on 8px grid.
+        
+        Args:
+            multiplier (int): Grid multiplier (1 = 8px, 2 = 16px, etc.)
+            
+        Returns:
+            int: Spacing value in pixels
+        """
+        return 8 * multiplier
+    
+    def get_success_message_style(self):
+        """Get success message style with proper contrast."""
+        return f"""
+            QFrame {{
+                background-color: rgba(5, 150, 105, 0.1);
+                border: 1px solid rgba(5, 150, 105, 0.3);
+                border-radius: 8px;
+                padding: {self.SPACING['sm']}px;
+            }}
+            QLabel {{
+                color: {self.ACCENT_SUCCESS};
+                font-weight: 500;
+                font-size: 14px;
+            }}
+        """
+    
+    def get_info_message_style(self):
+        """Get info message style with blue colors."""
+        return f"""
+            QFrame {{
+                background-color: rgba(37, 99, 235, 0.08);
+                border: 1px solid rgba(37, 99, 235, 0.2);
+                border-radius: 8px;
+                padding: {self.SPACING['sm']}px;
+            }}
+            QLabel {{
+                color: {self.ACCENT_SECONDARY};
+                font-weight: 500;
+                font-size: 14px;
+            }}
+        """
+    
+    def get_error_message_style(self):
+        """Get error message style with red colors."""
+        return f"""
+            QFrame {{
+                background-color: rgba(239, 68, 68, 0.08);
+                border: 1px solid rgba(239, 68, 68, 0.2);
+                border-radius: 8px;
+                padding: {self.SPACING['sm']}px;
+            }}
+            QLabel {{
+                color: {self.ACCENT_ERROR};
+                font-weight: 500;
+                font-size: 14px;
             }}
         """
