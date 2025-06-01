@@ -381,6 +381,20 @@ class DailyDashboardWidget(QWidget):
             "HeadphoneAudioExposure": "dB",
             "DietaryWater": "mL",
         }
+        
+        # Create reverse mapping from shorthand names to database names
+        self._shorthand_to_db = {
+            'steps': 'StepCount',
+            'distance': 'DistanceWalkingRunning',
+            'flights_climbed': 'FlightsClimbed',
+            'active_calories': 'ActiveEnergyBurned',
+            'heart_rate': 'HeartRate',
+            'resting_heart_rate': 'RestingHeartRate',
+            'hrv': 'HeartRateVariabilitySDNN',
+            'sleep_hours': 'SleepAnalysis',
+            'weight': 'BodyMass',
+            'body_fat': 'BodyFatPercentage'
+        }
     
     def _create_header(self) -> QWidget:
         """Create the dashboard header with date selector and refresh."""
@@ -573,19 +587,21 @@ class DailyDashboardWidget(QWidget):
         layout.setSpacing(20)
         
         # Key metrics summary cards
-        self.activity_score = SummaryCard(card_type='simple', size='small', card_id='activity_score')
+        from .summary_cards import SimpleMetricCard
+        
+        self.activity_score = SimpleMetricCard(size='small', card_id='activity_score')
         self.activity_score.setToolTip("Overall activity level for today")
         layout.addWidget(self.activity_score)
         
-        self.goals_progress = SummaryCard(card_type='simple', size='small', card_id='goals_progress')
+        self.goals_progress = SimpleMetricCard(size='small', card_id='goals_progress')
         self.goals_progress.setToolTip("Progress towards daily goals")
         layout.addWidget(self.goals_progress)
         
-        self.personal_best = SummaryCard(card_type='simple', size='small', card_id='personal_best')
+        self.personal_best = SimpleMetricCard(size='small', card_id='personal_best')
         self.personal_best.setToolTip("New personal records today")
         layout.addWidget(self.personal_best)
         
-        self.health_status = SummaryCard(card_type='simple', size='small', card_id='health_status')
+        self.health_status = SimpleMetricCard(size='small', card_id='health_status')
         self.health_status.setToolTip("Overall health indicators")
         layout.addWidget(self.health_status)
         
@@ -1025,12 +1041,12 @@ class DailyDashboardWidget(QWidget):
                         card.update_value(stats['value'], stats.get('trend'))
                         has_any_data = True
                         metrics_with_data.append(metric_name)
-                        logger.debug(f"Updated {metric_name} with value {stats['value']}")
+                        logger.info(f"Updated {metric_name} card with value {stats['value']}")
                     else:
                         card.update_value(None, None)
-                        logger.debug(f"No data for {metric_name} on {self._current_date}")
+                        logger.warning(f"No data for {metric_name} on {self._current_date}")
                 except Exception as e:
-                    logger.error(f"Error getting stats for {metric_name}: {e}")
+                    logger.error(f"Error getting stats for {metric_name}: {e}", exc_info=True)
                     card.update_value(None, None)
             
             logger.info(f"Found data for {len(metrics_with_data)} metrics on {self._current_date}")
@@ -1157,6 +1173,8 @@ class DailyDashboardWidget(QWidget):
     
     def _update_summary_cards(self):
         """Update the summary cards with calculated scores."""
+        logger.info("Updating summary cards")
+        
         # Check if summary cards exist before updating
         if not hasattr(self, 'activity_score') or not hasattr(self, 'goals_progress'):
             logger.warning("Summary cards not initialized yet")
@@ -1165,6 +1183,8 @@ class DailyDashboardWidget(QWidget):
         try:
             # Activity Score (based on steps and active calories)
             activity_score = self._calculate_activity_score()
+            logger.info(f"Calculated activity score: {activity_score}%")
+            
             self.activity_score.update_content({
                 'title': 'Activity Score',
                 'value': f"{activity_score}%",
@@ -1187,22 +1207,22 @@ class DailyDashboardWidget(QWidget):
                 if records_today:
                     self.personal_best.update_content({
                         'title': 'Personal Bests',
-                        'value': f"{len(records_today)} New!",
-                        'subtitle': 'Records today',
+                        'value': str(len(records_today)),
+                        'subtitle': 'New records today!',
                         'status': "good"
                     })
                 else:
                     self.personal_best.update_content({
                         'title': 'Personal Bests',
-                        'value': "None",
+                        'value': '0',
                         'subtitle': 'No records yet',
                         'status': "neutral"
                     })
             else:
                 self.personal_best.update_content({
                     'title': 'Personal Bests',
-                    'value': "--",
-                    'subtitle': 'Loading...',
+                    'value': '0',
+                    'subtitle': 'Tracker not loaded',
                     'status': "neutral"
                 })
             
@@ -1224,13 +1244,14 @@ class DailyDashboardWidget(QWidget):
         score = 0
         
         # Steps contribution (50%)
-        steps_stats = self._get_metric_stats('steps')
+        # Use database metric name instead of shorthand
+        steps_stats = self._get_metric_stats(('StepCount', None))
         if steps_stats and steps_stats['value']:
             steps_score = min(100, (steps_stats['value'] / 10000) * 100)
             score += steps_score * 0.5
         
         # Active calories contribution (50%)
-        calories_stats = self._get_metric_stats('active_calories')
+        calories_stats = self._get_metric_stats(('ActiveEnergyBurned', None))
         if calories_stats and calories_stats['value']:
             calories_score = min(100, (calories_stats['value'] / 500) * 100)
             score += calories_score * 0.5
@@ -1239,16 +1260,16 @@ class DailyDashboardWidget(QWidget):
     
     def _calculate_goals_progress(self) -> int:
         """Calculate progress towards daily goals."""
-        # Simplified goal calculation
+        # Simplified goal calculation - use database metric names
         goals = {
-            'steps': 10000,
-            'active_calories': 500,
-            'flights_climbed': 10
+            'StepCount': 10000,
+            'ActiveEnergyBurned': 500,
+            'FlightsClimbed': 10
         }
         
         progress_values = []
         for metric, goal in goals.items():
-            stats = self._get_metric_stats(metric)
+            stats = self._get_metric_stats((metric, None))
             if stats and stats['value']:
                 progress = min(100, (stats['value'] / goal) * 100)
                 progress_values.append(progress)
@@ -1261,7 +1282,7 @@ class DailyDashboardWidget(QWidget):
         score = 70  # Base score
         
         # Heart rate contribution
-        hr_stats = self._get_metric_stats('resting_heart_rate')
+        hr_stats = self._get_metric_stats(('RestingHeartRate', None))
         if hr_stats and hr_stats['value']:
             # Lower resting heart rate is better
             if hr_stats['value'] < 60:
@@ -1270,7 +1291,7 @@ class DailyDashboardWidget(QWidget):
                 score -= 10
         
         # HRV contribution
-        hrv_stats = self._get_metric_stats('hrv')
+        hrv_stats = self._get_metric_stats(('HeartRateVariabilitySDNN', None))
         if hrv_stats and hrv_stats['value']:
             # Higher HRV is better
             if hrv_stats['value'] > 50:
@@ -1324,7 +1345,8 @@ class DailyDashboardWidget(QWidget):
     
     def _update_timeline(self):
         """Update the activity timeline."""
-        if not self.daily_calculator:
+        if not self.daily_calculator and not self.health_db and not self.cached_data_access:
+            logger.debug("No data access available for timeline update")
             return
             
         # Check if timeline widget exists and is visible
@@ -1336,13 +1358,20 @@ class DailyDashboardWidget(QWidget):
             return  # Skip update if not visible
             
         try:
-            # Collect data for multiple metrics
-            metrics_to_show = ['steps', 'heart_rate', 'active_calories']
+            # Map display names to database metric types
+            metric_mapping = {
+                'StepCount': 'steps',
+                'HeartRate': 'heart_rate', 
+                'ActiveEnergyBurned': 'active_calories'
+            }
+            
             timeline_data = {}
             available_metrics = []
             
-            for metric in metrics_to_show:
-                hourly_data = self._get_hourly_data(metric)
+            # Collect data for each metric
+            for db_metric, display_name in metric_mapping.items():
+                # Use the database metric type to get hourly data
+                hourly_data = self._get_hourly_data(db_metric)
                 if hourly_data is not None and not hourly_data.empty:
                     # Create datetime index for the current date
                     hourly_data['datetime'] = pd.to_datetime(
@@ -1350,23 +1379,37 @@ class DailyDashboardWidget(QWidget):
                         hourly_data['hour'].astype(str).str.zfill(2) + ':00:00'
                     )
                     hourly_data = hourly_data.set_index('datetime')
-                    timeline_data[metric] = hourly_data['value']
-                    available_metrics.append(metric)
+                    # Use display name for the timeline
+                    timeline_data[display_name] = hourly_data['value']
+                    available_metrics.append(display_name)
+                    logger.debug(f"Added {display_name} to timeline with {len(hourly_data)} hours of data")
             
             # Create combined DataFrame if we have any data
             if timeline_data:
                 combined_df = pd.DataFrame(timeline_data)
-                # Forward fill missing values within each day
-                combined_df = combined_df.ffill().fillna(0)
+                # Fill missing hours with 0 for better visualization
+                # Create full 24-hour index
+                full_index = pd.date_range(
+                    start=f"{self._current_date} 00:00:00",
+                    end=f"{self._current_date} 23:00:00",
+                    freq='h'
+                )
+                combined_df = combined_df.reindex(full_index, fill_value=0)
+                
+                logger.info(f"Timeline DataFrame shape: {combined_df.shape}")
+                logger.info(f"Timeline columns: {combined_df.columns.tolist()}")
+                logger.info(f"Timeline index range: {combined_df.index.min()} to {combined_df.index.max()}")
+                logger.info(f"Updating timeline with {len(available_metrics)} metrics and {len(combined_df)} time points")
                 
                 # Update timeline with proper method and data format
                 self.timeline.update_data(combined_df, available_metrics)
             else:
+                logger.warning("No timeline data available for current date")
                 # Clear timeline if no data
                 self.timeline.update_data(pd.DataFrame(), [])
                 
         except Exception as e:
-            logger.error(f"Error updating timeline: {e}")
+            logger.error(f"Error updating timeline: {e}", exc_info=True)
     
     def _get_hourly_data(self, metric_tuple) -> Optional[pd.DataFrame]:
         """Get hourly data for a metric with caching."""
