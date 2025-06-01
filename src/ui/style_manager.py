@@ -860,16 +860,23 @@ class StyleManager:
         # Set application style sheet
         global_style = f"""
             * {{
-                font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+                font-family: 'Roboto', 'Inter', 'Segoe UI', -apple-system, sans-serif;
+                font-size: 14px;
+                color: {self.TEXT_PRIMARY};
+            }}
+            
+            QLabel {{
+                font-size: 14px;
+                color: {self.TEXT_PRIMARY};
             }}
             
             QToolTip {{
                 background-color: {self.TEXT_PRIMARY};
                 color: {self.TEXT_INVERSE};
                 border: none;
-                padding: 8px;
-                border-radius: 4px;
-                font-size: 14px;
+                padding: 10px 12px;
+                border-radius: 6px;
+                font-size: 13px;
             }}
             
             QMessageBox {{

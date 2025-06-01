@@ -157,14 +157,14 @@ class CalendarHeatmapComponent(QWidget):
         """Initialize perceptually uniform color scales."""
         return {
             ColorScale.WARM_ORANGE: [
-                QColor("#F8F9FA"),  # Very light gray
-                QColor("#E9ECEF"),  # Light gray
-                QColor("#DEE2E6"),  # Light-medium gray
-                QColor("#CED4DA"),  # Medium gray
-                QColor("#ADB5BD"),  # Gray
-                QColor("#6C757D"),  # Dark gray
-                QColor("#495057"),  # Darker gray
-                QColor("#343A40")   # Darkest gray
+                QColor("#FFF7ED"),  # Lightest orange tint
+                QColor("#FFEDD5"),  # Very light orange
+                QColor("#FED7AA"),  # Light orange
+                QColor("#FDBA74"),  # Light-medium orange
+                QColor("#FB923C"),  # Medium orange
+                QColor("#F97316"),  # Orange
+                QColor("#EA580C"),  # Dark orange
+                QColor("#C2410C")   # Darkest orange
             ],
             ColorScale.VIRIDIS: [
                 QColor("#440154"),
@@ -186,11 +186,14 @@ class CalendarHeatmapComponent(QWidget):
                 QColor("#FFEA46")
             ],
             ColorScale.GITHUB_GREEN: [
-                QColor("#EBEDF0"),  # No data - light gray
-                QColor("#9BE9A8"),  # Level 1 - lightest green
-                QColor("#40C463"),  # Level 2 - light green
-                QColor("#30A14E"),  # Level 3 - medium green
-                QColor("#216E39")   # Level 4 - dark green
+                QColor("#F3F4F6"),  # No data - light gray
+                QColor("#DCFCE7"),  # Level 1 - lightest green
+                QColor("#86EFAC"),  # Level 2 - light green
+                QColor("#4ADE80"),  # Level 3 - medium green
+                QColor("#22C55E"),  # Level 4 - green
+                QColor("#16A34A"),  # Level 5 - dark green
+                QColor("#15803D"),  # Level 6 - darker green
+                QColor("#166534")   # Level 7 - darkest green
             ]
         }
         
