@@ -9,29 +9,40 @@ This widget provides comprehensive weekly health data analysis including:
 - Volatility scoring
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, date, timedelta
-import pandas as pd
-import numpy as np
 import json
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
+import pandas as pd
+from PyQt6.QtCore import QDate, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QIcon, QPalette
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QScrollArea, QSizePolicy,
-    QProgressBar, QGroupBox, QButtonGroup, QRadioButton
+    QButtonGroup,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QDate
-from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
 
-from .summary_cards import SummaryCard
-from .week_over_week_widget import WeekOverWeekWidget
-from .charts.line_chart import LineChart
-from .bar_chart_component import BarChart as BarChartComponent
-from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator, WeeklyMetrics, TrendInfo
 from ..analytics.day_of_week_analyzer import DayOfWeekAnalyzer
 from ..analytics.week_over_week_trends import WeekOverWeekTrends
-from ..utils.logging_config import get_logger
+from ..analytics.weekly_metrics_calculator import TrendInfo, WeeklyMetrics, WeeklyMetricsCalculator
 from ..health_database import HealthDatabase
+from ..utils.logging_config import get_logger
+from .bar_chart_component import BarChart as BarChartComponent
+from .charts.line_chart import LineChart
+from .summary_cards import SummaryCard
+from .week_over_week_widget import WeekOverWeekWidget
 
 logger = get_logger(__name__)
 
@@ -1379,10 +1390,10 @@ class WeeklyDashboardWidget(QWidget):
     def _show_no_data_message(self):
         """Show message when no data is loaded."""
         from PyQt6.QtCore import Qt
-        
+
         # Create or update no data overlay
         if not hasattr(self, 'no_data_overlay'):
-            from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+            from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
             
             self.no_data_overlay = QWidget()
             self.no_data_overlay.setParent(self)
@@ -1424,7 +1435,7 @@ class WeeklyDashboardWidget(QWidget):
                 font-family: Poppins;
                 font-size: 14px;
                 color: #8B7355;
-                max-width: 400px;
+                max-width: 600px;
             """)
             overlay_layout.addWidget(instructions)
         

@@ -2215,6 +2215,13 @@ class MainWindow(QMainWindow):
         CRITICAL FIX: Now refreshes ALL dashboard tabs, not just the current one.
         This ensures data is propagated to all tabs when imported or when filters change.
         """
+        # If data is None, fetch it from config tab
+        if data is None:
+            data = self.config_tab.get_filtered_data()
+            if data is None:
+                logger.warning("No data available after signal emission")
+                return
+        
         logger.info(f"Data loaded: {len(data) if data is not None else 0} records")
         self.status_bar.showMessage(f"Loaded {len(data):,} health records")
         

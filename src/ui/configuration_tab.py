@@ -46,6 +46,7 @@ import pandas as pd
 from PyQt6.QtCore import QDate, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon, QKeyEvent
 from PyQt6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QDateEdit,
     QFileDialog,
@@ -453,7 +454,7 @@ class ConfigurationTab(QWidget):
                 padding: 4px 12px;
                 font-size: 12px;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }
         """)
         import_button.clicked.connect(self._on_import_clicked)
@@ -473,7 +474,7 @@ class ConfigurationTab(QWidget):
                 font-size: 12px;
                 font-weight: 500;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }}
             QPushButton:hover {{
                 background-color: #DC2626;
@@ -626,7 +627,7 @@ class ConfigurationTab(QWidget):
                 padding: 4px 12px;
                 font-size: 12px;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }
         """)
         self.save_preset_button.clicked.connect(self._on_save_preset_clicked)
@@ -640,7 +641,7 @@ class ConfigurationTab(QWidget):
                 padding: 4px 12px;
                 font-size: 12px;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }
         """)
         self.load_preset_button.clicked.connect(self._on_load_preset_clicked)
@@ -657,7 +658,7 @@ class ConfigurationTab(QWidget):
                 padding: 4px 12px;
                 font-size: 12px;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }
         """)
         self.reset_settings_button.clicked.connect(self._on_reset_settings_clicked)
@@ -681,7 +682,7 @@ class ConfigurationTab(QWidget):
                 padding: 4px 12px;
                 font-size: 12px;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }
         """)
         self.reset_button.clicked.connect(self._on_reset_clicked)
@@ -695,7 +696,7 @@ class ConfigurationTab(QWidget):
                 padding: 4px 12px;
                 font-size: 12px;
                 min-height: 28px;
-                max-height: 28px;
+                # max-height: 28px;
             }
         """)
         self.apply_button.clicked.connect(self._on_apply_filters_clicked)
@@ -727,9 +728,9 @@ class ConfigurationTab(QWidget):
                 min-height: 24px;
                 font-size: 11px;
             }
-            QComboBox QAbstractItemView {
-                max-height: 150px;
-            }
+            # QComboBox QAbstractItemView {
+                # max-height: 150px;
+            # }
         """)
         
         # Add placeholder items (will be replaced when data is loaded)
@@ -762,7 +763,7 @@ class ConfigurationTab(QWidget):
                 font-size: 11px;
             }
             QComboBox QAbstractItemView {
-                max-height: 150px;
+                # max-height: 150px;
             }
         """)
         
@@ -1005,14 +1006,14 @@ class ConfigurationTab(QWidget):
                 QPushButton {{
                     padding: 2px 8px;
                     font-size: 10px;
-                    max-height: 20px;
+                    # max-height: 20px;
                 }}
                 QLabel {{
                     font-size: 10px;
                 }}
                 QComboBox, QSpinBox {{
                     font-size: 10px;
-                    max-height: 20px;
+                    # max-height: 20px;
                     padding: 0px 4px;
                 }}
             """)
@@ -1077,14 +1078,14 @@ class ConfigurationTab(QWidget):
                 QPushButton {{
                     padding: 2px 8px;
                     font-size: 10px;
-                    max-height: 20px;
+                    # max-height: 20px;
                 }}
                 QLabel {{
                     font-size: 10px;
                 }}
                 QComboBox, QSpinBox {{
                     font-size: 10px;
-                    max-height: 20px;
+                    # max-height: 20px;
                     padding: 0px 4px;
                 }}
             """)
@@ -1445,9 +1446,26 @@ class ConfigurationTab(QWidget):
             # Only emit signal if we have valid data
             if current_data is not None:
                 try:
-                    self.data_loaded.emit(current_data)
+                    # Log DataFrame info for debugging
+                    logger.debug(f"DataFrame shape before emit: {current_data.shape}")
+                    logger.debug(f"DataFrame dtypes: {current_data.dtypes.to_dict()}")
+                    
+                    # Make a copy of the DataFrame to avoid threading issues
+                    # and ensure the data is in a clean state
+                    data_copy = current_data.copy()
+                    
+                    # Ensure we're in the main thread before emitting
+                    if QApplication.instance() is not None:
+                        self.data_loaded.emit(data_copy)
+                    else:
+                        logger.warning("No QApplication instance, skipping signal emission")
                 except Exception as emit_error:
-                    logger.error(f"Error emitting data_loaded signal: {emit_error}")
+                    logger.error(f"Error emitting data_loaded signal: {emit_error}", exc_info=True)
+                    # Try alternative approach - emit None and let listeners fetch data
+                    try:
+                        self.data_loaded.emit(None)
+                    except Exception as second_error:
+                        logger.error(f"Second attempt to emit signal failed: {second_error}", exc_info=True)
                     # Don't let signal emission errors break the load process
             
             logger.info(f"Database statistics loaded: {row_count:,} records")
@@ -2054,14 +2072,14 @@ class ConfigurationTab(QWidget):
                 QPushButton {{
                     padding: 2px 8px;
                     font-size: 10px;
-                    max-height: 20px;
+                    # max-height: 20px;
                 }}
                 QLabel {{
                     font-size: 10px;
                 }}
                 QComboBox, QSpinBox {{
                     font-size: 10px;
-                    max-height: 20px;
+                    # max-height: 20px;
                     padding: 0px 4px;
                 }}
             """)

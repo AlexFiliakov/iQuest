@@ -734,7 +734,7 @@ class DailyDashboardWidget(QWidget):
         
         # Timeline component
         self.timeline = ActivityTimelineComponent()
-        self.timeline.setMinimumHeight(2500)  # Increased from fixed 200 to minimum 400
+        # self.timeline.setMinimumHeight(2500)  # Increased from fixed 200 to minimum 400
         layout.addWidget(self.timeline)
         
         return section
@@ -1997,7 +1997,7 @@ class DailyDashboardWidget(QWidget):
                 font-family: Poppins;
                 font-size: 14px;
                 color: #8B7355;
-                max-width: 400px;
+                max-width: 600px;
             """)
             overlay_layout.addWidget(instructions)
         
@@ -2052,7 +2052,7 @@ class DailyDashboardWidget(QWidget):
                 font-family: Poppins;
                 font-size: 14px;
                 color: #8B7355;
-                max-width: 400px;
+                max-width: 600px;
             """)
             overlay_layout.addWidget(self.no_data_date)
         

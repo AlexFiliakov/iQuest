@@ -26,19 +26,22 @@ Attributes:
 """
 
 from typing import Optional
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QProgressBar, QTextEdit, QGraphicsOpacityEffect,
-    QApplication
-)
-from PyQt6.QtCore import (
-    Qt, QTimer, QPropertyAnimation, QEasingCurve,
-    pyqtSignal, QThread, pyqtSlot
-)
-from PyQt6.QtGui import QFont, QFontDatabase, QMovie, QPalette, QColor
 
-from ..utils.logging_config import get_logger
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QColor, QFont, QFontDatabase, QMovie, QPalette
+from PyQt6.QtWidgets import (
+    QApplication,
+    QGraphicsOpacityEffect,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from ..config import APP_NAME
+from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -199,7 +202,7 @@ class LoadingScreen(QWidget):
             /* Progress bar styling */
             #loadingProgress {
                 min-height: 8px;
-                max-height: 8px;
+                # max-height: 8px;
                 border: none;
                 border-radius: 4px;
                 background-color: #F3F4F6;

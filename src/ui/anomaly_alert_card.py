@@ -12,15 +12,7 @@ from typing import Any, Dict, List
 
 from PyQt6.QtCore import QDateTime, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QPainter, QPalette
-from PyQt6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 
 class AnomalyAlertCard(QFrame):
@@ -122,29 +114,13 @@ class AnomalyAlertCard(QFrame):
         
         layout.addWidget(header_frame)
         
-        # Content area with scroll
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setStyleSheet(f"""
-            QScrollArea {{
-                border: none;
+        # Content widget (no scroll)
+        content_widget = QWidget()
+        content_widget.setStyleSheet(f"""
+            QWidget {{
                 background-color: {self.COLORS['card_bg']};
             }}
-            QScrollBar:vertical {{
-                background: {self.COLORS['card_bg']};
-                width: 8px;
-                border-radius: 4px;
-            }}
-            QScrollBar::handle:vertical {{
-                background: {self.COLORS['border']};
-                border-radius: 4px;
-                min-height: 20px;
-            }}
         """)
-        
-        # Content widget
-        content_widget = QWidget()
         self.content_layout = QVBoxLayout(content_widget)
         self.content_layout.setContentsMargins(15, 15, 15, 15)
         self.content_layout.setSpacing(10)
@@ -161,8 +137,7 @@ class AnomalyAlertCard(QFrame):
         self.placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(self.placeholder_label)
         
-        self.scroll_area.setWidget(content_widget)
-        layout.addWidget(self.scroll_area)
+        layout.addWidget(content_widget)
         
         # Set size constraints
         self.setMinimumHeight(200)
@@ -273,26 +248,26 @@ class AnomalyAlertCard(QFrame):
         
         header_layout.addStretch()
         
-        # Dismiss button
-        dismiss_btn = QPushButton("✕")
-        dismiss_btn.setFixedSize(20, 20)
-        dismiss_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        dismiss_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: transparent;
-                border: none;
-                color: {self.COLORS['text_secondary']};
-                font-size: 14px;
-                font-weight: bold;
-                border-radius: 10px;
-            }}
-            QPushButton:hover {{
-                background-color: {self.COLORS['dismiss_hover']};
-                color: {self.COLORS['text_primary']};
-            }}
-        """)
-        dismiss_btn.clicked.connect(lambda: self.dismiss_anomaly(anomaly))
-        header_layout.addWidget(dismiss_btn)
+        # # Dismiss button
+        # dismiss_btn = QPushButton("✕")
+        # dismiss_btn.setFixedSize(20, 20)
+        # dismiss_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # dismiss_btn.setStyleSheet(f"""
+        #     QPushButton {{
+        #         background-color: transparent;
+        #         border: none;
+        #         color: {self.COLORS['text_secondary']};
+        #         font-size: 14px;
+        #         font-weight: bold;
+        #         border-radius: 10px;
+        #     }}
+        #     QPushButton:hover {{
+        #         background-color: {self.COLORS['dismiss_hover']};
+        #         color: {self.COLORS['text_primary']};
+        #     }}
+        # """)
+        # dismiss_btn.clicked.connect(lambda: self.dismiss_anomaly(anomaly))
+        # header_layout.addWidget(dismiss_btn)
         
         main_layout.addLayout(header_layout)
         

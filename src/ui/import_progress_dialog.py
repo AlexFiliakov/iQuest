@@ -7,20 +7,29 @@ to cancel operations and display results.
 
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QProgressBar, QTextEdit, QFrame, QMessageBox, QGraphicsDropShadowEffect,
-    QWidget
-)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QPixmap, QColor
+from PyQt6.QtGui import QColor, QFont, QPixmap
+from PyQt6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from src.utils.logging_config import get_logger
-from .style_manager import StyleManager
-from .settings_manager import SettingsManager
+
 from .import_worker import ImportWorker
+from .settings_manager import SettingsManager
+from .style_manager import StyleManager
 
 logger = get_logger(__name__)
 
@@ -123,9 +132,9 @@ class ImportProgressDialog(QDialog):
                 padding: 0;
                 margin: 0;
                 min-width: 30px;
-                max-width: 30px;
+                # max-width: 30px;
                 min-height: 30px;
-                max-height: 30px;
+                # max-height: 30px;
                 border-radius: 15px;
             }}
             QPushButton:hover {{
@@ -567,9 +576,9 @@ class ImportSummaryDialog(QDialog):
                 padding: 0;
                 margin: 0;
                 min-width: 30px;
-                max-width: 30px;
+                # max-width: 30px;
                 min-height: 30px;
-                max-height: 30px;
+                # max-height: 30px;
                 border-radius: 15px;
             }}
             QPushButton:hover {{
@@ -595,9 +604,9 @@ class ImportSummaryDialog(QDialog):
                 border-radius: 50%;
                 padding: 16px;
                 min-width: 80px;
-                max-width: 80px;
+                # max-width: 80px;
                 min-height: 80px;
-                max-height: 80px;
+                # max-height: 80px;
             }}
         """)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

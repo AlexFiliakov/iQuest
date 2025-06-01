@@ -158,6 +158,7 @@ class ActivityTimelineComponent(QWidget):
         options_layout = QHBoxLayout()
         
         self.cluster_check = QCheckBox("Enable Clustering", self)
+        self.cluster_check.setChecked(True)
         self.cluster_check.stateChanged.connect(self.on_clustering_toggled)
         options_layout.addWidget(self.cluster_check)
         
@@ -167,6 +168,7 @@ class ActivityTimelineComponent(QWidget):
         options_layout.addWidget(self.patterns_check)
         
         self.correlations_check = QCheckBox("Show Correlations", self)
+        self.correlations_check.setChecked(True)
         self.correlations_check.stateChanged.connect(self.on_correlations_toggled)
         options_layout.addWidget(self.correlations_check)
         
@@ -181,11 +183,12 @@ class ActivityTimelineComponent(QWidget):
         # Main visualization area
         self.viz_widget = TimelineVisualizationWidget(self)
         self.viz_widget.setMinimumHeight(400)  # Reduced to make room for insights panel
+        self.viz_widget.hide()  # Hide since insights panel replaces this functionality
         layout.addWidget(self.viz_widget)
         
         # New Timeline Insights Panel
         self.insights_panel = TimelineInsightsPanel(self)
-        self.insights_panel.setMinimumHeight(1200)  # Give significant space to insights
+        self.insights_panel.setMinimumHeight(800)  # Increased from 400 - give more space to insights
         self.insights_panel.insight_clicked.connect(self.on_insight_clicked)
         layout.addWidget(self.insights_panel)
         
@@ -757,7 +760,7 @@ class TimelineVisualizationWidget(QWidget):
                             )
                             
         except Exception as e:
-            logger.error(f"Error adding comparison overlays: {e}")
+            self.timeline.logger.error(f"Error adding comparison overlays: {e}")
         
     def draw_radial_timeline(self, painter: QPainter):
         """Draw radial (clock face) timeline."""

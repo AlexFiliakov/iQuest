@@ -9,17 +9,24 @@ Follows the project's warm earth tone design system and implements progressive
 disclosure for complex data.
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QGroupBox
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QPainter, QColor, QFont
-import pandas as pd
-import numpy as np
-from typing import Optional, List, Dict, Any
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import pandas as pd
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QPainter
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class TimelineInsightsPanel(QWidget):

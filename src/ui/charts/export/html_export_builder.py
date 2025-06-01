@@ -1,14 +1,15 @@
 """HTML export builder for interactive health reports."""
 
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 import base64
 import json
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
-from .export_models import HTMLExportOptions
 from ..wsj_style_manager import WSJStyleManager
+from .export_models import HTMLExportOptions
 
 
 class HTMLExportBuilder:
