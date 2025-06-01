@@ -45,16 +45,28 @@ class MonthlyDashboardWidget(QWidget):
     
     def __init__(self, monthly_calculator=None, parent=None):
         """Initialize the monthly dashboard widget."""
-        super().__init__(parent)
+        print("[MONTHLY_DEBUG] MonthlyDashboardWidget.__init__ starting")
+        logger.info("[MONTHLY_DEBUG] Initializing MonthlyDashboardWidget")
+        
+        try:
+            super().__init__(parent)
+            print("[MONTHLY_DEBUG] Parent class initialized successfully")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to initialize parent: {e}")
+            logger.error(f"Failed to initialize parent: {e}", exc_info=True)
+            raise
         
         # Support both old calculator and new cached access
         self.monthly_calculator = monthly_calculator
         self.cached_data_access = None
         
         # Try to initialize HealthDatabase
+        print("[MONTHLY_DEBUG] Attempting to initialize HealthDatabase")
         try:
             self.health_db = HealthDatabase()
+            print("[MONTHLY_DEBUG] HealthDatabase initialized successfully")
         except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to initialize HealthDatabase: {e}")
             logger.error(f"Failed to initialize HealthDatabase: {e}")
             self.health_db = None
         
@@ -94,14 +106,44 @@ class MonthlyDashboardWidget(QWidget):
         self._metric_data = {}
         self._summary_stats = {}
         
-        self._setup_ui()
-        self._setup_connections()
+        # Try to set up UI with error handling
+        try:
+            print("[MONTHLY_DEBUG] Setting up UI...")
+            self._setup_ui()
+            print("[MONTHLY_DEBUG] UI setup complete")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to setup UI: {e}")
+            logger.error(f"Failed to setup UI: {e}", exc_info=True)
+            self._create_error_ui(f"UI Setup Failed: {str(e)}")
+            return
+            
+        try:
+            print("[MONTHLY_DEBUG] Setting up connections...")
+            self._setup_connections()
+            print("[MONTHLY_DEBUG] Connections setup complete")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to setup connections: {e}")
+            logger.error(f"Failed to setup connections: {e}", exc_info=True)
         
         # Refresh combo box to ensure it has latest metrics
-        self._refresh_metric_combo()
+        try:
+            print("[MONTHLY_DEBUG] Refreshing metric combo...")
+            self._refresh_metric_combo()
+            print("[MONTHLY_DEBUG] Metric combo refreshed")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to refresh metric combo: {e}")
+            logger.error(f"Failed to refresh metric combo: {e}", exc_info=True)
         
         # Load initial data
-        self._load_month_data()
+        try:
+            print("[MONTHLY_DEBUG] Loading initial data...")
+            self._load_month_data()
+            print("[MONTHLY_DEBUG] Initial data loaded")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to load initial data: {e}")
+            logger.error(f"Failed to load initial data: {e}", exc_info=True)
+            
+        print("[MONTHLY_DEBUG] MonthlyDashboardWidget initialization complete")
     
     def set_cached_data_access(self, cached_access):
         """Set the cached data access for performance optimization.
@@ -396,16 +438,81 @@ class MonthlyDashboardWidget(QWidget):
                 index = self._available_metrics.index(self._current_metric)
                 self.metric_combo.setCurrentIndex(index)
             
+    def _create_error_ui(self, error_message: str):
+        """Create an error UI when initialization fails."""
+        print(f"[MONTHLY_DEBUG] Creating error UI: {error_message}")
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Error header
+        error_header = QLabel("Monthly Dashboard Error")
+        error_header.setStyleSheet("""
+            QLabel {
+                font-size: 24px;
+                font-weight: bold;
+                color: #DC3545;
+                padding: 20px;
+            }
+        """)
+        error_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(error_header)
+        
+        # Error details
+        error_frame = QFrame()
+        error_frame.setStyleSheet("""
+            QFrame {
+                background-color: #F8D7DA;
+                border: 2px solid #F5C6CB;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
+        error_layout = QVBoxLayout(error_frame)
+        
+        error_label = QLabel("Failed to initialize Monthly Dashboard:")
+        error_label.setStyleSheet("font-weight: bold; color: #721C24;")
+        error_layout.addWidget(error_label)
+        
+        error_text = QLabel(error_message)
+        error_text.setWordWrap(True)
+        error_text.setStyleSheet("color: #721C24; padding: 10px;")
+        error_layout.addWidget(error_text)
+        
+        # Suggestions
+        suggestions = QLabel(
+            "Suggestions:\n"
+            "• Check if health data has been imported\n"
+            "• Try switching to another tab and back\n"
+            "• Check the console for detailed error messages"
+        )
+        suggestions.setStyleSheet("color: #721C24; padding: 10px;")
+        error_layout.addWidget(suggestions)
+        
+        layout.addWidget(error_frame)
+        layout.addStretch()
+    
     def _setup_ui(self):
         """Set up the user interface."""
+        print("[MONTHLY_DEBUG] _setup_ui called")
+        
         # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(20)
         
         # Header section
-        header = self._create_header()
-        main_layout.addWidget(header)
+        try:
+            print("[MONTHLY_DEBUG] Creating header...")
+            header = self._create_header()
+            main_layout.addWidget(header)
+            print("[MONTHLY_DEBUG] Header created and added")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to create header: {e}")
+            logger.error(f"Failed to create header: {e}", exc_info=True)
+            error_label = QLabel(f"Header Error: {str(e)}")
+            error_label.setStyleSheet("color: red; padding: 10px;")
+            main_layout.addWidget(error_label)
         
         # Content area with scroll
         scroll_area = QScrollArea()
@@ -438,8 +545,17 @@ class MonthlyDashboardWidget(QWidget):
         content_layout.setSpacing(20)
         
         # Calendar heatmap section
-        heatmap_section = self._create_heatmap_section()
-        content_layout.addWidget(heatmap_section)
+        try:
+            print("[MONTHLY_DEBUG] Creating heatmap section...")
+            heatmap_section = self._create_heatmap_section()
+            content_layout.addWidget(heatmap_section)
+            print("[MONTHLY_DEBUG] Heatmap section created")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to create heatmap section: {e}")
+            logger.error(f"Failed to create heatmap section: {e}", exc_info=True)
+            error_label = QLabel(f"Heatmap Error: {str(e)}")
+            error_label.setStyleSheet("color: red; padding: 10px;")
+            content_layout.addWidget(error_label)
         
         # Summary statistics section
         stats_section = self._create_statistics_section()
@@ -456,6 +572,7 @@ class MonthlyDashboardWidget(QWidget):
         
     def _create_header(self) -> QWidget:
         """Create the dashboard header with navigation and controls."""
+        print("[MONTHLY_DEBUG] _create_header called")
         header = QFrame()
         header.setStyleSheet("""
             QFrame {
@@ -624,8 +741,18 @@ class MonthlyDashboardWidget(QWidget):
         layout.addLayout(header_layout)
         
         # Calendar heatmap
-        self.calendar_heatmap = CalendarHeatmapComponent()
-        self.calendar_heatmap.setMinimumHeight(350)  # Reduced minimum height
+        try:
+            print("[MONTHLY_DEBUG] Creating CalendarHeatmapComponent...")
+            self.calendar_heatmap = CalendarHeatmapComponent()
+            self.calendar_heatmap.setMinimumHeight(350)  # Reduced minimum height
+            print("[MONTHLY_DEBUG] CalendarHeatmapComponent created successfully")
+        except Exception as e:
+            print(f"[MONTHLY_ERROR] Failed to create CalendarHeatmapComponent: {e}")
+            logger.error(f"Failed to create CalendarHeatmapComponent: {e}", exc_info=True)
+            # Create placeholder
+            self.calendar_heatmap = QLabel("Calendar Heatmap Error")
+            self.calendar_heatmap.setStyleSheet("color: red; padding: 20px; background-color: #FFF0F0;")
+            self.calendar_heatmap.setMinimumHeight(350)
         # Set to Month Grid view by default for monthly dashboard
         self.calendar_heatmap._view_mode = "month_grid"
         # Hide view mode controls since we want our own toggle
