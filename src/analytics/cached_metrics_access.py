@@ -79,23 +79,54 @@ class CachedMetricsAccess:
             List of metric names
         """
         return self.get_all_cached_metrics()
+    
+    def get_available_sources(self) -> List[str]:
+        """Get list of available data sources from cached metrics.
         
-    def get_daily_summary(self, metric: str, target_date: date) -> Optional[Dict[str, Any]]:
+        Returns:
+            List of source names (e.g., ['iPhone', 'Apple Watch'])
+        """
+        try:
+            query = """
+                SELECT DISTINCT source_name 
+                FROM cached_metrics 
+                WHERE source_name IS NOT NULL
+                ORDER BY source_name
+            """
+            
+            with self.db.get_connection() as conn:
+                cursor = conn.execute(query)
+                sources = [row[0] for row in cursor.fetchall()]
+                
+            logger.info(f"Found {len(sources)} sources in cached metrics")
+            return sources
+            
+        except Exception as e:
+            logger.error(f"Error getting available sources: {e}")
+            return []
+        
+    def get_daily_summary(self, metric: str, target_date: date, source_name: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Get cached daily summary for a metric.
         
         Args:
             metric: The metric name (e.g., 'HKQuantityTypeIdentifierStepCount')
             target_date: The date to get summary for
+            source_name: Optional source name to filter by (e.g., 'iPhone', 'Apple Watch')
             
         Returns:
             Dictionary containing the summary statistics or None if not cached
         """
         try:
+            # For source-specific queries, use the metric type directly
+            # For aggregated queries, use 'daily_summary' for backward compatibility
+            metric_type = metric if source_name else 'daily_summary'
+            
             cached_data = CacheDAO.get_cached_metrics(
-                metric_type='daily_summary',
+                metric_type=metric_type,
                 date_start=target_date,
                 date_end=target_date,
                 aggregation_type='daily',
+                source_name=source_name,
                 health_type=metric
             )
             

@@ -52,6 +52,79 @@ class SummaryCalculator:
         self.db_path = self.db_manager.db_path
         self._total_metrics = 0
         self._processed_metrics = 0
+    
+    def calculate_summaries_by_source(self,
+                                    progress_callback: Optional[Callable[[float, str], None]] = None,
+                                    months_back: int = 12) -> Dict[str, Dict[str, Dict[str, Dict[str, Any]]]]:
+        """Calculate all summaries grouped by source.
+        
+        This method calculates daily, weekly, and monthly summaries for each metric,
+        preserving source information. It also creates aggregated summaries for
+        "All Sources".
+        
+        Args:
+            progress_callback: Optional callback for progress updates.
+                              Called with (percentage, message).
+            months_back: Number of months to calculate summaries for
+                              
+        Returns:
+            Dict with structure:
+                {
+                    'daily': {
+                        'metric_type': {
+                            'source_name': {
+                                'date': statistics
+                            }
+                        }
+                    },
+                    'weekly': {...},
+                    'monthly': {...}
+                }
+        """
+        logger.info("Starting source-aware summary calculation")
+        
+        # Get available metrics from health_records table
+        query = "SELECT DISTINCT type FROM health_records WHERE value IS NOT NULL"
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.execute(query)
+            available_metrics = [row[0] for row in cursor.fetchall()]
+        
+        if not available_metrics:
+            logger.warning("No metrics found in database")
+            return {'daily': {}, 'weekly': {}, 'monthly': {}}
+            
+        self._total_metrics = len(available_metrics)
+        self._processed_metrics = 0
+        
+        # Calculate date range
+        end_date = date.today()
+        start_date = end_date - timedelta(days=months_back * 30)
+        
+        summaries_by_source = {}
+        
+        for metric_type in available_metrics:
+            if progress_callback:
+                progress = (self._processed_metrics / self._total_metrics) * 100
+                progress_callback(progress, f"Processing {metric_type}")
+                
+            # Calculate daily summaries by source
+            daily_by_source = self._calculate_daily_summaries_by_source(
+                metric_type, start_date, end_date
+            )
+            
+            if daily_by_source:
+                summaries_by_source[metric_type] = daily_by_source
+                
+            self._processed_metrics += 1
+            
+        logger.info(f"Completed source-aware summary calculation for {len(available_metrics)} metrics")
+        
+        # Return in expected format
+        return {
+            'daily': summaries_by_source,
+            'weekly': {},  # Can be extended later
+            'monthly': {}  # Can be extended later
+        }
         
     def calculate_all_summaries(self, 
                               progress_callback: Optional[Callable[[float, str], None]] = None,
@@ -246,6 +319,108 @@ class SummaryCalculator:
                 }
                 
         return summaries
+    
+    def _calculate_daily_summaries_by_source(self,
+                                           metric_type: str,
+                                           start_date: date,
+                                           end_date: date) -> Dict[str, Dict[str, Dict[str, Any]]]:
+        """Calculate daily summaries grouped by source.
+        
+        Args:
+            metric_type: The metric type to calculate
+            start_date: Start of date range
+            end_date: End of date range
+            
+        Returns:
+            Dict mapping source names to date strings to statistics
+        """
+        query = """
+        SELECT 
+            DATE(startDate) as date,
+            sourceName,
+            SUM(CAST(value AS FLOAT)) as total_sum,
+            AVG(CAST(value AS FLOAT)) as avg_value,
+            MAX(CAST(value AS FLOAT)) as max_value,
+            MIN(CAST(value AS FLOAT)) as min_value,
+            COUNT(*) as record_count
+        FROM health_records
+        WHERE type = ?
+          AND DATE(startDate) BETWEEN ? AND ?
+          AND value IS NOT NULL
+        GROUP BY DATE(startDate), sourceName
+        ORDER BY date, sourceName
+        """
+        
+        summaries_by_source = {}
+        
+        with self.db_manager.get_connection() as conn:
+            cursor = conn.execute(
+                query, 
+                (metric_type, start_date.isoformat(), end_date.isoformat())
+            )
+            
+            for row in cursor.fetchall():
+                date_str = row[0]
+                source_name = row[1]
+                
+                if source_name not in summaries_by_source:
+                    summaries_by_source[source_name] = {}
+                    
+                summaries_by_source[source_name][date_str] = {
+                    'sum': row[2],
+                    'avg': row[3],
+                    'max': row[4],
+                    'min': row[5],
+                    'count': row[6]
+                }
+        
+        # Also calculate the aggregated "All Sources" data
+        # Use MAX for step-like metrics to avoid double counting
+        aggregated_summaries = {}
+        all_dates = set()
+        for source_data in summaries_by_source.values():
+            all_dates.update(source_data.keys())
+        
+        for date_str in all_dates:
+            # Collect values from all sources for this date
+            source_values = []
+            total_count = 0
+            for source_name, source_data in summaries_by_source.items():
+                if date_str in source_data:
+                    source_values.append(source_data[date_str])
+                    total_count += source_data[date_str]['count']
+            
+            if source_values:
+                # For cumulative metrics like steps, use MAX to avoid double counting
+                # For instantaneous metrics like weight, use AVG
+                if metric_type in ['HKQuantityTypeIdentifierStepCount', 
+                                 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+                                 'HKQuantityTypeIdentifierFlightsClimbed',
+                                 'HKQuantityTypeIdentifierActiveEnergyBurned']:
+                    # Use MAX for cumulative metrics
+                    aggregated_summaries[date_str] = {
+                        'sum': max(v['sum'] for v in source_values),
+                        'avg': sum(v['avg'] for v in source_values) / len(source_values),
+                        'max': max(v['max'] for v in source_values),
+                        'min': min(v['min'] for v in source_values),
+                        'count': total_count,
+                        'sources': len(source_values)
+                    }
+                else:
+                    # Use AVG for instantaneous metrics
+                    aggregated_summaries[date_str] = {
+                        'sum': sum(v['sum'] for v in source_values) / len(source_values),
+                        'avg': sum(v['avg'] for v in source_values) / len(source_values),
+                        'max': max(v['max'] for v in source_values),
+                        'min': min(v['min'] for v in source_values),
+                        'count': total_count,
+                        'sources': len(source_values)
+                    }
+        
+        # Add aggregated data as a special source
+        summaries_by_source[None] = aggregated_summaries  # None represents "All Sources"
+                
+        return summaries_by_source
         
     def _calculate_weekly_summaries(self,
                                   metric_type: str,

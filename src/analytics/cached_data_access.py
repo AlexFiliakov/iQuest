@@ -42,28 +42,34 @@ class CachedDataAccess:
         self.cache_manager = get_cache_manager()
         self._cache_misses = 0
         
-    def get_daily_summary(self, metric: str, target_date: date) -> Optional[Dict[str, Any]]:
+    def get_daily_summary(self, metric: str, target_date: date, source_name: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Get daily summary statistics from cache.
         
         Args:
             metric: The metric type (e.g., 'StepCount')
             target_date: The date to get statistics for
+            source_name: Optional source name to filter by (e.g., 'iPhone', 'Apple Watch')
             
         Returns:
             Dict with summary statistics or None if not cached
         """
+        # If source_name is specified, use CachedMetricsAccess which supports source filtering
+        if source_name:
+            from src.analytics.cached_metrics_access import CachedMetricsAccess
+            cached_metrics = CachedMetricsAccess()
+            return cached_metrics.get_daily_summary(metric, target_date, source_name)
+        
+        # Otherwise use the original cache manager approach for backward compatibility
         key = cache_key('daily_summary', metric, target_date.isoformat())
         
         # Get from L2 cache (SQLite) directly since import stores there
         result = self.cache_manager.l2_cache.get(key)
         
         if result is None:
-            self._cache_misses += 1
-            logger.warning(
-                f"Cache miss for daily summary: {metric} on {target_date}. "
-                f"Total misses: {self._cache_misses}"
-            )
-            return None
+            # Try CachedMetricsAccess as fallback
+            from src.analytics.cached_metrics_access import CachedMetricsAccess
+            cached_metrics = CachedMetricsAccess()
+            return cached_metrics.get_daily_summary(metric, target_date)
             
         # Parse JSON result from cache
         try:
@@ -128,6 +134,21 @@ class CachedDataAccess:
             logger.error(f"Error parsing cached monthly summary: {e}")
             return None
             
+    def get_available_sources(self) -> List[str]:
+        """Get list of available data sources from cache.
+        
+        Returns:
+            List of source names available in cache
+        """
+        try:
+            # Get sources from cached metrics database
+            from src.analytics.cached_metrics_access import CachedMetricsAccess
+            cached_metrics = CachedMetricsAccess()
+            return cached_metrics.get_available_sources()
+        except Exception as e:
+            logger.error(f"Error getting available sources: {e}")
+            return []
+    
     def get_available_metrics(self) -> List[str]:
         """Get list of available metrics from import metadata.
         

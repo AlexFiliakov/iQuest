@@ -404,6 +404,7 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_key ON cached_metrics(cache_key)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_expires ON cached_metrics(expires_at)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_metric_date ON cached_metrics(metric_type, date_range_start, date_range_end)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_lookup ON cached_metrics(metric_type, date_range_start, source_name, aggregation_type)")
             
             # Create health_metrics_metadata table as per spec
             cursor.execute("""

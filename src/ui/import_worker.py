@@ -366,6 +366,13 @@ class ImportWorker(QThread):
                 months_back=12  # Default to 12 months of history
             )
             
+            # Also calculate source-aware summaries
+            self.progress_updated.emit(92, "Calculating source-specific summaries...", self.record_count)
+            source_summaries = calculator.calculate_summaries_by_source(
+                progress_callback=progress_callback,
+                months_back=12
+            )
+            
             # Cache the summaries
             self.progress_updated.emit(98, "Caching summaries...", self.record_count)
             from ..analytics.cache_manager import get_cache_manager
@@ -374,6 +381,9 @@ class ImportWorker(QThread):
             
             # Also populate the cached_metrics table in the main database
             self._populate_cached_metrics_table(summaries)
+            
+            # Cache source-specific summaries
+            self._populate_cached_metrics_table_by_source(source_summaries)
             
             self.progress_updated.emit(99, "Summary caching complete", self.record_count)
             logger.info(f"Successfully cached {summaries['metadata']['metrics_processed']} metrics")
@@ -515,6 +525,74 @@ class ImportWorker(QThread):
         except Exception as e:
             logger.error(f"Error populating cached_metrics table: {e}")
             # Don't raise - this is not critical for import success
+    
+    def _populate_cached_metrics_table_by_source(self, source_summaries: Dict[str, Any]) -> None:
+        """Populate the cached_metrics table with source-specific summaries.
+        
+        Args:
+            source_summaries: Dictionary containing summaries organized by metric, source, and date
+        """
+        try:
+            from ..data_access import CacheDAO
+            from datetime import datetime
+            
+            logger.info("Populating cached_metrics table with source-specific summaries")
+            cached_count = 0
+            
+            # Process daily summaries by source
+            daily_summaries = source_summaries.get('daily', {})
+            
+            for metric_type, sources_data in daily_summaries.items():
+                for source_name, date_data in sources_data.items():
+                    # Skip if source_name is None (already cached as aggregated)
+                    if source_name is None:
+                        continue
+                        
+                    for date_str, stats in date_data.items():
+                        try:
+                            # Parse date
+                            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                            
+                            # Extract statistics
+                            min_val = stats.get('min')
+                            max_val = stats.get('max')
+                            avg_val = stats.get('avg')
+                            sum_val = stats.get('sum')
+                            count = stats.get('count', 0)
+                            
+                            # Cache the source-specific daily summary
+                            CacheDAO.cache_metrics(
+                                metric_type=metric_type,
+                                data={
+                                    'date': date_str,
+                                    'source': source_name,
+                                    'sum': sum_val,
+                                    'avg': avg_val,
+                                    'min': min_val,
+                                    'max': max_val,
+                                    'count': count
+                                },
+                                date_start=date_obj,
+                                date_end=date_obj,
+                                aggregation_type='daily',
+                                source_name=source_name,  # Key addition!
+                                health_type=metric_type,
+                                record_count=count,
+                                min_value=min_val,
+                                max_value=max_val,
+                                avg_value=avg_val,
+                                ttl_hours=24 * 30  # Cache for 30 days
+                            )
+                            cached_count += 1
+                            
+                        except Exception as e:
+                            logger.error(f"Error caching {metric_type} for {source_name} on {date_str}: {e}")
+                            
+            logger.info(f"Cached {cached_count} source-specific metric summaries")
+            
+        except Exception as e:
+            logger.error(f"Error populating source-specific cached_metrics: {e}")
+            # Don't raise - this is not critical
     
     def _create_database_backup(self):
         """Create a backup of the current database for rollback."""

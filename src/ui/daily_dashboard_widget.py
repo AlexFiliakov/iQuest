@@ -870,8 +870,11 @@ class DailyDashboardWidget(QWidget):
         if self.cached_data_access:
             logger.info("Loading metrics from cache")
             available_types = self.cached_data_access.get_available_metrics()
+            available_sources = self.cached_data_access.get_available_sources()
             
             self._available_metrics = []
+            
+            # First add aggregated metrics (no source)
             for db_type in available_types:
                 # Check if it already exists in our display names
                 if db_type in self._metric_display_names:
@@ -880,13 +883,19 @@ class DailyDashboardWidget(QWidget):
                     # If not, try stripping HK prefixes
                     clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
                 
-                # Include all metrics, using clean_type as display name if not in mappings
+                # Add aggregated metric
                 self._available_metrics.append((clean_type, None))
-                logger.debug(f"Added metric from cache: {clean_type}")
+                logger.debug(f"Added aggregated metric from cache: {clean_type}")
+                
+                # Add source-specific metrics
+                for source in available_sources:
+                    self._available_metrics.append((clean_type, source))
+                    logger.debug(f"Added metric from cache: {clean_type} - {source}")
             
             if self._available_metrics:
-                self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
-                logger.info(f"Loaded {len(self._available_metrics)} metrics from cache")
+                # Sort by display name, then by source (aggregated first)
+                self._available_metrics.sort(key=lambda x: (self._metric_display_names.get(x[0], x[0]), x[1] is not None, x[1] or ''))
+                logger.info(f"Loaded {len(self._available_metrics)} metric-source combinations from cache")
                 return
         
         # Fall back to database if no cached access
