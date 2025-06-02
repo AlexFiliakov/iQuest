@@ -75,6 +75,7 @@ def journal_editor(qtbot, mock_data_access):
     return widget
 
 
+@pytest.mark.performance
 class TestAutoSavePerformance:
     """Test auto-save performance impact."""
     

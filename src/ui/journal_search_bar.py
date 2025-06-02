@@ -269,6 +269,7 @@ class JournalSearchBar(QWidget):
         # Result count label
         self.result_label = QLabel()
         self.result_label.setStyleSheet(f"color: {self.style_manager.colors.text_secondary};")
+        self.result_label.hide()  # Initially hidden
         
         # Add widgets to layout
         layout.addWidget(self.search_input, 1)
@@ -381,11 +382,14 @@ class JournalSearchBar(QWidget):
             count: Number of search results.
         """
         if count == 0:
+            self.result_label.hide()
             self.result_label.setText("")
-        elif count == 1:
-            self.result_label.setText("1 result")
         else:
-            self.result_label.setText(f"{count} results")
+            self.result_label.show()
+            if count == 1:
+                self.result_label.setText("1 result")
+            else:
+                self.result_label.setText(f"{count} results")
             
     def focus_search(self):
         """Focus the search input field."""

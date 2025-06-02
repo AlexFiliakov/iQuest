@@ -309,13 +309,19 @@ class JournalManager(QObject):
         Args:
             data_access: Optional data access object (for testing)
         """
+        super().__init__()
+        
         # Only initialize once
         if hasattr(self, '_initialized'):
             return
-            
-        super().__init__()
         self._initialized = True
-        self.data_access = data_access or DataAccess()
+        self.data_access = data_access
+        if self.data_access is None:
+            try:
+                from ..data_access import DataAccess
+                self.data_access = DataAccess()
+            except Exception:
+                pass
         self.worker = JournalWorker()
         self.operation_callbacks: Dict[str, Callable] = {}
         self.operation_history: deque = deque(maxlen=100)

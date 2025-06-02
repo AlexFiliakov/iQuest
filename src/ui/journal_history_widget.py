@@ -46,8 +46,13 @@ from PyQt6.QtGui import (
 
 from src.models import JournalEntry
 from src.ui.journal_editor_widget import SegmentedControl
-from src.ui.style_manager import ThemeColors
-from src.config import FONTS
+from src.ui.style_manager import ColorPalette
+
+# Create instance for compatibility
+ThemeColors = ColorPalette()
+FONTS = {
+    'DEFAULT_FAMILY': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+}
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +141,7 @@ class JournalHistoryWidget(QWidget):
         # Apply styling
         self.list_view.setStyleSheet(f"""
             QListView {{
-                background-color: {ThemeColors.BACKGROUND};
+                background-color: {ThemeColors.background};
                 border: none;
                 outline: none;
             }}
@@ -180,10 +185,10 @@ class JournalHistoryWidget(QWidget):
         self.status_label = QLabel()
         self.status_label.setStyleSheet(f"""
             QLabel {{
-                color: {ThemeColors.TEXT_SECONDARY};
+                color: {ThemeColors.text_secondary};
                 padding: 8px;
-                background-color: {ThemeColors.SURFACE};
-                border-top: 1px solid {ThemeColors.BORDER};
+                background-color: {ThemeColors.surface};
+                border-top: 1px solid {ThemeColors.border};
             }}
         """)
         layout.addWidget(self.status_label)
@@ -571,14 +576,14 @@ class JournalEntryDelegate(QStyledItemDelegate):
         
         # Draw card background
         if option.state & QStyleOptionViewItem.StateFlag.State_Selected:
-            painter.setPen(QPen(QColor(ThemeColors.PRIMARY), 2))
-            painter.setBrush(QBrush(QColor(ThemeColors.SURFACE)))
+            painter.setPen(QPen(QColor(ThemeColors.primary), 2))
+            painter.setBrush(QBrush(QColor(ThemeColors.surface)))
         elif option.state & QStyleOptionViewItem.StateFlag.State_MouseOver:
-            painter.setPen(QPen(QColor(ThemeColors.BORDER), 1))
-            painter.setBrush(QBrush(QColor(ThemeColors.ACCENT_LIGHT)))
+            painter.setPen(QPen(QColor(ThemeColors.border), 1))
+            painter.setBrush(QBrush(QColor(ThemeColors.primary_light)))
         else:
-            painter.setPen(QPen(QColor(ThemeColors.BORDER), 1))
-            painter.setBrush(QBrush(QColor(ThemeColors.SURFACE)))
+            painter.setPen(QPen(QColor(ThemeColors.border), 1))
+            painter.setBrush(QBrush(QColor(ThemeColors.surface)))
             
         painter.drawRoundedRect(card_rect, self.card_radius, self.card_radius)
         
@@ -604,17 +609,17 @@ class JournalEntryDelegate(QStyledItemDelegate):
         )
         
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(QColor(ThemeColors.PRIMARY)))
+        painter.setBrush(QBrush(QColor(ThemeColors.primary)))
         painter.drawRoundedRect(date_rect, 4, 4)
         
-        painter.setPen(QPen(QColor(ThemeColors.SURFACE)))
+        painter.setPen(QPen(QColor(ThemeColors.surface)))
         painter.drawText(date_rect, Qt.AlignmentFlag.AlignCenter, date_text)
         
         # Draw entry type icon
         type_font = QFont(FONTS['DEFAULT_FAMILY'])
         type_font.setPointSize(9)
         painter.setFont(type_font)
-        painter.setPen(QPen(QColor(ThemeColors.TEXT_SECONDARY)))
+        painter.setPen(QPen(QColor(ThemeColors.text_secondary)))
         
         type_text = entry.entry_type.capitalize()
         type_rect = QRectF(
@@ -629,7 +634,7 @@ class JournalEntryDelegate(QStyledItemDelegate):
         preview_font = QFont(FONTS['DEFAULT_FAMILY'])
         preview_font.setPointSize(10)
         painter.setFont(preview_font)
-        painter.setPen(QPen(QColor(ThemeColors.TEXT_PRIMARY)))
+        painter.setPen(QPen(QColor(ThemeColors.text_primary)))
         
         preview_rect = QRectF(
             content_rect.x(),
@@ -648,7 +653,7 @@ class JournalEntryDelegate(QStyledItemDelegate):
         count_font = QFont(FONTS['DEFAULT_FAMILY'])
         count_font.setPointSize(9)
         painter.setFont(count_font)
-        painter.setPen(QPen(QColor(ThemeColors.TEXT_SECONDARY)))
+        painter.setPen(QPen(QColor(ThemeColors.text_secondary)))
         
         count_rect = QRectF(
             content_rect.x(),
@@ -725,8 +730,8 @@ class FilterToolbar(QToolBar):
         self.setMovable(False)
         self.setStyleSheet(f"""
             QToolBar {{
-                background-color: {ThemeColors.ACCENT_LIGHT};
-                border-bottom: 1px solid {ThemeColors.BORDER};
+                background-color: {ThemeColors.surface_alt};
+                border-bottom: 1px solid {ThemeColors.border};
                 padding: 8px;
                 spacing: 8px;
             }}
@@ -734,30 +739,30 @@ class FilterToolbar(QToolBar):
         
         # View mode selector
         view_label = QLabel("View:")
-        view_label.setStyleSheet(f"color: {ThemeColors.TEXT_SECONDARY};")
+        view_label.setStyleSheet(f"color: {ThemeColors.text_secondary};")
         self.addWidget(view_label)
         
         self.view_selector = SegmentedControl(["List", "Timeline", "Calendar"])
-        self.view_selector.setCurrentIndex(0)
+        self.view_selector.current_index = 0
         self.addWidget(self.view_selector)
         
         self.addSeparator()
         
         # Entry type filter
         type_label = QLabel("Type:")
-        type_label.setStyleSheet(f"color: {ThemeColors.TEXT_SECONDARY};")
+        type_label.setStyleSheet(f"color: {ThemeColors.text_secondary};")
         self.addWidget(type_label)
         
         self.type_filter = SegmentedControl(["All", "Daily", "Weekly", "Monthly"])
-        self.type_filter.setCurrentIndex(0)
-        self.type_filter.currentIndexChanged.connect(self.on_filters_changed)
+        self.type_filter.current_index = 0
+        self.type_filter.selectionChanged.connect(self.on_filters_changed)
         self.addWidget(self.type_filter)
         
         self.addSeparator()
         
         # Sort order
         sort_label = QLabel("Sort:")
-        sort_label.setStyleSheet(f"color: {ThemeColors.TEXT_SECONDARY};")
+        sort_label.setStyleSheet(f"color: {ThemeColors.text_secondary};")
         self.addWidget(sort_label)
         
         self.sort_combo = QComboBox()
@@ -787,7 +792,7 @@ class FilterToolbar(QToolBar):
         Returns:
             Entry type string or None for all
         """
-        index = self.type_filter.currentIndex()
+        index = self.type_filter.current_index
         type_map = {0: None, 1: 'daily', 2: 'weekly', 3: 'monthly'}
         return type_map.get(index)
 
@@ -826,7 +831,7 @@ class PreviewPanel(QWidget):
         self.title_label = QLabel("Entry Preview")
         self.title_label.setStyleSheet(f"""
             QLabel {{
-                color: {ThemeColors.TEXT_PRIMARY};
+                color: {ThemeColors.text_primary};
                 font-size: 16px;
                 font-weight: bold;
             }}
@@ -839,14 +844,14 @@ class PreviewPanel(QWidget):
         close_btn.setText("×")
         close_btn.setStyleSheet(f"""
             QToolButton {{
-                color: {ThemeColors.TEXT_SECONDARY};
+                color: {ThemeColors.text_secondary};
                 border: none;
                 font-size: 20px;
                 padding: 4px;
             }}
             QToolButton:hover {{
-                color: {ThemeColors.TEXT_PRIMARY};
-                background-color: {ThemeColors.ACCENT_LIGHT};
+                color: {ThemeColors.text_primary};
+                background-color: {ThemeColors.primary_light};
                 border-radius: 4px;
             }}
         """)
@@ -859,7 +864,7 @@ class PreviewPanel(QWidget):
         self.metadata_label = QLabel()
         self.metadata_label.setStyleSheet(f"""
             QLabel {{
-                color: {ThemeColors.TEXT_SECONDARY};
+                color: {ThemeColors.text_secondary};
                 padding: 8px 0;
             }}
         """)
@@ -869,11 +874,11 @@ class PreviewPanel(QWidget):
         self.content_view = QTextBrowser()
         self.content_view.setStyleSheet(f"""
             QTextBrowser {{
-                background-color: {ThemeColors.SURFACE};
-                border: 1px solid {ThemeColors.BORDER};
+                background-color: {ThemeColors.surface};
+                border: 1px solid {ThemeColors.border};
                 border-radius: 8px;
                 padding: 12px;
-                color: {ThemeColors.TEXT_PRIMARY};
+                color: {ThemeColors.text_primary};
             }}
         """)
         layout.addWidget(self.content_view, 1)
@@ -886,7 +891,7 @@ class PreviewPanel(QWidget):
         self.edit_btn.clicked.connect(self.on_edit_clicked)
         self.edit_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {ThemeColors.PRIMARY};
+                background-color: {ThemeColors.primary};
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -894,7 +899,7 @@ class PreviewPanel(QWidget):
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: {ThemeColors.PRIMARY_DARK};
+                background-color: {ThemeColors.primary_hover};
             }}
         """)
         button_layout.addWidget(self.edit_btn)
@@ -903,7 +908,7 @@ class PreviewPanel(QWidget):
         self.delete_btn.clicked.connect(self.on_delete_clicked)
         self.delete_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {ThemeColors.ERROR};
+                background-color: {ThemeColors.error};
                 color: white;
                 border: none;
                 padding: 8px 16px;

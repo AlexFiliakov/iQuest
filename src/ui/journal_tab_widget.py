@@ -31,8 +31,13 @@ from src.data_access import DataAccess
 from src.ui.journal_editor_widget import JournalEditorWidget
 from src.ui.journal_history_widget import JournalHistoryWidget
 from src.ui.journal_search_widget import JournalSearchWidget
-from src.ui.style_manager import ThemeColors
-from src.config import FONTS
+from src.ui.style_manager import ColorPalette, StyleManager
+
+# Create alias for backward compatibility
+ThemeColors = ColorPalette()
+FONTS = {
+    'DEFAULT_FAMILY': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+}
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +53,7 @@ class JournalTabWidget(QWidget):
         journal_editor: Editor widget for creating/editing entries
         history_widget: History view for browsing entries
         search_widget: Search functionality
+        style_manager: StyleManager instance for consistent styling
     """
     
     def __init__(self, data_access: DataAccess, parent=None):
@@ -59,6 +65,7 @@ class JournalTabWidget(QWidget):
         """
         super().__init__(parent)
         self.data_access = data_access
+        self.style_manager = StyleManager()
         self.setup_ui()
         self.connect_signals()
         
@@ -82,7 +89,7 @@ class JournalTabWidget(QWidget):
         left_layout.setSpacing(0)
         
         # Search widget
-        self.search_widget = JournalSearchWidget(self.data_access.journal_db)
+        self.search_widget = JournalSearchWidget()
         left_layout.addWidget(self.search_widget)
         
         # History widget
@@ -111,8 +118,8 @@ class JournalTabWidget(QWidget):
         header = QFrame()
         header.setStyleSheet(f"""
             QFrame {{
-                background-color: {ThemeColors.SURFACE};
-                border-bottom: 2px solid {ThemeColors.BORDER};
+                background-color: {ThemeColors.surface};
+                border-bottom: 2px solid {ThemeColors.border};
                 padding: 12px;
             }}
         """)
@@ -125,7 +132,7 @@ class JournalTabWidget(QWidget):
             QLabel {{
                 font-size: 18px;
                 font-weight: bold;
-                color: {ThemeColors.TEXT_PRIMARY};
+                color: {ThemeColors.text_primary};
                 font-family: {FONTS['DEFAULT_FAMILY']};
             }}
         """)
@@ -137,7 +144,7 @@ class JournalTabWidget(QWidget):
         new_btn = QPushButton("New Entry")
         new_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {ThemeColors.PRIMARY};
+                background-color: {ThemeColors.primary};
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -146,7 +153,7 @@ class JournalTabWidget(QWidget):
                 font-family: {FONTS['DEFAULT_FAMILY']};
             }}
             QPushButton:hover {{
-                background-color: {ThemeColors.PRIMARY_DARK};
+                background-color: {ThemeColors.primary_hover};
             }}
         """)
         new_btn.clicked.connect(self.create_new_entry)

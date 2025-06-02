@@ -116,27 +116,43 @@ class JournalIndicatorService(QObject):
             ... )
         """
         with self._cache_lock:
+            # Register this date range as active BEFORE refreshing cache
+            self._register_active_range(start_date, end_date)
+            
             # Check if cache needs refresh
             if self._should_refresh_cache():
                 self._refresh_cache()
-                
-            # Register this date range as active
-            self._register_active_range(start_date, end_date)
             
             # Filter cached data for requested range
             results = {}
-            current_date = start_date
             
-            while current_date <= end_date:
-                date_key = current_date.isoformat()
-                
-                # Check for entries on this date
-                if date_key in self._cache:
-                    indicator = self._cache[date_key]
-                    if entry_type is None or indicator.entry_type == entry_type:
-                        results[date_key] = indicator
+            # If a specific entry type is requested, just check relevant keys
+            if entry_type:
+                # Check each date in range for the specific type
+                current_date = start_date
+                while current_date <= end_date:
+                    date_key = self._get_date_key(current_date, entry_type)
+                    if date_key in self._cache:
+                        results[date_key] = self._cache[date_key]
+                    current_date += timedelta(days=1)
+            else:
+                # Return all indicators in the date range
+                for date_key, indicator in self._cache.items():
+                    # Parse the date from the key
+                    if '_' in date_key:
+                        # Weekly or monthly entry
+                        date_part = date_key.split('_')[0]
+                    else:
+                        # Daily entry
+                        date_part = date_key
                         
-                current_date += timedelta(days=1)
+                    try:
+                        indicator_date = date.fromisoformat(date_part)
+                        if start_date <= indicator_date <= end_date:
+                            results[date_key] = indicator
+                    except ValueError:
+                        # Skip invalid dates
+                        continue
                 
             return results
             
@@ -274,7 +290,7 @@ class JournalIndicatorService(QObject):
             # Update timestamp
             self._cache_timestamp = datetime.now()
             
-            logger.info(f"Cache refreshed with {len(self._cache)} indicators")
+            logger.info(f"Cache refreshed with {len(self._cache)} indicators from {len(all_entries)} entries")
             
         except Exception as e:
             logger.error(f"Error refreshing cache: {e}")

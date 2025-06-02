@@ -503,13 +503,15 @@ class JournalExportDialog(QDialog):
     def _apply_styles(self):
         """Apply consistent styling to the dialog."""
         # Apply warm color theme
+        style_manager = StyleManager()
+        colors = style_manager.colors
         self.setStyleSheet(f"""
             QDialog {{
-                background-color: {StyleManager.COLORS['background']};
+                background-color: {colors.background};
             }}
             QGroupBox {{
                 font-weight: bold;
-                border: 2px solid {StyleManager.COLORS['border']};
+                border: 2px solid {colors.border};
                 border-radius: 8px;
                 margin-top: 1ex;
                 padding-top: 10px;
@@ -518,10 +520,10 @@ class JournalExportDialog(QDialog):
                 subcontrol-origin: margin;
                 left: 10px;
                 padding: 0 5px 0 5px;
-                color: {StyleManager.COLORS['primary']};
+                color: {colors.primary};
             }}
             QPushButton {{
-                background-color: {StyleManager.COLORS['primary']};
+                background-color: {colors.primary};
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -529,19 +531,19 @@ class JournalExportDialog(QDialog):
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: {StyleManager.COLORS['primary_dark']};
+                background-color: {colors.primary_hover};
             }}
             QPushButton:pressed {{
-                background-color: {StyleManager.COLORS['secondary']};
+                background-color: {colors.text_secondary};
             }}
             QProgressBar {{
-                border: 2px solid {StyleManager.COLORS['border']};
+                border: 2px solid {colors.border};
                 border-radius: 5px;
                 text-align: center;
                 background-color: white;
             }}
             QProgressBar::chunk {{
-                background-color: {StyleManager.COLORS['primary']};
+                background-color: {colors.primary};
                 border-radius: 3px;
             }}
         """)

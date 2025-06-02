@@ -67,9 +67,10 @@ class WeeklyStatCard(QFrame):
         self.setStyleSheet(f"""
             WeeklyStatCard {{
                 background-color: {style_manager.PRIMARY_BG};
-                border: {shadow['border']};
+                border: 1px solid {style_manager.BORDER_COLOR};
                 border-radius: 8px;
                 padding: 16px;
+                box-shadow: {shadow};
             }}
             WeeklyStatCard:hover {{
                 background-color: {style_manager.PRIMARY_BG};

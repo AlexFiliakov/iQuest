@@ -539,7 +539,7 @@ class MetricTable(QWidget):
             button.setStyleSheet(button_style)
         
         # Scroll bar styling
-        scroll_style = self.style_manager.get_scroll_bar_style()
+        scroll_style = self.style_manager.get_scrollbar_style()
         self.table.setStyleSheet(self.table.styleSheet() + scroll_style)
     
     def load_data(self, data: pd.DataFrame):

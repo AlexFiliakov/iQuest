@@ -166,7 +166,7 @@ class LoadingScreen(QWidget):
         self.fade_animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
         
         # Size the window
-        self.setFixedSize(600, 500)
+        self.setFixedSize(650, 500)
         
         # Center on screen
         self._center_on_screen()

@@ -59,8 +59,8 @@ class StyledCalendarWidget(QCalendarWidget):
         calendar_style = f"""
             /* Calendar widget container */
             QCalendarWidget {{
-                background-color: {self.style_manager.PRIMARY_BG};
-                border: 1px solid {self.style_manager.ACCENT_LIGHT};
+                background-color: {self.style_manager.colors.background};
+                border: 1px solid {self.style_manager.colors.primary_light};
                 border-radius: 8px;
                 min-width: 300px;
                 min-height: 320px;
@@ -69,7 +69,7 @@ class StyledCalendarWidget(QCalendarWidget):
             
             /* Navigation bar styling */
             QCalendarWidget QWidget#qt_calendar_navigationbar {{
-                background-color: {self.style_manager.ACCENT_SECONDARY};
+                background-color: {self.style_manager.colors.primary};
                 padding: 8px;
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
@@ -77,7 +77,7 @@ class StyledCalendarWidget(QCalendarWidget):
             
             /* Month/Year display */
             QCalendarWidget QToolButton {{
-                color: {self.style_manager.TEXT_INVERSE};
+                color: {self.style_manager.colors.text_white};
                 font-size: 16px;
                 font-weight: 600;
                 background-color: transparent;
@@ -119,20 +119,20 @@ class StyledCalendarWidget(QCalendarWidget):
             
             /* Table view for calendar grid */
             QCalendarWidget QTableView {{
-                background-color: {self.style_manager.PRIMARY_BG};
-                selection-background-color: {self.style_manager.ACCENT_SECONDARY};
-                selection-color: {self.style_manager.TEXT_INVERSE};
+                background-color: {self.style_manager.colors.background};
+                selection-background-color: {self.style_manager.colors.primary};
+                selection-color: {self.style_manager.colors.text_white};
                 border: none;
                 outline: none;
-                gridline-color: {self.style_manager.ACCENT_LIGHT};
+                gridline-color: {self.style_manager.colors.primary_light};
                 font-size: 14px;
                 padding: 8px;
             }}
             
             /* Day headers (Mon, Tue, etc.) */
             QCalendarWidget QHeaderView::section {{
-                background-color: {self.style_manager.SECONDARY_BG};
-                color: {self.style_manager.TEXT_SECONDARY};
+                background-color: {self.style_manager.colors.surface_alt};
+                color: {self.style_manager.colors.text_secondary};
                 padding: 8px 4px;
                 border: none;
                 font-weight: 600;
@@ -149,25 +149,25 @@ class StyledCalendarWidget(QCalendarWidget):
             
             /* Hover effect for days */
             QCalendarWidget QTableView QAbstractItemView::item:hover {{
-                background-color: {self.style_manager.TERTIARY_BG};
+                background-color: {self.style_manager.colors.surface};
             }}
             
             /* Selected day */
             QCalendarWidget QTableView QAbstractItemView::item:selected {{
-                background-color: {self.style_manager.ACCENT_SECONDARY};
-                color: {self.style_manager.TEXT_INVERSE};
+                background-color: {self.style_manager.colors.primary};
+                color: {self.style_manager.colors.text_white};
                 font-weight: 600;
             }}
             
             /* Today's date */
             QCalendarWidget QTableView QAbstractItemView::item:focus {{
-                border: 2px solid {self.style_manager.FOCUS_COLOR};
+                border: 2px solid {self.style_manager.colors.border_focus};
                 background-color: rgba(0, 128, 199, 0.1);
             }}
             
             /* Disabled days from other months */
             QCalendarWidget QTableView QAbstractItemView::item:disabled {{
-                color: {self.style_manager.TEXT_MUTED};
+                color: {self.style_manager.colors.text_disabled};
                 background-color: transparent;
             }}
         """

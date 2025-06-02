@@ -15,6 +15,7 @@ import time
 from datetime import datetime, date
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget, QPushButton, QTextEdit, QHBoxLayout, QLabel
 from PyQt6.QtCore import QTimer, Qt, QDate
+from PyQt6.QtGui import QFont
 
 # Add project root to path
 sys.path.insert(0, '/mnt/c/Users/alexf/OneDrive/Documents/Projects/Apple Health Exports')
@@ -24,7 +25,7 @@ from src.ui.auto_save_settings_panel import AutoSaveSettingsPanel
 from src.ui.draft_recovery_dialog import DraftRecoveryDialog
 from src.ui.settings_manager import SettingsManager
 from src.data_access import DataAccess
-from src.config import Config
+from src import config
 from src.utils.logging_config import setup_logging
 
 # Setup logging
@@ -40,8 +41,7 @@ class AutoSaveDemo(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         
         # Initialize components
-        self.config = Config()
-        self.data_access = DataAccess(self.config.DB_PATH)
+        self.data_access = DataAccess()
         self.settings_manager = SettingsManager()
         
         self.setup_ui()

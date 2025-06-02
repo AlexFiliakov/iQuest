@@ -11,5 +11,27 @@ sys.path.insert(0, str(project_root))
 # Note: We don't have generators module in this fresh test setup
 # If needed, create tests/fixtures/ and tests/generators/ directories
 
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
+
+# Set up headless mode for PyQt testing
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+
+# Import PyQt after setting environment
+try:
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QApplication
+    
+    @pytest.fixture(scope='session', autouse=True)
+    def qapp():
+        """Create a QApplication instance for the entire test session."""
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        yield app
+        # Don't quit the app here as pytest-qt will handle it
+        
+except ImportError:
+    # PyQt6 not available, skip fixture
+    pass

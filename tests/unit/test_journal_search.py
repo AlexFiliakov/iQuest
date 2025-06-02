@@ -76,10 +76,10 @@ class TestSearchScoring(unittest.TestCase):
         self.assertAlmostEqual(score, 1.0, places=2)
         
         # 30 days ago should score ~0.5
-        old_date = date.today().replace(day=1).isoformat()
+        from datetime import timedelta
+        old_date = (date.today() - timedelta(days=30)).isoformat()
         score = self.engine._calculate_recency_score(old_date)
-        self.assertLess(score, 0.7)
-        self.assertGreater(score, 0.3)
+        self.assertAlmostEqual(score, 0.5, places=2)
         
     def test_hybrid_scoring(self):
         """Test hybrid score calculation."""

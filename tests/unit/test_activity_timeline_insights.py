@@ -18,13 +18,7 @@ from src.ui.anomaly_alert_card import AnomalyAlertCard
 from src.ui.activity_heatmap_widget import ActivityHeatmapWidget
 
 
-@pytest.fixture(scope='module')
-def app():
-    """Create QApplication for testing."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
+# Use qapp fixture from conftest.py instead of defining our own
     
 
 @pytest.fixture
@@ -74,7 +68,7 @@ def sample_anomalies():
 class TestTimelineInsightsPanel:
     """Test the main Timeline Insights Panel."""
     
-    def test_panel_creation(self, app):
+    def test_panel_creation(self, qapp):
         """Test that the panel can be created."""
         panel = TimelineInsightsPanel()
         assert panel is not None
@@ -82,7 +76,7 @@ class TestTimelineInsightsPanel:
         assert hasattr(panel, 'anomaly_card')
         assert hasattr(panel, 'heatmap_widget')
         
-    def test_update_insights(self, app, sample_timeline_data, sample_clusters, sample_anomalies):
+    def test_update_insights(self, qapp, sample_timeline_data, sample_clusters, sample_anomalies):
         """Test updating the panel with data."""
         panel = TimelineInsightsPanel()
         
@@ -100,7 +94,7 @@ class TestTimelineInsightsPanel:
         assert panel.grouped_data is not None
         assert len(panel.selected_metrics) == 3
         
-    def test_pattern_transformation(self, app, sample_timeline_data, sample_clusters):
+    def test_pattern_transformation(self, qapp, sample_timeline_data, sample_clusters):
         """Test that clusters are transformed into user-friendly patterns."""
         panel = TimelineInsightsPanel()
         panel.clusters = sample_clusters
@@ -127,13 +121,13 @@ class TestTimelineInsightsPanel:
 class TestPatternRecognitionCard:
     """Test the Pattern Recognition Card widget."""
     
-    def test_card_creation(self, app):
+    def test_card_creation(self, qapp):
         """Test that the card can be created."""
         card = PatternRecognitionCard()
         assert card is not None
         assert card.windowTitle() == ""  # Frame has no title
         
-    def test_update_patterns(self, app):
+    def test_update_patterns(self, qapp):
         """Test updating the card with pattern data."""
         card = PatternRecognitionCard()
         
@@ -165,7 +159,7 @@ class TestPatternRecognitionCard:
         # Check that placeholder is removed
         assert card.content_layout.count() > 0
         
-    def test_empty_patterns(self, app):
+    def test_empty_patterns(self, qapp):
         """Test card behavior with no patterns."""
         card = PatternRecognitionCard()
         card.update_patterns([])
@@ -179,13 +173,13 @@ class TestPatternRecognitionCard:
 class TestAnomalyAlertCard:
     """Test the Anomaly Alert Card widget."""
     
-    def test_card_creation(self, app):
+    def test_card_creation(self, qapp):
         """Test that the card can be created."""
         card = AnomalyAlertCard()
         assert card is not None
         assert hasattr(card, 'count_label')
         
-    def test_update_anomalies(self, app):
+    def test_update_anomalies(self, qapp):
         """Test updating the card with anomaly data."""
         card = AnomalyAlertCard()
         
@@ -216,7 +210,7 @@ class TestAnomalyAlertCard:
         assert card.count_label.text() == "2"
         assert not card.count_label.isHidden()  # Check that it's not hidden rather than visible
         
-    def test_anomaly_dismissal(self, app):
+    def test_anomaly_dismissal(self, qapp):
         """Test dismissing anomalies."""
         card = AnomalyAlertCard()
         
@@ -239,7 +233,7 @@ class TestAnomalyAlertCard:
         assert card.count_label.text() == "0"
         assert card.count_label.isHidden()
         
-    def test_time_formatting(self, app):
+    def test_time_formatting(self, qapp):
         """Test relative time formatting."""
         card = AnomalyAlertCard()
         
@@ -262,13 +256,13 @@ class TestAnomalyAlertCard:
 class TestActivityHeatmapWidget:
     """Test the Activity Heatmap Widget."""
     
-    def test_widget_creation(self, app):
+    def test_widget_creation(self, qapp):
         """Test that the widget can be created."""
         widget = ActivityHeatmapWidget()
         assert widget is not None
         assert hasattr(widget, 'grid_widget')
         
-    def test_update_data(self, app):
+    def test_update_data(self, qapp):
         """Test updating the heatmap with data."""
         widget = ActivityHeatmapWidget()
         
@@ -292,7 +286,7 @@ class TestActivityHeatmapWidget:
         assert widget.data == data
         assert widget.max_intensity == 900
         
-    def test_empty_data(self, app):
+    def test_empty_data(self, qapp):
         """Test heatmap with empty data."""
         widget = ActivityHeatmapWidget()
         widget.update_data({})
@@ -301,7 +295,7 @@ class TestActivityHeatmapWidget:
         assert widget.data == {}
         assert widget.max_intensity == 0
         
-    def test_grid_dimensions(self, app):
+    def test_grid_dimensions(self, qapp):
         """Test that the grid has correct dimensions."""
         widget = ActivityHeatmapWidget()
         

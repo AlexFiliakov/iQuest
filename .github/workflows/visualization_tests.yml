@@ -184,7 +184,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-        pip install axe-selenium-python pytest-accessibility
+        pip install axe-selenium-python
         
     - name: Run accessibility audit
       run: |

@@ -28,6 +28,9 @@ Example:
 
 from .base_exporter import BaseExporter, ExportOptions, ExportResult
 from .json_exporter import JSONExporter
+
+# Import PDFExporter even if reportlab is not installed
+# The module handles the missing dependency gracefully
 from .pdf_exporter import PDFExporter
 
 __all__ = [

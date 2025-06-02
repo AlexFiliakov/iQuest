@@ -13,10 +13,12 @@ from datetime import datetime, timedelta
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel
 from PyQt6.QtCore import Qt
 
-# Add src to path
-sys.path.insert(0, 'src')
+# Add project root to path
+import os
+project_root = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, project_root)
 
-from ui.activity_timeline_component import ActivityTimelineComponent
+from src.ui.activity_timeline_component import ActivityTimelineComponent
 
 
 def generate_test_data():

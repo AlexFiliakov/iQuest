@@ -246,6 +246,9 @@ class MainWindow(QMainWindow):
         # Always open to Configuration tab
         self.tab_widget.setCurrentIndex(0)
         
+        # Ensure only the current tab is visible
+        self._ensure_only_current_tab_visible()
+        
         self._report_init("Starting background services...")
         
         # Set up status update timer
@@ -537,7 +540,7 @@ class MainWindow(QMainWindow):
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        self.config_tab = ConfigTab()
+        self.config_tab = ConfigurationTab()
         scroll_area.setWidget(self.config_tab)
         
         # Connect signals
@@ -584,8 +587,7 @@ class MainWindow(QMainWindow):
             if hasattr(self.daily_dashboard, 'refresh_requested'):
                 self.daily_dashboard.refresh_requested.connect(self._refresh_daily_data)
             
-            self.tab_widget.addTab(self.daily_dashboard, "Daily")
-            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View your daily health metrics and trends")
+            self._add_tab_hidden(self.daily_dashboard, "Daily", "View your daily health metrics and trends")
             
         except ImportError as e:
             # Fallback to placeholder if import fails
@@ -623,8 +625,7 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self.tab_widget.addTab(daily_widget, "Daily")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View your daily health metrics and trends")
+        self._add_tab_hidden(daily_widget, "Daily", "View your daily health metrics and trends")
     
     def _create_weekly_dashboard_tab(self):
         """Create the weekly dashboard tab with aggregated weekly metrics.
@@ -662,8 +663,7 @@ class MainWindow(QMainWindow):
             self.weekly_dashboard.week_changed.connect(self._on_week_changed)
             self.weekly_dashboard.metric_selected.connect(self._on_metric_selected)
             
-            self.tab_widget.addTab(self.weekly_dashboard, "Weekly")
-            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Analyze weekly health summaries and patterns")
+            self._add_tab_hidden(self.weekly_dashboard, "Weekly", "Analyze weekly health summaries and patterns")
             
         except ImportError as e:
             # Fallback to placeholder if import fails
@@ -701,8 +701,7 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self.tab_widget.addTab(weekly_widget, "Weekly")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Analyze weekly health summaries and patterns")
+        self._add_tab_hidden(weekly_widget, "Weekly", "Analyze weekly health summaries and patterns")
     
     def _create_monthly_dashboard_tab(self):
         """Create the monthly dashboard tab with calendar heatmap visualization.
@@ -769,8 +768,7 @@ class MainWindow(QMainWindow):
             self.monthly_dashboard.month_changed.connect(self._on_month_changed)
             self.monthly_dashboard.metric_changed.connect(self._on_metric_changed)
             
-            self.tab_widget.addTab(self.monthly_dashboard, "Monthly")
-            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and calendar heatmap")
+            self._add_tab_hidden(self.monthly_dashboard, "Monthly", "Review monthly health trends and calendar heatmap")
             
         except ImportError as e:
             # If import fails, create placeholder
@@ -812,8 +810,7 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self.tab_widget.addTab(monthly_widget, "Monthly")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Review monthly health trends and progress")
+        self._add_tab_hidden(monthly_widget, "Monthly", "Review monthly health trends and progress")
     
     def _create_comparative_analytics_tab(self):
         """Create the comparative analytics tab with advanced comparison features.
@@ -1468,6 +1465,39 @@ class MainWindow(QMainWindow):
         else:
             # Wrap around to first tab
             self.tab_widget.setCurrentIndex(0)
+    
+    def _add_tab_hidden(self, widget, label, tooltip=""):
+        """Add a tab to the tab widget and ensure it's hidden if not the first tab."""
+        # Hide the widget if it's not the first tab
+        if self.tab_widget.count() > 0:
+            widget.setVisible(False)
+        
+        self.tab_widget.addTab(widget, label)
+        if tooltip:
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, tooltip)
+    
+    def _ensure_only_current_tab_visible(self):
+        """Ensure only the current tab is visible and all others are hidden."""
+        current_index = self.tab_widget.currentIndex()
+        logger.debug(f"Ensuring only tab {current_index} is visible")
+        
+        for i in range(self.tab_widget.count()):
+            widget = self.tab_widget.widget(i)
+            if widget:
+                if i == current_index:
+                    widget.setVisible(True)
+                    # Special handling for scroll areas
+                    if isinstance(widget, QScrollArea):
+                        content = widget.widget()
+                        if content:
+                            content.setVisible(True)
+                else:
+                    widget.setVisible(False)
+                    # Special handling for scroll areas
+                    if isinstance(widget, QScrollArea):
+                        content = widget.widget()
+                        if content:
+                            content.setVisible(False)
     
     def _create_status_bar(self):
         """Create the application status bar."""

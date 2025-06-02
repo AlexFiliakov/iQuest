@@ -13,11 +13,13 @@ import sys
 import time
 from datetime import datetime
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer, Qt, QDate
+from PyQt6.QtCore import QTimer, Qt, QDate, QDateTime
 from PyQt6.QtTest import QTest
 
-# Add src to path
-sys.path.insert(0, 'src')
+# Add project root to path
+import os
+project_root = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, project_root)
 
 from src.data_access import DataAccess
 from src.ui.journal_editor_widget import JournalEditorWidget

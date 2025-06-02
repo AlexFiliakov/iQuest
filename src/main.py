@@ -134,12 +134,6 @@ def main():
                 style_manager = StyleManager()
                 app.processEvents()  # Allow UI to update
                 
-                # Ensure fonts are loaded
-                if not style_manager.fonts_loaded:
-                    loading_screen.add_message("Bribing fonts to show up for work...")
-                    style_manager.load_custom_fonts()
-                    app.processEvents()
-                
                 loading_screen.add_message("Applying mystical CSS potions...")
                 loading_screen.set_progress(0.15)
                 style_manager.apply_global_style(app)

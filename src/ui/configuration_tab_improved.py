@@ -131,7 +131,7 @@ class ConfigurationTabImproved(QWidget):
                 background-color: {self.style_manager.SECONDARY_BG};
                 border: none;
             }}
-            {self.style_manager.get_scroll_bar_style()}
+            {self.style_manager.get_scrollbar_style()}
         """)
         
         # Main container with max width for readability

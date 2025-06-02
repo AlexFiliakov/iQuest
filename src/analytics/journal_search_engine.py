@@ -660,7 +660,18 @@ class JournalSearchEngine:
             'filters': filters or {},
             'limit': limit
         }
-        key_str = json.dumps(key_data, sort_keys=True)
+        # Convert dates to strings for JSON serialization
+        def serialize_dates(obj):
+            if isinstance(obj, date):
+                return obj.isoformat()
+            elif isinstance(obj, dict):
+                return {k: serialize_dates(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [serialize_dates(v) for v in obj]
+            return obj
+        
+        serializable_data = serialize_dates(key_data)
+        key_str = json.dumps(serializable_data, sort_keys=True)
         return hashlib.md5(key_str.encode()).hexdigest()
     
     def clear_cache(self):

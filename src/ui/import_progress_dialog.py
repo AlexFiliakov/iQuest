@@ -69,7 +69,7 @@ class ImportProgressDialog(QDialog):
         """Setup dialog properties."""
         self.setWindowTitle("Importing Health Data")
         self.setModal(True)
-        self.setFixedSize(500, 380)
+        self.setFixedSize(650, 380)
         self.setWindowFlags(
             Qt.WindowType.Dialog | 
             Qt.WindowType.WindowTitleHint |
