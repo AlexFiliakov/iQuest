@@ -223,6 +223,7 @@ class DailyDashboardWidget(QWidget):
         self._available_metrics = []  # List of (metric_type, source) tuples
         self._current_metric = ("StepCount", None)  # Default to aggregated steps
         self._selected_metric = None
+        self._current_aggregation = "Sum"  # Default aggregation method
         
         # Initialize metric mappings
         self._init_metric_mappings()
@@ -410,6 +411,45 @@ class DailyDashboardWidget(QWidget):
             'sleep_hours': 'SleepAnalysis',
             'weight': 'BodyMass',
             'body_fat': 'BodyFatPercentage'
+        }
+        
+        # Default aggregation method for each metric type
+        self._default_aggregations = {
+            # Activity metrics - use SUM
+            'StepCount': 'Sum',
+            'DistanceWalkingRunning': 'Sum',
+            'FlightsClimbed': 'Sum',
+            'ActiveEnergyBurned': 'Sum',
+            'BasalEnergyBurned': 'Sum',
+            'AppleExerciseTime': 'Sum',
+            'AppleStandHour': 'Sum',
+            
+            # Vitals - use AVERAGE
+            'HeartRate': 'Average',
+            'RestingHeartRate': 'Average',
+            'WalkingHeartRateAverage': 'Average',
+            'HeartRateVariabilitySDNN': 'Average',
+            'BloodPressureSystolic': 'Average',
+            'BloodPressureDiastolic': 'Average',
+            'RespiratoryRate': 'Average',
+            
+            # Body measurements - use AVERAGE or LATEST
+            'BodyMass': 'Latest',
+            'LeanBodyMass': 'Latest',
+            'BodyMassIndex': 'Latest',
+            'BodyFatPercentage': 'Latest',
+            'Height': 'Latest',
+            
+            # Other metrics - use appropriate defaults
+            'VO2Max': 'Average',
+            'SleepAnalysis': 'Sum',
+            'DietaryEnergyConsumed': 'Sum',
+            'DietaryProtein': 'Sum',
+            'DietaryCarbohydrates': 'Sum',
+            'DietaryFatTotal': 'Sum',
+            'DietaryWater': 'Sum',
+            'HeadphoneAudioExposure': 'Average',
+            'MindfulSession': 'Sum'
         }
     
     def _create_header(self) -> QWidget:
@@ -681,9 +721,9 @@ class DailyDashboardWidget(QWidget):
         
         header_layout.addStretch()
         
-        # View selector
+        # Aggregation method selector
         self.view_selector = QComboBox()
-        self.view_selector.addItems(["All Metrics", "Activity", "Vitals", "Body"])
+        self.view_selector.addItems(["Average", "Sum", "Minimum", "Maximum", "Latest", "Count"])
         self.view_selector.setStyleSheet("""
             QComboBox {
                 background-color: white;
@@ -812,7 +852,7 @@ class DailyDashboardWidget(QWidget):
             if hasattr(self, 'next_day_btn'):
                 self.next_day_btn.clicked.connect(self._go_to_next_day)
             if hasattr(self, 'view_selector'):
-                self.view_selector.currentTextChanged.connect(self._filter_metric_cards)
+                self.view_selector.currentTextChanged.connect(self._change_aggregation_method)
             if hasattr(self, 'detail_metric_selector'):
                 self.detail_metric_selector.currentIndexChanged.connect(self._on_detail_metric_changed)
         except Exception as e:
@@ -840,10 +880,9 @@ class DailyDashboardWidget(QWidget):
                     # If not, try stripping HK prefixes
                     clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
                 
-                # Only include metrics we have display names for
-                if clean_type in self._metric_display_names:
-                    self._available_metrics.append((clean_type, None))
-                    logger.debug(f"Added metric from cache: {clean_type}")
+                # Include all metrics, using clean_type as display name if not in mappings
+                self._available_metrics.append((clean_type, None))
+                logger.debug(f"Added metric from cache: {clean_type}")
             
             if self._available_metrics:
                 self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
@@ -878,11 +917,10 @@ class DailyDashboardWidget(QWidget):
                     # If not, try stripping HK prefixes
                     clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
                 
-                # Only include metrics we have display names for
-                if clean_type in self._metric_display_names:
-                    self._available_metrics.append((clean_type, None))
-                    seen_metrics.add(clean_type)
-                    logger.debug(f"Added aggregated metric: {clean_type}")
+                # Include all metrics, using clean_type as display name if not in mappings
+                self._available_metrics.append((clean_type, None))
+                seen_metrics.add(clean_type)
+                logger.debug(f"Added aggregated metric: {clean_type}")
             
             # Then, add source-specific metrics
             for source in sources:
@@ -896,10 +934,9 @@ class DailyDashboardWidget(QWidget):
                         # If not, try stripping HK prefixes
                         clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
                     
-                    # Only include metrics we have display names for
-                    if clean_type in self._metric_display_names:
-                        self._available_metrics.append((clean_type, source))
-                        logger.debug(f"Added metric: {clean_type} from {source}")
+                    # Include all metrics, using clean_type as display name if not in mappings
+                    self._available_metrics.append((clean_type, source))
+                    logger.debug(f"Added metric: {clean_type} from {source}")
             
             # Sort by display name and source for better UX
             self._available_metrics.sort(key=lambda x: (
@@ -989,7 +1026,7 @@ class DailyDashboardWidget(QWidget):
         
         # Only recreate if metrics have changed
         current_metrics = set(self._metric_cards.keys())
-        new_metrics = set(unique_metrics[:8])
+        new_metrics = set(unique_metrics)
         
         if current_metrics == new_metrics:
             return  # No need to recreate
@@ -1001,9 +1038,9 @@ class DailyDashboardWidget(QWidget):
                 widget.deleteLater()
         self._metric_cards.clear()
         
-        # Create cards for up to 8 metrics
+        # Create cards for all metrics
         cols = 4
-        for i, metric_name in enumerate(unique_metrics[:8]):
+        for i, metric_name in enumerate(unique_metrics):
             display_name = self._metric_display_names.get(metric_name, metric_name)
             unit = self._metric_units.get(metric_name, '')
             
@@ -1561,15 +1598,46 @@ class DailyDashboardWidget(QWidget):
             # Use the existing database manager from health_db
             db = self.health_db.db_manager
             
-            # Query for sum of values for this metric, date, and source
-            query = """
-                SELECT SUM(CAST(value AS FLOAT)) as daily_total
-                FROM health_records
-                WHERE type = ?
-                AND DATE(startDate) = ?
-                AND sourceName = ?
-                AND value IS NOT NULL
-            """
+            # Get appropriate aggregation for this metric or use current selection
+            clean_metric = metric_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+            default_agg = self._default_aggregations.get(clean_metric, 'Sum')
+            
+            # Use user-selected aggregation or default for metric type
+            aggregation = self._current_aggregation if hasattr(self, '_current_aggregation') else default_agg
+            
+            # Map aggregation method to SQL function
+            sql_agg_map = {
+                'Sum': 'SUM',
+                'Average': 'AVG',
+                'Minimum': 'MIN',
+                'Maximum': 'MAX',
+                'Count': 'COUNT',
+                'Latest': 'value'  # Special case, will handle differently
+            }
+            
+            # Build query based on aggregation type
+            if aggregation == 'Latest':
+                # For 'Latest', get the most recent value
+                query = """
+                    SELECT value
+                    FROM health_records
+                    WHERE type = ?
+                    AND DATE(startDate) = ?
+                    AND sourceName = ?
+                    AND value IS NOT NULL
+                    ORDER BY startDate DESC
+                    LIMIT 1
+                """
+            else:
+                sql_func = sql_agg_map.get(aggregation, 'SUM')
+                query = f"""
+                    SELECT {sql_func}(CAST(value AS FLOAT)) as daily_total
+                    FROM health_records
+                    WHERE type = ?
+                    AND DATE(startDate) = ?
+                    AND sourceName = ?
+                    AND value IS NOT NULL
+                """
             
             result = db.execute_query(query, (metric_type, date.isoformat(), source))
             
@@ -1705,10 +1773,30 @@ class DailyDashboardWidget(QWidget):
             'All Metrics': self._available_metrics
         }
         
-        visible_metrics = category_mapping.get(filter_text, self._available_metrics)
+        # Get shorthand names for the selected category
+        shorthand_metrics = category_mapping.get(filter_text, self._available_metrics)
         
+        # Convert shorthand names to database names
+        if filter_text != 'All Metrics':
+            visible_metrics = []
+            for shorthand in shorthand_metrics:
+                db_name = self._shorthand_to_db.get(shorthand)
+                if db_name:
+                    visible_metrics.append(db_name)
+        else:
+            visible_metrics = self._available_metrics
+        
+        # Update card visibility
         for metric_name, card in self._metric_cards.items():
             card.setVisible(metric_name in visible_metrics)
+    
+    def _change_aggregation_method(self, method: str):
+        """Change the aggregation method for metric calculations."""
+        self._current_aggregation = method
+        logger.info(f"Changed aggregation method to: {method}")
+        
+        # Refresh data with new aggregation method
+        self._refresh_data()
     
     def _go_to_today(self):
         """Navigate to today's date."""

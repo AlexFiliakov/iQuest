@@ -120,6 +120,7 @@ def calculate_daily_statistics(self,
 ### User Interface
 - **main_window.py**: Main application window with tab-based navigation
 - **configuration_tab.py**: Data import and filtering interface
+- **daily_dashboard_widget.py**: Daily metrics view with dynamic aggregation (Sum, Average, Min, Max, Latest, Count)
 - **charts/**: Chart components with WSJ-inspired styling (20+ modules)
 - **dashboards/**: Responsive dashboard layouts and customization
 - **accessibility/**: WCAG-compliant accessibility features
