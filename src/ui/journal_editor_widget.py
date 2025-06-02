@@ -44,7 +44,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QComboBox, QSplitter, QListWidget, QListWidgetItem,
     QGroupBox, QLineEdit, QMessageBox, QFrame, QToolBar, QStackedWidget,
-    QCalendarWidget, QSpinBox, QButtonGroup
+    QCalendarWidget, QSpinBox, QButtonGroup, QCheckBox, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDate, QDateTime, QSize, QPropertyAnimation
 from PyQt6.QtGui import (
@@ -61,6 +61,8 @@ from .style_manager import StyleManager
 from .journal_manager import JournalManager
 from .toast_notification import ToastNotification
 from .conflict_resolution_dialog import ConflictResolutionDialog
+from .auto_save_manager import AutoSaveManager
+from .save_status_indicator import SaveStatusIndicator
 
 logger = get_logger(__name__)
 
@@ -268,9 +270,15 @@ class JournalEditorWidget(QWidget):
         self.current_entry: Optional[JournalEntry] = None
         self.is_modified = False
         self._current_version: Optional[int] = None  # For optimistic locking
-        self.auto_save_timer = QTimer()
-        self.auto_save_timer.timeout.connect(self.auto_save)
-        self.auto_save_timer.setInterval(30000)  # Auto-save every 30 seconds
+        
+        # Initialize auto-save manager
+        self.auto_save_manager = AutoSaveManager(data_access, self)
+        self.auto_save_manager.saveRequested.connect(self._perform_auto_save)
+        self.auto_save_manager.saveCompleted.connect(self._on_auto_save_completed)
+        self.auto_save_manager.draftRecovered.connect(self._on_draft_recovered)
+        
+        # Load auto-save settings if available
+        self._load_auto_save_settings()
         
         # Connect journal manager signals
         self.journal_manager.entrySaved.connect(self._on_entry_saved)
@@ -513,15 +521,18 @@ class JournalEditorWidget(QWidget):
         
         layout.addWidget(QLabel("|"))
         
-        # Auto-save status
-        self.auto_save_label = QLabel("Auto-save: On")
-        layout.addWidget(self.auto_save_label)
+        # Auto-save toggle
+        self.auto_save_checkbox = QCheckBox("Auto-save")
+        self.auto_save_checkbox.setChecked(True)
+        self.auto_save_checkbox.toggled.connect(self._on_auto_save_toggled)
+        layout.addWidget(self.auto_save_checkbox)
         
         layout.addStretch()
         
-        # Last saved time
-        self.last_saved_label = QLabel("Not saved")
-        layout.addWidget(self.last_saved_label)
+        # Save status indicator
+        self.save_status_indicator = SaveStatusIndicator()
+        self.auto_save_manager.statusChanged.connect(self.save_status_indicator.set_status)
+        layout.addWidget(self.save_status_indicator)
         
         return status_bar
         
@@ -620,7 +631,7 @@ class JournalEditorWidget(QWidget):
         self.text_editor.clear()
         self.is_modified = False
         self.update_counts()
-        self.last_saved_label.setText("Not saved")
+        self.save_status_indicator.set_idle_status()
         
         # Reset to daily entry with today's date
         self.entry_type_control.setSelectedText("Daily")
@@ -735,14 +746,6 @@ class JournalEditorWidget(QWidget):
             if self.current_entry and self.current_entry.id:
                 self.entry_deleted.emit(self.current_entry.id)
                 
-    def auto_save(self):
-        """Auto-save the current entry if modified using JournalManager."""
-        if self.is_modified and self.text_editor.toPlainText().strip():
-            # Use the same save logic as save_entry
-            self.save_entry()
-            # Update label is handled by callback
-            logger.debug("Auto-save triggered")
-            
     def on_text_changed(self):
         """Handle text changes in the editor with character limit enforcement."""
         text = self.text_editor.toPlainText()
@@ -774,9 +777,16 @@ class JournalEditorWidget(QWidget):
         self.is_modified = True
         self.update_counts()
         
-        # Restart auto-save timer
-        self.auto_save_timer.stop()
-        self.auto_save_timer.start()
+        # Notify auto-save manager of content change
+        if self.auto_save_manager.enabled:
+            entry_type = self.entry_type_control.selectedText().lower()
+            entry_date = self._get_current_entry_date()
+            if entry_date:
+                self.auto_save_manager.on_content_changed(
+                    entry_date.isoformat(),
+                    entry_type,
+                    text
+                )
         
     def update_counts(self):
         """Update character and word counts with limit indicator."""
@@ -886,11 +896,13 @@ class JournalEditorWidget(QWidget):
         self.is_modified = False
         self.update_counts()
         
-        # Update last saved time
+        # Update save status
         if entry.updated_at:
-            self.last_saved_label.setText(f"Last saved: {entry.updated_at.strftime('%Y-%m-%d %H:%M')}")
+            self.save_status_indicator.set_saved_status(
+                QDateTime.fromString(entry.updated_at.isoformat(), Qt.DateFormat.ISODate)
+            )
         else:
-            self.last_saved_label.setText("Not saved")
+            self.save_status_indicator.set_idle_status()
             
         # Store the version for optimistic locking
         self._current_version = getattr(entry, 'version', 1)
@@ -961,12 +973,230 @@ class JournalEditorWidget(QWidget):
         cursor.mergeCharFormat(format)
         self.text_editor.mergeCurrentCharFormat(format)
         
+    def _get_current_entry_date(self) -> Optional[date]:
+        """Get the currently selected entry date based on entry type.
+        
+        Returns:
+            Optional[date]: The selected date or None if invalid
+        """
+        entry_type = self.entry_type_control.selectedText().lower()
+        
+        try:
+            if entry_type == 'daily':
+                return self.daily_date_edit.date().toPython()
+            elif entry_type == 'weekly':
+                return self.weekly_date_edit.date().toPython()
+            else:  # monthly
+                year = self.year_spin.value()
+                month = self.month_spin.value()
+                return date(year, month, 1)
+        except Exception as e:
+            logger.error(f"Error getting current entry date: {e}")
+            return None
+            
+    def _on_auto_save_toggled(self, checked: bool):
+        """Handle auto-save toggle.
+        
+        Args:
+            checked: Whether auto-save is enabled
+        """
+        self.auto_save_manager.set_enabled(checked)
+        if checked:
+            # Trigger content change notification to restart timer
+            self.on_text_changed()
+            
+    def _perform_auto_save(self, entry_date: str, entry_type: str, content: str):
+        """Perform the actual auto-save operation.
+        
+        Args:
+            entry_date: ISO format date string
+            entry_type: Type of entry
+            content: Entry content
+        """
+        # Convert date string back to QDate for save_entry
+        qdate = QDate.fromString(entry_date, Qt.DateFormat.ISODate)
+        
+        # Update the appropriate date widget
+        if entry_type == 'daily':
+            self.daily_date_edit.setDate(qdate)
+        elif entry_type == 'weekly':
+            self.weekly_date_edit.setDate(qdate)
+        else:  # monthly
+            date_obj = qdate.toPython()
+            self.year_spin.setValue(date_obj.year)
+            self.month_spin.setValue(date_obj.month)
+            
+        # Perform save
+        self.save_entry()
+        
+    def _on_auto_save_completed(self, success: bool, message: str):
+        """Handle auto-save completion.
+        
+        Args:
+            success: Whether the save was successful
+            message: Status message
+        """
+        if success:
+            logger.debug(f"Auto-save completed: {message}")
+        else:
+            logger.error(f"Auto-save failed: {message}")
+            
+    def _on_draft_recovered(self, draft_data: dict):
+        """Handle recovered draft notification.
+        
+        Args:
+            draft_data: Dictionary containing recovered draft information
+        """
+        from .draft_recovery_dialog import DraftRecoveryDialog
+        
+        drafts = draft_data.get('drafts', [])
+        if not drafts:
+            return
+            
+        # Show recovery dialog
+        recovery_dialog = DraftRecoveryDialog(drafts, parent=self)
+        recovery_dialog.drafts_recovered.connect(self._restore_drafts)
+        
+        result = recovery_dialog.exec()
+        
+        if result == QDialog.DialogCode.Accepted:
+            # Get recovered drafts
+            recovered = recovery_dialog.get_recovered_drafts()
+            if recovered:
+                # Restore the first draft (or let user choose if multiple)
+                self._restore_draft(recovered[0])
+                
+                # Mark drafts as recovered in the database
+                for draft in recovered:
+                    if 'id' in draft:
+                        self.auto_save_manager.recover_draft(draft['id'])
+                        
+        # If rejected (Later button), drafts remain in the database for next time
+        
+    def _restore_drafts(self, drafts: List[Dict[str, Any]]):
+        """Handle multiple drafts recovered signal.
+        
+        Args:
+            drafts: List of draft dictionaries to restore
+        """
+        if drafts:
+            # For now, just restore the first one
+            # In the future, could allow switching between multiple recovered drafts
+            self._restore_draft(drafts[0])
+            
+    def _restore_draft(self, draft: Dict[str, Any]):
+        """Restore a single draft to the editor.
+        
+        Args:
+            draft: Draft dictionary with entry data
+        """
+        try:
+            # Check for unsaved changes first
+            if self.is_modified and not self.confirm_discard_changes():
+                return
+                
+            # Set entry type
+            entry_type = draft.get('entry_type', 'daily')
+            self.entry_type_control.setSelectedText(entry_type.title())
+            
+            # Set date
+            entry_date_str = draft.get('entry_date', '')
+            if entry_date_str:
+                try:
+                    entry_date = QDate.fromString(entry_date_str, Qt.DateFormat.ISODate)
+                    if not entry_date.isValid():
+                        # Try parsing as Python date string
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(entry_date_str)
+                        entry_date = QDate(dt.year, dt.month, dt.day)
+                        
+                    if entry_type == 'daily':
+                        self.daily_date_edit.setDate(entry_date)
+                    elif entry_type == 'weekly':
+                        self.weekly_date_edit.setDate(entry_date)
+                        self.update_week_label()
+                    else:  # monthly
+                        self.year_spin.setValue(entry_date.year())
+                        self.month_spin.setValue(entry_date.month())
+                except Exception as e:
+                    logger.error(f"Error parsing draft date: {e}")
+                    
+            # Set content
+            content = draft.get('content', '')
+            self.text_editor.setPlainText(content)
+            
+            # Update UI state
+            self.is_modified = True  # Mark as modified so it will be saved
+            self.update_counts()
+            
+            # Show success notification
+            toast = ToastNotification.info(
+                f"Draft recovered from {draft.get('saved_at', 'previous session')}", 
+                self
+            )
+            toast.show()
+            
+            logger.info(f"Restored {entry_type} draft for {entry_date_str}")
+            
+        except Exception as e:
+            logger.error(f"Error restoring draft: {e}")
+            toast = ToastNotification.error("Failed to restore draft", self)
+            toast.show()
+            
+    def _load_auto_save_settings(self):
+        """Load auto-save settings from settings manager if available."""
+        try:
+            # Try to get settings from parent's settings manager
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'settings_manager'):
+                    settings_manager = parent.settings_manager
+                    
+                    # Load settings
+                    enabled = settings_manager.get_setting("auto_save_enabled", True)
+                    self.auto_save_manager.set_enabled(enabled)
+                    self.auto_save_checkbox.setChecked(enabled)
+                    
+                    delay = settings_manager.get_setting("auto_save_delay", 3)
+                    self.auto_save_manager.set_debounce_delay(delay * 1000)
+                    
+                    max_wait = settings_manager.get_setting("auto_save_max_wait", 30)
+                    self.auto_save_manager.set_max_wait_time(max_wait * 1000)
+                    
+                    logger.debug(f"Loaded auto-save settings: enabled={enabled}, delay={delay}s")
+                    break
+                    
+                parent = parent.parent()
+                
+        except Exception as e:
+            logger.warning(f"Could not load auto-save settings: {e}")
+            # Settings will use defaults
+            
+    def update_auto_save_settings(self, settings: Dict[str, Any]):
+        """Update auto-save settings from settings panel.
+        
+        Args:
+            settings: Dictionary of auto-save settings
+        """
+        if 'enabled' in settings:
+            self.auto_save_manager.set_enabled(settings['enabled'])
+            self.auto_save_checkbox.setChecked(settings['enabled'])
+            
+        if 'delay_seconds' in settings:
+            self.auto_save_manager.set_debounce_delay(settings['delay_seconds'] * 1000)
+            
+        if 'max_wait_seconds' in settings:
+            self.auto_save_manager.set_max_wait_time(settings['max_wait_seconds'] * 1000)
+            
+        logger.info(f"Updated auto-save settings: {settings}")
+        
     def closeEvent(self, event):
         """Handle widget close event."""
         if self.is_modified and not self.confirm_discard_changes():
             event.ignore()
         else:
-            self.auto_save_timer.stop()
+            # Clean up auto-save manager
+            self.auto_save_manager.cleanup()
             event.accept()
             
     def _on_save_complete(self, success: bool, entry_id: Optional[int]):
@@ -979,7 +1209,9 @@ class JournalEditorWidget(QWidget):
         if success:
             # Update UI
             self.is_modified = False
-            self.last_saved_label.setText(f"Saved at {datetime.now().strftime('%H:%M:%S')}")
+            
+            # Update save status indicator
+            self.save_status_indicator.set_saved_status(QDateTime.currentDateTime())
             
             # Show success notification
             toast = ToastNotification.success("Journal entry saved successfully!", self)

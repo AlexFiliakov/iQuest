@@ -773,6 +773,45 @@ class DatabaseManager:
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (6)")
             logger.info("Migration 6 applied successfully")
+        
+        # Migration 7: Add journal_drafts table for auto-save functionality
+        if current_version < 7:
+            logger.info("Applying migration 7: Adding journal_drafts table for auto-save")
+            
+            # Create journal_drafts table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS journal_drafts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entry_date DATE NOT NULL,
+                    entry_type VARCHAR(10) NOT NULL CHECK (entry_type IN ('daily', 'weekly', 'monthly')),
+                    content TEXT NOT NULL,
+                    content_hash VARCHAR(64),
+                    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    session_id VARCHAR(36),
+                    is_recovered BOOLEAN DEFAULT FALSE,
+                    UNIQUE(entry_date, entry_type, session_id)
+                )
+            """)
+            
+            # Create indexes for journal_drafts
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_drafts_date_type ON journal_drafts(entry_date, entry_type)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_drafts_session ON journal_drafts(session_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_drafts_saved_at ON journal_drafts(saved_at)")
+            
+            # Create trigger to clean up old drafts (older than 7 days)
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS cleanup_old_drafts
+                AFTER INSERT ON journal_drafts
+                BEGIN
+                    DELETE FROM journal_drafts
+                    WHERE saved_at < datetime('now', '-7 days')
+                    AND is_recovered = FALSE;
+                END
+            """)
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (7)")
+            logger.info("Migration 7 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute SELECT query and return all matching rows.
