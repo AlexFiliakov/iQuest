@@ -159,6 +159,59 @@ def main():
         # Keep reference to prevent any windows from being garbage collected
         app._windows = []
         
+        # Define finish_initialization at the top level to ensure it stays in scope
+        def finish_initialization():
+            """Complete initialization and show main window."""
+            global main_window
+            module_logger.info("finish_initialization called")
+            loading_screen.add_message("Your health adventure awaits, brave soul!")
+            loading_screen.set_progress(1.0)
+            
+            # Close loading screen and show main window
+            def show_main_window():
+                global main_window
+                module_logger.info(f"About to show main window: {main_window}")
+                loading_screen.close()
+                if main_window:
+                    # Ensure main window is recognized as the primary window
+                    main_window.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, True)
+                    
+                    # Prevent premature app exit
+                    app.setQuitOnLastWindowClosed(False)
+                    
+                    main_window.show()
+                    main_window.raise_()  # Bring to front
+                    main_window.activateWindow()  # Make it active
+                    
+                    # Re-enable quit on last window closed after showing
+                    QTimer.singleShot(500, lambda: app.setQuitOnLastWindowClosed(True))
+                    
+                    module_logger.info("Main window shown successfully")
+                    module_logger.info(f"Main window visible: {main_window.isVisible()}")
+                    module_logger.info(f"Main window size: {main_window.size()}")
+                    module_logger.info(f"Main window position: {main_window.pos()}")
+                    module_logger.info(f"Top level windows: {[w.title() for w in app.topLevelWindows()]}")
+                    
+                    # Ensure the window is properly displayed
+                    app.processEvents()
+                    
+                    # Check window status after a delay
+                    def check_window_status():
+                        if main_window:
+                            module_logger.info(f"Window check - visible: {main_window.isVisible()}")
+                            module_logger.info(f"Window check - active: {main_window.isActiveWindow()}")
+                            module_logger.info(f"Window check - minimized: {main_window.isMinimized()}")
+                            module_logger.info(f"App has {len(app.topLevelWindows())} top level windows")
+                        else:
+                            module_logger.error("Main window is None during status check!")
+                    
+                    QTimer.singleShot(1000, check_window_status)
+                else:
+                    module_logger.error("Main window is None!")
+                    
+            # Short delay to show completion
+            QTimer.singleShot(300, show_main_window)
+        
         def initialize_application():
             """Initialize the application in steps with loading feedback."""
             global main_window
@@ -265,8 +318,21 @@ def main():
                 loading_screen.add_message("Putting the finishing touches on your destiny...")
                 loading_screen.set_progress(0.9)
                 
-                # Short delay to ensure users see the final message
-                QTimer.singleShot(500, lambda: finish_initialization())
+                module_logger.info("About to call finish_initialization")
+                module_logger.info(f"Main window initialized: {main_window}")
+                
+                # Process events to ensure UI is responsive
+                app.processEvents()
+                
+                # Add a direct call as a test
+                module_logger.info("Calling finish_initialization directly")
+                try:
+                    finish_initialization()
+                except Exception as e:
+                    module_logger.error(f"Direct call failed: {e}", exc_info=True)
+                    loading_screen.close()
+                    QMessageBox.critical(None, "Error", f"Failed to show main window: {e}")
+                    app.quit()
                 
             except Exception as e:
                 module_logger.error(f"Initialization failed: {e}", exc_info=True)
@@ -283,66 +349,24 @@ def main():
                 
                 loading_screen.close()
                 raise e
-                
-        def finish_initialization():
-            """Complete initialization and show main window."""
-            global main_window
-            loading_screen.add_message("Your health adventure awaits, brave soul!")
-            loading_screen.set_progress(1.0)
-            
-            # Close loading screen and show main window
-            def show_main_window():
-                global main_window
-                module_logger.info(f"About to show main window: {main_window}")
-                loading_screen.close()
-                if main_window:
-                    # Ensure main window is recognized as the primary window
-                    main_window.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, True)
-                    
-                    # Prevent premature app exit
-                    app.setQuitOnLastWindowClosed(False)
-                    
-                    main_window.show()
-                    main_window.raise_()  # Bring to front
-                    main_window.activateWindow()  # Make it active
-                    
-                    # Re-enable quit on last window closed after showing
-                    QTimer.singleShot(500, lambda: app.setQuitOnLastWindowClosed(True))
-                    
-                    module_logger.info("Main window shown successfully")
-                    module_logger.info(f"Main window visible: {main_window.isVisible()}")
-                    module_logger.info(f"Main window size: {main_window.size()}")
-                    module_logger.info(f"Main window position: {main_window.pos()}")
-                    module_logger.info(f"Top level windows: {[w.windowTitle() for w in app.topLevelWindows()]}")
-                    
-                    # Ensure the window is properly displayed
-                    app.processEvents()
-                    
-                    # Check window status after a delay
-                    def check_window_status():
-                        if main_window:
-                            module_logger.info(f"Window check - visible: {main_window.isVisible()}")
-                            module_logger.info(f"Window check - active: {main_window.isActiveWindow()}")
-                            module_logger.info(f"Window check - minimized: {main_window.isMinimized()}")
-                            module_logger.info(f"App has {len(app.topLevelWindows())} top level windows")
-                        else:
-                            module_logger.error("Main window is None during status check!")
-                    
-                    QTimer.singleShot(1000, check_window_status)
-                else:
-                    module_logger.error("Main window is None!")
-                    
-            # Short delay to show completion
-            QTimer.singleShot(300, show_main_window)
         
         # Start initialization after event loop begins
-        QTimer.singleShot(100, initialize_application)
+        def start_init():
+            module_logger.info("Event loop started, beginning initialization")
+            initialize_application()
+        
+        QTimer.singleShot(100, start_init)
         
         # Add logging to track app lifecycle
         def on_last_window_closed():
             module_logger.info("Last window closed signal received")
         
         app.lastWindowClosed.connect(on_last_window_closed)
+        
+        # Also log when app is about to quit (in addition to the earlier handler)
+        def on_app_quit():
+            module_logger.info("App quit signal received")
+        app.aboutToQuit.connect(on_app_quit)
         
         module_logger.info("Starting application event loop")
         exit_code = app.exec()

@@ -7,7 +7,6 @@ The loading screen features:
     - Clean, professional design following WSJ aesthetics
     - Progress indicator with animated spinner
     - Message log display for initialization feedback
-    - Smooth fade-in/fade-out transitions
     - Accessibility support with proper contrast ratios
 
 Example:
@@ -21,17 +20,15 @@ Example:
         >>> loading_screen.close()
 
 Attributes:
-    FADE_DURATION (int): Duration of fade animations in milliseconds
     MESSAGE_LIMIT (int): Maximum number of messages to display
 """
 
 from typing import Optional
 
-from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QColor, QFont, QFontDatabase, QMovie, QPalette
 from PyQt6.QtWidgets import (
     QApplication,
-    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QProgressBar,
@@ -62,15 +59,12 @@ class LoadingScreen(QWidget):
         message_log (QTextEdit): Scrollable log of initialization messages.
         title_label (QLabel): Application title display.
         status_label (QLabel): Current status message display.
-        opacity_effect (QGraphicsOpacityEffect): For fade animations.
-        fade_animation (QPropertyAnimation): Handles fade transitions.
         messages (list): List of all messages added to the log.
         
     Signals:
         closed: Emitted when the loading screen is closed.
     """
     
-    FADE_DURATION = 350  # Slow animation duration from UI specs
     MESSAGE_LIMIT = 100  # Maximum messages to keep in log
     
     closed = pyqtSignal()
@@ -94,11 +88,10 @@ class LoadingScreen(QWidget):
         # Set window flags for splash screen behavior
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        # Ensure this window doesn't prevent app from quitting
-        self.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, False)
         
         # Main container with card styling
         main_container = QWidget()
@@ -153,18 +146,6 @@ class LoadingScreen(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(main_container)
-        
-        # Set up opacity effect for animations
-        self.opacity_effect = QGraphicsOpacityEffect()
-        self.setGraphicsEffect(self.opacity_effect)
-        self.opacity_effect.setOpacity(0)
-        
-        # Set up fade animation
-        self.fade_animation = QPropertyAnimation(
-            self.opacity_effect, b"opacity"
-        )
-        self.fade_animation.setDuration(self.FADE_DURATION)
-        self.fade_animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
         
         # Size the window
         self.setFixedSize(650, 500)
@@ -263,35 +244,15 @@ class LoadingScreen(QWidget):
             self.move(x, y)
             
     def show(self):
-        """Show the loading screen with fade-in animation."""
+        """Show the loading screen."""
         super().show()
-        self.fade_animation.setStartValue(0)
-        self.fade_animation.setEndValue(1)
-        self.fade_animation.start()
         logger.info("Loading screen displayed")
         
     def close(self):
-        """Close the loading screen with fade-out animation."""
-        # Disconnect any existing connections to prevent multiple calls
-        try:
-            self.fade_animation.finished.disconnect()
-        except:
-            pass
-            
-        def on_fade_finished():
-            super(LoadingScreen, self).close()
-            self.closed.emit()
-            logger.info("Loading screen closed")
-            # Disconnect to prevent future calls
-            try:
-                self.fade_animation.finished.disconnect(on_fade_finished)
-            except:
-                pass
-            
-        self.fade_animation.finished.connect(on_fade_finished)
-        self.fade_animation.setStartValue(1)
-        self.fade_animation.setEndValue(0)
-        self.fade_animation.start()
+        """Close the loading screen."""
+        super().close()
+        self.closed.emit()
+        logger.info("Loading screen closed")
         
     @pyqtSlot(str)
     def add_message(self, message: str):

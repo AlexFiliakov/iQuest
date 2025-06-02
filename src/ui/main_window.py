@@ -35,31 +35,47 @@ Attributes:
 import os
 import shutil
 import time
-from typing import List
 from datetime import date
-from PyQt6.QtWidgets import (
-    QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QMenuBar, QMenu, QStatusBar, QMessageBox, QComboBox, QScrollArea, QFrame,
-    QApplication
-)
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QIcon, QPalette, QColor, QKeyEvent
+from typing import List
 
 import pandas as pd
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QAction, QColor, QIcon, QKeyEvent, QPalette
+from PyQt6.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QMessageBox,
+    QScrollArea,
+    QStatusBar,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
-from ..utils.logging_config import get_logger
-from .style_manager import StyleManager
-from .settings_manager import SettingsManager
-from .configuration_tab import ConfigurationTab
-from .trophy_case_widget import TrophyCaseWidget
-from .view_transitions import ViewTransitionManager, ViewType
 from ..analytics.personal_records_tracker import PersonalRecordsTracker
+from ..config import (
+    DATA_DIR,
+    WINDOW_DEFAULT_HEIGHT,
+    WINDOW_DEFAULT_WIDTH,
+    WINDOW_MIN_HEIGHT,
+    WINDOW_MIN_WIDTH,
+    WINDOW_TITLE,
+)
+
 # from ..analytics.background_trend_processor import BackgroundTrendProcessor
 from ..database import db_manager
-from ..config import (
-    WINDOW_TITLE, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
-    WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT, DATA_DIR
-)
+from ..utils.logging_config import get_logger
+from .configuration_tab import ConfigurationTab
+from .settings_manager import SettingsManager
+from .style_manager import StyleManager
+from .trophy_case_widget import TrophyCaseWidget
+from .view_transitions import ViewTransitionManager, ViewType
 
 logger = get_logger(__name__)
 
@@ -273,6 +289,7 @@ class MainWindow(QMainWindow):
         logger.info("Main window initialization complete")
         logger.info(f"Window visible at end of init: {self.isVisible()}")
         logger.info(f"Window attributes - WA_QuitOnClose: {self.testAttribute(Qt.WidgetAttribute.WA_QuitOnClose)}")
+        self._report_init("Main window initialization complete!")
     
     def _report_init(self, message: str):
         """Report initialization progress.
@@ -281,7 +298,10 @@ class MainWindow(QMainWindow):
             message: Progress message to report.
         """
         if self._init_callback:
-            self._init_callback(message)
+            try:
+                self._init_callback(message)
+            except Exception as e:
+                logger.warning(f"Failed to report init progress: {e}")
     
     def _apply_theme(self):
         """Apply the professional color theme to the window.
@@ -485,22 +505,35 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tab_widget)
         
         # Create tabs with error handling
+        # Temporarily simplify tab creation to debug the issue
         tab_methods = [
             ("Configuration", self._create_configuration_tab),
             ("Daily Dashboard", self._create_daily_dashboard_tab),
             ("Weekly Dashboard", self._create_weekly_dashboard_tab),
             ("Monthly Dashboard", self._create_monthly_dashboard_tab),
-            ("Comparative Analytics", self._create_comparative_analytics_tab),
-            ("Health Insights", self._create_health_insights_tab),
-            ("Trophy Case", self._create_trophy_case_tab),
-            ("Journal", self._create_journal_tab),
-            ("Help", self._create_help_tab)
+            # ("Comparative Analytics", self._create_comparative_analytics_tab),
+            # ("Health Insights", self._create_health_insights_tab),
+            # ("Trophy Case", self._create_trophy_case_tab),
+            # ("Journal", self._create_journal_tab),
+            # ("Help", self._create_help_tab)
         ]
+        
+        # Add placeholder tabs for now
+        for tab_name in ["Comparative Analytics", "Health Insights", "Trophy Case", "Journal", "Help"]:
+            placeholder = QWidget()
+            layout = QVBoxLayout(placeholder)
+            label = QLabel(f"{tab_name} - Under Development")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet("font-size: 18px; color: #666;")
+            layout.addWidget(label)
+            self.tab_widget.addTab(placeholder, tab_name)
         
         for tab_name, create_method in tab_methods:
             try:
                 self._report_init(f"Creating {tab_name} tab...")
+                logger.info(f"Starting creation of {tab_name} tab")
                 create_method()
+                logger.info(f"Successfully created {tab_name} tab")
             except Exception as e:
                 logger.error(f"Failed to create {tab_name} tab: {e}", exc_info=True)
                 self._report_init(f"ERROR: Failed to create {tab_name} tab - {str(e)}")
@@ -539,6 +572,7 @@ class MainWindow(QMainWindow):
         
         # Set up keyboard navigation
         self._setup_keyboard_navigation()
+        logger.info("_create_central_widget completed successfully")
     
     def _create_configuration_tab(self):
         """Create the configuration tab with data management functionality.
@@ -609,7 +643,7 @@ class MainWindow(QMainWindow):
         """
         try:
             from .daily_dashboard_widget import DailyDashboardWidget
-            
+
             # Create the daily dashboard widget with parent
             self.daily_dashboard = DailyDashboardWidget(parent=self)
             
@@ -765,16 +799,17 @@ class MainWindow(QMainWindow):
         seasonal patterns and long-term health trends.
         """
         try:
-            from .monthly_dashboard_widget import MonthlyDashboardWidget
             from ..analytics.cached_calculators import (
-                CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, 
-                CachedMonthlyMetricsCalculator
+                CachedDailyMetricsCalculator,
+                CachedMonthlyMetricsCalculator,
+                CachedWeeklyMetricsCalculator,
             )
-            from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
             from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
             from ..analytics.data_source_protocol import DataAccessAdapter
+            from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
             from ..data_access import DataAccess
-            
+            from .monthly_dashboard_widget import MonthlyDashboardWidget
+
             # Create calculators for the monthly dashboard
             try:
                 # Initialize data access and wrap it with adapter
@@ -881,10 +916,10 @@ class MainWindow(QMainWindow):
         """
         try:
             # Try to import the comparative analytics widget
-            from .comparative_visualization import ComparativeAnalyticsWidget
             from ..analytics.comparative_analytics import ComparativeAnalyticsEngine
+            from .comparative_visualization import ComparativeAnalyticsWidget
+
             # from ..analytics.peer_group_comparison import PeerGroupManager  # Removed group comparison feature
-            
             # Create the comparative analytics engine
             self.comparative_engine = ComparativeAnalyticsEngine(
                 daily_calculator=self.config_tab.daily_calculator if hasattr(self, 'config_tab') and hasattr(self.config_tab, 'daily_calculator') else None,
@@ -904,7 +939,8 @@ class MainWindow(QMainWindow):
             self.comparative_widget = ComparativeAnalyticsWidget()
             self.comparative_widget.set_comparative_engine(self.comparative_engine)
             
-            self._add_tab_hidden(self.comparative_widget, "Compare", "Compare your metrics with personal history and seasonal trends")
+            self.tab_widget.addTab(self.comparative_widget, "Compare")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
             
         except ImportError as e:
             # Fallback to placeholder if import fails
@@ -958,7 +994,8 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self._add_tab_hidden(comparative_widget, "Compare", "Compare your metrics with personal history and seasonal trends")
+        self.tab_widget.addTab(comparative_widget, "Compare")
+        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
     
     def _create_health_insights_tab(self):
         """Create the health insights tab with AI-powered recommendations.
@@ -994,11 +1031,11 @@ class MainWindow(QMainWindow):
         and validated against medical evidence databases.
         """
         try:
-            from .health_insights_widget import HealthInsightsWidget
-            from ..analytics.health_insights_engine import EnhancedHealthInsightsEngine
             from ..analytics.evidence_database import EvidenceDatabase
+            from ..analytics.health_insights_engine import EnhancedHealthInsightsEngine
             from .charts.wsj_style_manager import WSJStyleManager
-            
+            from .health_insights_widget import HealthInsightsWidget
+
             # Create the insights engine
             evidence_db = EvidenceDatabase()
             wsj_style = WSJStyleManager()
@@ -1052,7 +1089,8 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self._add_tab_hidden(insights_widget, "💡 Insights", "View personalized health insights and recommendations")
+        self.tab_widget.addTab(self.health_insights_widget, "💡 Insights")
+        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personalized health insights and recommendations")
     
     def _create_trophy_case_tab(self):
         """Create the trophy case tab for personal records and achievements.
@@ -1077,14 +1115,28 @@ class MainWindow(QMainWindow):
         to provide real-time updates as new records are achieved and
         maintains historical tracking of all accomplishments.
         """
-        self.trophy_case_widget = TrophyCaseWidget(self.personal_records_tracker)
-        
-        # Connect signals (if needed)
-        # self.trophy_case_widget.record_selected.connect(self._on_record_selected)
-        # self.trophy_case_widget.share_requested.connect(self._on_share_requested)
-        
-        self.tab_widget.addTab(self.trophy_case_widget, "🏆 Records")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personal records, achievements, and streaks")
+        try:
+            logger.info("Trophy case tab: Starting creation")
+            self.trophy_case_widget = TrophyCaseWidget(self.personal_records_tracker)
+            logger.info("Trophy case tab: Widget created")
+            
+            # Connect signals (if needed)
+            # self.trophy_case_widget.record_selected.connect(self._on_record_selected)
+            # self.trophy_case_widget.share_requested.connect(self._on_share_requested)
+            
+            self.tab_widget.addTab(self.trophy_case_widget, "🏆 Records")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personal records, achievements, and streaks")
+            logger.info("Trophy case tab: Added to tab widget")
+        except Exception as e:
+            logger.error(f"Failed to create trophy case tab: {e}", exc_info=True)
+            # Create a simple placeholder
+            placeholder = QWidget()
+            layout = QVBoxLayout(placeholder)
+            label = QLabel("Trophy Case - Coming Soon")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(label)
+            self.tab_widget.addTab(placeholder, "🏆 Records")
+            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Trophy case feature under development")
     
     def _create_journal_tab(self):
         """Create the journal tab with editor and history views.
@@ -1101,12 +1153,20 @@ class MainWindow(QMainWindow):
         data from Apple Health.
         """
         try:
-            from .journal_tab_widget import JournalTabWidget
+            logger.info("Journal tab: Starting imports")
             from ..data_access import DataAccess
-            
+            from .journal_tab_widget import JournalTabWidget
+            logger.info("Journal tab: Imports successful")
+
             # Create a DataAccess instance for the journal tab
+            logger.info("Journal tab: Creating DataAccess instance")
             data_access = DataAccess()
+            logger.info("Journal tab: DataAccess created successfully")
+            
+            logger.info("Journal tab: Creating JournalTabWidget")
             self.journal_tab = JournalTabWidget(data_access)
+            logger.info("Journal tab: JournalTabWidget created successfully")
+            
             self.tab_widget.addTab(self.journal_tab, "Journal")
             self.tab_widget.setTabToolTip(
                 self.tab_widget.count() - 1, 
@@ -1694,14 +1754,15 @@ class MainWindow(QMainWindow):
         logger.debug("Creating new calculators due to data change")
         
         # Create new calculators only when data changes
-        from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
-        from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
-        from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
         from ..analytics.cached_calculators import (
-            CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, 
-            CachedMonthlyMetricsCalculator
+            CachedDailyMetricsCalculator,
+            CachedMonthlyMetricsCalculator,
+            CachedWeeklyMetricsCalculator,
         )
-        
+        from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+        from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+        from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+
         # Get local timezone
         local_tz = get_local_timezone()
         
@@ -2357,8 +2418,9 @@ class MainWindow(QMainWindow):
                     
                 if data is not None and not data.empty:
                     # Create cached daily calculator with the data
-                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.cached_calculators import CachedDailyMetricsCalculator
+                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+
                     # Get local timezone
                     local_tz = get_local_timezone()
                     daily_calculator = DailyMetricsCalculator(data, timezone=local_tz)
@@ -2433,9 +2495,13 @@ class MainWindow(QMainWindow):
                     
                 if data is not None and not data.empty:
                     # Create cached calculators
+                    from ..analytics.cached_calculators import (
+                        CachedDailyMetricsCalculator,
+                        CachedWeeklyMetricsCalculator,
+                    )
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
-                    from ..analytics.cached_calculators import CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator
+
                     # Get local timezone
                     local_tz = get_local_timezone()
                     
@@ -2479,9 +2545,13 @@ class MainWindow(QMainWindow):
                     
                 if data is not None and not data.empty:
                     # Create cached calculators
+                    from ..analytics.cached_calculators import (
+                        CachedDailyMetricsCalculator,
+                        CachedMonthlyMetricsCalculator,
+                    )
                     from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
                     from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
-                    from ..analytics.cached_calculators import CachedDailyMetricsCalculator, CachedMonthlyMetricsCalculator
+
                     # Get local timezone
                     local_tz = get_local_timezone()
                     
@@ -2535,6 +2605,7 @@ class MainWindow(QMainWindow):
                 else:
                     try:
                         from ..config import DATA_DIR
+
                         # Check if database exists
                         db_path = os.path.join(DATA_DIR, "health_data.db")
                         if os.path.exists(db_path) and hasattr(self.config_tab, 'data_loader'):
@@ -2552,13 +2623,15 @@ class MainWindow(QMainWindow):
                 
                 if data is not None and not data.empty:
                     # Create cached calculators
-                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
-                    from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
-                    from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
                     from ..analytics.cached_calculators import (
-                        CachedDailyMetricsCalculator, CachedWeeklyMetricsCalculator, 
-                        CachedMonthlyMetricsCalculator
+                        CachedDailyMetricsCalculator,
+                        CachedMonthlyMetricsCalculator,
+                        CachedWeeklyMetricsCalculator,
                     )
+                    from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+                    from ..analytics.monthly_metrics_calculator import MonthlyMetricsCalculator
+                    from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+
                     # Get local timezone
                     local_tz = get_local_timezone()
                     
@@ -2804,11 +2877,17 @@ class MainWindow(QMainWindow):
             self._initialize_export_system()
             
         # Import necessary classes
-        from ..analytics.export_reporting_system import ExportConfiguration, ExportFormat, ReportTemplate
         from datetime import datetime, timedelta
-        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
         from pathlib import Path
-        
+
+        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
+
+        from ..analytics.export_reporting_system import (
+            ExportConfiguration,
+            ExportFormat,
+            ReportTemplate,
+        )
+
         # Create configuration for quick export
         format_map = {
             'pdf': ExportFormat.PDF,
@@ -2897,9 +2976,10 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'export_system'):
             self._initialize_export_system()
             
-        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
         from datetime import datetime
-        
+
+        from PyQt6.QtWidgets import QFileDialog, QProgressDialog
+
         # Get save location
         file_path, _ = QFileDialog.getSaveFileName(
             self,
@@ -2948,10 +3028,10 @@ class MainWindow(QMainWindow):
         
         # Import necessary modules
         from ..analytics.export_reporting_system import WSJExportReportingSystem
-        from ..ui.charts.wsj_style_manager import WSJStyleManager
         from ..analytics.health_insights_engine import HealthInsightsEngine
         from ..ui.charts.wsj_health_visualization_suite import WSJHealthVisualizationSuite
-        
+        from ..ui.charts.wsj_style_manager import WSJStyleManager
+
         # Create WSJ style manager
         wsj_style_manager = WSJStyleManager()
         
