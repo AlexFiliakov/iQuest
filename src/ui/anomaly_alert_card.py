@@ -109,6 +109,7 @@ class AnomalyAlertCard(QFrame):
                 font-weight: 600;
             }}
         """)
+        self.count_label.hide()  # Initially hidden
         header_layout.addStretch()
         header_layout.addWidget(self.count_label)
         

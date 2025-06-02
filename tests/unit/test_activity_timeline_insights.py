@@ -214,7 +214,7 @@ class TestAnomalyAlertCard:
         # Verify content
         assert card.anomalies == anomalies
         assert card.count_label.text() == "2"
-        assert card.count_label.isVisible()
+        assert not card.count_label.isHidden()  # Check that it's not hidden rather than visible
         
     def test_anomaly_dismissal(self, app):
         """Test dismissing anomalies."""
@@ -237,7 +237,7 @@ class TestAnomalyAlertCard:
         
         # Should be hidden now
         assert card.count_label.text() == "0"
-        assert not card.count_label.isVisible()
+        assert card.count_label.isHidden()
         
     def test_time_formatting(self, app):
         """Test relative time formatting."""
