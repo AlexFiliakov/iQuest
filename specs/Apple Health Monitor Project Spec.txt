@@ -575,6 +575,15 @@ Before taking a screenshot, wait 30 seconds after calling the UI to allow time f
 message_log - change messages
 
 
+
+Fix the "Activity Timeline" section of the Daily tab, visible in screenshot `ad hoc/daily_tab_activity_timeline.png`. Change all the tan backgrounds and dark tan backgrounds to the card's white background, so there is no needless color in the UI.
+
+
+
+update all the `loading_screen.add_message` strings in the `main` function of file `main.py` by making them more humorous, clever, and wittier as outlined in the project's humor specification and direction in `.simone/02_REQUIREMENTS/SPEC_GAMIFICATION_HUMOR.md`. Keep the messages tangentially relevant to the original displayed content, but prioritize humor and wit.
+
+
+
 -----------
 
 
