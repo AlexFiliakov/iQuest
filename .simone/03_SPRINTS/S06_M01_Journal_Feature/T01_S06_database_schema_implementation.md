@@ -23,46 +23,22 @@ Implement the journal entries database schema as specified in SPECS_DB.md, inclu
 - [ ] Journal entries table created with exact schema from SPECS_DB.md
 - [ ] All indexes created (date, type, week, month)
 - [ ] Unique constraint on (entry_date, entry_type) enforced
-- [ ] Database migrations implemented and tested
 - [ ] Data access layer provides all required methods
 - [ ] Unit tests achieve 90%+ coverage
-- [ ] Performance tests pass (insert/query <100ms for single operations)
 
 ## Implementation Analysis
 
 ### Database Migration Approach
-**Options:**
-1. **Alembic/SQLAlchemy Migrations** - Full ORM with migration tracking
-   - Pros: Robust, version control, rollback support, handles complex schemas
-   - Cons: Heavy dependency, overkill for simple schema
-2. **Simple SQL Migration Scripts** - Plain SQL files with version tracking
-   - Pros: Lightweight, no dependencies, direct SQL control
-   - Cons: Manual rollback handling, less tooling
-3. **Built-in Migration System** - Custom lightweight migration tracker
-   - Pros: Tailored to app needs, minimal overhead
-   - Cons: Need to build from scratch
-
-**Recommendation:** Simple SQL migration scripts (#2) - matches existing pattern in SPECS_DB.md
+- Require a fresh import to work.
 
 ### Full-Text Search Implementation
-**Options:**
-1. **SQLite FTS5** - Built-in full-text search
+- **SQLite FTS5** - Built-in full-text search
    - Pros: No dependencies, fast, supports ranking
    - Cons: SQLite-specific, limited features
-2. **LIKE Queries** - Simple pattern matching
-   - Pros: Portable, simple implementation
-   - Cons: Slow on large datasets, no ranking
-3. **External Search (Whoosh/Elasticsearch)** - Dedicated search engine
-   - Pros: Powerful features, scalable
-   - Cons: Heavy dependency, complex setup
-
-**Recommendation:** SQLite FTS5 (#1) - best balance for desktop app
 
 ## Detailed Subtasks
 
 ### 1. Database Migration Setup
-- [ ] Create migrations/ directory structure
-- [ ] Implement migration version tracking in schema_migrations table
 - [ ] Create 003_journal_entries.sql migration file with:
   - [ ] CREATE TABLE journal_entries statement
   - [ ] All column definitions with proper types and constraints
@@ -161,28 +137,11 @@ Implement the journal entries database schema as specified in SPECS_DB.md, inclu
   - [ ] Test transaction rollback
   - [ ] Test concurrent access
   
-- [ ] Create tests/integration/test_journal_database_integration.py:
-  - [ ] Test with real database file
-  - [ ] Test migration scenarios
-  - [ ] Test data integrity
-  
-- [ ] Create tests/performance/test_journal_performance.py:
-  - [ ] Benchmark single operations (<100ms)
-  - [ ] Test with 10,000+ entries
-  - [ ] Profile memory usage
-  - [ ] Test search performance
-
 ### 10. Documentation
 - [ ] Add docstrings to all methods (Google style)
 - [ ] Create docs/journal_database_api.md
 - [ ] Add usage examples
 - [ ] Document migration process
-
-### 11. Integration Updates
-- [ ] Update src/database.py to include JournalDatabase
-- [ ] Add journal operations to main DatabaseManager
-- [ ] Update configuration for journal-specific settings
-- [ ] Ensure compatibility with existing database code
 
 ## Output Log
 [2025-01-28 00:00:00] Task created - Database schema is foundation for all journal features

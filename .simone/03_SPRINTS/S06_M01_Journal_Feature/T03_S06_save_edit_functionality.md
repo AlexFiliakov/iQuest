@@ -32,46 +32,18 @@ Implement the core functionality to save and edit journal entries, connecting th
 ## Implementation Analysis
 
 ### Notification System Choice
-**Options:**
-1. **QStatusBar Messages** - Built into main window
-   - Pros: Native Qt, no extra dependencies
-   - Cons: Easy to miss, limited styling
-2. **Toast Notifications** - Floating messages
+- **Toast Notifications** - Floating messages
    - Pros: Modern UX, attention-grabbing
    - Cons: Need custom implementation
-3. **Inline Messages** - Within editor area
-   - Pros: Context-aware, accessible
-   - Cons: Can disrupt layout
-
-**Recommendation:** Toast Notifications (#2) - better user feedback
 
 ### Conflict Resolution Strategy
-**Options:**
-1. **Last Write Wins** - Simple overwrite
-   - Pros: Simple implementation, clear behavior
-   - Cons: Data loss potential
-2. **Optimistic Locking** - Version checking
+- **Optimistic Locking** - Version checking
    - Pros: Prevents conflicts, safe
    - Cons: More complex, needs versioning
-3. **Merge Dialog** - Show differences
-   - Pros: User control, no data loss
-   - Cons: Complex UI, confusing for users
-
-**Recommendation:** Optimistic Locking (#2) with simple conflict dialog
 
 ### Error Handling Approach
-**Options:**
-1. **Silent Retry** - Automatic retry on failure
-   - Pros: Handles transient issues
-   - Cons: Can hide persistent problems
-2. **Immediate Error Dialog** - Show all errors
-   - Pros: User awareness, clear feedback
-   - Cons: Can be annoying for minor issues
-3. **Graceful Degradation** - Queue failed saves
-   - Pros: No data loss, smooth UX
-   - Cons: Complex state management
-
-**Recommendation:** Graceful Degradation (#3) with error notification
+- **Silent Retry** - Automatic retry on failure for 5 attempts
+- **Immediate Error Dialog** - Show all errors after 5 attempts failed
 
 ## Detailed Subtasks
 
@@ -211,10 +183,6 @@ Implement the core functionality to save and edit journal entries, connecting th
 - [ ] Add debug mode for verbose logging
 
 ### 10. Edge Case Handling
-- [ ] Network/Database issues:
-  - [ ] Implement offline queue
-  - [ ] Retry with exponential backoff
-  - [ ] Show connection status
 - [ ] Disk space:
   - [ ] Check available space before save
   - [ ] Warn user if low (<10MB)
@@ -242,18 +210,6 @@ Implement the core functionality to save and edit journal entries, connecting th
   - [ ] Test validation logic
   - [ ] Test error handling
   - [ ] Test conflict resolution
-  
-- [ ] Create tests/integration/test_journal_integration.py:
-  - [ ] Test full save/load cycle
-  - [ ] Test with real database
-  - [ ] Test concurrent operations
-  - [ ] Test transaction rollback
-  
-- [ ] Performance tests:
-  - [ ] Measure save operation time
-  - [ ] Test with maximum content size
-  - [ ] Profile memory usage
-  - [ ] Stress test with rapid saves
 
 ### 13. Integration with Editor
 - [ ] Connect JournalManager to JournalEditorWidget
@@ -264,9 +220,8 @@ Implement the core functionality to save and edit journal entries, connecting th
 
 ### 14. Documentation
 - [ ] Document JournalManager API
-- [ ] Create sequence diagrams for operations
+- [ ] Create sequence mermaid diagrams in the appropriate directory for operations
 - [ ] Add error handling guide
-- [ ] Include performance considerations
 
 ## Output Log
 [2025-01-28 00:00:00] Task created - Core CRUD operations for journal entries

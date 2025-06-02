@@ -35,45 +35,19 @@ Create the main journal editor component with rich text editing capabilities. Th
 
 ### Text Editor Choice
 **Options:**
-1. **QTextEdit** - Standard rich text editor
+- **QTextEdit** - Standard rich text editor
    - Pros: Built-in formatting, familiar interface, undo/redo
    - Cons: Heavy for plain text, formatting complexity
-2. **QPlainTextEdit** - Plain text focused
-   - Pros: Lightweight, fast, simpler API
-   - Cons: No rich text support if needed later
-3. **Custom QTextEdit Subclass** - Enhanced plain text editor
-   - Pros: Customizable, can add features progressively
-   - Cons: More development effort
-
-**Recommendation:** QPlainTextEdit (#2) initially with migration path to QTextEdit
 
 ### Entry Type Selection UI
-**Options:**
-1. **QComboBox** - Dropdown selector
-   - Pros: Compact, familiar pattern
-   - Cons: Extra click to see options
-2. **QRadioButton Group** - Always visible options
-   - Pros: Clear choices, one-click selection
-   - Cons: Takes more space
-3. **Segmented Control (Custom)** - Modern toggle buttons
+- **Segmented Control (Custom)** - Modern toggle buttons
    - Pros: Visual appeal, clear state
    - Cons: Custom implementation needed
 
-**Recommendation:** Segmented Control (#3) - better UX, matches warm design
-
 ### Character Counter Display
-**Options:**
-1. **Status Bar** - Bottom of editor
-   - Pros: Unobtrusive, standard location
-   - Cons: May be missed by users
-2. **Inline Label** - Next to editor
+- **Inline Label** - Next to editor
    - Pros: Always visible, clear association
    - Cons: Uses screen space
-3. **Dynamic Color Coding** - Changes as limit approaches
-   - Pros: Visual feedback, intuitive
-   - Cons: Accessibility concerns
-
-**Recommendation:** Inline Label with Color Coding (#2+#3) - best visibility
 
 ## Detailed Subtasks
 
@@ -91,10 +65,7 @@ Create the main journal editor component with rich text editing capabilities. Th
   class SegmentedControl(QWidget):
       # Toggle buttons: Daily | Weekly | Monthly
   ```
-- [ ] Style with warm colors:
-  - [ ] Inactive: #FFF8F0 background, #8B7355 text
-  - [ ] Active: #FF8C42 background, white text
-  - [ ] Hover effects with smooth transitions
+- [ ] Style consistent with spec `UI_SPECS.md`
 - [ ] Emit entryTypeChanged signal on selection
 - [ ] Add keyboard navigation (arrow keys)
 
@@ -181,31 +152,12 @@ Create the main journal editor component with rich text editing capabilities. Th
   - [ ] Entry saving
   - [ ] Date validation
 - [ ] Disable controls during operations
-- [ ] Add smooth fade transitions
 
 ### 10. Focus Management
 - [ ] Set tab order: Date → Type → Editor → Save → Cancel
 - [ ] Auto-focus editor on load
 - [ ] Trap focus within modal dialogs
 - [ ] Highlight focused elements clearly
-
-### 11. Responsive Design
-- [ ] Implement minimum size constraints
-- [ ] Create responsive breakpoints:
-  - [ ] Compact: <800px width
-  - [ ] Normal: 800-1200px
-  - [ ] Wide: >1200px
-- [ ] Adjust font sizes and spacing
-- [ ] Test with various window sizes
-
-### 12. Accessibility Features
-- [ ] Add ARIA labels to all controls
-- [ ] Implement high contrast mode support
-- [ ] Ensure keyboard-only navigation
-- [ ] Add screen reader announcements:
-  - [ ] Character count changes
-  - [ ] Save success/failure
-  - [ ] Validation errors
 
 ### 13. Testing Implementation
 - [ ] Create tests/unit/test_journal_editor.py:
@@ -214,20 +166,9 @@ Create the main journal editor component with rich text editing capabilities. Th
   - [ ] Test keyboard shortcuts
   - [ ] Test date/type selection
   - [ ] Test responsive behavior
-  
-- [ ] Create tests/ui/test_journal_editor_ui.py:
-  - [ ] Test with pytest-qt
-  - [ ] Simulate user interactions
-  - [ ] Test focus management
-  - [ ] Test loading states
-  
-- [ ] Accessibility testing:
-  - [ ] Test with NVDA/JAWS
-  - [ ] Verify keyboard navigation
-  - [ ] Check color contrast ratios
 
 ### 14. Documentation
-- [ ] Add comprehensive docstrings
+- [ ] Add comprehensive docstrings (Google style)
 - [ ] Create usage examples
 - [ ] Document keyboard shortcuts
 - [ ] Add inline code comments for complex logic

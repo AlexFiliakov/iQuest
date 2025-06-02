@@ -10,69 +10,42 @@ dependencies: ["T01_S06", "T02_S06", "T03_S06", "T04_S06", "T05_S06", "T06_S06",
 # Task: Journal Feature Testing and Documentation
 
 ## Description
-Create comprehensive test suite for all journal functionality including unit tests, integration tests, UI tests, and performance tests. Also create user documentation and developer documentation for the journal feature.
+Create a placeholder test suite for all journal functionality unit tests, ignoring integration tests, UI tests, and performance tests for now. Also create user documentation and developer documentation for the journal feature.
 
 ## Goal / Objectives
-- Achieve 90%+ test coverage for journal code
-- Test all user workflows end-to-end
+- Achieve 90%+ unit test test coverage for journal code
 - Document journal features for users
 - Create developer documentation
+- Update mermaid diagrams for new features in the appropriate places in `docs/`
 - Ensure feature reliability and maintainability
 
 ## Acceptance Criteria
 - [ ] Unit tests for all journal classes
-- [ ] Integration tests for database operations
-- [ ] UI tests for all journal workflows
-- [ ] Performance tests pass requirements
 - [ ] User documentation complete
 - [ ] API documentation generated
 - [ ] Test coverage report >90%
-- [ ] All edge cases tested
+- [ ] Mermaid diagrams updated and reviewed
 - [ ] Documentation reviewed and clear
 
 ## Implementation Analysis
 
 ### Testing Framework Strategy
-**Options:**
-1. **PyTest + Qt Test** - Hybrid approach
+- **PyTest + Qt Test** - Hybrid approach
    - Pros: Best of both worlds, flexible assertions
    - Cons: Two frameworks to manage
-2. **PyTest Only** - Single framework
-   - Pros: Consistent, powerful fixtures
-   - Cons: Less Qt-specific helpers
-3. **Qt Test Only** - Native Qt testing
-   - Pros: Built for Qt, event simulation
-   - Cons: Less Python-friendly
 
-**Recommendation:** PyTest + Qt Test (#1) - Maximum flexibility
 
 ### Documentation Generation
 **Options:**
-1. **Sphinx** - Python standard
+- **Sphinx** - Python standard
    - Pros: Powerful, extensible, many themes
    - Cons: Complex setup
-2. **MkDocs** - Markdown-based
-   - Pros: Simple, clean output
-   - Cons: Less powerful than Sphinx
-3. **Docusaurus** - Modern documentation
-   - Pros: Beautiful UI, versioning
-   - Cons: JavaScript dependency
-
-**Recommendation:** Sphinx (#1) - Industry standard, best features
 
 ### Coverage Tools
 **Options:**
-1. **Coverage.py + pytest-cov** - Standard Python
+- **Coverage.py + pytest-cov** - Standard Python, implementing HTML test report for all tests in the project
    - Pros: Reliable, good reporting
    - Cons: Basic visualization
-2. **Codecov** - Cloud-based
-   - Pros: GitHub integration, trends
-   - Cons: External dependency
-3. **Custom Dashboard** - Built-in reporting
-   - Pros: Integrated with app
-   - Cons: Development effort
-
-**Recommendation:** Coverage.py with HTML reports (#1) - Simple and effective
 
 ## Detailed Subtasks
 
@@ -279,109 +252,7 @@ Create comprehensive test suite for all journal functionality including unit tes
   - [ ] File permissions
   - [ ] Invalid paths
 
-### 7. Integration Tests
-- [ ] Create tests/journal/integration/test_journal_integration.py:
-  ```python
-  class TestJournalIntegration:
-      def test_create_search_workflow(self, journal_app):
-          """Test creating and searching entries."""
-          # Create entry
-          journal_app.create_entry("2025-01-01", "daily", "Test")
-          
-          # Search for it
-          results = journal_app.search("Test")
-          assert len(results) == 1
-  ```
-- [ ] Test workflows:
-  - [ ] Create → Edit → Save
-  - [ ] Search → Select → Export
-  - [ ] Import → View → Delete
-  - [ ] Filter → Browse → Edit
-- [ ] Test component integration:
-  - [ ] Editor ↔ Database
-  - [ ] Search ↔ History
-  - [ ] Auto-save ↔ Editor
-  - [ ] Export ↔ Search
-- [ ] Test state synchronization:
-  - [ ] Tab switches
-  - [ ] Window resize
-  - [ ] Concurrent operations
-- [ ] Test error propagation:
-  - [ ] Database errors
-  - [ ] UI error display
-  - [ ] Recovery flows
-
-### 8. UI Automation Tests
-- [ ] Create tests/journal/ui/test_journal_workflows.py:
-  ```python
-  class TestJournalUIWorkflows:
-      def test_complete_entry_flow(self, qtbot, main_window):
-          """Test complete journal entry workflow."""
-          # Navigate to journal tab
-          journal_tab = main_window.find_tab("Journal")
-          qtbot.mouseClick(journal_tab)
-          
-          # Click new entry
-          new_button = journal_tab.findChild(QPushButton, "new_entry")
-          qtbot.mouseClick(new_button)
-          
-          # Type content
-          editor = journal_tab.findChild(QPlainTextEdit)
-          qtbot.keyClicks(editor, "My journal entry")
-          
-          # Save
-          qtbot.keyClick(editor, Qt.Key_S, Qt.ControlModifier)
-  ```
-- [ ] Test mouse interactions:
-  - [ ] Click navigation
-  - [ ] Drag and drop
-  - [ ] Context menus
-  - [ ] Double-click actions
-- [ ] Test keyboard navigation:
-  - [ ] Tab order
-  - [ ] Shortcut keys
-  - [ ] Arrow navigation
-  - [ ] Focus management
-- [ ] Test responsive behavior:
-  - [ ] Window resizing
-  - [ ] Panel collapsing
-  - [ ] View mode switching
-- [ ] Test accessibility:
-  - [ ] Screen reader
-  - [ ] Keyboard-only
-  - [ ] High contrast
-
-### 9. Performance Benchmarks
-- [ ] Create tests/journal/performance/test_journal_performance.py:
-  ```python
-  class TestJournalPerformance:
-      @pytest.mark.benchmark
-      def test_search_speed(self, benchmark, large_journal_db):
-          """Benchmark search performance."""
-          result = benchmark(large_journal_db.search, "test")
-          assert benchmark.stats['mean'] < 0.5  # <500ms
-  ```
-- [ ] Benchmark operations:
-  - [ ] Entry creation time
-  - [ ] Search query time
-  - [ ] Export generation time
-  - [ ] UI render time
-- [ ] Test scalability:
-  - [ ] 1k entries
-  - [ ] 10k entries
-  - [ ] 100k entries
-  - [ ] Memory usage
-- [ ] Profile hotspots:
-  - [ ] Database queries
-  - [ ] UI rendering
-  - [ ] Search indexing
-  - [ ] Export processing
-- [ ] Create performance report:
-  - [ ] Baseline metrics
-  - [ ] Regression detection
-  - [ ] Optimization suggestions
-
-### 10. User Documentation
+### 7. User Documentation
 - [ ] Create docs/user/journal_guide.md:
   ```markdown
   # Journal Feature Guide
@@ -417,7 +288,7 @@ Create comprehensive test suite for all journal functionality including unit tes
   - [ ] Best practices
   - [ ] Privacy/security
 
-### 11. API Documentation
+### 8. API Documentation
 - [ ] Configure Sphinx for journal module:
   ```python
   # docs/conf.py
@@ -454,8 +325,10 @@ Create comprehensive test suite for all journal functionality including unit tes
   - [ ] API reference
   - [ ] Class diagrams
   - [ ] Architecture overview
+- [ ] Updating mermaid diagrams:
+  - [ ] Follow the instructions in `.claude/commands/simone/mermaid.md`
 
-### 12. Test Coverage Reporting
+### 9. Test Coverage Reporting
 - [ ] Configure coverage tools:
   ```ini
   # .coveragerc
@@ -484,7 +357,7 @@ Create comprehensive test suite for all journal functionality including unit tes
   - [ ] Fail on regression
   - [ ] Trend tracking
 
-### 13. Testing Best Practices
+### 10. Testing Best Practices
 - [ ] Create testing guidelines:
   - [ ] Test naming conventions
   - [ ] Fixture usage
@@ -513,7 +386,7 @@ Create comprehensive test suite for all journal functionality including unit tes
   - [ ] Performance validated
   - [ ] Documentation complete
 
-### 14. Continuous Integration
+### 11. Continuous Integration
 - [ ] Add journal tests to CI:
   ```yaml
   # .github/workflows/test.yml
@@ -528,30 +401,8 @@ Create comprehensive test suite for all journal functionality including unit tes
   - [ ] OS platforms
 - [ ] Add quality gates:
   - [ ] Coverage threshold
-  - [ ] Performance baseline
   - [ ] Documentation build
-- [ ] Configure notifications:
-  - [ ] Test failures
-  - [ ] Coverage drops
-  - [ ] Performance regressions
 
-### 15. Documentation Deployment
-- [ ] Set up documentation hosting:
-  - [ ] GitHub Pages
-  - [ ] Version tagging
-  - [ ] Search functionality
-- [ ] Create documentation workflow:
-  - [ ] Auto-build on merge
-  - [ ] Preview on PR
-  - [ ] Version archives
-- [ ] Add documentation tests:
-  - [ ] Link checking
-  - [ ] Code example testing
-  - [ ] Screenshot updates
-- [ ] Monitor usage:
-  - [ ] Page analytics
-  - [ ] Search queries
-  - [ ] Feedback collection
 
 ## Output Log
 [2025-01-28 00:00:00] Task created - Testing and documentation ensure journal feature quality

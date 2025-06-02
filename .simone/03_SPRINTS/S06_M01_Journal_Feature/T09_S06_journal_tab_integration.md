@@ -33,46 +33,19 @@ Integrate all journal components into the main application by creating a dedicat
 ## Implementation Analysis
 
 ### Layout Strategy
-**Options:**
-1. **Split View** - Editor left, history right
+- **Split View** - Editor left, history right, with Collapsible Panels
    - Pros: See both simultaneously, flexible
    - Cons: May feel cramped on small screens
-2. **Stacked View** - Toggle between editor/history
-   - Pros: Full space for each view
-   - Cons: Can't reference while writing
-3. **Master-Detail** - List left, editor right
-   - Pros: Familiar pattern, efficient
-   - Cons: Less space for editor
-
-**Recommendation:** Split View with Collapsible Panels (#1) - Most flexible
 
 ### Navigation Integration
-**Options:**
-1. **Top-level Tab** - Equal to other main tabs
+- **Top-level Tab** - Equal to other main tabs
    - Pros: Easy discovery, prominent
    - Cons: Adds to tab clutter
-2. **Sub-tab Under Health** - Nested navigation
-   - Pros: Logical grouping
-   - Cons: Less discoverable
-3. **Floating Window** - Separate journal window
-   - Pros: More space, focus mode
-   - Cons: Window management complexity
-
-**Recommendation:** Top-level Tab (#1) - Best discoverability
 
 ### State Management
-**Options:**
-1. **Local State** - Each component manages own state
-   - Pros: Simple, decoupled
-   - Cons: Hard to coordinate
-2. **Centralized Store** - Redux-like pattern
-   - Pros: Predictable, debuggable
-   - Cons: More complex setup
-3. **Context/Service** - Shared journal service
+- **Context/Service** - Shared journal service
    - Pros: Clean API, testable
    - Cons: Service lifecycle management
-
-**Recommendation:** Context/Service (#3) - Clean architecture
 
 ## Detailed Subtasks
 
@@ -373,23 +346,6 @@ Integrate all journal components into the main application by creating a dedicat
   - [ ] Help searches
   - [ ] Feature discovery
 
-### 13. Integration Testing
-- [ ] Test component integration:
-  - [ ] Editor ↔ History sync
-  - [ ] Search across components
-  - [ ] State consistency
-  - [ ] Event propagation
-- [ ] Test user workflows:
-  - [ ] Create → Edit → Save
-  - [ ] Search → Select → Edit
-  - [ ] Filter → Export
-  - [ ] Navigate → Delete
-- [ ] Test edge cases:
-  - [ ] Empty states
-  - [ ] Large datasets
-  - [ ] Concurrent edits
-  - [ ] Network issues
-
 ### 14. Accessibility
 - [ ] Implement screen reader support:
   - [ ] Landmark regions
@@ -399,12 +355,8 @@ Integrate all journal components into the main application by creating a dedicat
   - [ ] All features accessible
   - [ ] Clear focus indicators
   - [ ] Skip links
-- [ ] Support high contrast:
-  - [ ] Detect system theme
-  - [ ] Provide toggle
-  - [ ] Maintain readability
 - [ ] Test with tools:
-  - [ ] Screen readers
+  - [ ] Screen readers (wait 30 seconds after creating a window to take a screenshot to allow UI time to load)
   - [ ] Keyboard navigation
   - [ ] Color contrast analyzer
 

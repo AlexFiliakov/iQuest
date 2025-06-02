@@ -33,46 +33,19 @@ Implement export functionality to allow users to export their journal entries in
 ## Implementation Analysis
 
 ### PDF Library Choice
-**Options:**
-1. **ReportLab** - Comprehensive PDF generation
+- **ReportLab** - Comprehensive PDF generation
    - Pros: Full control, professional output, charts support
    - Cons: Complex API, large dependency
-2. **PyPDF2/pypdf** - Simple PDF manipulation
-   - Pros: Lightweight, easy to use
-   - Cons: Limited formatting, no HTML support
-3. **WeasyPrint** - HTML/CSS to PDF
-   - Pros: Web standards, easy styling, responsive
-   - Cons: External dependencies, slower
-
-**Recommendation:** ReportLab (#1) - Best for professional documents
 
 ### Export Architecture
-**Options:**
-1. **Synchronous Export** - Block UI during export
-   - Pros: Simple implementation, predictable
-   - Cons: UI freezes, poor UX for large exports
-2. **Thread-based Export** - Background thread
+- **Thread-based Export** - Background thread
    - Pros: UI responsive, progress updates
    - Cons: Thread management complexity
-3. **Process-based Export** - Separate process
-   - Pros: True parallelism, crash isolation
-   - Cons: IPC complexity, memory overhead
-
-**Recommendation:** Thread-based Export (#2) - Best balance
 
 ### Template Engine
-**Options:**
-1. **Jinja2** - Full template engine
+- **Jinja2** - Full template engine
    - Pros: Powerful, familiar syntax, reusable
    - Cons: Extra dependency
-2. **Python f-strings** - Built-in formatting
-   - Pros: No dependencies, fast
-   - Cons: Limited features, less maintainable
-3. **Custom Template System** - Purpose-built
-   - Pros: Exact features needed
-   - Cons: Reinventing wheel
-
-**Recommendation:** Jinja2 (#1) - Flexibility for future needs
 
 ## Detailed Subtasks
 
@@ -414,17 +387,6 @@ Implement export functionality to allow users to export their journal entries in
   - [ ] Test progress tracking
   - [ ] Test error handling
   - [ ] Test cancellation
-  
-- [ ] Create tests/integration/test_export_integration.py:
-  - [ ] Test large exports (1000+ entries)
-  - [ ] Test special characters
-  - [ ] Test memory usage
-  - [ ] Test UI responsiveness
-  
-- [ ] Create performance benchmarks:
-  - [ ] Export speed metrics
-  - [ ] Memory profiling
-  - [ ] File size optimization
 
 ### 15. Documentation
 - [ ] Create export user guide:

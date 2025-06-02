@@ -46,32 +46,14 @@ Implement auto-save functionality with debouncing to prevent data loss while use
 **Recommendation:** Hybrid Approach (#2) - Best balance of UX and data safety
 
 ### Draft Storage Mechanism
-**Options:**
-1. **Separate Database Table** - journal_drafts table
+- **Separate Database Table** - journal_drafts table
    - Pros: Clean separation, transaction safety, queryable
    - Cons: Schema maintenance, migration complexity
-2. **Local File Cache** - JSON/SQLite file
-   - Pros: Independent of main DB, fast access
-   - Cons: Sync complexity, cleanup needed
-3. **In-Memory with Persistence** - Memory-mapped file
-   - Pros: Very fast, automatic persistence
-   - Cons: Platform-specific, size limitations
-
-**Recommendation:** Separate Database Table (#1) - Integrates well with existing DB
 
 ### Conflict Resolution
-**Options:**
-1. **Last Write Wins** - Simple overwrite
-   - Pros: Simple, deterministic
-   - Cons: Data loss possible
-2. **Version Comparison** - Check timestamps/hashes
+- **Version Comparison** - Check timestamps/hashes
    - Pros: Detects conflicts, safe
    - Cons: User intervention needed
-3. **Operational Transform** - Merge changes
-   - Pros: No data loss, seamless
-   - Cons: Complex for text editing
-
-**Recommendation:** Version Comparison (#2) - Safe and understandable
 
 ## Detailed Subtasks
 
@@ -182,7 +164,7 @@ Implement auto-save functionality with debouncing to prevent data loss while use
 - [ ] Add connection pooling for threads
 - [ ] Handle interruption gracefully
 - [ ] Implement retry logic:
-  - [ ] Max retries: 3
+  - [ ] Max retries: 5
   - [ ] Exponential backoff
   - [ ] Error categorization
 
@@ -277,7 +259,6 @@ Implement auto-save functionality with debouncing to prevent data loss while use
   - [ ] Database errors
   - [ ] Disk space issues
   - [ ] Permission problems
-  - [ ] Network timeouts
 - [ ] Create error notification system:
   - [ ] Toast notifications
   - [ ] Status bar messages
@@ -294,18 +275,6 @@ Implement auto-save functionality with debouncing to prevent data loss while use
   - [ ] Test queue operations
   - [ ] Test conflict detection
   - [ ] Mock timer behaviors
-  
-- [ ] Create tests/integration/test_auto_save_integration.py:
-  - [ ] Test full save flow
-  - [ ] Test draft recovery
-  - [ ] Test concurrent saves
-  - [ ] Test large content
-  
-- [ ] Create tests/performance/test_auto_save_performance.py:
-  - [ ] Benchmark save times
-  - [ ] Test UI responsiveness
-  - [ ] Profile memory usage
-  - [ ] Stress test with rapid typing
 
 ### 14. User Documentation
 - [ ] Create auto-save help section

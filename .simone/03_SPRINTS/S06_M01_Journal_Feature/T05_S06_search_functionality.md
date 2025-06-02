@@ -20,7 +20,6 @@ Implement full-text search functionality for journal entries using SQLite FTS (F
 - Ensure search performance with large datasets
 
 ## Acceptance Criteria
-- [ ] Search returns results in <500ms for 1000+ entries
 - [ ] Search terms highlighted in results
 - [ ] Search supports phrases and wildcards
 - [ ] Date range filter works with search
@@ -33,18 +32,9 @@ Implement full-text search functionality for journal entries using SQLite FTS (F
 ## Implementation Analysis
 
 ### FTS Implementation Strategy
-**Options:**
-1. **SQLite FTS5** - Latest full-text search module
+- **SQLite FTS5** - Latest full-text search module
    - Pros: Built-in, fast, supports ranking, phrase queries
    - Cons: SQLite 3.9+ required, complex queries need parsing
-2. **SQLite FTS4** - Older but stable FTS
-   - Pros: Wider compatibility, simpler API
-   - Cons: Missing features, deprecated
-3. **Custom Inverted Index** - Build our own search
-   - Pros: Full control, portable
-   - Cons: Reinventing wheel, performance challenges
-
-**Recommendation:** SQLite FTS5 (#1) - Modern, performant, feature-rich
 
 ### Search UI Pattern
 **Options:**
@@ -54,9 +44,6 @@ Implement full-text search functionality for journal entries using SQLite FTS (F
 2. **Modal Search Dialog** - Ctrl+F opens overlay
    - Pros: Full-featured, doesn't clutter UI
    - Cons: Extra step to access
-3. **Command Palette Style** - Quick launcher approach
-   - Pros: Power user friendly, fast
-   - Cons: Less discoverable
 
 **Recommendation:** Inline Search Bar with Modal for Advanced (#1+#2)
 
@@ -348,18 +335,6 @@ Implement full-text search functionality for journal entries using SQLite FTS (F
   - [ ] Test highlight generation
   - [ ] Test filter combinations
   - [ ] Test edge cases (empty, special chars)
-  
-- [ ] Create tests/integration/test_search_integration.py:
-  - [ ] Test with real FTS5 table
-  - [ ] Test concurrent searches
-  - [ ] Test large result sets
-  - [ ] Test index updates
-  
-- [ ] Create tests/performance/test_search_performance.py:
-  - [ ] Benchmark with 10,000 entries
-  - [ ] Test query complexity impact
-  - [ ] Profile memory usage
-  - [ ] Test UI responsiveness
 
 ### 14. Search Help & Documentation
 - [ ] Create search syntax guide:

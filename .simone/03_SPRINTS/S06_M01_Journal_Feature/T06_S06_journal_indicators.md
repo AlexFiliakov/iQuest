@@ -48,31 +48,15 @@ Add visual indicators to daily, weekly, and monthly dashboard views to show whic
 
 ### Performance Strategy
 **Options:**
-1. **Eager Loading** - Load all indicators on view init
-   - Pros: Fast interaction, no delays
-   - Cons: Initial load time, memory usage
-2. **Lazy Loading** - Load indicators on scroll/viewport
-   - Pros: Fast initial render, scalable
-   - Cons: Complexity, potential flicker
-3. **Smart Caching** - Preload visible + nearby dates
+- **Smart Caching** - Preload visible + nearby dates
    - Pros: Balanced performance, good UX
    - Cons: Cache management needed
 
-**Recommendation:** Smart Caching (#3) - Optimal balance
-
 ### Animation Approach
 **Options:**
-1. **CSS Transitions** - Pure CSS hover effects
+- **CSS Transitions** - Pure CSS hover effects
    - Pros: Performant, smooth, GPU accelerated
    - Cons: Limited to simple animations
-2. **Qt Animation Framework** - QPropertyAnimation
-   - Pros: Rich animations, precise control
-   - Cons: More complex, potential overhead
-3. **No Animation** - Static indicators
-   - Pros: Simple, accessible, fast
-   - Cons: Less engaging
-
-**Recommendation:** CSS Transitions (#1) - Smooth and performant
 
 ## Detailed Subtasks
 
@@ -285,10 +269,6 @@ Add visual indicators to daily, weekly, and monthly dashboard views to show whic
   - [ ] Tab to focus indicators
   - [ ] Enter/Space to activate
   - [ ] Escape to close tooltip
-- [ ] Add screen reader announcements:
-  - [ ] Announce indicator presence
-  - [ ] Read preview on focus
-  - [ ] Indicate entry type
 
 ### 12. Performance Optimization
 - [ ] Implement viewport culling:
@@ -314,18 +294,6 @@ Add visual indicators to daily, weekly, and monthly dashboard views to show whic
   - [ ] Test tooltip content
   - [ ] Test animations
   - [ ] Test cache behavior
-  
-- [ ] Create tests/integration/test_indicator_integration.py:
-  - [ ] Test with all view types
-  - [ ] Test real-time updates
-  - [ ] Test performance with many indicators
-  - [ ] Test memory usage
-  
-- [ ] Create visual regression tests:
-  - [ ] Capture indicator appearances
-  - [ ] Test different states
-  - [ ] Verify positioning
-  - [ ] Check animations
 
 ### 14. Documentation
 - [ ] Create indicator style guide:
