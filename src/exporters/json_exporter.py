@@ -43,8 +43,8 @@ from pathlib import Path
 
 from .base_exporter import BaseExporter, ExportOptions, ExportResult
 from ..models import JournalEntry
-from ..version import VERSION
-from ..utils.error_handler import ValidationError
+from ..version import __version__ as VERSION
+from ..utils.error_handler import DataValidationError as ValidationError
 
 logger = logging.getLogger(__name__)
 

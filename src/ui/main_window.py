@@ -1060,55 +1060,54 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personal records, achievements, and streaks")
     
     def _create_journal_tab(self):
-        """Create the journal tab for personal health reflection.
+        """Create the journal tab with editor and history views.
         
-        Initializes the journal tab which will provide capabilities for
-        personal health journaling, daily observations, and reflective
-        notes. Currently implemented as a placeholder for future development.
+        Provides full journal functionality including:
+        - Creating and editing journal entries
+        - Browsing entry history with virtual scrolling
+        - Searching past entries
+        - Filtering by date and entry type
+        - Exporting journal data
         
-        Planned features:
-            - Daily health journal entries
-            - Weekly reflection summaries
-            - Monthly health goal reviews
-            - Mood and symptom tracking
-            - Integration with health metrics
-            - Search and tag functionality
-            
         The journal tab serves as a personal space for users to record
         qualitative health observations that complement the quantitative
         data from Apple Health.
         """
-        journal_widget = QWidget(self)
-        layout = QVBoxLayout(journal_widget)
-        
-        # Placeholder content
-        label = QLabel("Health Journal")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                font-weight: 600;
-                color: #5D4E37;
-                padding: 20px;
-            }
-        """)
-        layout.addWidget(label)
-        
-        placeholder = QLabel("Add notes and observations here")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                color: #8B7355;
-                padding: 10px;
-            }
-        """)
-        layout.addWidget(placeholder)
-        
-        layout.addStretch()
-        
-        self.tab_widget.addTab(journal_widget, "Journal")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Add personal notes and health observations")
+        try:
+            from .journal_tab_widget import JournalTabWidget
+            
+            self.journal_tab = JournalTabWidget(self.data_access)
+            self.tab_widget.addTab(self.journal_tab, "Journal")
+            self.tab_widget.setTabToolTip(
+                self.tab_widget.count() - 1, 
+                "Create and browse health journal entries"
+            )
+            
+            logger.info("Journal tab created successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to create journal tab: {e}")
+            # Fallback to placeholder
+            journal_widget = QWidget(self)
+            layout = QVBoxLayout(journal_widget)
+            
+            error_label = QLabel("❌ Failed to load journal tab")
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            error_label.setStyleSheet("""
+                QLabel {
+                    font-size: 18px;
+                    color: #D32F2F;
+                    padding: 20px;
+                }
+            """)
+            layout.addWidget(error_label)
+            layout.addStretch()
+            
+            self.tab_widget.addTab(journal_widget, "Journal")
+            self.tab_widget.setTabToolTip(
+                self.tab_widget.count() - 1, 
+                "Journal feature unavailable"
+            )
     
     def _create_help_tab(self):
         """Create the comprehensive help tab with keyboard shortcuts reference.

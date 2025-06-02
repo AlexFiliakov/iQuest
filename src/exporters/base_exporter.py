@@ -41,7 +41,7 @@ import logging
 import os
 
 from ..models import JournalEntry
-from ..utils.error_handler import ValidationError
+from ..utils.error_handler import DataValidationError as ValidationError
 
 logger = logging.getLogger(__name__)
 

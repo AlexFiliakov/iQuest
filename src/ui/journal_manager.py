@@ -61,7 +61,7 @@ from PyQt6.QtWidgets import QMessageBox
 from ..data_access import DataAccess, JournalDAO
 from ..models import JournalEntry
 from ..utils.logging_config import get_logger
-from ..utils.error_handler import DatabaseError, ValidationError
+from ..utils.error_handler import DatabaseError, DataValidationError as ValidationError
 
 logger = get_logger(__name__)
 
