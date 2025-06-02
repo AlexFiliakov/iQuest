@@ -749,6 +749,30 @@ class DatabaseManager:
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (5)")
             logger.info("Migration 5 applied successfully")
+        
+        # Migration 6: Add version column to journal_entries for optimistic locking
+        if current_version < 6:
+            logger.info("Applying migration 6: Adding version column to journal_entries")
+            
+            # Add version column to journal_entries table
+            cursor.execute("""
+                ALTER TABLE journal_entries 
+                ADD COLUMN version INTEGER DEFAULT 1
+            """)
+            
+            # Update existing entries to have version 1
+            cursor.execute("""
+                UPDATE journal_entries 
+                SET version = 1 
+                WHERE version IS NULL
+            """)
+            
+            # Create index on version for performance
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_journal_entries_version ON journal_entries(version)")
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (6)")
+            logger.info("Migration 6 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute SELECT query and return all matching rows.

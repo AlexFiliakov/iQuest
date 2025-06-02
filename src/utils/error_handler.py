@@ -274,6 +274,98 @@ def safe_database_operation(func: Callable) -> Callable:
     return wrapper
 
 
+def with_transaction(func: Callable) -> Callable:
+    """
+    Decorator that wraps a function in a database transaction.
+    
+    This decorator ensures that database operations are performed within
+    a transaction context. If any error occurs, the transaction is rolled
+    back automatically. Otherwise, the transaction is committed.
+    
+    The decorator expects the function to have access to a database connection
+    either as the first argument (for methods) or through a 'db' or 'conn'
+    keyword argument.
+    
+    Features:
+    - Automatic transaction begin/commit/rollback
+    - Proper error handling and logging
+    - Support for both methods and functions
+    - Preserves function metadata
+    
+    Args:
+        func: The function to wrap in a transaction.
+        
+    Returns:
+        Callable: The wrapped function with transaction management.
+        
+    Example:
+        >>> @with_transaction
+        ... def update_journal_entry(db, entry_id, content):
+        ...     db.execute("UPDATE journal_entries SET content = ? WHERE id = ?", 
+        ...                (content, entry_id))
+        ...     db.execute("INSERT INTO audit_log ...", ...)
+        ...
+        >>> # Both operations succeed or both are rolled back
+        >>> update_journal_entry(db_conn, 123, "New content")
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # Try to find the database connection
+        conn = None
+        
+        # Check if it's a method with self.conn or self.db
+        if args and hasattr(args[0], 'conn'):
+            conn = args[0].conn
+        elif args and hasattr(args[0], 'db'):
+            conn = args[0].db
+        # Check kwargs for conn or db
+        elif 'conn' in kwargs:
+            conn = kwargs['conn']
+        elif 'db' in kwargs:
+            conn = kwargs['db']
+        # Check if first arg is a connection object
+        elif args and hasattr(args[0], 'execute'):
+            conn = args[0]
+            
+        if not conn:
+            raise ValueError(f"No database connection found for {func.__name__}")
+            
+        # Start transaction
+        try:
+            # Save current isolation level
+            original_isolation = conn.isolation_level
+            
+            # Begin transaction
+            conn.execute("BEGIN")
+            logger.debug(f"Transaction started for {func.__name__}")
+            
+            # Execute the function
+            result = func(*args, **kwargs)
+            
+            # Commit transaction
+            conn.commit()
+            logger.debug(f"Transaction committed for {func.__name__}")
+            
+            return result
+            
+        except Exception as e:
+            # Rollback on any error
+            try:
+                conn.rollback()
+                logger.warning(f"Transaction rolled back for {func.__name__} due to: {e}")
+            except Exception as rollback_error:
+                logger.error(f"Error during rollback: {rollback_error}")
+                
+            # Re-raise the original exception
+            raise
+        finally:
+            # Restore original isolation level if changed
+            if 'original_isolation' in locals():
+                conn.isolation_level = original_isolation
+                
+    return wrapper
+
+
 class ErrorContext:
     """
     Context manager for error handling with detailed context information.

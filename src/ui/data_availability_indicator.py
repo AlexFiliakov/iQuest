@@ -65,17 +65,17 @@ class IndicatorStyles:
     """Style definitions for data availability indicators."""
     
     COVERAGE_COLORS = {
-        'excellent': StyleManager.ACCENT_SUCCESS,    # 90%+ coverage
+        'excellent': "#95C17B",    # 90%+ coverage
         'good': '#8BC34A',                          # 75-89% coverage  
-        'fair': StyleManager.ACCENT_WARNING,        # 50-74% coverage
-        'poor': StyleManager.ACCENT_ERROR,          # 1-49% coverage
+        'fair': "#FFD166",        # 50-74% coverage
+        'poor': "#E76F51",          # 1-49% coverage
         'none': '#9E9E9E'                          # 0% coverage
     }
     
     QUALITY_COLORS = {
-        'complete': StyleManager.ACCENT_SUCCESS,     # >90% data points
-        'partial': StyleManager.ACCENT_WARNING,     # 10-90% data points
-        'sparse': StyleManager.ACCENT_ERROR,        # <10% data points
+        'complete': "#95C17B",     # >90% data points
+        'partial': "#FFD166",     # 10-90% data points
+        'sparse': "#E76F51",        # <10% data points
         'missing': '#E0E0E0'                       # No data points
     }
     
@@ -159,12 +159,12 @@ class CoverageBar(QProgressBar):
         
         self.setStyleSheet(f"""
             QProgressBar {{
-                border: 1px solid {StyleManager.TEXT_MUTED};
+                border: 1px solid {"#B5A595"};
                 border-radius: 8px;
                 background-color: {StyleManager.TERTIARY_BG};
                 text-align: center;
                 font-weight: bold;
-                color: {StyleManager.TEXT_PRIMARY};
+                color: {"#5D4E37"};
                 min-height: 24px;
             }}
             QProgressBar::chunk {{
@@ -227,7 +227,7 @@ class DotMatrixWidget(QWidget):
             
             # Draw dot
             painter.setBrush(QBrush(QColor(color)))
-            painter.setPen(QPen(QColor(StyleManager.TEXT_MUTED), 1))
+            painter.setPen(QPen(QColor("#B5A595"), 1))
             painter.drawEllipse(x, y, self.dot_size, self.dot_size)
             
             # Move to next position
@@ -358,7 +358,7 @@ class DataAvailabilityCard(SummaryCard):
         self.placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.placeholder_label.setStyleSheet(f"""
             QLabel {{
-                color: {StyleManager.TEXT_MUTED};
+                color: {"#B5A595"};
                 font-style: italic;
                 padding: 20px;
             }}

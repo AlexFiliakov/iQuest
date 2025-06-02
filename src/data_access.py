@@ -127,12 +127,17 @@ class JournalDAO:
     @staticmethod
     def save_journal_entry(entry_date: date, entry_type: str, content: str,
                           week_start_date: Optional[date] = None,
-                          month_year: Optional[str] = None) -> int:
-        """Create or update a journal entry (upsert logic based on date and type).
+                          month_year: Optional[str] = None,
+                          expected_version: Optional[int] = None) -> int:
+        """Create or update a journal entry with optimistic locking support.
         
         Uses INSERT ... ON CONFLICT logic to either create a new journal entry
         or update an existing one for the same date and type combination.
         This ensures no duplicate entries while allowing content updates.
+        
+        Supports optimistic locking via version field to prevent concurrent
+        update conflicts. When expected_version is provided, the update will
+        only succeed if the current version matches.
         
         Args:
             entry_date: The date this journal entry is for.
@@ -140,12 +145,14 @@ class JournalDAO:
             content: The journal entry content/text.
             week_start_date: Start date of the week (required for weekly entries).
             month_year: Month-year string in YYYY-MM format (required for monthly entries).
+            expected_version: Expected version number for optimistic locking (optional).
             
         Returns:
             int: The ID of the created or updated journal entry.
             
         Raises:
             Exception: If database operation fails or validation errors occur.
+            ValueError: If version mismatch occurs (optimistic locking conflict).
             
         Example:
             >>> entry_id = JournalDAO.save_journal_entry(
@@ -154,33 +161,81 @@ class JournalDAO:
             ...     'Today I walked 10,000 steps and felt great!'
             ... )
         """
-        query = """
-            INSERT INTO journal_entries 
-            (entry_date, entry_type, week_start_date, month_year, content)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(entry_date, entry_type) 
-            DO UPDATE SET 
-                content = excluded.content,
-                week_start_date = excluded.week_start_date,
-                month_year = excluded.month_year,
-                updated_at = CURRENT_TIMESTAMP
-        """
-        
-        params = (
-            entry_date.isoformat(),
-            entry_type,
-            week_start_date.isoformat() if week_start_date else None,
-            month_year,
-            content
-        )
-        
-        try:
-            entry_id = DatabaseManager().execute_command(query, params)
-            logger.info(f"Saved {entry_type} journal entry for {entry_date}")
-            return entry_id
-        except Exception as e:
-            logger.error(f"Error saving journal entry: {e}")
-            raise
+        if expected_version is not None:
+            # Update with version check
+            query = """
+                UPDATE journal_entries 
+                SET content = ?, 
+                    week_start_date = ?, 
+                    month_year = ?, 
+                    version = version + 1,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE entry_date = ? 
+                    AND entry_type = ? 
+                    AND version = ?
+            """
+            
+            params = (
+                content,
+                week_start_date.isoformat() if week_start_date else None,
+                month_year,
+                entry_date.isoformat(),
+                entry_type,
+                expected_version
+            )
+            
+            try:
+                db = DatabaseManager()
+                rows_affected = db.execute_command(query, params)
+                
+                if rows_affected == 0:
+                    # Version mismatch or entry doesn't exist
+                    raise ValueError("Version conflict: Entry was modified by another process")
+                    
+                # Get the entry ID
+                result = db.execute_query(
+                    "SELECT id FROM journal_entries WHERE entry_date = ? AND entry_type = ?",
+                    (entry_date.isoformat(), entry_type)
+                )
+                if result:
+                    logger.info(f"Updated {entry_type} journal entry for {entry_date} with version check")
+                    return result[0]['id']
+                else:
+                    raise Exception("Failed to retrieve updated entry ID")
+                    
+            except Exception as e:
+                logger.error(f"Error updating journal entry with version check: {e}")
+                raise
+        else:
+            # Standard upsert without version check
+            query = """
+                INSERT INTO journal_entries 
+                (entry_date, entry_type, week_start_date, month_year, content, version)
+                VALUES (?, ?, ?, ?, ?, 1)
+                ON CONFLICT(entry_date, entry_type) 
+                DO UPDATE SET 
+                    content = excluded.content,
+                    week_start_date = excluded.week_start_date,
+                    month_year = excluded.month_year,
+                    version = journal_entries.version + 1,
+                    updated_at = CURRENT_TIMESTAMP
+            """
+            
+            params = (
+                entry_date.isoformat(),
+                entry_type,
+                week_start_date.isoformat() if week_start_date else None,
+                month_year,
+                content
+            )
+            
+            try:
+                entry_id = DatabaseManager().execute_command(query, params)
+                logger.info(f"Saved {entry_type} journal entry for {entry_date}")
+                return entry_id
+            except Exception as e:
+                logger.error(f"Error saving journal entry: {e}")
+                raise
     
     @staticmethod
     def get_journal_entries(start_date: date, end_date: date, 
@@ -272,6 +327,51 @@ class JournalDAO:
         except Exception as e:
             logger.error(f"Error searching journal entries: {e}")
             return []
+    
+    @staticmethod
+    def delete_journal_entry(entry_date: date, entry_type: str) -> bool:
+        """Delete a journal entry by date and type.
+        
+        Deletes a specific journal entry from the database based on the unique
+        combination of date and type. Returns True if an entry was deleted.
+        
+        Args:
+            entry_date: The date of the entry to delete.
+            entry_type: The type of entry to delete ('daily', 'weekly', 'monthly').
+            
+        Returns:
+            bool: True if an entry was deleted, False otherwise.
+            
+        Example:
+            >>> # Delete a daily entry
+            >>> success = JournalDAO.delete_journal_entry(
+            ...     date(2024, 1, 15),
+            ...     'daily'
+            ... )
+            >>> if success:
+            ...     print("Entry deleted")
+        """
+        query = """
+            DELETE FROM journal_entries 
+            WHERE entry_date = ? AND entry_type = ?
+        """
+        
+        try:
+            rows_affected = DatabaseManager().execute_command(
+                query, 
+                (entry_date.isoformat(), entry_type)
+            )
+            
+            if rows_affected > 0:
+                logger.info(f"Deleted {entry_type} journal entry for {entry_date}")
+                return True
+            else:
+                logger.warning(f"No {entry_type} journal entry found for {entry_date}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error deleting journal entry: {e}")
+            raise
 
 
 class PreferenceDAO:
@@ -1130,3 +1230,25 @@ class DataAccess:
             self.logger.error(f"Database health check error: {e}")
         
         return health_status
+    
+    # Journal Entry Operations (delegating to JournalDAO)
+    def save_journal_entry(self, entry_date: date, entry_type: str, content: str,
+                          week_start_date: Optional[date] = None,
+                          month_year: Optional[str] = None) -> int:
+        """Save a journal entry (delegates to JournalDAO)."""
+        return JournalDAO.save_journal_entry(
+            entry_date, entry_type, content, week_start_date, month_year
+        )
+    
+    def get_journal_entries(self, start_date: date, end_date: date,
+                           entry_type: Optional[str] = None) -> List[JournalEntry]:
+        """Get journal entries (delegates to JournalDAO)."""
+        return JournalDAO.get_journal_entries(start_date, end_date, entry_type)
+    
+    def search_journal_entries(self, search_term: str) -> List[JournalEntry]:
+        """Search journal entries (delegates to JournalDAO)."""
+        return JournalDAO.search_journal_entries(search_term)
+    
+    def delete_journal_entry(self, entry_date: date, entry_type: str) -> bool:
+        """Delete a journal entry (delegates to JournalDAO)."""
+        return JournalDAO.delete_journal_entry(entry_date, entry_type)

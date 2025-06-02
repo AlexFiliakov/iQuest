@@ -40,9 +40,9 @@ class CoverageIndicatorWidget(QFrame):
         self.setLineWidth(1)
         self.setStyleSheet(f"""
             QFrame {{
-                border: 1px solid {StyleManager.TEXT_MUTED};
+                border: 1px solid {"#B5A595"};
                 border-radius: 8px;
-                background-color: {StyleManager.SECONDARY_BG};
+                background-color: {"#FFFFFF"};
                 padding: 8px;
                 margin: 4px;
             }}
@@ -59,7 +59,7 @@ class CoverageIndicatorWidget(QFrame):
             title_label.setStyleSheet(f"""
                 QLabel {{
                     font-weight: bold;
-                    color: {StyleManager.TEXT_PRIMARY};
+                    color: {"#5D4E37"};
                     font-size: 12px;
                 }}
             """)
@@ -81,7 +81,7 @@ class CoverageIndicatorWidget(QFrame):
             title_label.setStyleSheet(f"""
                 QLabel {{
                     font-weight: bold;
-                    color: {StyleManager.TEXT_PRIMARY};
+                    color: {"#5D4E37"};
                     font-size: 14px;
                 }}
             """)
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         QLabel {{
             font-size: 18px;
             font-weight: bold;
-            color: {StyleManager.TEXT_PRIMARY};
+            color: {"#5D4E37"};
             padding: 20px;
             background-color: {StyleManager.TERTIARY_BG};
             border-radius: 8px;

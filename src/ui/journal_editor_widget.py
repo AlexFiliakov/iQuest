@@ -44,12 +44,13 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QComboBox, QSplitter, QListWidget, QListWidgetItem,
     QGroupBox, QLineEdit, QMessageBox, QFrame, QToolBar, QStackedWidget,
-    QCalendarWidget, QSpinBox, QShortcut, QButtonGroup
+    QCalendarWidget, QSpinBox, QButtonGroup
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDate, QDateTime, QSize, QPropertyAnimation
 from PyQt6.QtGui import (
     QFont, QKeySequence, QTextCharFormat, QTextCursor, 
-    QIcon, QAction, QTextDocument, QPainter, QPalette, QColor
+    QIcon, QAction, QTextDocument, QPainter, QPalette, QColor,
+    QShortcut
 )
 
 from ..models import JournalEntry
@@ -57,6 +58,9 @@ from ..data_access import DataAccess
 from ..utils.logging_config import get_logger
 from .enhanced_date_edit import EnhancedDateEdit
 from .style_manager import StyleManager
+from .journal_manager import JournalManager
+from .toast_notification import ToastNotification
+from .conflict_resolution_dialog import ConflictResolutionDialog
 
 logger = get_logger(__name__)
 
@@ -260,11 +264,22 @@ class JournalEditorWidget(QWidget):
         super().__init__(parent)
         self.data_access = data_access
         self.style_manager = StyleManager()
+        self.journal_manager = JournalManager(data_access)
         self.current_entry: Optional[JournalEntry] = None
         self.is_modified = False
+        self._current_version: Optional[int] = None  # For optimistic locking
         self.auto_save_timer = QTimer()
         self.auto_save_timer.timeout.connect(self.auto_save)
         self.auto_save_timer.setInterval(30000)  # Auto-save every 30 seconds
+        
+        # Connect journal manager signals
+        self.journal_manager.entrySaved.connect(self._on_entry_saved)
+        self.journal_manager.entryDeleted.connect(self._on_entry_deleted)
+        self.journal_manager.errorOccurred.connect(self._on_error_occurred)
+        self.journal_manager.conflictDetected.connect(self._on_conflict_detected)
+        
+        # Set conflict handler
+        self.journal_manager.set_conflict_handler(self._handle_conflict)
         
         self.setup_ui()
         self.setup_shortcuts()
@@ -601,6 +616,7 @@ class JournalEditorWidget(QWidget):
             
         # Reset editor
         self.current_entry = None
+        self._current_version = None
         self.text_editor.clear()
         self.is_modified = False
         self.update_counts()
@@ -614,111 +630,118 @@ class JournalEditorWidget(QWidget):
         self.text_editor.setFocus()
         
     def save_entry(self):
-        """Save the current journal entry."""
-        try:
-            # Get entry data
-            entry_type = self.entry_type_control.selectedText().lower()
-            content = self.text_editor.toPlainText().strip()
+        """Save the current journal entry using JournalManager."""
+        # Get entry data
+        entry_type = self.entry_type_control.selectedText().lower()
+        content = self.text_editor.toPlainText().strip()
+        
+        # Get appropriate date based on entry type
+        if entry_type == 'daily':
+            entry_date = self.daily_date_edit.date()
+        elif entry_type == 'weekly':
+            entry_date = self.weekly_date_edit.date()
+        else:  # monthly
+            year = self.year_spin.value()
+            month = self.month_spin.value()
+            entry_date = QDate(year, month, 1)
             
-            if not content:
-                QMessageBox.warning(self, "Warning", "Please enter some content before saving.")
-                return
-                
-            # Get appropriate date based on entry type
-            if entry_type == 'daily':
-                entry_date = self.daily_date_edit.date().toPython()
-                week_start_date = None
-                month_year = None
-            elif entry_type == 'weekly':
-                entry_date = self.weekly_date_edit.date().toPython()
-                # Calculate week start (Monday)
-                week_start_date = entry_date - timedelta(days=entry_date.weekday())
-                month_year = None
-            else:  # monthly
-                year = self.year_spin.value()
-                month = self.month_spin.value()
-                entry_date = date(year, month, 1)
-                week_start_date = None
-                month_year = f"{year:04d}-{month:02d}"
-                
-            # Save entry
-            entry_id = self.data_access.save_journal_entry(
-                entry_date=entry_date,
-                entry_type=entry_type,
-                content=content,
-                week_start_date=week_start_date,
-                month_year=month_year
-            )
+        # Get version for optimistic locking (only if updating existing entry)
+        expected_version = None
+        if self.current_entry and hasattr(self, '_current_version'):
+            expected_version = self._current_version
             
-            # Create or update entry object
-            if self.current_entry:
-                self.current_entry.content = content
-                self.current_entry.updated_at = datetime.now()
-            else:
-                self.current_entry = JournalEntry(
-                    id=entry_id,
-                    entry_date=entry_date,
-                    entry_type=entry_type,
-                    content=content,
-                    week_start_date=week_start_date,
-                    month_year=month_year,
-                    created_at=datetime.now(),
-                    updated_at=datetime.now()
-                )
-                
-            # Update UI
-            self.is_modified = False
-            self.last_saved_label.setText(f"Saved at {datetime.now().strftime('%H:%M:%S')}")
-            
-            # Refresh entry list
-            self.load_recent_entries()
-            
-            # Emit signal
-            self.entry_saved.emit(self.current_entry)
-            
-            logger.info(f"Saved {entry_type} journal entry for {entry_date}")
-            
-        except Exception as e:
-            logger.error(f"Error saving journal entry: {e}")
-            QMessageBox.critical(self, "Error", f"Failed to save entry: {str(e)}")
+        # Save using JournalManager
+        self.journal_manager.save_entry(
+            entry_date=entry_date,
+            entry_type=entry_type,
+            content=content,
+            callback=self._on_save_complete,
+            expected_version=expected_version
+        )
             
     def delete_entry(self):
-        """Delete the current journal entry."""
+        """Delete the current journal entry with enhanced confirmation dialog."""
         if not self.current_entry:
-            QMessageBox.information(self, "Info", "No entry selected to delete.")
+            toast = ToastNotification.warning("No entry selected to delete", self)
+            toast.show()
             return
             
-        # Confirm deletion
-        reply = QMessageBox.question(
-            self,
-            "Confirm Delete",
-            f"Are you sure you want to delete this {self.current_entry.entry_type} entry?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+        # Create custom deletion confirmation dialog
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Confirm Delete")
+        msg_box.setIcon(QMessageBox.Icon.Warning)
+        
+        # Show entry preview in the message
+        preview = self.current_entry.content[:100]
+        if len(self.current_entry.content) > 100:
+            preview += "..."
+            
+        msg_box.setText(
+            f"Are you sure you want to delete this {self.current_entry.entry_type} entry?\n\n"
+            f"Date: {self.current_entry.entry_date}\n"
+            f"Preview: {preview}"
+        )
+        msg_box.setInformativeText("This action cannot be undone.")
+        
+        # Custom buttons
+        delete_btn = msg_box.addButton("Delete Entry", QMessageBox.ButtonRole.DestructiveRole)
+        export_btn = msg_box.addButton("Export First", QMessageBox.ButtonRole.ActionRole)
+        cancel_btn = msg_box.addButton(QMessageBox.StandardButton.Cancel)
+        
+        msg_box.setDefaultButton(cancel_btn)
+        msg_box.exec()
+        
+        clicked_button = msg_box.clickedButton()
+        
+        if clicked_button == delete_btn:
+            # Proceed with deletion
+            self._perform_deletion()
+        elif clicked_button == export_btn:
+            # Export entry first (to be implemented in export task)
+            toast = ToastNotification.info("Export functionality will be available soon", self)
+            toast.show()
+            # Could still show delete option after export
+        # else: cancelled, do nothing
+        
+    def _perform_deletion(self):
+        """Actually perform the deletion of the current entry."""
+        if not self.current_entry:
+            return
+            
+        # Get entry details
+        entry_type = self.current_entry.entry_type
+        entry_date = QDate(self.current_entry.entry_date)
+        
+        # Use JournalManager to delete
+        self.journal_manager.delete_entry(
+            entry_date=entry_date,
+            entry_type=entry_type,
+            callback=lambda success: self._on_delete_complete(success)
         )
         
-        if reply == QMessageBox.StandardButton.Yes:
-            try:
-                # Delete from database (would need to add this method to DataAccess)
-                # For now, we'll just clear the editor and refresh the list
-                self.new_entry()
-                self.load_recent_entries()
-                
-                if self.current_entry and self.current_entry.id:
-                    self.entry_deleted.emit(self.current_entry.id)
-                    
-                QMessageBox.information(self, "Success", "Entry deleted successfully.")
-                
-            except Exception as e:
-                logger.error(f"Error deleting entry: {e}")
-                QMessageBox.critical(self, "Error", f"Failed to delete entry: {str(e)}")
+    def _on_delete_complete(self, success: bool):
+        """Handle delete operation completion.
+        
+        Args:
+            success: Whether the deletion was successful
+        """
+        if success:
+            # Clear the editor
+            self.new_entry()
+            # Refresh the entry list
+            self.load_recent_entries()
+            
+            # Emit signal if we have an entry ID
+            if self.current_entry and self.current_entry.id:
+                self.entry_deleted.emit(self.current_entry.id)
                 
     def auto_save(self):
-        """Auto-save the current entry if modified."""
+        """Auto-save the current entry if modified using JournalManager."""
         if self.is_modified and self.text_editor.toPlainText().strip():
+            # Use the same save logic as save_entry
             self.save_entry()
-            self.auto_save_label.setText("Auto-saved")
-            QTimer.singleShot(2000, lambda: self.auto_save_label.setText("Auto-save: On"))
+            # Update label is handled by callback
+            logger.debug("Auto-save triggered")
             
     def on_text_changed(self):
         """Handle text changes in the editor with character limit enforcement."""
@@ -869,6 +892,10 @@ class JournalEditorWidget(QWidget):
         else:
             self.last_saved_label.setText("Not saved")
             
+        # Store the version for optimistic locking
+        self._current_version = getattr(entry, 'version', 1)
+        logger.debug(f"Loaded entry with version {self._current_version}")
+            
         # Emit signal
         self.entry_selected.emit(entry)
         
@@ -941,3 +968,107 @@ class JournalEditorWidget(QWidget):
         else:
             self.auto_save_timer.stop()
             event.accept()
+            
+    def _on_save_complete(self, success: bool, entry_id: Optional[int]):
+        """Handle save operation completion.
+        
+        Args:
+            success: Whether the save was successful
+            entry_id: The ID of the saved entry
+        """
+        if success:
+            # Update UI
+            self.is_modified = False
+            self.last_saved_label.setText(f"Saved at {datetime.now().strftime('%H:%M:%S')}")
+            
+            # Show success notification
+            toast = ToastNotification.success("Journal entry saved successfully!", self)
+            toast.show()
+            
+            # Refresh entry list
+            self.load_recent_entries()
+            
+            # Update current entry and version
+            if self.current_entry:
+                self.current_entry.updated_at = datetime.now()
+                # Increment version for next save
+                if hasattr(self, '_current_version'):
+                    self._current_version += 1
+                else:
+                    self._current_version = 2
+            
+    def _on_entry_saved(self, date_str: str, entry_type: str):
+        """Handle entry saved signal from JournalManager.
+        
+        Args:
+            date_str: ISO format date string
+            entry_type: Type of entry saved
+        """
+        logger.info(f"Entry saved: {entry_type} for {date_str}")
+        
+    def _on_entry_deleted(self, date_str: str, entry_type: str):
+        """Handle entry deleted signal from JournalManager.
+        
+        Args:
+            date_str: ISO format date string
+            entry_type: Type of entry deleted
+        """
+        logger.info(f"Entry deleted: {entry_type} for {date_str}")
+        
+        # Show success notification
+        toast = ToastNotification.info("Journal entry deleted", self)
+        toast.show()
+        
+    def _on_error_occurred(self, error_message: str):
+        """Handle error signal from JournalManager.
+        
+        Args:
+            error_message: The error message to display
+        """
+        # Show error notification
+        toast = ToastNotification.error(error_message, self, duration=5000)
+        toast.show()
+        
+    def _on_conflict_detected(self, date_str: str, current_content: str, new_content: str):
+        """Handle conflict detection from JournalManager.
+        
+        Args:
+            date_str: ISO format date string
+            current_content: Content currently in database
+            new_content: New content attempting to save
+        """
+        logger.warning(f"Conflict detected for entry on {date_str}")
+        
+    def _handle_conflict(self, current_content: str, new_content: str) -> str:
+        """Handle save conflicts with user dialog.
+        
+        Args:
+            current_content: Content currently in database
+            new_content: New content attempting to save
+            
+        Returns:
+            str: User's choice ('keep_mine', 'keep_theirs', or 'cancel')
+        """
+        # Get current entry date and type
+        entry_type = self.entry_type_control.selectedText().lower()
+        
+        if entry_type == 'daily':
+            entry_date = self.daily_date_edit.date().toPython()
+        elif entry_type == 'weekly':
+            entry_date = self.weekly_date_edit.date().toPython()
+        else:  # monthly
+            year = self.year_spin.value()
+            month = self.month_spin.value()
+            entry_date = date(year, month, 1)
+            
+        # Show conflict resolution dialog
+        dialog = ConflictResolutionDialog(
+            current_content=current_content,
+            new_content=new_content,
+            entry_date=entry_date,
+            entry_type=entry_type,
+            parent=self
+        )
+        
+        result = dialog.exec()
+        return dialog.get_choice()

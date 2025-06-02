@@ -28,8 +28,8 @@ from .style_manager import StyleManager
 class BarChartConfig:
     """Configuration class for bar chart styling and behavior."""
     
-    # Colors from StyleManager
-    color_palette: List[str] = field(default_factory=lambda: StyleManager.CHART_COLORS)
+    # Colors - will be set from StyleManager instance
+    color_palette: List[str] = field(default_factory=lambda: ["#FF8C42", "#FFD166", "#06BEE1", "#A8DADC", "#457B9D"])
     
     # Bar styling
     bar_width: float = 0.8
@@ -39,7 +39,7 @@ class BarChartConfig:
     # Labels
     show_value_labels: bool = True
     label_font_size: int = 10
-    label_color: str = StyleManager.TEXT_PRIMARY
+    label_color: str = "#5D4E37"  # Default text primary color
     label_offset: float = 0.02  # Percentage of y-range
     
     # Legend
@@ -49,7 +49,7 @@ class BarChartConfig:
     # Grid
     show_grid: bool = True
     grid_alpha: float = 0.3
-    grid_color: str = StyleManager.TEXT_MUTED
+    grid_color: str = "#B5A595"  # Default muted text color
     
     # Animation
     animate: bool = True
@@ -58,7 +58,7 @@ class BarChartConfig:
     # Interactivity
     enable_hover: bool = True
     enable_selection: bool = True
-    tooltip_bg: str = StyleManager.SECONDARY_BG
+    tooltip_bg: str = "#FFFFFF"
     
     # WSJ-style formatting
     wsj_style: bool = True
@@ -97,7 +97,7 @@ class ValueLabelManager:
                 # If label would be too close to top, place inside bar
                 if y_pos > self.ax.get_ylim()[1] * 0.95:
                     y_pos = height - self.config.label_offset * (self.ax.get_ylim()[1] - self.ax.get_ylim()[0])
-                    color = StyleManager.TEXT_INVERSE
+                    color = "#FFFFFF"
                     va = 'top'
                 else:
                     color = self.config.label_color
@@ -132,7 +132,7 @@ class BarChart(QWidget):
         self.style_manager = StyleManager()
         
         # Chart components
-        self.figure = Figure(figsize=(10, 6), facecolor=StyleManager.SECONDARY_BG)
+        self.figure = Figure(figsize=(10, 6), facecolor="#FFFFFF")
         self.canvas = FigureCanvas(self.figure)
         self.ax = None
         
@@ -161,7 +161,7 @@ class BarChart(QWidget):
     def setup_canvas_style(self):
         """Configure canvas styling for WSJ-inspired look."""
         # Set figure style
-        self.figure.patch.set_facecolor(StyleManager.SECONDARY_BG)
+        self.figure.patch.set_facecolor("#FFFFFF")
         self.figure.patch.set_alpha(1.0)
         
         # Tight layout for clean appearance
@@ -176,8 +176,8 @@ class BarChart(QWidget):
         if self.config.clean_spines:
             self.ax.spines['top'].set_visible(False)
             self.ax.spines['right'].set_visible(False)
-            self.ax.spines['left'].set_color(StyleManager.TEXT_MUTED)
-            self.ax.spines['bottom'].set_color(StyleManager.TEXT_MUTED)
+            self.ax.spines['left'].set_color("#B5A595")
+            self.ax.spines['bottom'].set_color("#B5A595")
             self.ax.spines['left'].set_linewidth(0.8)
             self.ax.spines['bottom'].set_linewidth(0.8)
         
@@ -187,8 +187,8 @@ class BarChart(QWidget):
                 axis='both',
                 which='major',
                 labelsize=10,
-                color=StyleManager.TEXT_MUTED,
-                labelcolor=StyleManager.TEXT_SECONDARY,
+                color="#B5A595",
+                labelcolor="#8B7B65",
                 length=4,
                 width=0.8
             )
@@ -374,9 +374,9 @@ class BarChart(QWidget):
                 framealpha=0.9,
                 edgecolor='none'
             )
-            legend.get_frame().set_facecolor(StyleManager.SECONDARY_BG)
+            legend.get_frame().set_facecolor("#FFFFFF")
             for text in legend.get_texts():
-                text.set_color(StyleManager.TEXT_PRIMARY)
+                text.set_color("#5D4E37")
                 text.set_fontsize(10)
                 text.set_fontweight('400')
                 
@@ -434,16 +434,16 @@ class BarChart(QWidget):
             bbox=dict(
                 boxstyle='round,pad=0.5',
                 fc=self.config.tooltip_bg,
-                edgecolor=StyleManager.TEXT_MUTED,
+                edgecolor="#B5A595",
                 alpha=0.9
             ),
             arrowprops=dict(
                 arrowstyle='->',
                 connectionstyle='arc3,rad=0',
-                color=StyleManager.TEXT_MUTED
+                color="#B5A595"
             ),
             fontsize=9,
-            color=StyleManager.TEXT_PRIMARY
+            color="#5D4E37"
         )
         
         self.canvas.draw_idle()
@@ -533,7 +533,7 @@ class BarChart(QWidget):
             dpi=dpi,
             format=format,
             bbox_inches='tight',
-            facecolor=StyleManager.SECONDARY_BG,
+            facecolor="#FFFFFF",
             edgecolor='none',
             transparent=False
         )

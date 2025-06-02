@@ -46,6 +46,7 @@ class JournalEntry:
         week_start_date (Optional[date]): Start date for weekly entries.
         month_year (Optional[str]): Year-month in YYYY-MM format for monthly entries.
         id (Optional[int]): Database primary key.
+        version (int): Version number for optimistic locking.
         created_at (Optional[datetime]): Record creation timestamp.
         updated_at (Optional[datetime]): Record last update timestamp.
     
@@ -67,6 +68,7 @@ class JournalEntry:
     week_start_date: Optional[date] = None
     month_year: Optional[str] = None  # YYYY-MM format
     id: Optional[int] = None
+    version: int = 1  # Version for optimistic locking
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
@@ -109,6 +111,7 @@ class JournalEntry:
             'week_start_date': self.week_start_date.isoformat() if self.week_start_date else None,
             'month_year': self.month_year,
             'content': self.content,
+            'version': self.version,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -142,6 +145,7 @@ class JournalEntry:
             week_start_date=week_start_date,
             month_year=data.get('month_year'),
             content=data['content'],
+            version=data.get('version', 1),
             created_at=datetime.fromisoformat(data['created_at']) if data.get('created_at') else None,
             updated_at=datetime.fromisoformat(data['updated_at']) if data.get('updated_at') else None
         )
