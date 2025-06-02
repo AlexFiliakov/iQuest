@@ -17,12 +17,12 @@ Example:
     >>> date_edit.setCalendarWidget(calendar)
 """
 
+from PyQt6.QtCore import QDate, QSize, Qt
+from PyQt6.QtGui import QColor, QFont, QPalette, QTextCharFormat
 from PyQt6.QtWidgets import QCalendarWidget, QToolButton
-from PyQt6.QtCore import Qt, QSize, QDate
-from PyQt6.QtGui import QTextCharFormat, QFont, QColor, QPalette
 
-from .style_manager import StyleManager
 from ..utils.logging_config import get_logger
+from .style_manager import StyleManager
 
 logger = get_logger(__name__)
 
@@ -96,13 +96,13 @@ class StyledCalendarWidget(QCalendarWidget):
             }}
             
             /* Navigation arrows */
-            QCalendarWidget QToolButton#qt_calendar_prevmonth,
-            QCalendarWidget QToolButton#qt_calendar_nextmonth {{
-                qproperty-icon: none;
-                font-size: 20px;
-                font-weight: bold;
-                padding: 4px 8px;
-            }}
+            # QCalendarWidget QToolButton#qt_calendar_prevmonth,
+            # QCalendarWidget QToolButton#qt_calendar_nextmonth {{
+            #     qproperty-icon: none;
+            #     font-size: 20px;
+            #     font-weight: bold;
+            #     padding: 4px 8px;
+            # }}
             
             QCalendarWidget QToolButton#qt_calendar_prevmonth::after {{
                 content: "←";

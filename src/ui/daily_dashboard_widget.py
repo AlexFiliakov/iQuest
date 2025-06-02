@@ -42,6 +42,7 @@ from ..utils.logging_config import get_logger
 from .activity_timeline_component import ActivityTimelineComponent
 from .charts.line_chart import LineChart
 from .daily_trend_indicator import DailyTrendIndicator, TrendData
+from .enhanced_date_edit import EnhancedDateEdit
 from .summary_cards import SummaryCard
 
 logger = get_logger(__name__)
@@ -454,14 +455,12 @@ class DailyDashboardWidget(QWidget):
         
         # Date picker button
         from PyQt6.QtCore import QDate
-        from PyQt6.QtWidgets import QDateEdit
         
-        self.date_picker = QDateEdit()
+        self.date_picker = EnhancedDateEdit()
         self.date_picker.setDate(QDate(self._current_date))
-        self.date_picker.setCalendarPopup(True)
         self.date_picker.setDisplayFormat("MMMM d, yyyy")
         self.date_picker.setStyleSheet("""
-            QDateEdit {
+            EnhancedDateEdit {
                 background-color: white;
                 border: 1px solid rgba(139, 115, 85, 0.2);
                 border-radius: 8px;
@@ -469,18 +468,18 @@ class DailyDashboardWidget(QWidget):
                 font-family: Poppins;
                 font-size: 14px;
                 color: #5D4E37;
-                min-width: 180px;
+                # min-width: 180px;
             }
-            QDateEdit:hover {
+            EnhancedDateEdit:hover {
                 border: 2px solid #FF8C42;
             }
-            QDateEdit::drop-down {
+            EnhancedDateEdit::drop-down {
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
                 width: 20px;
                 border-left: 1px solid rgba(139, 115, 85, 0.2);
             }
-            QDateEdit::down-arrow {
+            EnhancedDateEdit::down-arrow {
                 image: none;
                 width: 0;
                 height: 0;
