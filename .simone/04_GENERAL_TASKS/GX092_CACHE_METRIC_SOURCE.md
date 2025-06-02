@@ -4,7 +4,8 @@
 **Type**: Hotfix  
 **Priority**: Critical  
 **Created**: 2025-01-06  
-**Status**: Not Started  
+**Status**: Completed  
+**Updated**: 2025-06-02 01:41  
 **Complexity**: Medium  
 **Estimated Hours**: 8-12  
 
@@ -35,15 +36,15 @@ This limitation affects all the Daily, Weekly and Monthly dashboards, which can 
 ## Acceptance Criteria
 
 1. **Data Population**:
-   - [ ] `cached_metrics` table contains entries with `source_name` populated
-   - [ ] Each metric has both aggregated (source_name=NULL) and source-specific entries
-   - [ ] Import process successfully caches all source combinations
+   - [x] `cached_metrics` table contains entries with `source_name` populated
+   - [x] Each metric has both aggregated (source_name=NULL) and source-specific entries
+   - [x] Import process successfully caches all source combinations
 
 2. **Retrieval Functionality**:
-   - [ ] `CachedMetricsAccess.get_daily_summary()` accepts optional `source_name` parameter
-   - [ ] Daily dashboard shows source-specific options when using cached access
-   - [ ] Weekly dashboard shows source-specific options when using cached access
-   - [ ] Monthly dashboard shows source-specific options when using cached access
+   - [x] `CachedMetricsAccess.get_daily_summary()` accepts optional `source_name` parameter
+   - [x] Daily dashboard shows source-specific options when using cached access
+   - [x] Weekly dashboard shows source-specific options when using cached access
+   - [x] Monthly dashboard shows source-specific options when using cached access
 
 ## Technical Approach
 
@@ -161,3 +162,33 @@ Start with Approach 1 for its simplicity and lower risk, but include these optim
 ## Notes
 
 This hotfix addresses a critical limitation in the current caching architecture that prevents users from analyzing their health data by source. The implementation should prioritize reliability and performance while maintaining the existing user experience for those who don't need source filtering.
+
+## Implementation Summary
+
+Successfully implemented source-specific metric caching across the entire application:
+
+1. **Database Layer**: Added index for optimized source-name queries, verified existing CacheDAO support
+2. **Calculation Layer**: Created source-aware summary calculation methods that group by source while maintaining aggregated totals
+3. **Import Process**: Enhanced import worker to cache both source-specific and aggregated summaries
+4. **Access Layer**: Extended CachedMetricsAccess and CachedDataAccess with source filtering capabilities
+5. **UI Integration**: Updated all dashboard widgets (Daily, Weekly, Monthly) to load and display source-specific metrics
+
+The implementation maintains backward compatibility - existing code continues to work with aggregated data (source_name=NULL), while new functionality allows users to filter by specific sources (iPhone, Apple Watch, etc.).
+
+## Output Log
+
+[2025-06-02 01:14]: Task started - G092 Add Source Name to Cache Architecture
+[2025-06-02 01:17]: Phase 1 - Added database index idx_cache_lookup for source_name optimization in database.py
+[2025-06-02 01:19]: Phase 1 - Verified CacheDAO already supports source_name in all methods (cache_metrics, get_cached_metrics, _generate_cache_key)
+[2025-06-02 01:23]: Phase 2 - Added _calculate_daily_summaries_by_source method to SummaryCalculator
+[2025-06-02 01:25]: Phase 2 - Added calculate_summaries_by_source public method to SummaryCalculator
+[2025-06-02 01:28]: Phase 2 - Updated import_worker to calculate and cache source-specific summaries
+[2025-06-02 01:30]: Phase 2 - Added _populate_cached_metrics_table_by_source method to import_worker
+[2025-06-02 01:34]: Phase 3 - Updated CachedMetricsAccess.get_daily_summary to accept source_name parameter
+[2025-06-02 01:35]: Phase 3 - Added get_available_sources method to CachedMetricsAccess
+[2025-06-02 01:37]: Phase 3 - Updated CachedDataAccess.get_daily_summary to support source filtering
+[2025-06-02 01:38]: Phase 3 - Added get_available_sources method to CachedDataAccess
+[2025-06-02 01:39]: Phase 4 - Updated daily_dashboard_widget.py to load source-specific metrics from cache
+[2025-06-02 01:40]: Phase 4 - Updated weekly_dashboard_widget.py to load source-specific metrics from cache
+[2025-06-02 01:40]: Phase 4 - Updated monthly_dashboard_widget.py to load source-specific metrics from cache
+[2025-06-02 01:41]: Task completed - All acceptance criteria met, source-specific metric caching implemented
