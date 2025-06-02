@@ -1262,3 +1262,111 @@ class StyleManager:
                 font-size: 14px;
             }}
         """
+    
+    def get_widget_style(self, widget_type: str) -> str:
+        """Get comprehensive widget-specific styling.
+        
+        Args:
+            widget_type (str): Type of widget ('journal_editor', etc.)
+            
+        Returns:
+            str: Complete stylesheet for the widget
+        """
+        if widget_type == "journal_editor":
+            return f"""
+                /* Main widget styling */
+                QWidget {{
+                    background-color: {self.SECONDARY_BG};
+                    font-family: 'Roboto', 'Segoe UI', -apple-system, sans-serif;
+                }}
+                
+                /* Toolbar styling */
+                QToolBar {{
+                    background-color: {self.PRIMARY_BG};
+                    border: none;
+                    border-bottom: 1px solid {self.ACCENT_LIGHT};
+                    padding: 8px;
+                    spacing: 8px;
+                }}
+                
+                QToolBar QAction {{
+                    padding: 8px 12px;
+                    margin: 0 2px;
+                }}
+                
+                /* Group box styling */
+                QGroupBox {{
+                    background-color: {self.PRIMARY_BG};
+                    border: 1px solid {self.ACCENT_LIGHT};
+                    border-radius: 8px;
+                    margin-top: 16px;
+                    padding-top: 16px;
+                    font-weight: 600;
+                }}
+                
+                QGroupBox::title {{
+                    subcontrol-origin: margin;
+                    left: 12px;
+                    padding: 0 8px;
+                    color: {self.TEXT_PRIMARY};
+                    background-color: {self.PRIMARY_BG};
+                }}
+                
+                /* List widget styling */
+                QListWidget {{
+                    background-color: {self.PRIMARY_BG};
+                    border: 1px solid {self.ACCENT_LIGHT};
+                    border-radius: 6px;
+                    padding: 4px;
+                    outline: none;
+                }}
+                
+                QListWidget::item {{
+                    padding: 8px;
+                    border-radius: 4px;
+                    margin: 2px;
+                }}
+                
+                QListWidget::item:selected {{
+                    background-color: {self.ACCENT_SECONDARY};
+                    color: {self.TEXT_INVERSE};
+                }}
+                
+                QListWidget::item:hover {{
+                    background-color: rgba(37, 99, 235, 0.1);
+                }}
+                
+                /* Text editor styling */
+                QTextEdit {{
+                    background-color: {self.PRIMARY_BG};
+                    border: 1px solid {self.ACCENT_LIGHT};
+                    border-radius: 8px;
+                    padding: 12px;
+                    font-size: 14px;
+                    line-height: 1.6;
+                }}
+                
+                QTextEdit:focus {{
+                    border: 2px solid {self.ACCENT_SECONDARY};
+                    padding: 11px;
+                }}
+                
+                /* Status bar styling */
+                QFrame#statusBar {{
+                    background-color: {self.TERTIARY_BG};
+                    border-top: 1px solid {self.ACCENT_LIGHT};
+                    padding: 8px 16px;
+                }}
+                
+                /* Splitter styling */
+                QSplitter::handle {{
+                    background-color: {self.ACCENT_LIGHT};
+                    width: 1px;
+                }}
+                
+                QSplitter::handle:hover {{
+                    background-color: {self.ACCENT_SECONDARY};
+                }}
+            """
+        
+        return ""

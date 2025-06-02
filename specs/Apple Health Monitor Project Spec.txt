@@ -8,7 +8,7 @@ claude --dangerously-skip-permissions --resume
 claude config list -g
 claude config --help
 claude config get --global parallelTasksCount
-claude config set --global parallelTasksCount 5
+claude config set --global parallelTasksCount 10
 
 # Update Claude Code:
 npm i -g @anthropic-ai/claude-code
@@ -576,7 +576,7 @@ message_log - change messages
 
 
 
-Fix the "Activity Timeline" section of the Daily tab, visible in screenshot `ad hoc/daily_tab_activity_timeline.png`. Change all the tan backgrounds and dark tan backgrounds to the card's white background, so there is no needless color in the UI.
+Fix the Calendar section of the Daily tab, visible in screenshot `ad hoc/daily_tab_calendar.png`. As you can see, sometimes not all dates for the month are accessible in the UI. Confirm that you can see the misaligned dates in the screenshot, then figure out a remediation plan and execute it.
 
 
 

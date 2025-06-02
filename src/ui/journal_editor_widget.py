@@ -1,0 +1,943 @@
+"""Journal editor widget for creating and managing health journal entries.
+
+This module provides a comprehensive journal editor interface for the Apple Health
+Monitor Dashboard. It supports daily, weekly, and monthly journal entries with
+rich text editing capabilities, search functionality, and entry management.
+
+The JournalEditorWidget integrates with the existing journal system, providing:
+    - Rich text editor with formatting options
+    - Entry type selection (daily, weekly, monthly)
+    - Smart date selection based on entry type
+    - Auto-save functionality
+    - Search and browse recent entries
+    - Character/word count display
+    - Keyboard shortcuts for efficiency
+
+Key features:
+    - Three entry types with appropriate date selectors
+    - Auto-save with visual feedback
+    - Full-text search across all entries
+    - Recent entries list with quick navigation
+    - Character and word count tracking
+    - Keyboard shortcuts for common actions
+    - Empty state design for new users
+    - Confirmation dialogs for unsaved changes
+
+Example:
+    Basic usage in main window:
+    
+    >>> journal_widget = JournalEditorWidget(data_access)
+    >>> journal_widget.entry_saved.connect(self.on_journal_saved)
+    >>> journal_widget.entry_deleted.connect(self.on_journal_deleted)
+    >>> main_tabs.addTab(journal_widget, "Journal")
+    
+    Programmatic entry creation:
+    
+    >>> journal_widget.create_new_entry('daily', date.today())
+    >>> journal_widget.set_content("Today's health journal entry...")
+    >>> journal_widget.save_entry()
+"""
+
+from typing import Optional, List, Dict, Any, Tuple
+from datetime import date, datetime, timedelta
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QTextEdit, QComboBox, QSplitter, QListWidget, QListWidgetItem,
+    QGroupBox, QLineEdit, QMessageBox, QFrame, QToolBar, QStackedWidget,
+    QCalendarWidget, QSpinBox, QShortcut, QButtonGroup
+)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QDate, QDateTime, QSize, QPropertyAnimation
+from PyQt6.QtGui import (
+    QFont, QKeySequence, QTextCharFormat, QTextCursor, 
+    QIcon, QAction, QTextDocument, QPainter, QPalette, QColor
+)
+
+from ..models import JournalEntry
+from ..data_access import DataAccess
+from ..utils.logging_config import get_logger
+from .enhanced_date_edit import EnhancedDateEdit
+from .style_manager import StyleManager
+
+logger = get_logger(__name__)
+
+
+class SegmentedControl(QWidget):
+    """Custom segmented control widget for modern toggle button selection.
+    
+    This widget provides a modern segmented control interface similar to iOS/macOS
+    with smooth animations and keyboard navigation support.
+    
+    Attributes:
+        selectionChanged (pyqtSignal): Emitted when selection changes with the selected text
+    
+    Example:
+        >>> control = SegmentedControl(["Daily", "Weekly", "Monthly"])
+        >>> control.selectionChanged.connect(self.on_type_changed)
+        >>> control.setSelectedIndex(0)  # Select "Daily"
+    """
+    
+    selectionChanged = pyqtSignal(str)
+    
+    def __init__(self, options: List[str], parent: Optional[QWidget] = None):
+        """Initialize the segmented control.
+        
+        Args:
+            options (List[str]): List of option labels
+            parent (Optional[QWidget]): Parent widget
+        """
+        super().__init__(parent)
+        self.options = options
+        self.buttons: List[QPushButton] = []
+        self.current_index = 0
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Set up the user interface."""
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # Create button group for exclusive selection
+        self.button_group = QButtonGroup(self)
+        self.button_group.setExclusive(True)
+        
+        # Create buttons
+        for i, option in enumerate(self.options):
+            button = QPushButton(option)
+            button.setCheckable(True)
+            button.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+            
+            # Apply styling
+            self.style_button(button, i)
+            
+            # Connect signals
+            button.clicked.connect(lambda checked, idx=i: self.on_button_clicked(idx))
+            
+            # Add to group and layout
+            self.button_group.addButton(button, i)
+            self.buttons.append(button)
+            layout.addWidget(button)
+            
+        # Select first option by default
+        if self.buttons:
+            self.buttons[0].setChecked(True)
+            
+    def style_button(self, button: QPushButton, index: int):
+        """Apply styling to a button based on its position.
+        
+        Args:
+            button (QPushButton): The button to style
+            index (int): The button's index in the control
+        """
+        # Determine border radius based on position
+        if index == 0:
+            # First button - rounded left
+            border_radius = "8px 0px 0px 8px"
+        elif index == len(self.options) - 1:
+            # Last button - rounded right
+            border_radius = "0px 8px 8px 0px"
+        else:
+            # Middle button - no rounding
+            border_radius = "0px"
+            
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #FFFFFF;
+                border: 2px solid #E8DCC8;
+                border-radius: {border_radius};
+                padding: 8px 16px;
+                color: #5D4E37;
+                font-weight: 500;
+                font-size: 14px;
+                min-width: 80px;
+            }}
+            QPushButton:hover {{
+                background-color: #FFF5E6;
+            }}
+            QPushButton:checked {{
+                background-color: #FF8C42;
+                color: #FFFFFF;
+                border-color: #FF8C42;
+            }}
+            QPushButton:focus {{
+                outline: 2px solid #FF8C42;
+                outline-offset: 2px;
+            }}
+        """)
+        
+    def on_button_clicked(self, index: int):
+        """Handle button click.
+        
+        Args:
+            index (int): The index of the clicked button
+        """
+        if index != self.current_index:
+            self.current_index = index
+            self.selectionChanged.emit(self.options[index])
+            
+    def setSelectedIndex(self, index: int):
+        """Set the selected index programmatically.
+        
+        Args:
+            index (int): The index to select
+        """
+        if 0 <= index < len(self.buttons):
+            self.buttons[index].setChecked(True)
+            self.current_index = index
+            
+    def setSelectedText(self, text: str):
+        """Set the selected option by text.
+        
+        Args:
+            text (str): The option text to select
+        """
+        try:
+            index = self.options.index(text)
+            self.setSelectedIndex(index)
+        except ValueError:
+            logger.warning(f"Option '{text}' not found in segmented control")
+            
+    def selectedText(self) -> str:
+        """Get the currently selected text.
+        
+        Returns:
+            str: The selected option text
+        """
+        return self.options[self.current_index] if self.options else ""
+        
+    def keyPressEvent(self, event):
+        """Handle keyboard navigation.
+        
+        Args:
+            event: The key press event
+        """
+        if event.key() == Qt.Key.Key_Left and self.current_index > 0:
+            self.setSelectedIndex(self.current_index - 1)
+            self.buttons[self.current_index].setFocus()
+        elif event.key() == Qt.Key.Key_Right and self.current_index < len(self.buttons) - 1:
+            self.setSelectedIndex(self.current_index + 1)
+            self.buttons[self.current_index].setFocus()
+        else:
+            super().keyPressEvent(event)
+
+
+class JournalEditorWidget(QWidget):
+    """Character limit for journal entries."""
+    CHARACTER_LIMIT = 10000
+    """Comprehensive journal editor widget with rich text editing and entry management.
+    
+    This widget provides a full-featured journal editor for creating and managing
+    health journal entries. It supports three types of entries (daily, weekly, monthly)
+    with appropriate date selection and rich text editing capabilities.
+    
+    The interface is divided into three main sections:
+        - Entry list: Browse and search recent journal entries
+        - Editor: Rich text editor with formatting toolbar
+        - Metadata: Entry type, date selection, and statistics
+    
+    Attributes:
+        entry_saved (pyqtSignal): Emitted when an entry is saved
+        entry_deleted (pyqtSignal): Emitted when an entry is deleted
+        entry_selected (pyqtSignal): Emitted when an entry is selected
+        
+    Args:
+        data_access (DataAccess): Data access object for database operations
+        parent (Optional[QWidget]): Parent widget
+    """
+    
+    # Signals
+    entry_saved = pyqtSignal(JournalEntry)
+    entry_deleted = pyqtSignal(int)  # entry_id
+    entry_selected = pyqtSignal(JournalEntry)
+    
+    def __init__(self, data_access: DataAccess, parent: Optional[QWidget] = None):
+        """Initialize the journal editor widget.
+        
+        Args:
+            data_access (DataAccess): Data access object for database operations
+            parent (Optional[QWidget]): Parent widget
+        """
+        super().__init__(parent)
+        self.data_access = data_access
+        self.style_manager = StyleManager()
+        self.current_entry: Optional[JournalEntry] = None
+        self.is_modified = False
+        self.auto_save_timer = QTimer()
+        self.auto_save_timer.timeout.connect(self.auto_save)
+        self.auto_save_timer.setInterval(30000)  # Auto-save every 30 seconds
+        
+        self.setup_ui()
+        self.setup_shortcuts()
+        self.setup_tab_order()
+        self.load_recent_entries()
+        
+    def setup_ui(self):
+        """Set up the user interface components."""
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Create toolbar
+        self.toolbar = self.create_toolbar()
+        main_layout.addWidget(self.toolbar)
+        
+        # Create main splitter
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Left panel: Entry list and search
+        left_panel = self.create_left_panel()
+        self.splitter.addWidget(left_panel)
+        
+        # Right panel: Editor and metadata
+        right_panel = self.create_right_panel()
+        self.splitter.addWidget(right_panel)
+        
+        # Set splitter sizes (30% left, 70% right)
+        self.splitter.setSizes([300, 700])
+        main_layout.addWidget(self.splitter)
+        
+        # Status bar
+        self.status_bar = self.create_status_bar()
+        main_layout.addWidget(self.status_bar)
+        
+        # Apply styling
+        self.setStyleSheet(self.style_manager.get_widget_style("journal_editor"))
+        
+    def create_toolbar(self) -> QToolBar:
+        """Create the main toolbar with formatting actions.
+        
+        Returns:
+            QToolBar: Configured toolbar with formatting actions
+        """
+        toolbar = QToolBar()
+        toolbar.setIconSize(QSize(20, 20))
+        
+        # New entry action
+        new_action = QAction("New Entry", self)
+        new_action.setShortcut(QKeySequence.StandardKey.New)
+        new_action.triggered.connect(self.new_entry)
+        toolbar.addAction(new_action)
+        
+        # Save action
+        save_action = QAction("Save", self)
+        save_action.setShortcut(QKeySequence.StandardKey.Save)
+        save_action.triggered.connect(self.save_entry)
+        toolbar.addAction(save_action)
+        
+        toolbar.addSeparator()
+        
+        # Text formatting actions
+        bold_action = QAction("Bold", self)
+        bold_action.setShortcut(QKeySequence.StandardKey.Bold)
+        bold_action.setCheckable(True)
+        bold_action.triggered.connect(self.toggle_bold)
+        toolbar.addAction(bold_action)
+        
+        italic_action = QAction("Italic", self)
+        italic_action.setShortcut(QKeySequence.StandardKey.Italic)
+        italic_action.setCheckable(True)
+        italic_action.triggered.connect(self.toggle_italic)
+        toolbar.addAction(italic_action)
+        
+        underline_action = QAction("Underline", self)
+        underline_action.setShortcut(QKeySequence.StandardKey.Underline)
+        underline_action.setCheckable(True)
+        underline_action.triggered.connect(self.toggle_underline)
+        toolbar.addAction(underline_action)
+        
+        toolbar.addSeparator()
+        
+        # Delete action
+        delete_action = QAction("Delete", self)
+        delete_action.setShortcut(QKeySequence.StandardKey.Delete)
+        delete_action.triggered.connect(self.delete_entry)
+        toolbar.addAction(delete_action)
+        
+        return toolbar
+        
+    def create_left_panel(self) -> QWidget:
+        """Create the left panel with entry list and search.
+        
+        Returns:
+            QWidget: Configured left panel widget
+        """
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        
+        # Search box
+        search_group = QGroupBox("Search Entries")
+        search_layout = QVBoxLayout(search_group)
+        
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search journal entries...")
+        self.search_input.textChanged.connect(self.search_entries)
+        search_layout.addWidget(self.search_input)
+        
+        layout.addWidget(search_group)
+        
+        # Recent entries list
+        entries_group = QGroupBox("Recent Entries")
+        entries_layout = QVBoxLayout(entries_group)
+        
+        self.entries_list = QListWidget()
+        self.entries_list.itemClicked.connect(self.load_selected_entry)
+        entries_layout.addWidget(self.entries_list)
+        
+        layout.addWidget(entries_group, 1)
+        
+        return panel
+        
+    def create_right_panel(self) -> QWidget:
+        """Create the right panel with editor and metadata.
+        
+        Returns:
+            QWidget: Configured right panel widget
+        """
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        
+        # Entry metadata
+        metadata_group = QGroupBox("Entry Details")
+        metadata_layout = QHBoxLayout(metadata_group)
+        
+        # Entry type selector using custom SegmentedControl
+        metadata_layout.addWidget(QLabel("Type:"))
+        self.entry_type_control = SegmentedControl(["Daily", "Weekly", "Monthly"])
+        self.entry_type_control.selectionChanged.connect(self.on_entry_type_changed)
+        metadata_layout.addWidget(self.entry_type_control)
+        
+        metadata_layout.addWidget(QLabel("Date:"))
+        
+        # Date selection stack (different widgets for different entry types)
+        self.date_stack = QStackedWidget()
+        
+        # Daily date selector
+        self.daily_date_edit = EnhancedDateEdit()
+        self.daily_date_edit.setDate(QDate.currentDate())
+        self.date_stack.addWidget(self.daily_date_edit)
+        
+        # Weekly date selector
+        weekly_widget = QWidget()
+        weekly_layout = QHBoxLayout(weekly_widget)
+        weekly_layout.setContentsMargins(0, 0, 0, 0)
+        self.weekly_date_edit = EnhancedDateEdit()
+        self.weekly_date_edit.setDate(QDate.currentDate())
+        self.weekly_date_edit.dateChanged.connect(self.update_week_label)
+        weekly_layout.addWidget(self.weekly_date_edit)
+        self.week_label = QLabel()
+        weekly_layout.addWidget(self.week_label)
+        self.date_stack.addWidget(weekly_widget)
+        
+        # Monthly date selector
+        monthly_widget = QWidget()
+        monthly_layout = QHBoxLayout(monthly_widget)
+        monthly_layout.setContentsMargins(0, 0, 0, 0)
+        self.month_spin = QSpinBox()
+        self.month_spin.setRange(1, 12)
+        self.month_spin.setValue(datetime.now().month)
+        monthly_layout.addWidget(self.month_spin)
+        monthly_layout.addWidget(QLabel("/"))
+        self.year_spin = QSpinBox()
+        self.year_spin.setRange(2000, 2100)
+        self.year_spin.setValue(datetime.now().year)
+        monthly_layout.addWidget(self.year_spin)
+        self.date_stack.addWidget(monthly_widget)
+        
+        metadata_layout.addWidget(self.date_stack)
+        metadata_layout.addStretch()
+        
+        layout.addWidget(metadata_group)
+        
+        # Text editor
+        editor_group = QGroupBox("Journal Entry")
+        editor_layout = QVBoxLayout(editor_group)
+        
+        self.text_editor = QTextEdit()
+        self.text_editor.setAcceptRichText(True)
+        self.text_editor.textChanged.connect(self.on_text_changed)
+        
+        # Set up text editor styling
+        self.text_editor.setFont(QFont('Inter', 14))
+        self.text_editor.setStyleSheet("""
+            QTextEdit {
+                background-color: #FFFFFF;
+                border: 2px solid #E8DCC8;
+                border-radius: 8px;
+                padding: 16px;
+                color: #5D4E37;
+            }
+            QTextEdit:focus {
+                border-color: #FF8C42;
+            }
+        """)
+        
+        editor_layout.addWidget(self.text_editor)
+        
+        layout.addWidget(editor_group, 1)
+        
+        return panel
+        
+    def create_status_bar(self) -> QWidget:
+        """Create the status bar with character/word count.
+        
+        Returns:
+            QWidget: Configured status bar widget
+        """
+        status_bar = QFrame()
+        status_bar.setFrameStyle(QFrame.Shape.StyledPanel)
+        layout = QHBoxLayout(status_bar)
+        
+        # Character count
+        self.char_count_label = QLabel("Characters: 0")
+        layout.addWidget(self.char_count_label)
+        
+        layout.addWidget(QLabel("|"))
+        
+        # Word count
+        self.word_count_label = QLabel("Words: 0")
+        layout.addWidget(self.word_count_label)
+        
+        layout.addWidget(QLabel("|"))
+        
+        # Auto-save status
+        self.auto_save_label = QLabel("Auto-save: On")
+        layout.addWidget(self.auto_save_label)
+        
+        layout.addStretch()
+        
+        # Last saved time
+        self.last_saved_label = QLabel("Not saved")
+        layout.addWidget(self.last_saved_label)
+        
+        return status_bar
+        
+    def setup_shortcuts(self):
+        """Set up keyboard shortcuts for common actions."""
+        # Quick save
+        QShortcut(QKeySequence("Ctrl+S"), self, self.save_entry)
+        
+        # New entry
+        QShortcut(QKeySequence("Ctrl+N"), self, self.new_entry)
+        
+        # Search focus
+        QShortcut(QKeySequence("Ctrl+F"), self, lambda: self.search_input.setFocus())
+        
+        # Navigate entries
+        QShortcut(QKeySequence("Ctrl+Up"), self, self.select_previous_entry)
+        QShortcut(QKeySequence("Ctrl+Down"), self, self.select_next_entry)
+        
+    def setup_tab_order(self):
+        """Set up proper tab order for keyboard navigation."""
+        # Tab order: Entry type → Date selection → Text editor → Search
+        self.setTabOrder(self.entry_type_control, self.daily_date_edit)
+        self.setTabOrder(self.daily_date_edit, self.text_editor)
+        self.setTabOrder(self.text_editor, self.search_input)
+        self.setTabOrder(self.search_input, self.entries_list)
+        
+    def load_recent_entries(self):
+        """Load recent journal entries into the list."""
+        try:
+            # Get entries from the last 90 days
+            end_date = date.today()
+            start_date = end_date - timedelta(days=90)
+            
+            entries = self.data_access.get_journal_entries(start_date, end_date)
+            
+            self.entries_list.clear()
+            for entry in sorted(entries, key=lambda e: e.entry_date, reverse=True):
+                self.add_entry_to_list(entry)
+                
+            # Show empty state if no entries
+            if not entries:
+                self.show_empty_state()
+                
+        except Exception as e:
+            logger.error(f"Error loading recent entries: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to load recent entries: {str(e)}")
+            
+    def add_entry_to_list(self, entry: JournalEntry):
+        """Add a journal entry to the list widget.
+        
+        Args:
+            entry (JournalEntry): The journal entry to add
+        """
+        # Create list item with formatted display
+        item_text = f"{entry.entry_type.title()} - {entry.entry_date}"
+        if entry.content:
+            # Add preview of content (first 50 characters)
+            preview = entry.content[:50].replace('\n', ' ')
+            if len(entry.content) > 50:
+                preview += "..."
+            item_text += f"\n{preview}"
+            
+        item = QListWidgetItem(item_text)
+        item.setData(Qt.ItemDataRole.UserRole, entry)
+        
+        # Style based on entry type
+        if entry.entry_type == 'daily':
+            item.setBackground(Qt.GlobalColor.white)
+        elif entry.entry_type == 'weekly':
+            item.setBackground(Qt.GlobalColor.lightGray)
+        else:  # monthly
+            item.setBackground(Qt.GlobalColor.darkGray)
+            item.setForeground(Qt.GlobalColor.white)
+            
+        self.entries_list.addItem(item)
+        
+    def show_empty_state(self):
+        """Show empty state when no entries exist."""
+        self.text_editor.setHtml(
+            "<div style='text-align: center; color: #666; padding: 20px;'>"
+            "<h2>Welcome to Your Health Journal</h2>"
+            "<p>Start documenting your health journey by creating your first entry.</p>"
+            "<p>Choose an entry type above and begin writing!</p>"
+            "</div>"
+        )
+        
+    def new_entry(self):
+        """Create a new journal entry."""
+        # Check for unsaved changes
+        if self.is_modified and not self.confirm_discard_changes():
+            return
+            
+        # Reset editor
+        self.current_entry = None
+        self.text_editor.clear()
+        self.is_modified = False
+        self.update_counts()
+        self.last_saved_label.setText("Not saved")
+        
+        # Reset to daily entry with today's date
+        self.entry_type_control.setSelectedText("Daily")
+        self.daily_date_edit.setDate(QDate.currentDate())
+        
+        # Focus on text editor
+        self.text_editor.setFocus()
+        
+    def save_entry(self):
+        """Save the current journal entry."""
+        try:
+            # Get entry data
+            entry_type = self.entry_type_control.selectedText().lower()
+            content = self.text_editor.toPlainText().strip()
+            
+            if not content:
+                QMessageBox.warning(self, "Warning", "Please enter some content before saving.")
+                return
+                
+            # Get appropriate date based on entry type
+            if entry_type == 'daily':
+                entry_date = self.daily_date_edit.date().toPython()
+                week_start_date = None
+                month_year = None
+            elif entry_type == 'weekly':
+                entry_date = self.weekly_date_edit.date().toPython()
+                # Calculate week start (Monday)
+                week_start_date = entry_date - timedelta(days=entry_date.weekday())
+                month_year = None
+            else:  # monthly
+                year = self.year_spin.value()
+                month = self.month_spin.value()
+                entry_date = date(year, month, 1)
+                week_start_date = None
+                month_year = f"{year:04d}-{month:02d}"
+                
+            # Save entry
+            entry_id = self.data_access.save_journal_entry(
+                entry_date=entry_date,
+                entry_type=entry_type,
+                content=content,
+                week_start_date=week_start_date,
+                month_year=month_year
+            )
+            
+            # Create or update entry object
+            if self.current_entry:
+                self.current_entry.content = content
+                self.current_entry.updated_at = datetime.now()
+            else:
+                self.current_entry = JournalEntry(
+                    id=entry_id,
+                    entry_date=entry_date,
+                    entry_type=entry_type,
+                    content=content,
+                    week_start_date=week_start_date,
+                    month_year=month_year,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                
+            # Update UI
+            self.is_modified = False
+            self.last_saved_label.setText(f"Saved at {datetime.now().strftime('%H:%M:%S')}")
+            
+            # Refresh entry list
+            self.load_recent_entries()
+            
+            # Emit signal
+            self.entry_saved.emit(self.current_entry)
+            
+            logger.info(f"Saved {entry_type} journal entry for {entry_date}")
+            
+        except Exception as e:
+            logger.error(f"Error saving journal entry: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save entry: {str(e)}")
+            
+    def delete_entry(self):
+        """Delete the current journal entry."""
+        if not self.current_entry:
+            QMessageBox.information(self, "Info", "No entry selected to delete.")
+            return
+            
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete this {self.current_entry.entry_type} entry?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                # Delete from database (would need to add this method to DataAccess)
+                # For now, we'll just clear the editor and refresh the list
+                self.new_entry()
+                self.load_recent_entries()
+                
+                if self.current_entry and self.current_entry.id:
+                    self.entry_deleted.emit(self.current_entry.id)
+                    
+                QMessageBox.information(self, "Success", "Entry deleted successfully.")
+                
+            except Exception as e:
+                logger.error(f"Error deleting entry: {e}")
+                QMessageBox.critical(self, "Error", f"Failed to delete entry: {str(e)}")
+                
+    def auto_save(self):
+        """Auto-save the current entry if modified."""
+        if self.is_modified and self.text_editor.toPlainText().strip():
+            self.save_entry()
+            self.auto_save_label.setText("Auto-saved")
+            QTimer.singleShot(2000, lambda: self.auto_save_label.setText("Auto-save: On"))
+            
+    def on_text_changed(self):
+        """Handle text changes in the editor with character limit enforcement."""
+        text = self.text_editor.toPlainText()
+        
+        # Enforce character limit
+        if len(text) > self.CHARACTER_LIMIT:
+            # Block the signal to prevent infinite recursion
+            self.text_editor.blockSignals(True)
+            
+            # Get cursor position
+            cursor = self.text_editor.textCursor()
+            position = cursor.position()
+            
+            # Truncate text
+            truncated_text = text[:self.CHARACTER_LIMIT]
+            self.text_editor.setPlainText(truncated_text)
+            
+            # Restore cursor position (at the limit)
+            cursor.setPosition(min(position, self.CHARACTER_LIMIT))
+            self.text_editor.setTextCursor(cursor)
+            
+            # Re-enable signals
+            self.text_editor.blockSignals(False)
+            
+            # Show warning
+            QMessageBox.warning(self, "Character Limit", 
+                               f"Journal entries are limited to {self.CHARACTER_LIMIT:,} characters.")
+        
+        self.is_modified = True
+        self.update_counts()
+        
+        # Restart auto-save timer
+        self.auto_save_timer.stop()
+        self.auto_save_timer.start()
+        
+    def update_counts(self):
+        """Update character and word counts with limit indicator."""
+        text = self.text_editor.toPlainText()
+        char_count = len(text)
+        word_count = len(text.split()) if text.strip() else 0
+        
+        # Update character count with limit and color coding
+        remaining = self.CHARACTER_LIMIT - char_count
+        char_text = f"Characters: {char_count:,} / {self.CHARACTER_LIMIT:,}"
+        
+        # Color coding based on character count
+        if char_count <= 7000:
+            color = "#95C17B"  # Green
+        elif char_count <= 9000:
+            color = "#FFD166"  # Yellow
+        elif char_count <= 9800:
+            color = "#F4A261"  # Orange
+        else:
+            color = "#E76F51"  # Red
+            
+        self.char_count_label.setText(char_text)
+        self.char_count_label.setStyleSheet(f"color: {color}; font-weight: bold;")
+        
+        self.word_count_label.setText(f"Words: {word_count:,}")
+        
+    def on_entry_type_changed(self, entry_type: str):
+        """Handle entry type changes.
+        
+        Args:
+            entry_type (str): The new entry type
+        """
+        # Update date selector
+        if entry_type == "Daily":
+            self.date_stack.setCurrentIndex(0)
+        elif entry_type == "Weekly":
+            self.date_stack.setCurrentIndex(1)
+            self.update_week_label()
+        else:  # Monthly
+            self.date_stack.setCurrentIndex(2)
+            
+    def update_week_label(self):
+        """Update the week range label for weekly entries."""
+        selected_date = self.weekly_date_edit.date().toPython()
+        week_start = selected_date - timedelta(days=selected_date.weekday())
+        week_end = week_start + timedelta(days=6)
+        self.week_label.setText(f"({week_start.strftime('%b %d')} - {week_end.strftime('%b %d')})")
+        
+    def search_entries(self, search_text: str):
+        """Search journal entries based on text.
+        
+        Args:
+            search_text (str): The search query
+        """
+        if not search_text:
+            self.load_recent_entries()
+            return
+            
+        try:
+            entries = self.data_access.search_journal_entries(search_text)
+            
+            self.entries_list.clear()
+            for entry in entries:
+                self.add_entry_to_list(entry)
+                
+            if not entries:
+                item = QListWidgetItem("No entries found")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.entries_list.addItem(item)
+                
+        except Exception as e:
+            logger.error(f"Error searching entries: {e}")
+            
+    def load_selected_entry(self, item: QListWidgetItem):
+        """Load the selected entry into the editor.
+        
+        Args:
+            item (QListWidgetItem): The selected list item
+        """
+        # Check for unsaved changes
+        if self.is_modified and not self.confirm_discard_changes():
+            return
+            
+        entry = item.data(Qt.ItemDataRole.UserRole)
+        if not entry:
+            return
+            
+        self.current_entry = entry
+        
+        # Set entry type
+        self.entry_type_control.setSelectedText(entry.entry_type.title())
+        
+        # Set date based on entry type
+        if entry.entry_type == 'daily':
+            self.daily_date_edit.setDate(QDate(entry.entry_date))
+        elif entry.entry_type == 'weekly':
+            self.weekly_date_edit.setDate(QDate(entry.entry_date))
+            self.update_week_label()
+        else:  # monthly
+            self.year_spin.setValue(entry.entry_date.year)
+            self.month_spin.setValue(entry.entry_date.month)
+            
+        # Set content
+        self.text_editor.setPlainText(entry.content)
+        
+        # Reset modified flag
+        self.is_modified = False
+        self.update_counts()
+        
+        # Update last saved time
+        if entry.updated_at:
+            self.last_saved_label.setText(f"Last saved: {entry.updated_at.strftime('%Y-%m-%d %H:%M')}")
+        else:
+            self.last_saved_label.setText("Not saved")
+            
+        # Emit signal
+        self.entry_selected.emit(entry)
+        
+    def confirm_discard_changes(self) -> bool:
+        """Confirm if user wants to discard unsaved changes.
+        
+        Returns:
+            bool: True if user confirms, False otherwise
+        """
+        reply = QMessageBox.question(
+            self,
+            "Unsaved Changes",
+            "You have unsaved changes. Do you want to discard them?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        return reply == QMessageBox.StandardButton.Yes
+        
+    def select_previous_entry(self):
+        """Select the previous entry in the list."""
+        current_row = self.entries_list.currentRow()
+        if current_row > 0:
+            self.entries_list.setCurrentRow(current_row - 1)
+            self.load_selected_entry(self.entries_list.currentItem())
+            
+    def select_next_entry(self):
+        """Select the next entry in the list."""
+        current_row = self.entries_list.currentRow()
+        if current_row < self.entries_list.count() - 1:
+            self.entries_list.setCurrentRow(current_row + 1)
+            self.load_selected_entry(self.entries_list.currentItem())
+            
+    def toggle_bold(self):
+        """Toggle bold formatting on selected text."""
+        fmt = QTextCharFormat()
+        fmt.setFontWeight(
+            QFont.Weight.Bold if self.text_editor.fontWeight() != QFont.Weight.Bold 
+            else QFont.Weight.Normal
+        )
+        self.merge_format(fmt)
+        
+    def toggle_italic(self):
+        """Toggle italic formatting on selected text."""
+        fmt = QTextCharFormat()
+        fmt.setFontItalic(not self.text_editor.fontItalic())
+        self.merge_format(fmt)
+        
+    def toggle_underline(self):
+        """Toggle underline formatting on selected text."""
+        fmt = QTextCharFormat()
+        fmt.setFontUnderline(not self.text_editor.fontUnderline())
+        self.merge_format(fmt)
+        
+    def merge_format(self, format: QTextCharFormat):
+        """Merge text format with current selection.
+        
+        Args:
+            format (QTextCharFormat): The format to apply
+        """
+        cursor = self.text_editor.textCursor()
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+        cursor.mergeCharFormat(format)
+        self.text_editor.mergeCurrentCharFormat(format)
+        
+    def closeEvent(self, event):
+        """Handle widget close event."""
+        if self.is_modified and not self.confirm_discard_changes():
+            event.ignore()
+        else:
+            self.auto_save_timer.stop()
+            event.accept()
