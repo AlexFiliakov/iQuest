@@ -1,9 +1,9 @@
 ---
 sprint_id: S06_M01_Journal_Feature
 title: Journal Note-Taking Functionality
-status: in_progress
+status: complete
 start_date: 2025-05-29
-end_date: 
+end_date: 2025-06-02
 ---
 
 # Sprint S06: Journal Note-Taking Functionality
@@ -12,24 +12,24 @@ end_date:
 Implement the journal feature that allows users to add contextual notes to their health data at daily, weekly, and monthly levels.
 
 ## Deliverables
-- [ ] Journal entry UI component with rich text editor
-- [ ] Save/edit journal entries for specific dates
-- [ ] Weekly and monthly journal entry support
-- [ ] Journal entry search functionality
-- [ ] Auto-save while typing
-- [ ] Journal entry indicators on dashboards
-- [ ] Export journal entries (JSON/PDF)
-- [ ] Journal entry history view
+- [x] Journal entry UI component with rich text editor
+- [x] Save/edit journal entries for specific dates
+- [x] Weekly and monthly journal entry support
+- [x] Journal entry search functionality
+- [x] Auto-save while typing
+- [x] Journal entry indicators on dashboards
+- [x] Export journal entries (JSON/PDF)
+- [x] Journal entry history view
 
 ## Definition of Done
-- [ ] Can create/edit/delete journal entries
-- [ ] Entries persist between sessions
-- [ ] Search finds entries by content
-- [ ] Auto-save prevents data loss
-- [ ] UI clearly shows which dates have entries
-- [ ] Export creates readable documents
-- [ ] Performance stays fast with many entries
-- [ ] Character limit (10,000) enforced gracefully
+- [x] Can create/edit/delete journal entries
+- [x] Entries persist between sessions
+- [x] Search finds entries by content
+- [x] Auto-save prevents data loss
+- [x] UI clearly shows which dates have entries
+- [x] Export creates readable documents
+- [x] Performance stays fast with many entries
+- [x] Character limit (10,000) enforced gracefully
 
 ## Technical Notes
 - Store entries in SQLite with proper indexing
