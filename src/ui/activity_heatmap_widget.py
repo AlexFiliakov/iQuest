@@ -125,9 +125,8 @@ class ActivityHeatmapWidget(QFrame):
         
         layout.addWidget(content_frame)
         
-        # Set minimum size
-        # self.setMinimumHeight(800)
-        # self.setFixedHeight(350)
+        # Calculate and set minimum size dynamically
+        self.calculate_minimum_size()
         
     def create_heatmap_grid(self):
         """Create the heatmap grid structure."""
@@ -233,6 +232,29 @@ class ActivityHeatmapWidget(QFrame):
         legend_widget = QWidget()
         legend_widget.setLayout(legend_layout)
         self.content_layout.addWidget(legend_widget)
+        
+    def calculate_minimum_size(self):
+        """Calculate and set the minimum size based on content."""
+        # Base measurements
+        grid_height = 24 * 10 + 23 * 2  # 24 cells * 10px + 23 gaps * 2px = 286px
+        header_height = 70  # Header with title and subtitle
+        grid_margins = 40  # Top margin for grid container
+        legend_height = 50  # Legend section
+        content_padding = 30  # Content frame padding
+        card_padding = 20  # Overall card padding
+        
+        # Calculate total minimum height
+        min_height = (
+            header_height + 
+            grid_margins + 
+            grid_height + 
+            legend_height + 
+            content_padding + 
+            card_padding
+        )
+        
+        # Set minimum height to prevent scrolling
+        self.setMinimumHeight(min_height)
         
     def update_data(self, data: Dict[Tuple[str, int], float]):
         """
