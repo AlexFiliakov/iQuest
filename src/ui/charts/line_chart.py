@@ -411,14 +411,15 @@ class LineChart(QWidget):
             )
             
         # Vertical grid lines
-        if self.data_points:
+        if self.data_points and len(self.data_points) > 1:
             x_steps = min(len(self.data_points) - 1, 10)
-            for i in range(x_steps + 1):
-                x = chart_rect.left() + (i * chart_rect.width() / x_steps)
-                painter.drawLine(
-                    QPointF(x, chart_rect.top()),
-                    QPointF(x, chart_rect.bottom())
-                )
+            if x_steps > 0:  # Additional safety check
+                for i in range(x_steps + 1):
+                    x = chart_rect.left() + (i * chart_rect.width() / x_steps)
+                    painter.drawLine(
+                        QPointF(x, chart_rect.top()),
+                        QPointF(x, chart_rect.bottom())
+                    )
                 
     def _draw_axes(self, painter: QPainter, chart_rect: QRectF):
         """Draw X and Y axes."""
