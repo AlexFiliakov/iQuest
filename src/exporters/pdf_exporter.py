@@ -49,8 +49,9 @@ from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, PageBreak, 
     Table, TableStyle, KeepTogether, Flowable,
     Frame, PageTemplate, BaseDocTemplate,
-    TableOfContents, CondPageBreak
+    CondPageBreak
 )
+from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -58,7 +59,7 @@ from reportlab.lib.colors import HexColor
 
 from .base_exporter import BaseExporter, ExportOptions, ExportResult
 from ..models import JournalEntry
-from ..version import VERSION
+from ..version import __version__ as VERSION
 from ..config import Config
 from ..utils.error_handler import ValidationError
 

@@ -35,7 +35,7 @@ from PyQt6.QtGui import (
 )
 import logging
 
-from ..style_manager import StyleManager
+from .style_manager import StyleManager
 from ..analytics.journal_search_engine import SearchResult
 from ..utils.logging_config import get_logger
 

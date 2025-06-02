@@ -31,8 +31,8 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QIcon, QAction, QKeySequence
 
-from ..style_manager import StyleManager
-from ..enhanced_date_edit import EnhancedDateEdit
+from .style_manager import StyleManager
+from .enhanced_date_edit import EnhancedDateEdit
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)

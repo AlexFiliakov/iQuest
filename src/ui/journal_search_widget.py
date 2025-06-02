@@ -30,7 +30,7 @@ from .journal_search_bar import JournalSearchBar
 from .journal_search_results import SearchResultsWidget
 from ..analytics.journal_search_engine import JournalSearchEngine, SearchResult
 from ..database import DatabaseManager
-from ..style_manager import StyleManager
+from .style_manager import StyleManager
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
