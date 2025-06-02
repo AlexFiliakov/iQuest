@@ -93,7 +93,7 @@ class JournalTabWidget(QWidget):
         left_layout.addWidget(self.search_widget)
         
         # History widget
-        self.history_widget = JournalHistoryWidget(self.data_access.journal_db)
+        self.history_widget = JournalHistoryWidget(self.data_access)
         left_layout.addWidget(self.history_widget, 1)
         
         splitter.addWidget(left_container)

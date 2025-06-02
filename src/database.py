@@ -156,6 +156,10 @@ class DatabaseManager:
                 self._check_and_apply_migrations()
             except Exception as e:
                 logger.error(f"Failed to apply migrations on startup: {e}")
+                if "disk I/O error" in str(e) or "database is locked" in str(e):
+                    logger.error("Database may be locked by OneDrive or another process.")
+                    logger.error("Try: 1) Closing OneDrive, 2) Moving the project out of OneDrive folder")
+                # Don't raise here - let the app continue even if migrations fail
     
     def _ensure_database_exists(self):
         """Ensure database file and directory structure exist.
@@ -242,11 +246,24 @@ class DatabaseManager:
         """
         conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
+            # Add timeout and check if file is accessible
+            if not self.db_path.exists():
+                logger.error(f"Database file does not exist: {self.db_path}")
+                raise sqlite3.Error(f"Database file not found: {self.db_path}")
+            
+            # Try to open with a longer timeout for OneDrive sync issues
+            conn = sqlite3.connect(str(self.db_path), timeout=30.0)
             conn.row_factory = sqlite3.Row
+            
+            # Test the connection
+            conn.execute("SELECT 1")
+            
             yield conn
         except sqlite3.Error as e:
             logger.error(f"Database connection error: {e}")
+            if "disk I/O error" in str(e):
+                logger.error(f"This may be due to OneDrive sync. Try closing OneDrive or moving the database file.")
+                logger.error(f"Database path: {self.db_path}")
             raise
         finally:
             if conn:

@@ -58,6 +58,7 @@ class ImportProgressDialog(QDialog):
         self.style_manager = StyleManager()
         self.settings_manager = SettingsManager()
         self._drag_pos = None
+        self.close_btn = None  # Will be set in _create_ui
         
         # Setup dialog
         self._setup_dialog()
@@ -69,7 +70,7 @@ class ImportProgressDialog(QDialog):
         """Setup dialog properties."""
         self.setWindowTitle("Importing Health Data")
         self.setModal(True)
-        self.setFixedSize(650, 380)
+        self.setFixedSize(750, 420)
         self.setWindowFlags(
             Qt.WindowType.Dialog | 
             Qt.WindowType.WindowTitleHint |
@@ -122,8 +123,8 @@ class ImportProgressDialog(QDialog):
         header_layout.addStretch()
         
         # Close button (X) in top right
-        close_btn = QPushButton("×")
-        close_btn.setStyleSheet(f"""
+        self.close_btn = QPushButton("×")
+        self.close_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
                 border: none;
@@ -142,9 +143,9 @@ class ImportProgressDialog(QDialog):
                 color: #212121;
             }}
         """)
-        close_btn.clicked.connect(self.close)
-        close_btn.setParent(self)
-        close_btn.move(self.width() - 45, 15)
+        self.close_btn.clicked.connect(self.close)
+        self.close_btn.setParent(self)
+        # Position will be set in showEvent
         
         layout.addLayout(header_layout)
         
@@ -162,6 +163,8 @@ class ImportProgressDialog(QDialog):
             }}
         """)
         file_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        file_info.setWordWrap(True)  # Allow text wrapping if needed
+        file_info.setMaximumWidth(700)  # Prevent overflow
         layout.addWidget(file_info)
         
         # Progress section - directly add elements without frame
@@ -260,6 +263,7 @@ class ImportProgressDialog(QDialog):
         """)
         self.status_message.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.status_message.setWordWrap(True)
+        self.status_message.setMaximumWidth(700)  # Prevent overflow
         progress_layout.addWidget(self.status_message)
         
         layout.addWidget(progress_container)
@@ -522,6 +526,13 @@ class ImportProgressDialog(QDialog):
         if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos:
             self.move(event.globalPosition().toPoint() - self._drag_pos)
             event.accept()
+    
+    def showEvent(self, event):
+        """Handle show event to properly position close button."""
+        super().showEvent(event)
+        # Position close button after window is properly sized
+        if self.close_btn:
+            self.close_btn.move(self.width() - 45, 15)
 
 
 class ImportSummaryDialog(QDialog):
@@ -533,6 +544,7 @@ class ImportSummaryDialog(QDialog):
         self.result = result
         self.style_manager = StyleManager()
         self._drag_pos = None
+        self.close_btn = None  # Will be set in _create_ui
         
         self._setup_dialog()
         self._create_ui()
@@ -566,8 +578,8 @@ class ImportSummaryDialog(QDialog):
         layout.setSpacing(24)
         
         # Close button (X) in top right
-        close_btn = QPushButton("×")
-        close_btn.setStyleSheet(f"""
+        self.close_btn = QPushButton("×")
+        self.close_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
                 border: none;
@@ -586,9 +598,9 @@ class ImportSummaryDialog(QDialog):
                 color: {self.style_manager.TEXT_PRIMARY};
             }}
         """)
-        close_btn.clicked.connect(self.accept)
-        close_btn.setParent(self)
-        close_btn.move(self.width() - 50, 20)
+        self.close_btn.clicked.connect(self.accept)
+        self.close_btn.setParent(self)
+        # Position will be set properly after dialog is shown
         
         # Success icon and title container
         title_container = QVBoxLayout()
@@ -717,3 +729,10 @@ class ImportSummaryDialog(QDialog):
         if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos:
             self.move(event.globalPosition().toPoint() - self._drag_pos)
             event.accept()
+    
+    def showEvent(self, event):
+        """Handle show event to properly position close button."""
+        super().showEvent(event)
+        # Position close button after window is properly sized
+        if self.close_btn:
+            self.close_btn.move(self.width() - 50, 20)

@@ -59,7 +59,8 @@ class WeeklyStatCard(QFrame):
         
     def _setup_ui(self):
         """Set up the card UI."""
-        self.setFixedHeight(100)
+        self.setFixedHeight(140)  # Increased from 120 to better accommodate text
+        self.setMinimumWidth(220)  # Increased minimum width for better readability
         from .style_manager import StyleManager
         style_manager = StyleManager()
         shadow = style_manager.get_shadow_style('md')
@@ -79,7 +80,8 @@ class WeeklyStatCard(QFrame):
         """)
         
         layout = QVBoxLayout(self)
-        layout.setSpacing(4)
+        layout.setSpacing(8)  # Increased spacing for better distribution
+        layout.setContentsMargins(16, 12, 16, 12)  # Set explicit margins for better control
         
         # Title with icon
         title_layout = QHBoxLayout()
@@ -93,6 +95,7 @@ class WeeklyStatCard(QFrame):
         title_label = QLabel(self.title)
         title_label.setFont(QFont('Inter', 11))
         title_label.setStyleSheet(f"color: {style_manager.TEXT_SECONDARY};")
+        title_label.setWordWrap(True)  # Enable word wrap for title
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -100,15 +103,21 @@ class WeeklyStatCard(QFrame):
         
         # Main value
         self.value_label = QLabel("--")
-        self.value_label.setFont(QFont('Inter', 20, QFont.Weight.Bold))
+        self.value_label.setFont(QFont('Inter', 18, QFont.Weight.Bold))  # Slightly smaller for better fit
         self.value_label.setStyleSheet(f"color: {style_manager.ACCENT_PRIMARY};")
+        self.value_label.setWordWrap(True)  # Enable word wrap for value
+        self.value_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self.value_label)
         
         # Sub-label
         self.sub_label = QLabel("")
         self.sub_label.setFont(QFont('Inter', 10))
         self.sub_label.setStyleSheet(f"color: {style_manager.TEXT_MUTED};")
+        self.sub_label.setWordWrap(True)  # Enable word wrap for sub-label
         layout.addWidget(self.sub_label)
+        
+        # Add stretch to push content to top
+        layout.addStretch(1)
         
     def update_value(self, value: str, sub_label: str = ""):
         """Update the displayed values."""
@@ -413,7 +422,7 @@ class WeeklyDashboardWidget(QWidget):
         
         # Statistics cards grid
         stats_grid = QGridLayout()
-        stats_grid.setSpacing(16)
+        stats_grid.setSpacing(20)  # Increased spacing for better layout with taller cards
         
         # Create stat cards
         self.stat_cards = {

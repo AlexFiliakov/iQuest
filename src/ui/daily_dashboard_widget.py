@@ -65,7 +65,7 @@ class MetricCard(QFrame):
         
     def _setup_ui(self):
         """Set up the card UI."""
-        self.setFixedHeight(180)  # Increased from 120 to 180 for better visibility
+        self.setFixedHeight(220)  # Increased from 180 to 220 for better text visibility
         from .style_manager import StyleManager
         style_manager = StyleManager()
         shadow = style_manager.get_shadow_style('md')
@@ -90,13 +90,14 @@ class MetricCard(QFrame):
         self.setGraphicsEffect(shadow_effect)
         
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)  # Increased spacing for better distribution
-        layout.setContentsMargins(16, 16, 16, 16)  # Add margins inside the card
+        layout.setSpacing(16)  # Increased spacing for better distribution with taller cards
+        layout.setContentsMargins(20, 20, 20, 20)  # Increased margins for better proportions
         
         # Metric name
         self.name_label = QLabel(self.display_name)
         self.name_label.setFont(QFont('Inter', 12))  # Increased from 11
         self.name_label.setStyleSheet(f"color: {style_manager.TEXT_SECONDARY};")
+        self.name_label.setWordWrap(True)  # Allow text wrapping for long metric names
         layout.addWidget(self.name_label)
         
         # Value and unit
@@ -123,7 +124,7 @@ class MetricCard(QFrame):
         
         # Trend indicator
         self.trend_indicator = DailyTrendIndicator(self.metric_name)
-        self.trend_indicator.setMinimumHeight(30)  # Ensure trend indicator has space
+        self.trend_indicator.setMinimumHeight(40)  # Increased height for better visibility
         layout.addWidget(self.trend_indicator)
         
     def update_value(self, value: float, trend_data: Optional[Dict] = None):

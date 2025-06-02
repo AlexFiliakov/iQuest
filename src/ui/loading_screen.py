@@ -94,10 +94,11 @@ class LoadingScreen(QWidget):
         # Set window flags for splash screen behavior
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
+            Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        # Ensure this window doesn't prevent app from quitting
+        self.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, False)
         
         # Main container with card styling
         main_container = QWidget()
@@ -190,6 +191,7 @@ class LoadingScreen(QWidget):
                 font-size: 32px;
                 font-weight: 600;
                 color: #0F172A;
+                background-color: #FFFFFF;
             }
             
             /* Status label styling */
@@ -197,6 +199,7 @@ class LoadingScreen(QWidget):
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                 font-size: 16px;
                 color: #64748B;
+                background-color: #FFFFFF;
             }
             
             /* Progress bar styling */
@@ -218,7 +221,8 @@ class LoadingScreen(QWidget):
                 font-family: 'Roboto', 'Consolas', monospace;
                 font-size: 12px;
                 color: #64748B;
-                background-color: #FAFBFC;
+                # background-color: #FAFBFC;
+                background-color: #F3F4F6;
                 border: 1px solid #E5E7EB;
                 border-radius: 8px;
                 padding: 16px;
@@ -227,7 +231,8 @@ class LoadingScreen(QWidget):
             
             /* Scrollbar styling */
             #loadingMessageLog QScrollBar:vertical {
-                background-color: #F3F4F6;
+                # background-color: #F3F4F6;
+                background-color: #FFFFFF;
                 width: 12px;
                 border-radius: 6px;
             }
@@ -267,10 +272,21 @@ class LoadingScreen(QWidget):
         
     def close(self):
         """Close the loading screen with fade-out animation."""
+        # Disconnect any existing connections to prevent multiple calls
+        try:
+            self.fade_animation.finished.disconnect()
+        except:
+            pass
+            
         def on_fade_finished():
             super(LoadingScreen, self).close()
             self.closed.emit()
             logger.info("Loading screen closed")
+            # Disconnect to prevent future calls
+            try:
+                self.fade_animation.finished.disconnect(on_fade_finished)
+            except:
+                pass
             
         self.fade_animation.finished.connect(on_fade_finished)
         self.fade_animation.setStartValue(1)

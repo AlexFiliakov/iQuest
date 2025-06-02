@@ -111,7 +111,20 @@ def mock_journal_db():
 @pytest.fixture
 def history_widget(qtbot, mock_journal_db):
     """Create history widget instance."""
-    widget = JournalHistoryWidget(mock_journal_db)
+    # Create a mock data_access object since JournalHistoryWidget expects data_access, not journal_db
+    mock_data_access = Mock()
+    mock_data_access.delete_journal_entry = Mock()
+    
+    # Create the widget with mock data_access
+    widget = JournalHistoryWidget(mock_data_access)
+    
+    # Replace the journal_db adapter with our mock
+    widget.journal_db = mock_journal_db
+    
+    # Manually trigger initial load since the constructor won't work with our mock
+    widget.model.journal_db = mock_journal_db
+    widget.load_entries()
+    
     qtbot.addWidget(widget)
     return widget
 
@@ -177,7 +190,7 @@ class TestJournalHistoryWidget:
             history_widget.on_delete_requested(1)
             
         assert blocker.args[0] == 1
-        mock_journal_db.delete_entry.assert_called_once_with(1)
+        history_widget.data_access.delete_journal_entry.assert_called_once_with(1)
         
     def test_view_mode_change(self, history_widget):
         """Test changing view mode."""

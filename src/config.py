@@ -54,8 +54,40 @@ MAX_MEMORY_LIMIT_MB = 4096  # Maximum memory limit (4GB)
 DEFAULT_MEMORY_LIMIT_MB = 1024  # Default memory limit for streaming processor (1GB)
 
 # Database settings
+import os
+import tempfile
+import shutil
+
 DB_FILE_NAME = "health_monitor.db"  # As per SPECS_DB.md
-DATA_DIR = "data"  # Directory for storing database and user data
+
+# Determine data directory - use temp location if in OneDrive to avoid sync issues
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_ORIGINAL_DATA_DIR = os.path.join(_BASE_DIR, "data")
+
+# Check if we're in OneDrive path
+if "OneDrive" in _ORIGINAL_DATA_DIR:
+    # Create a temporary data directory outside OneDrive
+    _TEMP_DATA_DIR = os.path.join(tempfile.gettempdir(), "apple_health_monitor_data")
+    os.makedirs(_TEMP_DATA_DIR, exist_ok=True)
+    
+    # Copy database if it exists and needs updating
+    _original_db = os.path.join(_ORIGINAL_DATA_DIR, DB_FILE_NAME)
+    _temp_db = os.path.join(_TEMP_DATA_DIR, DB_FILE_NAME)
+    
+    if os.path.exists(_original_db):
+        try:
+            # Only copy if temp doesn't exist or is older
+            if not os.path.exists(_temp_db) or os.path.getmtime(_original_db) > os.path.getmtime(_temp_db):
+                print(f"Copying database from OneDrive to temp location: {_temp_db}")
+                shutil.copy2(_original_db, _temp_db)
+        except Exception as e:
+            print(f"Warning: Could not copy database: {e}")
+    
+    DATA_DIR = _TEMP_DATA_DIR
+    print(f"Using temporary data directory to avoid OneDrive sync issues: {DATA_DIR}")
+else:
+    DATA_DIR = _ORIGINAL_DATA_DIR
+
 BATCH_SIZE = 1000
 
 # UI timing

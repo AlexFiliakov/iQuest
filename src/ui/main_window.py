@@ -222,6 +222,10 @@ class MainWindow(QMainWindow):
         # Set default size appropriate for 1920x1080 at 150% scale
         self.resize(WINDOW_DEFAULT_WIDTH, WINDOW_DEFAULT_HEIGHT)
         
+        # Ensure window stays open
+        self.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+        
         # Apply warm color theme
         self._apply_theme()
         
@@ -232,11 +236,21 @@ class MainWindow(QMainWindow):
         
         self._report_init("Creating dashboard tabs...")
         
-        self._create_central_widget()
+        try:
+            self._create_central_widget()
+        except Exception as e:
+            logger.error(f"Failed to create central widget: {e}", exc_info=True)
+            self._report_init(f"ERROR: Failed to create tabs - {str(e)}")
+            raise
         
         self._report_init("Setting up status bar...")
         
-        self._create_status_bar()
+        try:
+            self._create_status_bar()
+        except Exception as e:
+            logger.error(f"Failed to create status bar: {e}", exc_info=True)
+            self._report_init(f"ERROR: Failed to create status bar - {str(e)}")
+            raise
         
         self._report_init("Restoring window state...")
         
@@ -257,6 +271,8 @@ class MainWindow(QMainWindow):
         self.status_update_timer.start(2000)  # Update every 2 seconds
         
         logger.info("Main window initialization complete")
+        logger.info(f"Window visible at end of init: {self.isVisible()}")
+        logger.info(f"Window attributes - WA_QuitOnClose: {self.testAttribute(Qt.WidgetAttribute.WA_QuitOnClose)}")
     
     def _report_init(self, message: str):
         """Report initialization progress.
@@ -468,16 +484,34 @@ class MainWindow(QMainWindow):
         self.tab_widget.setStyleSheet(self.style_manager.get_tab_widget_style())
         self.setCentralWidget(self.tab_widget)
         
-        # Create tabs
-        self._create_configuration_tab()
-        self._create_daily_dashboard_tab()
-        self._create_weekly_dashboard_tab()
-        self._create_monthly_dashboard_tab()
-        self._create_comparative_analytics_tab()
-        self._create_health_insights_tab()
-        self._create_trophy_case_tab()
-        self._create_journal_tab()
-        self._create_help_tab()
+        # Create tabs with error handling
+        tab_methods = [
+            ("Configuration", self._create_configuration_tab),
+            ("Daily Dashboard", self._create_daily_dashboard_tab),
+            ("Weekly Dashboard", self._create_weekly_dashboard_tab),
+            ("Monthly Dashboard", self._create_monthly_dashboard_tab),
+            ("Comparative Analytics", self._create_comparative_analytics_tab),
+            ("Health Insights", self._create_health_insights_tab),
+            ("Trophy Case", self._create_trophy_case_tab),
+            ("Journal", self._create_journal_tab),
+            ("Help", self._create_help_tab)
+        ]
+        
+        for tab_name, create_method in tab_methods:
+            try:
+                self._report_init(f"Creating {tab_name} tab...")
+                create_method()
+            except Exception as e:
+                logger.error(f"Failed to create {tab_name} tab: {e}", exc_info=True)
+                self._report_init(f"ERROR: Failed to create {tab_name} tab - {str(e)}")
+                # Continue with other tabs even if one fails
+                # Create placeholder tab
+                error_widget = QWidget()
+                error_label = QLabel(f"Error loading {tab_name} tab:\n{str(e)}")
+                error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                layout = QVBoxLayout(error_widget)
+                layout.addWidget(error_label)
+                self.tab_widget.addTab(error_widget, tab_name)
         
         # Map tab indices to view types
         self.tab_to_view_map = {
@@ -870,8 +904,7 @@ class MainWindow(QMainWindow):
             self.comparative_widget = ComparativeAnalyticsWidget()
             self.comparative_widget.set_comparative_engine(self.comparative_engine)
             
-            self.tab_widget.addTab(self.comparative_widget, "Compare")
-            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
+            self._add_tab_hidden(self.comparative_widget, "Compare", "Compare your metrics with personal history and seasonal trends")
             
         except ImportError as e:
             # Fallback to placeholder if import fails
@@ -925,8 +958,7 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self.tab_widget.addTab(comparative_widget, "Compare")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "Compare your metrics with personal history and seasonal trends")
+        self._add_tab_hidden(comparative_widget, "Compare", "Compare your metrics with personal history and seasonal trends")
     
     def _create_health_insights_tab(self):
         """Create the health insights tab with AI-powered recommendations.
@@ -983,8 +1015,7 @@ class MainWindow(QMainWindow):
             # Connect signals
             self.health_insights_widget.insight_selected.connect(self._on_insight_selected)
             
-            self.tab_widget.addTab(self.health_insights_widget, "💡 Insights")
-            self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personalized health insights and recommendations")
+            self._add_tab_hidden(self.health_insights_widget, "💡 Insights", "View personalized health insights and recommendations")
             
         except ImportError as e:
             logger.warning(f"Could not import HealthInsightsWidget: {e}")
@@ -1021,8 +1052,7 @@ class MainWindow(QMainWindow):
         
         layout.addStretch()
         
-        self.tab_widget.addTab(insights_widget, "💡 Insights")
-        self.tab_widget.setTabToolTip(self.tab_widget.count() - 1, "View personalized health insights and recommendations")
+        self._add_tab_hidden(insights_widget, "💡 Insights", "View personalized health insights and recommendations")
     
     def _create_trophy_case_tab(self):
         """Create the trophy case tab for personal records and achievements.
@@ -2673,8 +2703,23 @@ class MainWindow(QMainWindow):
         name = re.sub(r'([A-Z])', r' \1', name).strip()
         return name
     
+    def showEvent(self, event):
+        """Handle window show event."""
+        logger.info("Main window showEvent triggered")
+        super().showEvent(event)
+    
     def closeEvent(self, event):
         """Handle window close event."""
+        logger.info("Main window closeEvent triggered")
+        logger.info(f"Event spontaneous: {event.spontaneous()}")
+        logger.info(f"Event type: {event.type()}")
+        
+        # Log stack trace to see what's calling close
+        import traceback
+        logger.info("Close event stack trace:")
+        for line in traceback.format_stack():
+            logger.info(line.strip())
+        
         logger.info("Main window closing, saving state")
         
         # Stop the status update timer

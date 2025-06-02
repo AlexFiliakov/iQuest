@@ -4,6 +4,24 @@
 import os
 import sys
 
+# For WSL environments, handle Qt platform plugins
+if sys.platform.startswith('linux'):
+    # WSL-specific Qt configuration
+    if 'microsoft' in os.uname().release.lower() or 'WSL' in os.environ.get('WSL_DISTRO_NAME', ''):
+        print("Running in WSL environment")
+        # Force XCB platform and set library path for Qt plugins
+        os.environ['QT_QPA_PLATFORM'] = 'xcb'
+        os.environ['QT_DEBUG_PLUGINS'] = '1'  # Enable plugin debugging
+        
+        # Try to handle missing xcb-cursor library
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = '/usr/lib/x86_64-linux-gnu/qt6/plugins'
+        
+        # Disable Wayland
+        os.environ.pop('WAYLAND_DISPLAY', None)
+        
+        print(f"Qt platform: {os.environ.get('QT_QPA_PLATFORM')}")
+        print(f"Display: {os.environ.get('DISPLAY', 'Not set')}")
+
 # 1. Locate project root (one level up from this file)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # 2. Prepend it so 'src' package can be found when running from inside src/
@@ -14,7 +32,7 @@ import traceback
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox, QProxyStyle, QStyle
 
-from src.ui.loading_screen import LoadingScreen, AppInitializer
+from src.ui.loading_screen import AppInitializer, LoadingScreen
 from src.ui.main_window import MainWindow
 from src.ui.style_manager import StyleManager
 from src.utils.error_handler import ConfigurationError, ErrorContext
@@ -97,6 +115,19 @@ def main():
         )
         
         app = QApplication(sys.argv)
+        
+        # Prevent app from quitting when last window is closed
+        app.setQuitOnLastWindowClosed(True)
+        
+        # Log when app is about to quit
+        def on_about_to_quit():
+            module_logger.info("Application is about to quit")
+            import traceback
+            module_logger.info("Quit stack trace:")
+            for line in traceback.format_stack():
+                module_logger.info(line.strip())
+        
+        app.aboutToQuit.connect(on_about_to_quit)
 
         # install proxy style to customize tooltip delays
         class TooltipDelayStyle(QProxyStyle):
@@ -121,17 +152,26 @@ def main():
         # Process events to ensure loading screen is displayed
         app.processEvents()
         
-        # Variable to hold main window reference
-        window = None
+        # Variable to hold main window reference - made global to prevent garbage collection
+        global main_window
+        main_window = None
+        
+        # Keep reference to prevent any windows from being garbage collected
+        app._windows = []
         
         def initialize_application():
             """Initialize the application in steps with loading feedback."""
-            nonlocal window
+            global main_window
             
             try:
                 loading_screen.add_message("Teaching pixels how to look fabulous...")
                 loading_screen.set_progress(0.1)
-                style_manager = StyleManager()
+                try:
+                    style_manager = StyleManager()
+                except Exception as e:
+                    module_logger.error(f"Failed to create StyleManager: {e}", exc_info=True)
+                    loading_screen.add_message(f"ERROR: Failed to create StyleManager - {str(e)}")
+                    raise
                 app.processEvents()  # Allow UI to update
                 
                 loading_screen.add_message("Applying mystical CSS potions...")
@@ -141,7 +181,13 @@ def main():
                 
                 loading_screen.add_message("Waking up the sleeping data dragon...")
                 loading_screen.set_progress(0.2)
-                from src.database import db_manager
+                try:
+                    from src.database import db_manager
+                    module_logger.info(f"Database manager imported: {db_manager}")
+                except Exception as e:
+                    module_logger.error(f"Failed to import database manager: {e}", exc_info=True)
+                    loading_screen.add_message(f"ERROR: Failed to import database - {str(e)}")
+                    raise
                 app.processEvents()
                 
                 loading_screen.add_message("Organizing the chaos of 1s and 0s...")
@@ -176,8 +222,8 @@ def main():
                 
                 loading_screen.add_message("Giving buttons their morning coffee...")
                 loading_screen.set_progress(0.55)
+                from src.ui.charts import CalendarHeatmapComponent, LineChart
                 from src.ui.configuration_tab import ConfigurationTab
-                from src.ui.charts import LineChart, CalendarHeatmapComponent
                 app.processEvents()
                 
                 loading_screen.add_message("Teaching charts to make Wall Street jealous...")
@@ -188,8 +234,8 @@ def main():
                 loading_screen.add_message("Assembling a dashboard that judges your life choices...")
                 loading_screen.set_progress(0.65)
                 from src.ui.daily_dashboard_widget import DailyDashboardWidget
-                from src.ui.weekly_dashboard_widget import WeeklyDashboardWidget
                 from src.ui.monthly_dashboard_widget import MonthlyDashboardWidget
+                from src.ui.weekly_dashboard_widget import WeeklyDashboardWidget
                 app.processEvents()
                 
                 loading_screen.add_message("Building a bridge between you and your data...")
@@ -197,11 +243,24 @@ def main():
                 from src.data_access import DataAccess
                 app.processEvents()
                 
-                loading_screen.add_message("Constructing your personal health fortress...")
+                loading_screen.add_message("🏰Constructing your personal health fortress...")
                 loading_screen.set_progress(0.75)
                 
-                with ErrorContext("Creating main window"):
-                    window = MainWindow(initialization_callback=loading_screen.add_message)
+                try:
+                    with ErrorContext("Creating main window"):
+                        main_window = MainWindow(initialization_callback=loading_screen.add_message)
+                        module_logger.info(f"Main window created: {main_window}")
+                        app._windows.append(main_window)  # Keep reference
+                except Exception as e:
+                    module_logger.error(f"Failed to create main window: {e}", exc_info=True)
+                    loading_screen.add_message(f"ERROR: Failed to create main window - {str(e)}")
+                    # Show error dialog
+                    QMessageBox.critical(
+                        None,
+                        "Initialization Error",
+                        f"Failed to create main window:\n\n{str(e)}\n\nPlease check the logs for more details."
+                    )
+                    raise
                     
                 loading_screen.add_message("Putting the finishing touches on your destiny...")
                 loading_screen.set_progress(0.9)
@@ -210,20 +269,68 @@ def main():
                 QTimer.singleShot(500, lambda: finish_initialization())
                 
             except Exception as e:
+                module_logger.error(f"Initialization failed: {e}", exc_info=True)
+                loading_screen.add_message(f"FATAL ERROR: {str(e)}")
+                
+                # Show error dialog with full details
+                error_details = traceback.format_exc()
+                QMessageBox.critical(
+                    None,
+                    "Application Initialization Failed",
+                    f"Failed to initialize application:\n\n{str(e)}\n\nCheck the logs for full details.",
+                    QMessageBox.StandardButton.Ok
+                )
+                
                 loading_screen.close()
                 raise e
                 
         def finish_initialization():
             """Complete initialization and show main window."""
+            global main_window
             loading_screen.add_message("Your health adventure awaits, brave soul!")
             loading_screen.set_progress(1.0)
             
             # Close loading screen and show main window
             def show_main_window():
+                global main_window
+                module_logger.info(f"About to show main window: {main_window}")
                 loading_screen.close()
-                if window:
-                    window.show()
-                    module_logger.info("Application started successfully")
+                if main_window:
+                    # Ensure main window is recognized as the primary window
+                    main_window.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, True)
+                    
+                    # Prevent premature app exit
+                    app.setQuitOnLastWindowClosed(False)
+                    
+                    main_window.show()
+                    main_window.raise_()  # Bring to front
+                    main_window.activateWindow()  # Make it active
+                    
+                    # Re-enable quit on last window closed after showing
+                    QTimer.singleShot(500, lambda: app.setQuitOnLastWindowClosed(True))
+                    
+                    module_logger.info("Main window shown successfully")
+                    module_logger.info(f"Main window visible: {main_window.isVisible()}")
+                    module_logger.info(f"Main window size: {main_window.size()}")
+                    module_logger.info(f"Main window position: {main_window.pos()}")
+                    module_logger.info(f"Top level windows: {[w.windowTitle() for w in app.topLevelWindows()]}")
+                    
+                    # Ensure the window is properly displayed
+                    app.processEvents()
+                    
+                    # Check window status after a delay
+                    def check_window_status():
+                        if main_window:
+                            module_logger.info(f"Window check - visible: {main_window.isVisible()}")
+                            module_logger.info(f"Window check - active: {main_window.isActiveWindow()}")
+                            module_logger.info(f"Window check - minimized: {main_window.isMinimized()}")
+                            module_logger.info(f"App has {len(app.topLevelWindows())} top level windows")
+                        else:
+                            module_logger.error("Main window is None during status check!")
+                    
+                    QTimer.singleShot(1000, check_window_status)
+                else:
+                    module_logger.error("Main window is None!")
                     
             # Short delay to show completion
             QTimer.singleShot(300, show_main_window)
@@ -231,7 +338,16 @@ def main():
         # Start initialization after event loop begins
         QTimer.singleShot(100, initialize_application)
         
-        sys.exit(app.exec())
+        # Add logging to track app lifecycle
+        def on_last_window_closed():
+            module_logger.info("Last window closed signal received")
+        
+        app.lastWindowClosed.connect(on_last_window_closed)
+        
+        module_logger.info("Starting application event loop")
+        exit_code = app.exec()
+        module_logger.info(f"Application event loop ended with code: {exit_code}")
+        sys.exit(exit_code)
 
     except Exception as e:
         module_logger.critical(f"Failed to start application: {e}", exc_info=True)

@@ -16,8 +16,8 @@ Classes:
 
 Example:
     >>> from src.data_access import DataAccess
-    >>> data_access = DataAccess("health.db")
-    >>> history_widget = JournalHistoryWidget(data_access.journal_db)
+    >>> data_access = DataAccess()
+    >>> history_widget = JournalHistoryWidget(data_access)
     >>> history_widget.show()
 """
 
@@ -47,6 +47,7 @@ from PyQt6.QtGui import (
 from src.models import JournalEntry
 from src.ui.journal_editor_widget import SegmentedControl
 from src.ui.style_manager import ColorPalette
+from src.database import DatabaseManager
 
 # Create instance for compatibility
 ThemeColors = ColorPalette()
@@ -55,6 +56,54 @@ FONTS = {
 }
 
 logger = logging.getLogger(__name__)
+
+
+class JournalDatabaseAdapter:
+    """Adapter to provide database interface expected by JournalHistoryWidget.
+    
+    This adapter wraps DataAccess to provide the execute_query and delete_entry
+    methods that JournalHistoryWidget expects.
+    """
+    
+    def __init__(self, data_access):
+        """Initialize with DataAccess instance.
+        
+        Args:
+            data_access: DataAccess instance for database operations
+        """
+        self.data_access = data_access
+        self.db_manager = DatabaseManager()
+        
+    def execute_query(self, query: str, params: List[Any]) -> List[tuple]:
+        """Execute a raw SQL query.
+        
+        Args:
+            query: SQL query string
+            params: Query parameters
+            
+        Returns:
+            List of result tuples
+        """
+        return self.db_manager.execute_query(query, params)
+        
+    def delete_entry(self, entry_id: int) -> bool:
+        """Delete a journal entry by ID.
+        
+        Args:
+            entry_id: ID of entry to delete
+            
+        Returns:
+            True if successful
+        """
+        # First get the entry details
+        query = "SELECT entry_date, entry_type FROM journal_entries WHERE id = ?"
+        result = self.db_manager.execute_query(query, [entry_id])
+        
+        if result:
+            entry_date = datetime.fromisoformat(result[0][0]).date()
+            entry_type = result[0][1]
+            return self.data_access.delete_journal_entry(entry_date, entry_type)
+        return False
 
 
 class ViewMode:
@@ -96,15 +145,16 @@ class JournalHistoryWidget(QWidget):
     entrySelected = pyqtSignal(int)  # entry_id
     entryDeleted = pyqtSignal(int)   # entry_id
     
-    def __init__(self, journal_db, parent=None):
+    def __init__(self, data_access, parent=None):
         """Initialize journal history widget.
         
         Args:
-            journal_db: JournalDatabase instance for data access
+            data_access: DataAccess instance for database operations
             parent: Optional parent widget
         """
         super().__init__(parent)
-        self.journal_db = journal_db
+        self.data_access = data_access
+        self.journal_db = JournalDatabaseAdapter(data_access)
         self.current_view_mode = ViewMode.LIST
         self.filter_settings = FilterSettings()
         self.setup_ui()
@@ -244,7 +294,7 @@ class JournalHistoryWidget(QWidget):
         """
         # TODO: Add confirmation dialog
         try:
-            self.journal_db.delete_entry(entry_id)
+            self.data_access.delete_journal_entry(entry_id)
             self.entryDeleted.emit(entry_id)
             self.load_entries()
             self.preview_panel.setVisible(False)
@@ -309,7 +359,7 @@ class JournalHistoryModel(QAbstractListModel):
         """Initialize model.
         
         Args:
-            journal_db: JournalDatabase instance
+            journal_db: JournalDatabaseAdapter instance
             parent: Optional parent object
         """
         super().__init__(parent)
