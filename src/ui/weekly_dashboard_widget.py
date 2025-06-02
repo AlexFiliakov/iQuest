@@ -474,7 +474,7 @@ class WeeklyDashboardWidget(QWidget):
         
         # WoW widget
         self.wow_widget = WeekOverWeekWidget()
-        self.wow_widget.setMinimumHeight(300)
+        self.wow_widget.setMinimumHeight(1200)
         layout.addWidget(self.wow_widget)
         
         return section

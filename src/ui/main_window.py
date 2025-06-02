@@ -518,16 +518,6 @@ class MainWindow(QMainWindow):
             # ("Help", self._create_help_tab)
         ]
         
-        # Add placeholder tabs for now
-        for tab_name in ["Comparative Analytics", "Health Insights", "Trophy Case", "Journal", "Help"]:
-            placeholder = QWidget()
-            layout = QVBoxLayout(placeholder)
-            label = QLabel(f"{tab_name} - Under Development")
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            label.setStyleSheet("font-size: 18px; color: #666;")
-            layout.addWidget(label)
-            self.tab_widget.addTab(placeholder, tab_name)
-        
         for tab_name, create_method in tab_methods:
             try:
                 self._report_init(f"Creating {tab_name} tab...")
@@ -545,6 +535,16 @@ class MainWindow(QMainWindow):
                 layout = QVBoxLayout(error_widget)
                 layout.addWidget(error_label)
                 self.tab_widget.addTab(error_widget, tab_name)
+        
+        # Add placeholder tabs for now
+        for tab_name in ["Comparative Analytics", "Health Insights", "Trophy Case", "Journal", "Help"]:
+            placeholder = QWidget()
+            layout = QVBoxLayout(placeholder)
+            label = QLabel(f"{tab_name} - Under Development")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet("font-size: 18px; color: #666;")
+            layout.addWidget(label)
+            self.tab_widget.addTab(placeholder, tab_name)
         
         # Map tab indices to view types
         self.tab_to_view_map = {
