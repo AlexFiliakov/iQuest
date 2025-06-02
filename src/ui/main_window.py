@@ -1075,12 +1075,15 @@ class MainWindow(QMainWindow):
         """
         try:
             from .journal_tab_widget import JournalTabWidget
+            from ..data_access import DataAccess
             
-            self.journal_tab = JournalTabWidget(self.data_access)
+            # Create a DataAccess instance for the journal tab
+            data_access = DataAccess()
+            self.journal_tab = JournalTabWidget(data_access)
             self.tab_widget.addTab(self.journal_tab, "Journal")
             self.tab_widget.setTabToolTip(
                 self.tab_widget.count() - 1, 
-                "Create and browse health journal entries"
+                "Create and browse health journal entries (Alt+J)"
             )
             
             logger.info("Journal tab created successfully")
@@ -1173,9 +1176,10 @@ class MainWindow(QMainWindow):
             "Navigation", 
             [
                 ("Tab / Shift+Tab", "Navigate between elements"),
-                ("Ctrl+1 to Ctrl+5", "Switch to specific tab (1=Config, 2=Daily, 3=Weekly, 4=Monthly, 5=Journal)"),
-                ("Alt+C/D/W/M/J", "Quick tab switching (Config/Daily/Weekly/Monthly/Journal)"),
-                ("Ctrl+PageUp/PageDown", "Navigate to previous/next tab")
+                ("Ctrl+1 to Ctrl+9", "Switch to specific tab by number"),
+                ("Alt+C/D/W/M/O/I/T/J/H", "Quick tab switching (Config/Daily/Weekly/Monthly/cOmpare/Insights/Trophy/Journal/Help)"),
+                ("Ctrl+PageUp/PageDown", "Navigate to previous/next tab"),
+                ("F1", "Quick access to Help tab")
             ]
         )
         content_layout.addWidget(nav_section)
@@ -1406,8 +1410,8 @@ class MainWindow(QMainWindow):
         """
         logger.debug("Setting up keyboard navigation")
         
-        # Add tab switching shortcuts (now 6 tabs including Help)
-        for i in range(min(6, self.tab_widget.count())):
+        # Add tab switching shortcuts (Ctrl+1 through Ctrl+9)
+        for i in range(min(9, self.tab_widget.count())):
             action = QAction(self)
             action.setShortcut(f"Ctrl+{i+1}")
             # Use default parameter to capture the value properly
@@ -1415,8 +1419,10 @@ class MainWindow(QMainWindow):
             self.addAction(action)
         
         # Add Alt+Tab navigation shortcuts
-        # Alt+C for Configuration, Alt+D for Daily, etc., Alt+H for Help
-        shortcuts = ['Alt+C', 'Alt+D', 'Alt+W', 'Alt+M', 'Alt+J', 'Alt+H']
+        # Alt+C for Configuration, Alt+D for Daily, Alt+W for Weekly, 
+        # Alt+M for Monthly, Alt+O for cOmpare, Alt+I for Insights,
+        # Alt+T for Trophy, Alt+J for Journal, Alt+H for Help
+        shortcuts = ['Alt+C', 'Alt+D', 'Alt+W', 'Alt+M', 'Alt+O', 'Alt+I', 'Alt+T', 'Alt+J', 'Alt+H']
         for i, shortcut in enumerate(shortcuts[:self.tab_widget.count()]):
             action = QAction(self)
             action.setShortcut(shortcut)
