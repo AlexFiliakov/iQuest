@@ -812,6 +812,79 @@ class DatabaseManager:
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (7)")
             logger.info("Migration 7 applied successfully")
+        
+        # Migration 8: Add FTS5 virtual table for journal search
+        if current_version < 8:
+            logger.info("Applying migration 8: Adding FTS5 virtual table for journal search")
+            
+            # Create FTS5 virtual table for full-text search
+            cursor.execute("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS journal_search USING fts5(
+                    entry_id UNINDEXED,
+                    entry_date UNINDEXED,
+                    entry_type UNINDEXED,
+                    content,
+                    tokenize='porter unicode61',
+                    content_rowid='entry_id'
+                )
+            """)
+            
+            # Populate FTS table with existing journal entries
+            cursor.execute("""
+                INSERT INTO journal_search(entry_id, entry_date, entry_type, content)
+                SELECT id, entry_date, entry_type, content
+                FROM journal_entries
+                WHERE content IS NOT NULL
+            """)
+            
+            # Create triggers to keep FTS table in sync
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS journal_search_insert 
+                AFTER INSERT ON journal_entries
+                BEGIN
+                    INSERT INTO journal_search(entry_id, entry_date, entry_type, content)
+                    VALUES (NEW.id, NEW.entry_date, NEW.entry_type, NEW.content);
+                END
+            """)
+            
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS journal_search_update 
+                AFTER UPDATE ON journal_entries
+                BEGIN
+                    UPDATE journal_search 
+                    SET content = NEW.content,
+                        entry_date = NEW.entry_date,
+                        entry_type = NEW.entry_type
+                    WHERE entry_id = NEW.id;
+                END
+            """)
+            
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS journal_search_delete 
+                AFTER DELETE ON journal_entries
+                BEGIN
+                    DELETE FROM journal_search WHERE entry_id = OLD.id;
+                END
+            """)
+            
+            # Create search_history table for tracking searches
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS search_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    query TEXT NOT NULL,
+                    result_count INTEGER,
+                    clicked_result_id INTEGER,
+                    searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create indexes for search_history
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_search_history_query ON search_history(query)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_search_history_date ON search_history(searched_at DESC)")
+            
+            # Record migration
+            cursor.execute("INSERT INTO schema_migrations (version) VALUES (8)")
+            logger.info("Migration 8 applied successfully")
     
     def execute_query(self, query: str, params: Optional[tuple] = None) -> List[sqlite3.Row]:
         """Execute SELECT query and return all matching rows.
