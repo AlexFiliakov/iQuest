@@ -194,6 +194,54 @@ class AnomalyAlertCard(QFrame):
         # Add stretch to push items to top
         self.content_layout.addStretch()
         
+    def show_loading(self):
+        """Show a loading state in the card."""
+        # Clear existing content
+        while self.content_layout.count():
+            child = self.content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        # Add loading message
+        loading_label = QLabel("Analyzing for unusual patterns...")
+        loading_label.setStyleSheet(f"""
+            QLabel {{
+                color: {self.COLORS['text_secondary']};
+                font-size: 14px;
+                font-style: italic;
+                padding: 20px;
+            }}
+        """)
+        loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(loading_label)
+        
+        # Hide count
+        self.count_label.hide()
+        
+    def show_error(self, error_message: str):
+        """Show an error state in the card."""
+        # Clear existing content
+        while self.content_layout.count():
+            child = self.content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        # Add error message
+        error_label = QLabel(f"Error analyzing patterns: {error_message}")
+        error_label.setStyleSheet(f"""
+            QLabel {{
+                color: {self.COLORS['alert_high']};
+                font-size: 14px;
+                padding: 20px;
+            }}
+        """)
+        error_label.setWordWrap(True)
+        error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(error_label)
+        
+        # Hide count
+        self.count_label.hide()
+        
     def create_alert_item(self, anomaly: Dict[str, Any]) -> QFrame:
         """Create a widget for displaying a single anomaly alert."""
         alert_frame = QFrame()

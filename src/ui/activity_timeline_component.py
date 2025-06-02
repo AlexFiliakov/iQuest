@@ -41,6 +41,7 @@ from sklearn.preprocessing import StandardScaler
 
 from .comparison_overlay_widget import ComparisonOverlayWidget
 from .timeline_insights_panel import TimelineInsightsPanel
+from ..analytics.timeline_analytics_worker import TimelineAnalyticsWorker
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
@@ -97,6 +98,17 @@ class ActivityTimelineComponent(QWidget):
         # Comparison overlays
         self.comparison_overlays_enabled = True
         self.overlay_widget = None
+        
+        # Background analytics worker
+        self.analytics_worker = TimelineAnalyticsWorker()
+        self.analytics_worker.progress_updated.connect(self.on_analytics_progress)
+        self.analytics_worker.insights_ready.connect(self.on_insights_ready)
+        self.analytics_worker.error_occurred.connect(self.on_analytics_error)
+        self.analytics_worker.finished.connect(self.on_analytics_finished)
+        
+        # Progress tracking
+        self.is_processing = False
+        self.current_date = None
         
         # Initialize grouped_data attribute
         self.grouped_data = None
@@ -178,6 +190,19 @@ class ActivityTimelineComponent(QWidget):
         options_layout.addWidget(self.overlays_check)
         
         options_layout.addStretch()
+        
+        # Progress indicator
+        self.progress_label = QLabel("", self)
+        self.progress_label.setStyleSheet("""
+            QLabel {
+                color: #FF8C42;
+                font-style: italic;
+                padding: 0 10px;
+            }
+        """)
+        self.progress_label.setVisible(False)
+        options_layout.addWidget(self.progress_label)
+        
         layout.addLayout(options_layout)
         
         # Main visualization area
@@ -237,14 +262,16 @@ class ActivityTimelineComponent(QWidget):
         """Handle time grouping changes."""
         groupings = [15, 30, 60]
         self.time_grouping = groupings[index]
-        self.process_data()
+        # Re-process data with new grouping
+        if self.data is not None:
+            self.update_data(self.data, self.selected_metrics)
         
     def on_clustering_toggled(self, state: int):
         """Toggle ML clustering."""
         self.clustering_enabled = state == Qt.CheckState.Checked.value
-        if self.clustering_enabled and self.data is not None:
-            self.perform_clustering()
-        self.viz_widget.update()
+        # Analytics will be applied based on this setting in the worker
+        if hasattr(self, 'viz_widget') and self.viz_widget:
+            self.viz_widget.update()
         
     def on_patterns_toggled(self, state: int):
         """Toggle pattern highlighting."""
@@ -271,31 +298,73 @@ class ActivityTimelineComponent(QWidget):
         """
         self.data = data
         self.selected_metrics = metrics
-        self.process_data()
         
-    def process_data(self):
-        """Process data for visualization."""
+        # Cancel any ongoing analytics
+        if self.analytics_worker.isRunning():
+            self.analytics_worker.cancel()
+            self.analytics_worker.wait()
+            
+        # Store current date for cache key
+        if data is not None and not data.empty:
+            self.current_date = data.index[0].strftime('%Y-%m-%d')
+            
+        # Process data immediately for basic visualization
+        self.update_data_immediate()
+        
+        # Start background analytics
+        self.start_analytics()
+        
+    def update_data_immediate(self):
+        """Process basic data immediately for quick visualization."""
         if self.data is None or self.data.empty:
             return
             
         # Group data by time intervals
         self.grouped_data = self.aggregate_by_time_interval()
         
-        # Detect activity patterns
-        self.detect_activity_patterns()
+        # Reset analytics results
+        self.active_periods = []
+        self.rest_periods = []
+        self.clusters = None
+        self.anomalies = None
+        self.correlations = None
+        self.lagged_correlations = {}
         
-        # Perform clustering if enabled
-        if self.clustering_enabled:
-            self.perform_clustering()
-            
-        # Calculate correlations if enabled
-        if self.show_correlations:
-            self.calculate_correlations()
-            
-        # Update visualization
+        # Update visualization with basic data
         if hasattr(self, 'viz_widget') and self.viz_widget:
             self.viz_widget.update()
-        self.update_info_panel()
+            
+        # Show loading state in insights panel
+        if hasattr(self, 'insights_panel'):
+            self.insights_panel.show_loading_state()
+            
+    def start_analytics(self):
+        """Start background analytics processing."""
+        if self.grouped_data is None or self.grouped_data.empty:
+            return
+            
+        # Set processing flag
+        self.is_processing = True
+        
+        # Show progress indicator
+        if hasattr(self, 'progress_label'):
+            self.progress_label.setText("Analyzing...")
+            self.progress_label.setVisible(True)
+            
+        # Configure worker with data
+        self.analytics_worker.set_data(
+            self.grouped_data,
+            self.selected_metrics,
+            self.current_date or datetime.now().strftime('%Y-%m-%d')
+        )
+        
+        # Start background processing
+        self.analytics_worker.start()
+        
+    def process_data(self):
+        """Legacy method for compatibility - redirects to new implementation."""
+        self.update_data_immediate()
+        self.start_analytics()
         
     def aggregate_by_time_interval(self) -> pd.DataFrame:
         """Aggregate data by the selected time interval."""
@@ -498,6 +567,75 @@ class ActivityTimelineComponent(QWidget):
         elif insight_type == 'heatmap':
             # Could zoom to specific time period
             pass
+            
+    def on_analytics_progress(self, percentage: int, message: str):
+        """Handle progress updates from analytics worker."""
+        if hasattr(self, 'progress_label'):
+            self.progress_label.setText(f"{message} ({percentage}%)")
+            
+    def on_insights_ready(self, insight_type: str, data: dict):
+        """Handle progressive insights from analytics worker."""
+        if insight_type == "patterns":
+            self.active_periods = data.get("active_periods", [])
+            self.rest_periods = data.get("rest_periods", [])
+            
+        elif insight_type == "clustering":
+            clusters = data.get("clusters")
+            anomalies = data.get("anomalies")
+            if clusters is not None:
+                self.clusters = np.array(clusters) if isinstance(clusters, list) else clusters
+            if anomalies is not None:
+                self.anomalies = np.array(anomalies) if isinstance(anomalies, list) else anomalies
+                
+        elif insight_type == "correlations":
+            corr_data = data.get("correlations")
+            if corr_data is not None:
+                self.correlations = pd.DataFrame(corr_data)
+            self.lagged_correlations = data.get("lagged_correlations", {})
+            
+        # Update visualizations progressively
+        if hasattr(self, 'viz_widget') and self.viz_widget:
+            self.viz_widget.update()
+            
+        # Update insights panel progressively
+        if hasattr(self, 'insights_panel'):
+            self.insights_panel.update_insights(
+                self.clusters,
+                self.anomalies,
+                self.grouped_data,
+                self.selected_metrics
+            )
+            
+    def on_analytics_error(self, error_message: str):
+        """Handle analytics processing errors."""
+        self.logger.error(f"Analytics error: {error_message}")
+        self.is_processing = False
+        
+        # Hide progress indicator
+        if hasattr(self, 'progress_label'):
+            self.progress_label.setVisible(False)
+            
+        # Show error state in insights panel
+        if hasattr(self, 'insights_panel'):
+            self.insights_panel.show_error_state(error_message)
+            
+    def on_analytics_finished(self):
+        """Handle analytics processing completion."""
+        self.is_processing = False
+        
+        # Hide progress indicator
+        if hasattr(self, 'progress_label'):
+            self.progress_label.setVisible(False)
+            
+        self.logger.info("Analytics processing completed")
+            
+    def __del__(self):
+        """Clean up resources when widget is destroyed."""
+        # Stop and clean up worker thread
+        if hasattr(self, 'analytics_worker'):
+            if self.analytics_worker.isRunning():
+                self.analytics_worker.cancel()
+                self.analytics_worker.wait()
 
 
 class TimelineVisualizationWidget(QWidget):

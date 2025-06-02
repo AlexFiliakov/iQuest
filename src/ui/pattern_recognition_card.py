@@ -159,6 +159,48 @@ class PatternRecognitionCard(QFrame):
             pattern_item = self.create_pattern_item(pattern, i == 0)
             self.content_layout.addWidget(pattern_item)
             
+    def show_loading(self):
+        """Show a loading state in the card."""
+        # Clear existing content
+        while self.content_layout.count():
+            child = self.content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        # Add loading message
+        loading_label = QLabel("Discovering your activity patterns...")
+        loading_label.setStyleSheet(f"""
+            QLabel {{
+                color: {self.COLORS['text_secondary']};
+                font-size: 14px;
+                font-style: italic;
+                padding: 20px;
+            }}
+        """)
+        loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(loading_label)
+        
+    def show_error(self, error_message: str):
+        """Show an error state in the card."""
+        # Clear existing content
+        while self.content_layout.count():
+            child = self.content_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+                
+        # Add error message
+        error_label = QLabel(f"Error analyzing patterns: {error_message}")
+        error_label.setStyleSheet(f"""
+            QLabel {{
+                color: #FF6B6B;
+                font-size: 14px;
+                padding: 20px;
+            }}
+        """)
+        error_label.setWordWrap(True)
+        error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(error_label)
+            
     def create_pattern_item(self, pattern: Dict[str, Any], is_primary: bool = False) -> QFrame:
         """Create a widget for displaying a single pattern."""
         item_frame = QFrame()

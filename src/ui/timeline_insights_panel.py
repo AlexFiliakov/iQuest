@@ -165,6 +165,34 @@ class TimelineInsightsPanel(QWidget):
         if hasattr(self, 'heatmap_widget'):
             self.update_heatmap_data()
             
+    def show_loading_state(self):
+        """Show loading indicators in all insight cards."""
+        # Show loading in pattern card
+        if hasattr(self, 'pattern_card'):
+            self.pattern_card.show_loading()
+            
+        # Show loading in anomaly card
+        if hasattr(self, 'anomaly_card'):
+            self.anomaly_card.show_loading()
+            
+        # Show loading in heatmap
+        if hasattr(self, 'heatmap_widget'):
+            self.heatmap_widget.show_loading()
+            
+    def show_error_state(self, error_message: str):
+        """Show error state in all insight cards."""
+        # Show error in pattern card
+        if hasattr(self, 'pattern_card'):
+            self.pattern_card.show_error(error_message)
+            
+        # Show error in anomaly card
+        if hasattr(self, 'anomaly_card'):
+            self.anomaly_card.show_error(error_message)
+            
+        # Show error in heatmap
+        if hasattr(self, 'heatmap_widget'):
+            self.heatmap_widget.show_error(error_message)
+            
     def update_pattern_insights(self):
         """Transform cluster data into user-friendly pattern insights."""
         if self.clusters is None or self.grouped_data is None:

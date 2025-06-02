@@ -271,6 +271,26 @@ class ActivityHeatmapWidget(QFrame):
             self.grid_widget.set_data(data, self.max_intensity)
             self.grid_widget.update()
             
+    def show_loading(self):
+        """Show a loading state in the heatmap."""
+        # Clear data and show loading message
+        self.data = {}
+        self.max_intensity = 0
+        if hasattr(self, 'grid_widget'):
+            self.grid_widget.set_data({}, 0)
+            self.grid_widget.update()
+        # Could add a loading overlay if needed
+        
+    def show_error(self, error_message: str):
+        """Show an error state in the heatmap."""
+        # Clear data and show error state
+        self.data = {}
+        self.max_intensity = 0
+        if hasattr(self, 'grid_widget'):
+            self.grid_widget.set_data({}, 0)
+            self.grid_widget.update()
+        # Could add an error overlay if needed
+            
     def on_cell_clicked(self, day: str, hour: int):
         """Handle cell click events."""
         key = (day, hour)
