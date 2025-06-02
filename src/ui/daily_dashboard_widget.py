@@ -536,18 +536,18 @@ class DailyDashboardWidget(QWidget):
         self.date_label.setStyleSheet("color: #5D4E37;")
         date_display_layout.addWidget(self.date_label)
         
-        # Subtitle showing relative date
-        relative_text = self._get_relative_date_text()
-        self.relative_date_label = QLabel(relative_text)
-        self.relative_date_label.setFont(QFont('Poppins', 12))
-        self.relative_date_label.setStyleSheet("color: #8B7355;")
-        date_display_layout.addWidget(self.relative_date_label)
+        # # Subtitle showing relative date
+        # relative_text = self._get_relative_date_text()
+        # self.relative_date_label = QLabel(relative_text)
+        # self.relative_date_label.setFont(QFont('Poppins', 12))
+        # self.relative_date_label.setStyleSheet("color: #8B7355;")
+        # date_display_layout.addWidget(self.relative_date_label)
         
         layout.addLayout(date_display_layout)
         layout.addStretch()
         
         # Today button
-        self.today_btn = QPushButton("Today")
+        self.today_btn = QPushButton("Go to Today")
         self.today_btn.setFixedSize(100, 40)
         self.today_btn.setStyleSheet("""
             QPushButton {
@@ -2060,7 +2060,7 @@ class DailyDashboardWidget(QWidget):
         date_str = self._current_date.strftime("%B %d, %Y")
         if self._current_date == date.today():
             self.no_data_message.setText("No Data for Today")
-            self.no_data_date.setText("Start recording activities and they'll appear here automatically.\n\nUse the navigation controls above to view other days.")
+            self.no_data_date.setText("Start importing activities and they'll appear here automatically.\n\nUse the navigation controls above to view other days.")
         else:
             self.no_data_message.setText("No Data Available")
             self.no_data_date.setText(f"No health data was recorded on {date_str}.\n\nUse the navigation controls above to view other days.")
