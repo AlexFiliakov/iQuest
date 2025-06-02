@@ -1,14 +1,26 @@
 Collecting PyQt6
-  Downloading PyQt6-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl.metadata (2.1 kB)
+  Using cached PyQt6-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl.metadata (2.1 kB)
+Collecting pandas
+  Using cached pandas-2.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (89 kB)
+Collecting numpy
+  Using cached numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)
+Collecting python-dateutil
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
 Collecting PyQt6-sip<14,>=13.8 (from PyQt6)
-  Downloading pyqt6_sip-13.10.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.whl.metadata (494 bytes)
+  Using cached pyqt6_sip-13.10.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.whl.metadata (494 bytes)
 Collecting PyQt6-Qt6<6.10.0,>=6.9.0 (from PyQt6)
-  Downloading PyQt6_Qt6-6.9.0-py3-none-manylinux_2_28_x86_64.whl.metadata (534 bytes)
-Downloading PyQt6-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl (8.3 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 5.7 MB/s eta 0:00:00
-Downloading PyQt6_Qt6-6.9.0-py3-none-manylinux_2_28_x86_64.whl (81.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 81.8/81.8 MB 19.7 MB/s eta 0:00:00
-Downloading pyqt6_sip-13.10.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.whl (304 kB)
-Installing collected packages: PyQt6-Qt6, PyQt6-sip, PyQt6
-
-Successfully installed PyQt6-6.9.0 PyQt6-Qt6-6.9.0 PyQt6-sip-13.10.2
+  Using cached PyQt6_Qt6-6.9.0-py3-none-manylinux_2_28_x86_64.whl.metadata (534 bytes)
+Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.12/site-packages (from pandas) (2025.2)
+Collecting tzdata>=2022.7 (from pandas)
+  Using cached tzdata-2025.2-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting six>=1.5 (from python-dateutil)
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Using cached PyQt6-6.9.0-cp39-abi3-manylinux_2_28_x86_64.whl (8.3 MB)
+Using cached pandas-2.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (12.7 MB)
+Using cached numpy-2.2.6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.5 MB)
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Using cached PyQt6_Qt6-6.9.0-py3-none-manylinux_2_28_x86_64.whl (81.8 MB)
+Using cached pyqt6_sip-13.10.2-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.whl (304 kB)
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Using cached tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+Installing collected packages: PyQt6-Qt6, tzdata, six, PyQt6-sip, numpy, python-dateutil, PyQt6, pandas

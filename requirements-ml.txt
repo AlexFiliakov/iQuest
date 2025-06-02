@@ -1,13 +1,33 @@
 # Optional ML dependencies for advanced features
 # Install with: pip install -r requirements-ml.txt
 
-# TensorFlow for LSTM temporal anomaly detection
-tensorflow>=2.12.0
+# Include base requirements
+-r requirements.txt
+
+# Deep learning framework for temporal anomaly detection
+tensorflow>=2.14.0
+tensorboard>=2.14.0
 
 # Alternative: PyTorch (uncomment if preferred over TensorFlow)
-# torch>=2.0.0
-# torchvision>=0.15.0
+# torch>=2.1.0
+# torchvision>=0.16.0
+# torchaudio>=2.1.0
 
-# Additional ML utilities
-joblib>=1.2.0  # For model serialization
-tensorboard>=2.12.0  # For training visualization
+# Advanced machine learning utilities
+joblib>=1.3.0  # Model serialization
+optuna>=3.3.0  # Hyperparameter optimization
+lightgbm>=4.1.0  # Gradient boosting
+xgboost>=2.0.0  # Gradient boosting alternative
+
+# Deep learning utilities
+keras-tuner>=1.4.0  # Neural architecture search
+tensorflow-addons>=0.21.0  # Additional layers and optimizers
+
+# Model interpretation and visualization
+lime>=0.2.0  # Local interpretable model explanations
+yellowbrick>=1.5  # Machine learning visualization
+
+# Additional data processing for ML
+imbalanced-learn>=0.11.0  # Handle imbalanced datasets
+feature-engine>=1.6.0  # Feature engineering
+tslearn>=0.6.0  # Time series specific ML algorithms
