@@ -11,6 +11,7 @@ pytest-cov>=4.1.0
 hypothesis>=6.0.0
 
 # Pytest plugins
+pytest-asyncio>=0.21.0  # Async test support
 pytest-benchmark>=4.0.0
 pytest-timeout>=2.2.0
 pytest-mock>=3.11.0
@@ -19,6 +20,7 @@ pytest-html>=3.2.0
 pytest-mpl>=0.16.0
 pytest-random-order>=1.1.0
 pytest-reverse>=1.8.0
+pytest-rerunfailures>=12.0  # Retry flaky tests
 
 # Test data generation
 faker>=18.0.0
@@ -28,7 +30,7 @@ memory-profiler>=0.61.0
 py-spy>=0.3.14
 
 # Visual regression testing
-pillow>=10.0.0
+# Note: Pillow is already in requirements.txt
 scikit-image>=0.21.0
 imagehash>=4.3.0
 opencv-python>=4.8.0
@@ -39,9 +41,12 @@ ruff>=0.1.0
 mypy>=1.5.0
 coverage>=7.3.0
 
+# Type stubs for better mypy support
+types-python-dateutil>=2.8.0
+pandas-stubs>=2.0.0
+
 # Platform detection (optional)
 distro>=1.8.0 ; sys_platform == 'linux'
 
 # Accessibility testing (optional)
 axe-selenium-python>=2.1.0
-pytest-accessibility>=0.2.0
