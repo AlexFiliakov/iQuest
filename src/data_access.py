@@ -372,6 +372,34 @@ class JournalDAO:
         except Exception as e:
             logger.error(f"Error deleting journal entry: {e}")
             raise
+    
+    @staticmethod
+    def get_all_journal_entries() -> List[JournalEntry]:
+        """Retrieve all journal entries from the database.
+        
+        Fetches all journal entries without any date or type filtering,
+        ordered by date in descending order (most recent first).
+        
+        Returns:
+            List[JournalEntry]: List of all journal entries in the database,
+                ordered by date descending.
+                
+        Example:
+            >>> # Get all entries for export
+            >>> all_entries = JournalDAO.get_all_journal_entries()
+            >>> print(f"Total entries: {len(all_entries)}")
+        """
+        query = """
+            SELECT * FROM journal_entries 
+            ORDER BY entry_date DESC
+        """
+        
+        try:
+            results = DatabaseManager().execute_query(query)
+            return [JournalEntry.from_dict(dict(row)) for row in results]
+        except Exception as e:
+            logger.error(f"Error retrieving all journal entries: {e}")
+            return []
 
 
 class PreferenceDAO:

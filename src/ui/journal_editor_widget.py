@@ -63,6 +63,7 @@ from .toast_notification import ToastNotification
 from .conflict_resolution_dialog import ConflictResolutionDialog
 from .auto_save_manager import AutoSaveManager
 from .save_status_indicator import SaveStatusIndicator
+from .journal_export_dialog import JournalExportDialog
 
 logger = get_logger(__name__)
 
@@ -368,6 +369,12 @@ class JournalEditorWidget(QWidget):
         toolbar.addAction(underline_action)
         
         toolbar.addSeparator()
+        
+        # Export action
+        export_action = QAction("Export", self)
+        export_action.setShortcut(QKeySequence("Ctrl+E"))
+        export_action.triggered.connect(self.export_entries)
+        toolbar.addAction(export_action)
         
         # Delete action
         delete_action = QAction("Delete", self)
@@ -708,10 +715,9 @@ class JournalEditorWidget(QWidget):
             # Proceed with deletion
             self._perform_deletion()
         elif clicked_button == export_btn:
-            # Export entry first (to be implemented in export task)
-            toast = ToastNotification.info("Export functionality will be available soon", self)
-            toast.show()
-            # Could still show delete option after export
+            # Export entry first
+            self.export_entries()
+            # User can delete after export if desired
         # else: cancelled, do nothing
         
     def _perform_deletion(self):
@@ -745,6 +751,49 @@ class JournalEditorWidget(QWidget):
             # Emit signal if we have an entry ID
             if self.current_entry and self.current_entry.id:
                 self.entry_deleted.emit(self.current_entry.id)
+    
+    def export_entries(self):
+        """Open the export dialog to export journal entries.
+        
+        Shows the journal export dialog which allows users to select
+        export format (JSON/PDF), date range, and export options.
+        """
+        try:
+            # Check if we need to save current changes first
+            if self.is_modified:
+                reply = QMessageBox.question(
+                    self,
+                    "Save Changes?",
+                    "You have unsaved changes. Would you like to save them before exporting?",
+                    QMessageBox.StandardButton.Save | 
+                    QMessageBox.StandardButton.Discard | 
+                    QMessageBox.StandardButton.Cancel
+                )
+                
+                if reply == QMessageBox.StandardButton.Save:
+                    self.save_entry()
+                elif reply == QMessageBox.StandardButton.Cancel:
+                    return
+                    
+            # Open export dialog
+            dialog = JournalExportDialog(self)
+            
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                # Export completed successfully
+                if dialog.export_result:
+                    toast = ToastNotification.success(
+                        f"Successfully exported {dialog.export_result.entries_exported} entries",
+                        self
+                    )
+                    toast.show()
+                    
+        except Exception as e:
+            logger.error(f"Error opening export dialog: {e}")
+            QMessageBox.critical(
+                self,
+                "Export Error",
+                f"Failed to open export dialog: {str(e)}"
+            )
                 
     def on_text_changed(self):
         """Handle text changes in the editor with character limit enforcement."""
