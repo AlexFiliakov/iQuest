@@ -467,7 +467,12 @@ class LineChart(QWidget):
         # X-axis labels
         if self.data_points:
             x_steps = min(len(self.data_points) - 1, 10)
-            for i in range(0, len(self.data_points), max(1, len(self.data_points) // x_steps)):
+            if x_steps == 0:
+                # Only one data point, just draw it
+                step = 1
+            else:
+                step = max(1, len(self.data_points) // x_steps)
+            for i in range(0, len(self.data_points), step):
                 x = self._map_x(i, chart_rect)
                 
                 if 'label' in self.data_points[i]:
@@ -741,7 +746,12 @@ class LineChart(QWidget):
         # X-axis labels
         if self.data_points:
             x_steps = min(len(self.data_points) - 1, 10)
-            for i in range(0, len(self.data_points), max(1, len(self.data_points) // x_steps)):
+            if x_steps == 0:
+                # Only one data point, just draw it
+                step = 1
+            else:
+                step = max(1, len(self.data_points) // x_steps)
+            for i in range(0, len(self.data_points), step):
                 x = self._map_x_for_rect(i, chart_rect)
                 
                 if 'label' in self.data_points[i]:
