@@ -199,6 +199,8 @@ class StyleManager:
     The manager uses a template-based approach where component styles
     are generated dynamically based on the current theme and state.
     
+    This is now a singleton to prevent excessive instantiations.
+    
     Attributes:
         colors: Color palette instance
         typography: Typography settings instance
@@ -206,12 +208,25 @@ class StyleManager:
         _theme: Current theme ('light' or 'dark')
     """
     
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls, theme: str = 'light'):
+        """Implement singleton pattern."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
     def __init__(self, theme: str = 'light'):
         """Initialize the style manager.
         
         Args:
             theme: Theme variant ('light' or 'dark'). Currently only 'light' is implemented.
         """
+        # Only initialize once for singleton
+        if StyleManager._initialized:
+            return
+        StyleManager._initialized = True
         self.colors = ColorPalette()
         self.typography = Typography()
         self.spacing = Spacing()
@@ -298,7 +313,7 @@ class StyleManager:
             'peach': '#F9DCC4',
         }
         
-        logger.info(f"StyleManager initialized with {theme} theme")
+        logger.info(f"StyleManager singleton initialized with {theme} theme")
         
     def get_button_style(self, variant: str = 'primary', state: str = 'normal') -> str:
         """Generate button styles based on variant and state.

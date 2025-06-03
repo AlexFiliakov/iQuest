@@ -514,7 +514,7 @@ class MainWindow(QMainWindow):
             # ("Comparative Analytics", self._create_comparative_analytics_tab),
             # ("Health Insights", self._create_health_insights_tab),
             # ("Trophy Case", self._create_trophy_case_tab),
-            # ("Journal", self._create_journal_tab),
+            # ("Journal", self._create_journal_tab),  # Temporarily disabled due to crash
             # ("Help", self._create_help_tab)
         ]
         
@@ -1155,17 +1155,32 @@ class MainWindow(QMainWindow):
         try:
             logger.info("Journal tab: Starting imports")
             from ..data_access import DataAccess
-            from .journal_tab_widget import JournalTabWidget
-            logger.info("Journal tab: Imports successful")
-
-            # Create a DataAccess instance for the journal tab
-            logger.info("Journal tab: Creating DataAccess instance")
-            data_access = DataAccess()
-            logger.info("Journal tab: DataAccess created successfully")
             
-            logger.info("Journal tab: Creating JournalTabWidget")
-            self.journal_tab = JournalTabWidget(data_access)
-            logger.info("Journal tab: JournalTabWidget created successfully")
+            # First try the minimal version
+            try:
+                logger.info("Journal tab: Importing minimal version")
+                from .journal_tab_minimal import JournalTabMinimal
+                logger.info("Journal tab: Minimal import successful")
+                
+                # Create a DataAccess instance for the journal tab
+                logger.info("Journal tab: Creating DataAccess instance")
+                data_access = DataAccess()
+                logger.info("Journal tab: DataAccess created successfully")
+                
+                logger.info("Journal tab: Creating JournalTabMinimal")
+                self.journal_tab = JournalTabMinimal(data_access)
+                logger.info("Journal tab: JournalTabMinimal created successfully")
+                
+            except Exception as e:
+                logger.error(f"Failed with minimal version: {e}", exc_info=True)
+                # Try the full version
+                logger.info("Journal tab: Trying full JournalTabWidget")
+                from .journal_tab_widget import JournalTabWidget
+                logger.info("Journal tab: Full import successful")
+                
+                logger.info("Journal tab: Creating JournalTabWidget")
+                self.journal_tab = JournalTabWidget(data_access)
+                logger.info("Journal tab: JournalTabWidget created successfully")
             
             self.tab_widget.addTab(self.journal_tab, "Journal")
             self.tab_widget.setTabToolTip(

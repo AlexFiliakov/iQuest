@@ -17,15 +17,20 @@ Example:
 """
 
 import logging
-from typing import Optional
 from datetime import date
+from typing import Optional
 
-from PyQt6.QtCore import Qt, pyqtSignal, QDate
-from PyQt6.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QSplitter,
-    QLabel, QPushButton, QFrame
-)
+from PyQt6.QtCore import QDate, Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
 
 from src.data_access import DataAccess
 from src.ui.journal_editor_widget import JournalEditorWidget
@@ -63,10 +68,15 @@ class JournalTabWidget(QWidget):
             data_access: DataAccess instance for database operations
             parent: Optional parent widget
         """
+        logger.info("Journal tab: call parent constructor")
         super().__init__(parent)
+        logger.info("Journal tab: set data_access")
         self.data_access = data_access
+        logger.info("Journal tab: set StyleManager")
         self.style_manager = StyleManager()
+        logger.info("Journal tab: set up UI")
         self.setup_ui()
+        logger.info("Journal tab: connect signals")
         self.connect_signals()
         
     def setup_ui(self):
@@ -83,23 +93,31 @@ class JournalTabWidget(QWidget):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         
         # Left side - History view
+        logger.info("Journal tab: initializing history view")
         left_container = QWidget()
         left_layout = QVBoxLayout(left_container)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(0)
+        logger.info("Journal tab: done initializing history view")
         
         # Search widget
+        logger.info("Journal tab: initializing search widget")
         self.search_widget = JournalSearchWidget()
+        logger.info("Journal tab: done initializing search widget")
         left_layout.addWidget(self.search_widget)
         
         # History widget
+        logger.info("Journal tab: initializing history widget")
         self.history_widget = JournalHistoryWidget(self.data_access)
+        logger.info("Journal tab: done initializing history widget")
         left_layout.addWidget(self.history_widget, 1)
         
         splitter.addWidget(left_container)
         
         # Right side - Editor
+        logger.info("Journal tab: initializing editor")
         self.journal_editor = JournalEditorWidget(self.data_access)
+        logger.info("Journal tab: done initializing editor")
         splitter.addWidget(self.journal_editor)
         
         # Set splitter sizes (40% history, 60% editor)
