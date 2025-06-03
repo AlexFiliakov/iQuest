@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Health Monitor Dashboard - Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .doc-card {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .doc-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .doc-card h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+        .doc-card p {
+            color: #666;
+            margin: 10px 0;
+        }
+        .doc-links {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0 0;
+        }
+        .doc-links li {
+            margin: 8px 0;
+        }
+        .doc-links a {
+            color: #3498db;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+        }
+        .doc-links a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        .doc-links a::before {
+            content: "📄";
+            margin-right: 8px;
+        }
+        .quick-start {
+            background-color: #3498db;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .quick-start h2 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+        .quick-start a {
+            color: white;
+            background-color: #2980b9;
+            padding: 10px 25px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+        .quick-start a:hover {
+            background-color: #21618c;
+        }
+        .support-section {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .support-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .support-links a {
+            color: #3498db;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .support-links a:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        .version-info {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Apple Health Monitor Dashboard</h1>
+        <p class="subtitle">Complete Documentation Library</p>
+    </div>
+
+    <div class="quick-start">
+        <h2>New to Apple Health Monitor?</h2>
+        <p>Get up and running in just 5 minutes!</p>
+        <a href="QUICK_START_GUIDE.html">Start Here →</a>
+    </div>
+
+    <div class="doc-grid">
+        <div class="doc-card">
+            <h2>📚 Getting Started</h2>
+            <p>Everything you need to begin your health analytics journey.</p>
+            <ul class="doc-links">
+                <li><a href="QUICK_START_GUIDE.html">Quick Start Guide (5 minutes)</a></li>
+                <li><a href="INSTALLATION_GUIDE.html">Detailed Installation Guide</a></li>
+                <li><a href="getting-started.html">First Steps Tutorial</a></li>
+            </ul>
+        </div>
+
+        <div class="doc-card">
+            <h2>📖 User Guides</h2>
+            <p>Comprehensive guides to master every feature.</p>
+            <ul class="doc-links">
+                <li><a href="USER_GUIDE.html">Complete User Guide</a></li>
+                <li><a href="FEATURES_OVERVIEW.html">Features Overview</a></li>
+                <li><a href="journal_guide.html">Journal Feature Guide</a></li>
+            </ul>
+        </div>
+
+        <div class="doc-card">
+            <h2>🔧 Reference</h2>
+            <p>Technical documentation and troubleshooting.</p>
+            <ul class="doc-links">
+                <li><a href="TROUBLESHOOTING_GUIDE.html">Troubleshooting Guide</a></li>
+                <li><a href="analytics-overview.html">Analytics Reference</a></li>
+                <li><a href="data-import.html">Data Import Details</a></li>
+            </ul>
+        </div>
+
+        <div class="doc-card">
+            <h2>💼 Enterprise</h2>
+            <p>Documentation for IT administrators.</p>
+            <ul class="doc-links">
+                <li><a href="INSTALLATION_GUIDE.html#method-3-msi-package-enterprise">MSI Deployment</a></li>
+                <li><a href="INSTALLATION_GUIDE.html#silent-installation">Silent Installation</a></li>
+                <li><a href="INSTALLATION_GUIDE.html#custom-configuration">Configuration Management</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="support-section">
+        <h2>Need Help?</h2>
+        <p>We're here to support your health analytics journey.</p>
+        <div class="support-links">
+            <a href="https://forum.example.com">Community Forum</a>
+            <a href="mailto:support@example.com">Email Support</a>
+            <a href="TROUBLESHOOTING_GUIDE.html">Troubleshooting</a>
+            <a href="USER_GUIDE.html#keyboard-shortcuts">Keyboard Shortcuts</a>
+        </div>
+    </div>
+
+    <div class="version-info">
+        <p><strong>Version 1.0.0</strong> | Last Updated: June 2025</p>
+        <p>© 2025 Apple Health Monitor Dashboard. All rights reserved.</p>
+    </div>
+</body>
+</html>
