@@ -2,6 +2,11 @@
 """
 Build script for Apple Health Monitor Dashboard
 Creates Windows executable using PyInstaller
+
+Supports multiple distribution formats:
+- Standalone executable
+- NSIS installer
+- Portable ZIP package
 """
 
 import os
@@ -10,47 +15,207 @@ import subprocess
 import shutil
 from pathlib import Path
 import argparse
+import json
+import zipfile
+import datetime
+import logging
+from typing import Dict, Optional, List
+
+# Set up logging
+def setup_logging(log_dir: Path = None):
+    """Set up logging configuration."""
+    if log_dir is None:
+        log_dir = Path('build/logs')
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+    log_file = log_dir / f'build-{timestamp}.log'
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+    return logging.getLogger(__name__)
+
+def load_build_config() -> Dict:
+    """Load build configuration from build_config.json."""
+    config_file = Path('build_config.json')
+    if config_file.exists():
+        with open(config_file, 'r') as f:
+            return json.load(f)
+    
+    # Default configuration
+    return {
+        "app_name": "HealthMonitor",
+        "app_display_name": "Apple Health Monitor",
+        "icon": "assets/icon.ico",
+        "upx_enabled": True,
+        "upx_level": "--best",
+        "hidden_imports": [
+            "PyQt6.QtPrintSupport",
+            "matplotlib.backends.backend_qt5agg",
+            "pandas._libs.tslibs.parsing"
+        ],
+        "excludes": [
+            "tkinter",
+            "unittest",
+            "pip",
+            "setuptools"
+        ],
+        "nsis_template": "installer.nsi",
+        "output_formats": ["exe", "zip", "installer"]
+    }
+
+def extract_version() -> str:
+    """Extract version from src/version.py."""
+    version_file = Path('src/version.py')
+    if not version_file.exists():
+        return "0.1.0"  # Default version
+    
+    with open(version_file, 'r') as f:
+        for line in f:
+            if line.startswith('__version__'):
+                return line.split('=')[1].strip().strip('"\'')
+    
+    return "0.1.0"
 
 def clean_build_artifacts():
     """Remove previous build artifacts."""
-    print("Cleaning previous build artifacts...")
+    logger = logging.getLogger(__name__)
+    logger.info("Cleaning previous build artifacts...")
     
-    dirs_to_remove = ['build', 'dist', '__pycache__']
+    dirs_to_remove = ['build/dist', 'build/work', 'dist', '__pycache__']
     for dir_name in dirs_to_remove:
         if os.path.exists(dir_name):
-            print(f"  Removing {dir_name}/")
+            logger.info(f"  Removing {dir_name}/")
             shutil.rmtree(dir_name)
     
     # Remove .spec file if it exists (we'll use our custom one)
     spec_files = [f for f in os.listdir('.') if f.endswith('.spec') and f != 'pyinstaller.spec']
     for spec_file in spec_files:
-        print(f"  Removing {spec_file}")
+        logger.info(f"  Removing {spec_file}")
         os.remove(spec_file)
 
-def check_dependencies():
+def check_dependencies() -> bool:
     """Check if required dependencies are installed."""
-    print("Checking dependencies...")
+    logger = logging.getLogger(__name__)
+    logger.info("Checking dependencies...")
     
-    required_packages = ['PyInstaller', 'PyQt6', 'pandas', 'matplotlib']
+    required_packages = ['PyInstaller', 'PyQt6', 'pandas', 'matplotlib', 'sqlalchemy']
     missing_packages = []
     
     for package in required_packages:
         try:
             __import__(package.lower().replace('-', '_'))
-            print(f"  ✓ {package} is installed")
+            logger.info(f"  ✓ {package} is installed")
         except ImportError:
-            print(f"  ✗ {package} is NOT installed")
+            logger.error(f"  ✗ {package} is NOT installed")
             missing_packages.append(package)
     
     if missing_packages:
-        print("\nError: Missing required packages:")
-        print(f"Please install them with: pip install {' '.join(missing_packages)}")
+        logger.error("Error: Missing required packages:")
+        logger.error(f"Please install them with: pip install {' '.join(missing_packages)}")
         return False
     
     return True
 
-def build_executable(debug=False, clean=True):
+def check_build_tools() -> Dict[str, bool]:
+    """Check for optional build tools."""
+    logger = logging.getLogger(__name__)
+    tools = {}
+    
+    # Check for UPX
+    try:
+        result = subprocess.run(['upx', '--version'], capture_output=True, text=True)
+        tools['upx'] = result.returncode == 0
+        if tools['upx']:
+            logger.info("  ✓ UPX is available")
+        else:
+            logger.warning("  ✗ UPX not found - compression will be skipped")
+    except FileNotFoundError:
+        tools['upx'] = False
+        logger.warning("  ✗ UPX not found - compression will be skipped")
+    
+    # Check for NSIS
+    try:
+        result = subprocess.run(['makensis', '/VERSION'], capture_output=True, text=True)
+        tools['nsis'] = result.returncode == 0
+        if tools['nsis']:
+            logger.info("  ✓ NSIS is available")
+        else:
+            logger.warning("  ✗ NSIS not found - installer creation will be skipped")
+    except FileNotFoundError:
+        tools['nsis'] = False
+        logger.warning("  ✗ NSIS not found - installer creation will be skipped")
+    
+    return tools
+
+def create_version_info_file(version: str, config: Dict) -> Path:
+    """Create version info file for Windows executable."""
+    logger = logging.getLogger(__name__)
+    version_parts = version.split('.')
+    if len(version_parts) < 4:
+        version_parts.extend(['0'] * (4 - len(version_parts)))
+    
+    version_info_content = f"""# UTF-8
+#
+# For more details about fixed file info 'ffi' see:
+# http://msdn.microsoft.com/en-us/library/ms646997.aspx
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
+    # Set not needed items to zero 0.
+    filevers=({', '.join(version_parts)}),
+    prodvers=({', '.join(version_parts)}),
+    # Contains a bitmask that specifies the valid bits 'flags'r
+    mask=0x3f,
+    # Contains a bitmask that specifies the Boolean attributes of the file.
+    flags=0x0,
+    # The operating system for which this file was designed.
+    # 0x4 - NT and there is no need to change it.
+    OS=0x40004,
+    # The general type of file.
+    # 0x1 - the file is an application.
+    fileType=0x1,
+    # The function of the file.
+    # 0x0 - the function is not defined for this fileType
+    subtype=0x0,
+    # Creation date and time stamp.
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u'Apple Health Monitor'),
+        StringStruct(u'FileDescription', u'{config["app_display_name"]}'),
+        StringStruct(u'FileVersion', u'{version}'),
+        StringStruct(u'InternalName', u'{config["app_name"]}'),
+        StringStruct(u'LegalCopyright', u'Copyright (C) {datetime.datetime.now().year}'),
+        StringStruct(u'OriginalFilename', u'{config["app_name"]}.exe'),
+        StringStruct(u'ProductName', u'{config["app_display_name"]}'),
+        StringStruct(u'ProductVersion', u'{version}')])
+      ]), 
+    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+  ]
+)"""
+    
+    version_file = Path('version_info.txt')
+    with open(version_file, 'w', encoding='utf-8') as f:
+        f.write(version_info_content)
+    
+    logger.info(f"Created version info file: {version_file}")
+    return version_file
+
+def build_executable(config: Dict, version: str, build_type: str = 'release', 
+                    debug: bool = False, clean: bool = True) -> bool:
     """Build the executable using PyInstaller."""
+    logger = logging.getLogger(__name__)
     
     if clean:
         clean_build_artifacts()
@@ -58,15 +223,55 @@ def build_executable(debug=False, clean=True):
     if not check_dependencies():
         return False
     
-    print("\nBuilding executable with PyInstaller...")
+    # Create build directories
+    build_dir = Path('build')
+    dist_dir = build_dir / 'dist'
+    work_dir = build_dir / 'work'
+    
+    build_dir.mkdir(exist_ok=True)
+    dist_dir.mkdir(exist_ok=True)
+    work_dir.mkdir(exist_ok=True)
+    
+    logger.info(f"\nBuilding {build_type} executable with PyInstaller...")
+    
+    # Create version info file
+    version_info_file = create_version_info_file(version, config)
     
     # Build command
     cmd = [
         sys.executable,
         '-m', 'PyInstaller',
-        'pyinstaller.spec',
         '--noconfirm',  # Don't ask for confirmation
+        '--distpath', str(dist_dir),
+        '--workpath', str(work_dir),
     ]
+    
+    # Use spec file if it exists, otherwise use main.py
+    spec_file = Path('pyinstaller.spec')
+    if spec_file.exists():
+        cmd.append(str(spec_file))
+    else:
+        # Build from main.py with options
+        cmd.extend([
+            'src/main.py',
+            '--name', config['app_name'],
+            '--onedir',  # One directory bundle
+            '--windowed' if build_type == 'release' else '--console',
+            '--version-file', str(version_info_file),
+        ])
+        
+        if config.get('icon'):
+            icon_path = Path(config['icon'])
+            if icon_path.exists():
+                cmd.extend(['--icon', str(icon_path)])
+        
+        # Add hidden imports
+        for hidden_import in config.get('hidden_imports', []):
+            cmd.extend(['--hidden-import', hidden_import])
+        
+        # Add excludes
+        for exclude in config.get('excludes', []):
+            cmd.extend(['--exclude-module', exclude])
     
     if debug:
         cmd.append('--log-level=DEBUG')
@@ -75,36 +280,51 @@ def build_executable(debug=False, clean=True):
         # Run PyInstaller
         result = subprocess.run(cmd, check=True)
         
-        print("\nBuild completed successfully!")
-        print(f"Executable location: dist/HealthMonitor/HealthMonitor.exe")
+        logger.info("\nBuild completed successfully!")
         
-        # Check output size
-        exe_path = Path('dist/HealthMonitor/HealthMonitor.exe')
+        # Apply UPX compression if available and enabled
+        exe_path = dist_dir / config['app_name'] / f"{config['app_name']}.exe"
         if exe_path.exists():
-            size_mb = exe_path.stat().st_size / (1024 * 1024)
-            print(f"Executable size: {size_mb:.1f} MB")
+            original_size = exe_path.stat().st_size / (1024 * 1024)
+            logger.info(f"Original executable size: {original_size:.1f} MB")
+            
+            if config.get('upx_enabled') and check_build_tools().get('upx'):
+                logger.info("Applying UPX compression...")
+                upx_cmd = ['upx', config.get('upx_level', '--best'), str(exe_path)]
+                try:
+                    subprocess.run(upx_cmd, check=True)
+                    compressed_size = exe_path.stat().st_size / (1024 * 1024)
+                    reduction = (1 - compressed_size / original_size) * 100
+                    logger.info(f"Compressed size: {compressed_size:.1f} MB ({reduction:.1f}% reduction)")
+                except subprocess.CalledProcessError:
+                    logger.warning("UPX compression failed, continuing without compression")
         
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"\nError: Build failed with exit code {e.returncode}")
+        logger.error(f"\nError: Build failed with exit code {e.returncode}")
         return False
     except Exception as e:
-        print(f"\nError during build: {e}")
+        logger.error(f"\nError during build: {e}")
         return False
+    finally:
+        # Clean up version info file
+        if version_info_file.exists():
+            version_info_file.unlink()
 
-def test_executable():
+def test_executable(config: Dict) -> bool:
     """Run basic tests on the built executable."""
-    print("\nTesting executable...")
+    logger = logging.getLogger(__name__)
+    logger.info("\nTesting executable...")
     
-    exe_path = Path('dist/HealthMonitor/HealthMonitor.exe')
+    exe_path = Path('build/dist') / config['app_name'] / f"{config['app_name']}.exe"
     
     if not exe_path.exists():
-        print("Error: Executable not found. Build may have failed.")
+        logger.error("Error: Executable not found. Build may have failed.")
         return False
     
     # Test 1: Check if executable runs with --version
-    print("  Testing --version flag...")
+    logger.info("  Testing --version flag...")
     try:
         result = subprocess.run(
             [str(exe_path), '--version'],
@@ -113,49 +333,192 @@ def test_executable():
             timeout=10
         )
         if result.returncode == 0:
-            print(f"    ✓ Version output: {result.stdout.strip()}")
+            logger.info(f"    ✓ Version output: {result.stdout.strip()}")
         else:
-            print(f"    ✗ Failed with exit code {result.returncode}")
+            logger.error(f"    ✗ Failed with exit code {result.returncode}")
+            if result.stderr:
+                logger.error(f"    Error output: {result.stderr}")
             return False
     except Exception as e:
-        print(f"    ✗ Error: {e}")
+        logger.error(f"    ✗ Error: {e}")
         return False
     
-    print("\nAll tests passed!")
+    logger.info("\nAll tests passed!")
     return True
 
-def package_distribution(format='zip'):
-    """Package the distribution for release."""
-    print(f"\nPackaging distribution as {format}...")
+def create_portable_zip(config: Dict, version: str) -> bool:
+    """Create portable ZIP distribution."""
+    logger = logging.getLogger(__name__)
+    logger.info("\nCreating portable ZIP distribution...")
     
-    dist_dir = Path('dist/HealthMonitor')
+    dist_dir = Path('build/dist') / config['app_name']
     if not dist_dir.exists():
-        print("Error: Distribution directory not found. Build first.")
+        logger.error("Error: Distribution directory not found. Build first.")
         return False
     
-    # Get version from version.py
-    version = "0.1.0"  # Default
+    output_dir = Path('build/dist')
+    output_name = f"{config['app_name']}-{version}-portable"
+    output_file = output_dir / f"{output_name}.zip"
+    
     try:
-        version_file = Path('src/version.py')
-        if version_file.exists():
-            with open(version_file, 'r') as f:
-                for line in f:
-                    if line.startswith('__version__'):
-                        version = line.split('=')[1].strip().strip('"\'')
-                        break
-    except:
-        pass
+        with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # Add all files from distribution
+            for file_path in dist_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(dist_dir.parent)
+                    zf.write(file_path, arcname)
+            
+            # Add README for portable version
+            readme_content = f"""Apple Health Monitor - Portable Version {version}
+
+This is a portable version that can be run from any location.
+No installation required.
+
+To run: Double-click {config['app_name']}.exe
+
+Data will be stored in the 'data' folder next to the executable.
+"""
+            zf.writestr(f"{config['app_name']}/README.txt", readme_content)
+        
+        size_mb = output_file.stat().st_size / (1024 * 1024)
+        logger.info(f"  ✓ Created {output_file.name} ({size_mb:.1f} MB)")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error creating ZIP: {e}")
+        return False
+
+def create_nsis_installer(config: Dict, version: str) -> bool:
+    """Create NSIS installer."""
+    logger = logging.getLogger(__name__)
     
-    output_name = f"HealthMonitor-{version}-Windows"
+    if not check_build_tools().get('nsis'):
+        logger.warning("NSIS not available, skipping installer creation")
+        return False
     
-    if format == 'zip':
-        # Create ZIP file
-        output_file = f"{output_name}.zip"
-        print(f"  Creating {output_file}...")
-        shutil.make_archive(output_name, 'zip', 'dist', 'HealthMonitor')
-        print(f"  ✓ Created {output_file}")
+    logger.info("\nCreating NSIS installer...")
     
-    return True
+    # Check if NSIS template exists
+    nsis_template = Path(config.get('nsis_template', 'installer.nsi'))
+    if not nsis_template.exists():
+        logger.info("Creating default NSIS script...")
+        nsis_content = f"""!define PRODUCT_NAME "{config['app_display_name']}"
+!define PRODUCT_VERSION "{version}"
+!define PRODUCT_PUBLISHER "Apple Health Monitor"
+!define PRODUCT_DIR_REGKEY "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\{config['app_name']}.exe"
+!define PRODUCT_UNINST_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${{PRODUCT_NAME}}"
+
+!include "MUI2.nsh"
+
+; MUI Settings
+!define MUI_ABORTWARNING
+!define MUI_ICON "${{NSISDIR}}\\Contrib\\Graphics\\Icons\\modern-install.ico"
+!define MUI_UNICON "${{NSISDIR}}\\Contrib\\Graphics\\Icons\\modern-uninstall.ico"
+
+; Welcome page
+!insertmacro MUI_PAGE_WELCOME
+; License page
+!insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
+; Directory page
+!insertmacro MUI_PAGE_DIRECTORY
+; Instfiles page
+!insertmacro MUI_PAGE_INSTFILES
+; Finish page
+!define MUI_FINISHPAGE_RUN "$INSTDIR\\{config['app_name']}.exe"
+!insertmacro MUI_PAGE_FINISH
+
+; Uninstaller pages
+!insertmacro MUI_UNPAGE_INSTFILES
+
+; Language files
+!insertmacro MUI_LANGUAGE "English"
+
+Name "${{PRODUCT_NAME}} ${{PRODUCT_VERSION}}"
+OutFile "build\\dist\\{config['app_name']}-${{PRODUCT_VERSION}}-installer.exe"
+InstallDir "$PROGRAMFILES\\{config['app_display_name']}"
+ShowInstDetails show
+ShowUnInstDetails show
+
+Section "MainSection" SEC01
+  SetOutPath "$INSTDIR"
+  SetOverwrite ifnewer
+  File /r "build\\dist\\{config['app_name']}\\*.*"
+  CreateDirectory "$SMPROGRAMS\\{config['app_display_name']}"
+  CreateShortCut "$SMPROGRAMS\\{config['app_display_name']}\\{config['app_display_name']}.lnk" "$INSTDIR\\{config['app_name']}.exe"
+  CreateShortCut "$DESKTOP\\{config['app_display_name']}.lnk" "$INSTDIR\\{config['app_name']}.exe"
+SectionEnd
+
+Section -Post
+  WriteUninstaller "$INSTDIR\\uninst.exe"
+  WriteRegStr HKLM "${{PRODUCT_DIR_REGKEY}}" "" "$INSTDIR\\{config['app_name']}.exe"
+  WriteRegStr HKLM "${{PRODUCT_UNINST_KEY}}" "DisplayName" "$(^Name)"
+  WriteRegStr HKLM "${{PRODUCT_UNINST_KEY}}" "UninstallString" "$INSTDIR\\uninst.exe"
+  WriteRegStr HKLM "${{PRODUCT_UNINST_KEY}}" "DisplayIcon" "$INSTDIR\\{config['app_name']}.exe"
+  WriteRegStr HKLM "${{PRODUCT_UNINST_KEY}}" "DisplayVersion" "${{PRODUCT_VERSION}}"
+  WriteRegStr HKLM "${{PRODUCT_UNINST_KEY}}" "Publisher" "${{PRODUCT_PUBLISHER}}"
+SectionEnd
+
+Section Uninstall
+  Delete "$INSTDIR\\uninst.exe"
+  Delete "$INSTDIR\\*.*"
+  Delete "$SMPROGRAMS\\{config['app_display_name']}\\*.*"
+  Delete "$DESKTOP\\{config['app_display_name']}.lnk"
+  
+  RMDir "$SMPROGRAMS\\{config['app_display_name']}"
+  RMDir "$INSTDIR"
+  
+  DeleteRegKey HKLM "${{PRODUCT_UNINST_KEY}}"
+  DeleteRegKey HKLM "${{PRODUCT_DIR_REGKEY}}"
+  SetAutoClose true
+SectionEnd
+"""
+        with open(nsis_template, 'w') as f:
+            f.write(nsis_content)
+    
+    # Run NSIS
+    try:
+        cmd = ['makensis', str(nsis_template)]
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        
+        installer_path = Path('build/dist') / f"{config['app_name']}-{version}-installer.exe"
+        if installer_path.exists():
+            size_mb = installer_path.stat().st_size / (1024 * 1024)
+            logger.info(f"  ✓ Created installer: {installer_path.name} ({size_mb:.1f} MB)")
+            return True
+        else:
+            logger.error("Installer file not found after NSIS execution")
+            return False
+            
+    except subprocess.CalledProcessError as e:
+        logger.error(f"NSIS failed: {e}")
+        if e.stderr:
+            logger.error(e.stderr)
+        return False
+    except Exception as e:
+        logger.error(f"Error creating installer: {e}")
+        return False
+
+def package_all_formats(config: Dict, version: str) -> Dict[str, bool]:
+    """Package all configured distribution formats."""
+    logger = logging.getLogger(__name__)
+    results = {}
+    
+    formats = config.get('output_formats', ['exe', 'zip'])
+    
+    if 'zip' in formats:
+        results['zip'] = create_portable_zip(config, version)
+    
+    if 'installer' in formats:
+        results['installer'] = create_nsis_installer(config, version)
+    
+    # The exe is already built, just note its location
+    if 'exe' in formats:
+        exe_path = Path('build/dist') / config['app_name'] / f"{config['app_name']}.exe"
+        results['exe'] = exe_path.exists()
+        if results['exe']:
+            logger.info(f"\nStandalone executable: {exe_path}")
+    
+    return results
 
 def main():
     """Main build process."""
@@ -163,36 +526,127 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
     parser.add_argument('--no-clean', action='store_true', help='Skip cleaning build artifacts')
     parser.add_argument('--test', action='store_true', help='Test the built executable')
-    parser.add_argument('--package', action='store_true', help='Package for distribution')
+    parser.add_argument('--package', action='store_true', help='Package all distribution formats')
+    parser.add_argument('--format', choices=['exe', 'zip', 'installer', 'all'], 
+                       default='all', help='Distribution format to create')
+    parser.add_argument('--build-type', choices=['debug', 'release'], 
+                       default='release', help='Build type (debug includes console)')
+    parser.add_argument('--config', type=str, help='Path to build configuration file')
+    parser.add_argument('--version', type=str, help='Override version number')
     
     args = parser.parse_args()
     
-    print("Apple Health Monitor Dashboard - Build Script")
-    print("=" * 50)
+    # Set up logging
+    logger = setup_logging()
+    
+    logger.info("Apple Health Monitor Dashboard - Build Script")
+    logger.info("=" * 50)
+    
+    # Load configuration
+    if args.config:
+        config_path = Path(args.config)
+        if config_path.exists():
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+        else:
+            logger.error(f"Config file not found: {args.config}")
+            sys.exit(1)
+    else:
+        config = load_build_config()
+    
+    # Get version
+    version = args.version or extract_version()
+    logger.info(f"Building version: {version}")
+    
+    # Check build tools
+    logger.info("\nChecking build tools...")
+    tools = check_build_tools()
     
     # Build executable
-    if not build_executable(debug=args.debug, clean=not args.no_clean):
-        print("\nBuild failed!")
+    if not build_executable(config, version, build_type=args.build_type, 
+                          debug=args.debug, clean=not args.no_clean):
+        logger.error("\nBuild failed!")
         sys.exit(1)
     
     # Test if requested
     if args.test:
-        if not test_executable():
-            print("\nTests failed!")
+        if not test_executable(config):
+            logger.error("\nTests failed!")
             sys.exit(1)
     
     # Package if requested
     if args.package:
-        if not package_distribution():
-            print("\nPackaging failed!")
-            sys.exit(1)
+        if args.format == 'all':
+            results = package_all_formats(config, version)
+            if not all(results.values()):
+                logger.warning("Some packaging formats failed")
+                for fmt, success in results.items():
+                    if not success:
+                        logger.error(f"  ✗ {fmt} packaging failed")
+        else:
+            # Package specific format
+            if args.format == 'zip':
+                if not create_portable_zip(config, version):
+                    logger.error("ZIP packaging failed!")
+                    sys.exit(1)
+            elif args.format == 'installer':
+                if not create_nsis_installer(config, version):
+                    logger.error("Installer creation failed!")
+                    sys.exit(1)
     
-    print("\nBuild process completed successfully!")
-    print("\nTo run the executable:")
-    print("  dist\\HealthMonitor\\HealthMonitor.exe")
+    logger.info("\nBuild process completed successfully!")
+    logger.info("\nBuild artifacts:")
+    logger.info(f"  Executable: build/dist/{config['app_name']}/{config['app_name']}.exe")
     
-    print("\nTo create a packaged release:")
-    print("  python build.py --package")
+    if args.package:
+        logger.info(f"  Portable ZIP: build/dist/{config['app_name']}-{version}-portable.zip")
+        if tools.get('nsis'):
+            logger.info(f"  Installer: build/dist/{config['app_name']}-{version}-installer.exe")
+    
+    logger.info("\nTo create all distribution packages:")
+    logger.info("  python build.py --package")
+
+def create_default_build_config():
+    """Create default build_config.json if it doesn't exist."""
+    config_file = Path('build_config.json')
+    if not config_file.exists():
+        default_config = {
+            "app_name": "HealthMonitor",
+            "app_display_name": "Apple Health Monitor",
+            "icon": "assets/icon.ico",
+            "upx_enabled": True,
+            "upx_level": "--best",
+            "hidden_imports": [
+                "PyQt6.QtPrintSupport",
+                "matplotlib.backends.backend_qt5agg",
+                "pandas._libs.tslibs.parsing",
+                "sqlalchemy.sql.default_comparator"
+            ],
+            "excludes": [
+                "tkinter",
+                "unittest",
+                "pip",
+                "setuptools",
+                "wheel",
+                "pytest",
+                "sphinx"
+            ],
+            "nsis_template": "installer.nsi",
+            "output_formats": ["exe", "zip", "installer"],
+            "data_files": [
+                {"source": "assets", "destination": "assets"},
+                {"source": "LICENSE.txt", "destination": "."},
+                {"source": "README.md", "destination": "."}
+            ]
+        }
+        
+        with open(config_file, 'w') as f:
+            json.dump(default_config, f, indent=2)
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Created default build configuration: {config_file}")
 
 if __name__ == '__main__':
+    # Create default config if needed
+    create_default_build_config()
     main()

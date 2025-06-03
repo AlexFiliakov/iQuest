@@ -1,6 +1,7 @@
 # Apple Health Monitor Dashboard
 
 [![CI](https://github.com/alexf/Apple-Health-Exports/actions/workflows/ci.yml/badge.svg)](https://github.com/alexf/Apple-Health-Exports/actions/workflows/ci.yml)
+[![Build Release](https://github.com/alexf/Apple-Health-Exports/actions/workflows/build-release.yml/badge.svg)](https://github.com/alexf/Apple-Health-Exports/actions/workflows/build-release.yml)
 [![Security](https://github.com/alexf/Apple-Health-Exports/actions/workflows/security.yml/badge.svg)](https://github.com/alexf/Apple-Health-Exports/actions/workflows/security.yml)
 [![codecov](https://codecov.io/gh/alexf/Apple-Health-Exports/branch/main/graph/badge.svg)](https://codecov.io/gh/alexf/Apple-Health-Exports)
 [![CodeQL](https://github.com/alexf/Apple-Health-Exports/workflows/CodeQL/badge.svg)](https://github.com/alexf/Apple-Health-Exports/security/code-scanning)

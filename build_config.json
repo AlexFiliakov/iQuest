@@ -1,0 +1,29 @@
+{
+  "app_name": "HealthMonitor",
+  "app_display_name": "Apple Health Monitor",
+  "icon": "assets/icon.ico",
+  "upx_enabled": true,
+  "upx_level": "--best",
+  "hidden_imports": [
+    "PyQt6.QtPrintSupport",
+    "matplotlib.backends.backend_qt5agg",
+    "pandas._libs.tslibs.parsing",
+    "sqlalchemy.sql.default_comparator"
+  ],
+  "excludes": [
+    "tkinter",
+    "unittest",
+    "pip",
+    "setuptools",
+    "wheel",
+    "pytest",
+    "sphinx"
+  ],
+  "nsis_template": "installer.nsi",
+  "output_formats": ["exe", "zip", "installer"],
+  "data_files": [
+    {"source": "assets", "destination": "assets"},
+    {"source": "LICENSE.txt", "destination": "."},
+    {"source": "README.md", "destination": "."}
+  ]
+}
