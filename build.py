@@ -213,7 +213,7 @@ VSVersionInfo(
     return version_file
 
 def build_executable(config: Dict, version: str, build_type: str = 'release', 
-                    debug: bool = False, clean: bool = True) -> bool:
+                    debug: bool = False, clean: bool = True, onefile: bool = False) -> bool:
     """Build the executable using PyInstaller."""
     logger = logging.getLogger(__name__)
     
@@ -233,6 +233,8 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
     work_dir.mkdir(exist_ok=True)
     
     logger.info(f"\nBuilding {build_type} executable with PyInstaller...")
+    if onefile:
+        logger.info("Building single-file executable for direct distribution")
     
     # Create version info file
     version_info_file = create_version_info_file(version, config)
@@ -246,16 +248,20 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
         '--workpath', str(work_dir),
     ]
     
-    # Use spec file if it exists, otherwise use main.py
-    spec_file = Path('pyinstaller.spec')
+    # Choose spec file based on build mode
+    if onefile:
+        spec_file = Path('pyinstaller_onefile.spec')
+    else:
+        spec_file = Path('pyinstaller.spec')
+    
     if spec_file.exists():
         cmd.append(str(spec_file))
     else:
         # Build from main.py with options
         cmd.extend([
             'src/main.py',
-            '--name', config['app_name'],
-            '--onedir',  # One directory bundle
+            '--name', config['app_name'] if not onefile else 'AppleHealthMonitor',
+            '--onefile' if onefile else '--onedir',  # Single file or directory bundle
             '--windowed' if build_type == 'release' else '--console',
             '--version-file', str(version_info_file),
         ])
@@ -282,8 +288,12 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
         
         logger.info("\nBuild completed successfully!")
         
-        # Apply UPX compression if available and enabled
-        exe_path = dist_dir / config['app_name'] / f"{config['app_name']}.exe"
+        # Determine executable path based on build mode
+        if onefile:
+            exe_path = dist_dir / "AppleHealthMonitor.exe"
+        else:
+            exe_path = dist_dir / config['app_name'] / f"{config['app_name']}.exe"
+        
         if exe_path.exists():
             original_size = exe_path.stat().st_size / (1024 * 1024)
             logger.info(f"Original executable size: {original_size:.1f} MB")
@@ -368,17 +378,51 @@ def create_portable_zip(config: Dict, version: str) -> bool:
                     arcname = file_path.relative_to(dist_dir.parent)
                     zf.write(file_path, arcname)
             
+            # Add portable marker file
+            zf.writestr(f"{config['app_name']}/portable.marker", 
+                       "This file indicates portable mode. Do not delete.")
+            
             # Add README for portable version
             readme_content = f"""Apple Health Monitor - Portable Version {version}
+================================================
 
 This is a portable version that can be run from any location.
 No installation required.
 
-To run: Double-click {config['app_name']}.exe
+INSTRUCTIONS:
+-------------
+1. Extract this ZIP file to any location (USB drive, folder, etc.)
+2. Double-click {config['app_name']}.exe to run
+3. All data will be stored in the 'data' folder next to the executable
 
-Data will be stored in the 'data' folder next to the executable.
+PORTABLE MODE:
+--------------
+This version stores all data locally in the application folder:
+- Database: data/health_monitor.db
+- Journal entries: data/journals/
+- Preferences: data/preferences.json
+
+You can move the entire folder to any location and your data will travel with it.
+
+SYSTEM REQUIREMENTS:
+-------------------
+- Windows 10 or later
+- 4GB RAM minimum (8GB recommended)
+- 500MB free disk space
+
+NOTES:
+------
+- First run may take a moment as Windows verifies the executable
+- Windows Defender may scan the file on first run - this is normal
+- Your antivirus may flag the executable - add an exception if needed
+
+For support, visit: https://github.com/yourusername/apple-health-monitor
 """
             zf.writestr(f"{config['app_name']}/README.txt", readme_content)
+            
+            # Create empty data directory structure
+            zf.writestr(f"{config['app_name']}/data/README.txt", 
+                       "This folder contains your health data and application settings.")
         
         size_mb = output_file.stat().st_size / (1024 * 1024)
         logger.info(f"  ✓ Created {output_file.name} ({size_mb:.1f} MB)")
@@ -498,27 +542,73 @@ SectionEnd
         logger.error(f"Error creating installer: {e}")
         return False
 
-def package_all_formats(config: Dict, version: str) -> Dict[str, bool]:
-    """Package all configured distribution formats."""
+def create_all_distribution_formats(config: Dict, version: str) -> Dict[str, bool]:
+    """Create all three distribution formats as specified in ADR-003."""
     logger = logging.getLogger(__name__)
+    logger.info("\n" + "="*60)
+    logger.info("Creating All Three Distribution Formats")
+    logger.info("="*60)
+    
     results = {}
     
-    formats = config.get('output_formats', ['exe', 'zip'])
+    # 1. Build directory bundle for installer
+    logger.info("\n1. Building directory bundle for installer...")
+    results['bundle'] = build_executable(config, version, onefile=False)
     
-    if 'zip' in formats:
+    if results['bundle']:
+        # 2. Create NSIS installer
+        logger.info("\n2. Creating NSIS installer...")
+        results['installer'] = create_nsis_installer(config, version)
+        
+        # 3. Create portable ZIP
+        logger.info("\n3. Creating portable ZIP distribution...")
         results['zip'] = create_portable_zip(config, version)
     
-    if 'installer' in formats:
-        results['installer'] = create_nsis_installer(config, version)
+    # 4. Build single-file executable
+    logger.info("\n4. Building single-file executable...")
+    results['onefile'] = build_executable(config, version, onefile=True, clean=False)
     
-    # The exe is already built, just note its location
-    if 'exe' in formats:
-        exe_path = Path('build/dist') / config['app_name'] / f"{config['app_name']}.exe"
-        results['exe'] = exe_path.exists()
-        if results['exe']:
-            logger.info(f"\nStandalone executable: {exe_path}")
+    # Summary
+    logger.info("\n" + "="*60)
+    logger.info("Distribution Creation Summary:")
+    logger.info("="*60)
+    
+    if results.get('bundle'):
+        logger.info("✓ Directory bundle: build/dist/HealthMonitor/")
+    else:
+        logger.error("✗ Directory bundle: FAILED")
+    
+    if results.get('installer'):
+        installer_path = Path('build/dist') / f"{config['app_name']}-{version}-installer.exe"
+        if installer_path.exists():
+            size_mb = installer_path.stat().st_size / (1024 * 1024)
+            logger.info(f"✓ NSIS installer: {installer_path.name} ({size_mb:.1f} MB)")
+    else:
+        logger.error("✗ NSIS installer: FAILED or skipped")
+    
+    if results.get('zip'):
+        zip_path = Path('build/dist') / f"{config['app_name']}-{version}-portable.zip"
+        if zip_path.exists():
+            size_mb = zip_path.stat().st_size / (1024 * 1024)
+            logger.info(f"✓ Portable ZIP: {zip_path.name} ({size_mb:.1f} MB)")
+    else:
+        logger.error("✗ Portable ZIP: FAILED")
+    
+    if results.get('onefile'):
+        exe_path = Path('build/dist') / "AppleHealthMonitor.exe"
+        if exe_path.exists():
+            size_mb = exe_path.stat().st_size / (1024 * 1024)
+            logger.info(f"✓ Single executable: {exe_path.name} ({size_mb:.1f} MB)")
+    else:
+        logger.error("✗ Single executable: FAILED")
+    
+    logger.info("\n" + "="*60)
     
     return results
+
+def package_all_formats(config: Dict, version: str) -> Dict[str, bool]:
+    """Package all configured distribution formats (legacy function)."""
+    return create_all_distribution_formats(config, version)
 
 def main():
     """Main build process."""
@@ -527,7 +617,8 @@ def main():
     parser.add_argument('--no-clean', action='store_true', help='Skip cleaning build artifacts')
     parser.add_argument('--test', action='store_true', help='Test the built executable')
     parser.add_argument('--package', action='store_true', help='Package all distribution formats')
-    parser.add_argument('--format', choices=['exe', 'zip', 'installer', 'all'], 
+    parser.add_argument('--all-formats', action='store_true', help='Create all three distribution formats (exe, installer, zip)')
+    parser.add_argument('--format', choices=['exe', 'zip', 'installer', 'onefile', 'all'], 
                        default='all', help='Distribution format to create')
     parser.add_argument('--build-type', choices=['debug', 'release'], 
                        default='release', help='Build type (debug includes console)')
@@ -562,9 +653,20 @@ def main():
     logger.info("\nChecking build tools...")
     tools = check_build_tools()
     
+    # Handle --all-formats flag
+    if args.all_formats:
+        results = create_all_distribution_formats(config, version)
+        if not all(results.values()):
+            logger.warning("\nSome distribution formats failed to build")
+            sys.exit(1)
+        else:
+            logger.info("\nAll distribution formats created successfully!")
+        return
+    
     # Build executable
     if not build_executable(config, version, build_type=args.build_type, 
-                          debug=args.debug, clean=not args.no_clean):
+                          debug=args.debug, clean=not args.no_clean,
+                          onefile=(args.format == 'onefile')):
         logger.error("\nBuild failed!")
         sys.exit(1)
     
@@ -593,18 +695,23 @@ def main():
                 if not create_nsis_installer(config, version):
                     logger.error("Installer creation failed!")
                     sys.exit(1)
+            elif args.format == 'onefile':
+                logger.info("Single-file executable already built.")
     
     logger.info("\nBuild process completed successfully!")
     logger.info("\nBuild artifacts:")
-    logger.info(f"  Executable: build/dist/{config['app_name']}/{config['app_name']}.exe")
+    if args.format == 'onefile':
+        logger.info(f"  Single executable: build/dist/AppleHealthMonitor.exe")
+    else:
+        logger.info(f"  Executable: build/dist/{config['app_name']}/{config['app_name']}.exe")
     
     if args.package:
         logger.info(f"  Portable ZIP: build/dist/{config['app_name']}-{version}-portable.zip")
         if tools.get('nsis'):
             logger.info(f"  Installer: build/dist/{config['app_name']}-{version}-installer.exe")
     
-    logger.info("\nTo create all distribution packages:")
-    logger.info("  python build.py --package")
+    logger.info("\nTo create all three distribution formats:")
+    logger.info("  python build.py --all-formats")
 
 def create_default_build_config():
     """Create default build_config.json if it doesn't exist."""
