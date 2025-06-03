@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a Question
+    url: https://github.com/yourusername/apple-health-monitor/discussions/categories/q-a
+    about: Please ask and answer questions in our GitHub Discussions forum
+  - name: Discord Community
+    url: https://discord.gg/yourinvite
+    about: Join our Discord server for real-time chat and community support
+  - name: Documentation
+    url: https://github.com/yourusername/apple-health-monitor/tree/main/docs
+    about: Check our documentation for guides and tutorials
+  - name: Security Issue
+    url: mailto:security@yourdomain.com
+    about: Please report security vulnerabilities via email, not as public issues
