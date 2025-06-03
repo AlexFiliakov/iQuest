@@ -1,22 +1,32 @@
-# In WSL:
+# Claude
+
+## In WSL:
 source /home/alexf/claude-env/bin/activate
 claude --dangerously-skip-permissions --resume
 
 /model claude-opus-4-20250514
 
-# Claude Config
+## Claude Config
 claude config list -g
 claude config --help
 claude config get --global parallelTasksCount
 claude config set --global parallelTasksCount 10
 
-# Update Claude Code:
+## Update Claude Code:
 npm i -g @anthropic-ai/claude-code
 
 @anthropic-ai/claude-code --version
 
 
-If MCP doesn’t work: “I downgraded to 1.0.3 and mcp works again”
+If MCP doesn’t work: “I downgraded to 1.0.3 and mcp works again.”
+
+# Project Functions
+
+Execute: `python src/main.py`
+Build EXE: `python build.py`
+
+
+# Project Notes
 
 
 how would you approach creating a Windows executable dashboard with Python to analyze Apple Health Data? The data is processed into a Pandas table and stored as a CSV. I'd like to have the EXE take the CSV file and generate a collection of tabs that have different dashboards on them.
@@ -530,6 +540,12 @@ Since you believe refreshing is not needed, please go ahead and remove all the R
 - Refresh button on the Daily tab (it's a refresh icon)
 - Insights tab has a "Refresh" button
 - Remove any other Refresh UI elements that I missed anywhere else in the application.
+
+
+
+
+
+
 
 
 
