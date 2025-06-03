@@ -3,6 +3,8 @@
 
 import os
 import sys
+import argparse
+from version import __version__
 
 # For WSL environments, handle Qt platform plugins
 if sys.platform.startswith('linux'):
@@ -105,6 +107,12 @@ def main():
     Raises:
         SystemExit: If the application fails to start or encounters a critical error.
     """
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Apple Health Monitor Dashboard')
+    parser.add_argument('--version', action='version', 
+                       version=f'Apple Health Monitor Dashboard v{__version__}')
+    args = parser.parse_args()
+    
     try:
         module_logger.info("Starting Apple Health Monitor Dashboard")
         
