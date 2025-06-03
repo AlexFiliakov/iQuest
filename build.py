@@ -9,17 +9,18 @@ Supports multiple distribution formats:
 - Portable ZIP package
 """
 
-import os
-import sys
-import subprocess
-import shutil
-from pathlib import Path
 import argparse
-import json
-import zipfile
 import datetime
+import json
 import logging
-from typing import Dict, Optional, List
+import os
+import shutil
+import subprocess
+import sys
+import zipfile
+from pathlib import Path
+from typing import Dict, List, Optional
+
 
 # Set up logging
 def setup_logging(log_dir: Path = None):
@@ -91,8 +92,12 @@ def clean_build_artifacts():
     dirs_to_remove = ['build/dist', 'build/work', 'dist', '__pycache__']
     for dir_name in dirs_to_remove:
         if os.path.exists(dir_name):
-            logger.info(f"  Removing {dir_name}/")
-            shutil.rmtree(dir_name)
+            try:
+                logger.info(f"  Removing {dir_name}/")
+                shutil.rmtree(dir_name)
+            except PermissionError as e:
+                logger.warning(f"  Could not remove {dir_name}/ - {e}")
+                logger.warning(f"  Skipping {dir_name}/ (files may be in use)")
     
     # Remove .spec file if it exists (we'll use our custom one)
     spec_files = [f for f in os.listdir('.') if f.endswith('.spec') and f != 'pyinstaller.spec']
@@ -110,7 +115,14 @@ def check_dependencies() -> bool:
     
     for package in required_packages:
         try:
-            __import__(package.lower().replace('-', '_'))
+            # Import with proper case handling
+            import_name = package.replace('-', '_')
+            # Try original case first (for PyQt6, PyInstaller, etc.)
+            try:
+                __import__(import_name)
+            except ImportError:
+                # Fall back to lowercase for packages that use it
+                __import__(import_name.lower())
             logger.info(f"  ✓ {package} is installed")
         except ImportError:
             logger.error(f"  ✗ {package} is NOT installed")

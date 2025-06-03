@@ -12,7 +12,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty, QRe
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QBrush, QPainterPath
 
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.patches as mpatches
 

@@ -269,6 +269,37 @@ class DatabaseManager:
             if conn:
                 conn.close()
     
+    @contextmanager
+    def _get_initial_connection(self):
+        """Provide database connection for initial database creation.
+        
+        This method is used internally for database initialization and doesn't
+        check if the database file exists. It will create the database file
+        if it doesn't exist.
+        
+        Yields:
+            sqlite3.Connection: Database connection with Row factory enabled.
+        """
+        conn = None
+        try:
+            # Ensure directory exists
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Try to open/create with a longer timeout for OneDrive sync issues
+            conn = sqlite3.connect(str(self.db_path), timeout=30.0)
+            conn.row_factory = sqlite3.Row
+            
+            yield conn
+        except sqlite3.Error as e:
+            logger.error(f"Database connection error during initialization: {e}")
+            if "disk I/O error" in str(e):
+                logger.error(f"This may be due to OneDrive sync. Try closing OneDrive or moving the database file.")
+                logger.error(f"Database path: {self.db_path}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+    
     def initialize_database(self):
         """Initialize database with complete schema according to SPECS_DB.md.
         
@@ -309,7 +340,7 @@ class DatabaseManager:
         The database is configured with WAL mode for better concurrency and
         all operations are performed within a transaction for consistency.
         """
-        with self.get_connection() as conn:
+        with self._get_initial_connection() as conn:
             cursor = conn.cursor()
             
             # Enable WAL mode for better concurrency

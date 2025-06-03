@@ -183,7 +183,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/docs/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'matplotlib': ('https://matplotlib.org/stable/', None),
-    'pyqt5': ('https://www.riverbankcomputing.com/static/Docs/PyQt5/', None),
+    'pyqt6': ('https://www.riverbankcomputing.com/static/Docs/PyQt6/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------

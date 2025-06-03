@@ -197,6 +197,30 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
                 # Force flush to free memory
                 self._flush_to_database()
     
+    def _parse_date(self, date_str: str) -> str:
+        """Parse Apple Health date format and convert to SQLite-compatible format.
+        
+        Apple Health exports dates with timezone like: '2025-05-24 20:38:08 -0400'
+        SQLite DATE() function needs: '2025-05-24 20:38:08'
+        
+        Args:
+            date_str: Date string from Apple Health XML
+            
+        Returns:
+            Date string without timezone offset
+        """
+        if not date_str:
+            return date_str
+        
+        # Remove timezone offset if present
+        if ' -' in date_str or ' +' in date_str:
+            # Find the last space which precedes the timezone
+            parts = date_str.rsplit(' ', 1)
+            if len(parts) == 2:
+                return parts[0]
+        
+        return date_str
+    
     def _clean_record(self, record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Clean and validate a health record."""
         try:
@@ -207,9 +231,9 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
                 'sourceVersion': record.get('sourceVersion', ''),
                 'device': record.get('device', ''),
                 'unit': record.get('unit', ''),
-                'creationDate': record.get('creationDate', ''),
-                'startDate': record.get('startDate', ''),
-                'endDate': record.get('endDate', ''),
+                'creationDate': self._parse_date(record.get('creationDate', '')),
+                'startDate': self._parse_date(record.get('startDate', '')),
+                'endDate': self._parse_date(record.get('endDate', '')),
                 'value': self._parse_numeric_value(record.get('value'))
             }
             

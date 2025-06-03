@@ -35,7 +35,7 @@ The licenses for these dependencies are as follows:
 Python Dependencies
 ~~~~~~~~~~~~~~~~~~
 
-**PyQt5**
+**PyQt6**
 - License: GPL v3 / Commercial
 - Copyright: Riverbank Computing Limited
 - Used for: GUI framework

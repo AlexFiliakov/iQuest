@@ -29,7 +29,7 @@ Create a functional Windows executable that can import Apple Health CSV data and
 ## Technical Requirements
 - Python-based implementation
 - Pandas for data processing
-- PyQt5 or Tkinter for UI
+- PyQt6 or Tkinter for UI
 - Matplotlib or Plotly for charts
 - SQLite for journal storage
 - PyInstaller for executable packaging

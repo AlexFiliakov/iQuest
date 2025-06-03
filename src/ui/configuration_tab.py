@@ -1397,10 +1397,32 @@ class ConfigurationTab(QWidget):
                 ttl=3600  # Cache for 1 hour
             )
             
-            if record_stats['total_records'] == 0:
-                raise ValueError("No data found in database")
-            
             row_count = record_stats['total_records']
+            
+            # Handle empty database gracefully - this is normal for first-time users
+            if row_count == 0:
+                logger.info("Database is empty - waiting for data import")
+                self.progress_bar.setVisible(False)
+                self.progress_label.setText("No data imported yet")
+                self.progress_label.setStyleSheet(f"color: {self.style_manager.TEXT_SECONDARY};")
+                
+                # Update status with friendly message
+                self._update_status("Ready to import Apple Health data")
+                
+                # Update summary cards to show empty state
+                self.total_records_card.update_content({'value': "0"})
+                self.filtered_records_card.update_content({'value': "0"})
+                self.data_source_card.update_content({'value': "None"})
+                self.filter_status_card.update_content({'value': "N/A"})
+                
+                # Disable filter controls since there's no data
+                self._enable_filter_controls(False)
+                
+                # Mark data as not available
+                self.data_available = False
+                
+                # Don't show error dialog - this is expected for new users
+                return
             
             # Update UI
             self.progress_bar.setVisible(False)
@@ -1431,17 +1453,23 @@ class ConfigurationTab(QWidget):
             # Mark data as available for filtering (but not loaded)
             self.data_available = True
             
-            # Get current filtered data or all data for signal emission
-            current_data = self.get_filtered_data()
-            if current_data is None or (hasattr(current_data, 'empty') and current_data.empty):
-                # Load all data if no filtered data exists
-                try:
-                    current_data = self.data_loader.get_all_records()
-                    if current_data is not None:
-                        self.data = current_data
-                except Exception as e:
-                    logger.warning(f"Could not load all records for signal emission: {e}")
+            # Always load data from database after import for proper display
+            logger.info("Loading all records from database for display")
+            try:
+                all_data = self.data_loader.get_all_records()
+                if all_data is not None and not all_data.empty:
+                    self.data = all_data
+                    logger.info(f"Loaded all records: shape {all_data.shape}")
+                    
+                    # Now get filtered data if filters are active
+                    current_data = self.get_filtered_data()
+                    logger.info(f"Data ready for emission: shape {current_data.shape if current_data is not None else 'None'}")
+                else:
+                    logger.warning("get_all_records returned None or empty DataFrame")
                     current_data = None
+            except Exception as e:
+                logger.error(f"Could not load records from database: {e}", exc_info=True)
+                current_data = None
             
             # Only emit signal if we have valid data
             if current_data is not None:

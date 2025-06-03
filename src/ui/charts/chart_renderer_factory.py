@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, Type, Callable
 import pandas as pd
 from PyQt6.QtWidgets import QWidget
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from .base_chart import BaseChart, ChartConfig, ChartTheme

@@ -100,7 +100,24 @@ def get_data_directory():
         os.makedirs(data_dir, exist_ok=True)
         return data_dir
     else:
-        # Normal installation mode
+        # Normal installation mode - prioritize Windows AppData
+        # Check if we're running on Windows (including WSL accessing Windows filesystem)
+        current_path = os.path.abspath(__file__)
+        
+        # Detect if we're in WSL accessing Windows filesystem
+        if current_path.startswith('/mnt/c/') or current_path.startswith('/mnt/d/'):
+            # Running in WSL but on Windows filesystem
+            # Convert WSL path to Windows path and use Windows AppData
+            drive_letter = current_path[5]  # Get drive letter from /mnt/X/
+            windows_user_path = current_path.split('Users/')[1].split('/')[0] if 'Users/' in current_path else None
+            
+            if windows_user_path:
+                # Construct Windows AppData path
+                windows_appdata_path = f"/mnt/{drive_letter}/Users/{windows_user_path}/AppData/Local/AppleHealthMonitor"
+                os.makedirs(windows_appdata_path, exist_ok=True)
+                return windows_appdata_path
+        
+        # Pure Windows environment
         if sys.platform == 'win32':
             # Windows: Use AppData/Local
             app_data = os.environ.get('LOCALAPPDATA', os.environ.get('APPDATA'))
@@ -109,32 +126,12 @@ def get_data_directory():
                 os.makedirs(data_dir, exist_ok=True)
                 return data_dir
         
-        # Fallback to original logic for development
-        _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        _ORIGINAL_DATA_DIR = os.path.join(_BASE_DIR, "data")
-        
-        # Check if we're in OneDrive path
-        if "OneDrive" in _ORIGINAL_DATA_DIR:
-            # Create a temporary data directory outside OneDrive
-            _TEMP_DATA_DIR = os.path.join(tempfile.gettempdir(), "apple_health_monitor_data")
-            os.makedirs(_TEMP_DATA_DIR, exist_ok=True)
-            
-            # Copy database if it exists and needs updating
-            _original_db = os.path.join(_ORIGINAL_DATA_DIR, DB_FILE_NAME)
-            _temp_db = os.path.join(_TEMP_DATA_DIR, DB_FILE_NAME)
-            
-            if os.path.exists(_original_db):
-                try:
-                    # Only copy if temp doesn't exist or is older
-                    if not os.path.exists(_temp_db) or os.path.getmtime(_original_db) > os.path.getmtime(_temp_db):
-                        print(f"Copying database from OneDrive to temp location: {_temp_db}")
-                        shutil.copy2(_original_db, _temp_db)
-                except Exception as e:
-                    print(f"Warning: Could not copy database: {e}")
-            
-            return _TEMP_DATA_DIR
-        else:
-            return _ORIGINAL_DATA_DIR
+        # Fallback for Linux/Mac or when AppData isn't available
+        # Use user's home directory
+        home_dir = os.path.expanduser('~')
+        data_dir = os.path.join(home_dir, '.apple_health_monitor')
+        os.makedirs(data_dir, exist_ok=True)
+        return data_dir
 
 # Set the DATA_DIR based on the current mode
 DATA_DIR = get_data_directory()

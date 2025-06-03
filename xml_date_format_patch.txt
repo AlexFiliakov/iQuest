@@ -1,0 +1,38 @@
+
+# Patch for xml_streaming_processor.py
+# Add this method to the AppleHealthHandler class:
+
+def _parse_date(self, date_str: str) -> str:
+    """Parse Apple Health date format and convert to SQLite-compatible format.
+    
+    Apple Health exports dates with timezone like: '2025-05-24 20:38:08 -0400'
+    SQLite DATE() function needs: '2025-05-24 20:38:08'
+    
+    Args:
+        date_str: Date string from Apple Health XML
+        
+    Returns:
+        Date string without timezone offset
+    """
+    if not date_str:
+        return date_str
+    
+    # Remove timezone offset if present
+    if ' -' in date_str or ' +' in date_str:
+        # Find the last space which precedes the timezone
+        parts = date_str.rsplit(' ', 1)
+        if len(parts) == 2:
+            return parts[0]
+    
+    return date_str
+
+# Then modify the _clean_record method to use it:
+# Change these lines:
+    'creationDate': record.get('creationDate', ''),
+    'startDate': record.get('startDate', ''),
+    'endDate': record.get('endDate', ''),
+
+# To:
+    'creationDate': self._parse_date(record.get('creationDate', '')),
+    'startDate': self._parse_date(record.get('startDate', '')),
+    'endDate': self._parse_date(record.get('endDate', '')),

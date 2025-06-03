@@ -13,7 +13,7 @@ Basic Application Setup
 .. code-block:: python
 
    import sys
-   from PyQt5.QtWidgets import QApplication
+   from PyQt6.QtWidgets import QApplication
    from src.main import HealthMonitorApp
    from src.data_loader import DataLoader
    
@@ -167,7 +167,7 @@ Creating Simple Charts
 .. code-block:: python
 
    from ui.charts import LineChart, ChartConfig
-   from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+   from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
    
    # Create application window
    app = QApplication(sys.argv)

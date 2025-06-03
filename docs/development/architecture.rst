@@ -95,7 +95,7 @@ User Interface Layer
 ~~~~~~~~~~~~~~~~~~~~
 
 **UI Framework**
-   - PyQt5-based desktop application
+   - PyQt6-based desktop application
    - Modular component architecture
    - Responsive design principles
    - Accessibility compliance (WCAG 2.1 AA)

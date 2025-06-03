@@ -16,7 +16,7 @@ from PyQt6.QtGui import (
 from typing import List, Optional, Dict, Any
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 import numpy as np
 from datetime import date, timedelta
 import math
