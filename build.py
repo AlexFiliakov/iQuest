@@ -58,10 +58,16 @@ def load_build_config() -> Dict:
         "upx_level": "--best",
         "hidden_imports": [
             "PyQt6.QtPrintSupport",
-            "matplotlib.backends.backend_qt5agg",
+            "matplotlib.backends.backend_qtagg",
+            "matplotlib.backends.backend_qt",
             "pandas._libs.tslibs.parsing"
         ],
         "excludes": [
+            "PyQt5",
+            "PySide2",
+            "PySide6",
+            "matplotlib.backends.backend_qt5agg",
+            "matplotlib.backends.backend_qt5",
             "tkinter",
             "unittest",
             "pip",
@@ -109,6 +115,25 @@ def check_dependencies() -> bool:
     """Check if required dependencies are installed."""
     logger = logging.getLogger(__name__)
     logger.info("Checking dependencies...")
+    
+    # Check for conflicting Qt packages
+    qt_packages = ['PyQt5', 'PyQt6', 'PySide2', 'PySide6']
+    installed_qt = []
+    
+    logger.info("Checking for Qt bindings conflicts...")
+    for qt_pkg in qt_packages:
+        try:
+            __import__(qt_pkg)
+            installed_qt.append(qt_pkg)
+            logger.info(f"  Found: {qt_pkg}")
+        except ImportError:
+            pass
+    
+    if 'PyQt5' in installed_qt and 'PyQt6' in installed_qt:
+        logger.error("ERROR: Both PyQt5 and PyQt6 are installed!")
+        logger.error("This will cause PyInstaller to fail.")
+        logger.error("Please uninstall PyQt5 with: pip uninstall PyQt5")
+        return False
     
     required_packages = ['PyInstaller', 'PyQt6', 'pandas', 'matplotlib', 'sqlalchemy']
     missing_packages = []
@@ -258,6 +283,10 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
         '--noconfirm',  # Don't ask for confirmation
         '--distpath', str(dist_dir),
         '--workpath', str(work_dir),
+        # Force exclude PyQt5 and other Qt bindings
+        '--exclude-module', 'PyQt5',
+        '--exclude-module', 'PySide2',
+        '--exclude-module', 'PySide6',
     ]
     
     # Choose spec file based on build mode
@@ -737,11 +766,17 @@ def create_default_build_config():
             "upx_level": "--best",
             "hidden_imports": [
                 "PyQt6.QtPrintSupport",
-                "matplotlib.backends.backend_qt5agg",
+                "matplotlib.backends.backend_qtagg",
+                "matplotlib.backends.backend_qt",
                 "pandas._libs.tslibs.parsing",
                 "sqlalchemy.sql.default_comparator"
             ],
             "excludes": [
+                "PyQt5",
+                "PySide2",
+                "PySide6",
+                "matplotlib.backends.backend_qt5agg",
+                "matplotlib.backends.backend_qt5",
                 "tkinter",
                 "unittest",
                 "pip",

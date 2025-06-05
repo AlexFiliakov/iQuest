@@ -6,11 +6,17 @@
   "upx_level": "--best",
   "hidden_imports": [
     "PyQt6.QtPrintSupport",
-    "matplotlib.backends.backend_qt5agg",
+    "matplotlib.backends.backend_qtagg",
+    "matplotlib.backends.backend_qt",
     "pandas._libs.tslibs.parsing",
     "sqlalchemy.sql.default_comparator"
   ],
   "excludes": [
+    "PyQt5",
+    "PySide2",
+    "PySide6",
+    "matplotlib.backends.backend_qt5agg",
+    "matplotlib.backends.backend_qt5",
     "tkinter",
     "unittest",
     "pip",
