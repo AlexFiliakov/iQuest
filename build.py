@@ -32,13 +32,23 @@ def setup_logging(log_dir: Path = None):
     timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     log_file = log_dir / f'build-{timestamp}.log'
     
+    # Configure handlers with UTF-8 encoding
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    
+    # For Windows console, use a custom stream handler with UTF-8
+    import sys
+    if sys.platform == 'win32':
+        # Try to set console to UTF-8 on Windows
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    
+    stream_handler = logging.StreamHandler()
+    
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
+        handlers=[file_handler, stream_handler]
     )
     return logging.getLogger(__name__)
 
@@ -99,11 +109,35 @@ def clean_build_artifacts():
     for dir_name in dirs_to_remove:
         if os.path.exists(dir_name):
             try:
+                # On Windows, try to remove read-only attributes first
+                if sys.platform == 'win32':
+                    import time
+                    # Handle OneDrive sync issues
+                    logger.info(f"  Preparing to remove {dir_name}/ (handling Windows/OneDrive)")
+                    
+                    # Remove read-only attributes recursively
+                    for root, dirs, files in os.walk(dir_name):
+                        for d in dirs:
+                            os.chmod(os.path.join(root, d), 0o777)
+                        for f in files:
+                            os.chmod(os.path.join(root, f), 0o777)
+                    
+                    # Give OneDrive/antivirus time to release files
+                    time.sleep(1)
+                
                 logger.info(f"  Removing {dir_name}/")
-                shutil.rmtree(dir_name)
+                shutil.rmtree(dir_name, ignore_errors=False)
+                
+                # Double-check removal
+                if os.path.exists(dir_name):
+                    logger.warning(f"  Directory still exists, trying again...")
+                    time.sleep(2)
+                    shutil.rmtree(dir_name, ignore_errors=True)
+                    
             except PermissionError as e:
                 logger.warning(f"  Could not remove {dir_name}/ - {e}")
-                logger.warning(f"  Skipping {dir_name}/ (files may be in use)")
+                logger.warning(f"  Try closing any programs using these files")
+                logger.warning(f"  You may also need to pause OneDrive sync temporarily")
     
     # Remove .spec file if it exists (we'll use our custom one)
     spec_files = [f for f in os.listdir('.') if f.endswith('.spec') and f != 'pyinstaller.spec']
@@ -148,9 +182,9 @@ def check_dependencies() -> bool:
             except ImportError:
                 # Fall back to lowercase for packages that use it
                 __import__(import_name.lower())
-            logger.info(f"  ✓ {package} is installed")
+            logger.info(f"  [OK] {package} is installed")
         except ImportError:
-            logger.error(f"  ✗ {package} is NOT installed")
+            logger.error(f"  [FAIL] {package} is NOT installed")
             missing_packages.append(package)
     
     if missing_packages:
@@ -170,24 +204,24 @@ def check_build_tools() -> Dict[str, bool]:
         result = subprocess.run(['upx', '--version'], capture_output=True, text=True)
         tools['upx'] = result.returncode == 0
         if tools['upx']:
-            logger.info("  ✓ UPX is available")
+            logger.info("  [OK] UPX is available")
         else:
-            logger.warning("  ✗ UPX not found - compression will be skipped")
+            logger.warning("  [SKIP] UPX not found - compression will be skipped")
     except FileNotFoundError:
         tools['upx'] = False
-        logger.warning("  ✗ UPX not found - compression will be skipped")
+        logger.warning("  [SKIP] UPX not found - compression will be skipped")
     
     # Check for NSIS
     try:
         result = subprocess.run(['makensis', '/VERSION'], capture_output=True, text=True)
         tools['nsis'] = result.returncode == 0
         if tools['nsis']:
-            logger.info("  ✓ NSIS is available")
+            logger.info("  [OK] NSIS is available")
         else:
-            logger.warning("  ✗ NSIS not found - installer creation will be skipped")
+            logger.warning("  [SKIP] NSIS not found - installer creation will be skipped")
     except FileNotFoundError:
         tools['nsis'] = False
-        logger.warning("  ✗ NSIS not found - installer creation will be skipped")
+        logger.warning("  [SKIP] NSIS not found - installer creation will be skipped")
     
     return tools
 
@@ -277,25 +311,23 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
     version_info_file = create_version_info_file(version, config)
     
     # Build command
-    cmd = [
-        sys.executable,
-        '-m', 'PyInstaller',
-        '--noconfirm',  # Don't ask for confirmation
-        '--distpath', str(dist_dir),
-        '--workpath', str(work_dir),
-        # Force exclude PyQt5 and other Qt bindings
-        '--exclude-module', 'PyQt5',
-        '--exclude-module', 'PySide2',
-        '--exclude-module', 'PySide6',
-    ]
-    
     # Choose spec file based on build mode
     if onefile:
         spec_file = Path('pyinstaller_onefile.spec')
     else:
         spec_file = Path('pyinstaller.spec')
     
+    # Build base command
+    cmd = [
+        sys.executable,
+        '-m', 'PyInstaller',
+        '--noconfirm',  # Don't ask for confirmation
+        '--distpath', str(dist_dir),
+        '--workpath', str(work_dir),
+    ]
+    
     if spec_file.exists():
+        # When using spec file, just add the spec file path
         cmd.append(str(spec_file))
     else:
         # Build from main.py with options
@@ -305,6 +337,10 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
             '--onefile' if onefile else '--onedir',  # Single file or directory bundle
             '--windowed' if build_type == 'release' else '--console',
             '--version-file', str(version_info_file),
+            # Force exclude PyQt5 and other Qt bindings
+            '--exclude-module', 'PyQt5',
+            '--exclude-module', 'PySide2',
+            '--exclude-module', 'PySide6',
         ])
         
         if config.get('icon'):
@@ -384,14 +420,14 @@ def test_executable(config: Dict) -> bool:
             timeout=10
         )
         if result.returncode == 0:
-            logger.info(f"    ✓ Version output: {result.stdout.strip()}")
+            logger.info(f"    [OK] Version output: {result.stdout.strip()}")
         else:
-            logger.error(f"    ✗ Failed with exit code {result.returncode}")
+            logger.error(f"    [FAIL] Failed with exit code {result.returncode}")
             if result.stderr:
                 logger.error(f"    Error output: {result.stderr}")
             return False
     except Exception as e:
-        logger.error(f"    ✗ Error: {e}")
+        logger.error(f"    [FAIL] Error: {e}")
         return False
     
     logger.info("\nAll tests passed!")
@@ -466,7 +502,7 @@ For support, visit: https://github.com/yourusername/apple-health-monitor
                        "This folder contains your health data and application settings.")
         
         size_mb = output_file.stat().st_size / (1024 * 1024)
-        logger.info(f"  ✓ Created {output_file.name} ({size_mb:.1f} MB)")
+        logger.info(f"  [OK] Created {output_file.name} ({size_mb:.1f} MB)")
         return True
         
     except Exception as e:
@@ -568,7 +604,7 @@ SectionEnd
         installer_path = Path('build/dist') / f"{config['app_name']}-{version}-installer.exe"
         if installer_path.exists():
             size_mb = installer_path.stat().st_size / (1024 * 1024)
-            logger.info(f"  ✓ Created installer: {installer_path.name} ({size_mb:.1f} MB)")
+            logger.info(f"  [OK] Created installer: {installer_path.name} ({size_mb:.1f} MB)")
             return True
         else:
             logger.error("Installer file not found after NSIS execution")
@@ -615,33 +651,33 @@ def create_all_distribution_formats(config: Dict, version: str) -> Dict[str, boo
     logger.info("="*60)
     
     if results.get('bundle'):
-        logger.info("✓ Directory bundle: build/dist/HealthMonitor/")
+        logger.info("[OK] Directory bundle: build/dist/HealthMonitor/")
     else:
-        logger.error("✗ Directory bundle: FAILED")
+        logger.error("[FAIL] Directory bundle: FAILED")
     
     if results.get('installer'):
         installer_path = Path('build/dist') / f"{config['app_name']}-{version}-installer.exe"
         if installer_path.exists():
             size_mb = installer_path.stat().st_size / (1024 * 1024)
-            logger.info(f"✓ NSIS installer: {installer_path.name} ({size_mb:.1f} MB)")
+            logger.info(f"[OK] NSIS installer: {installer_path.name} ({size_mb:.1f} MB)")
     else:
-        logger.error("✗ NSIS installer: FAILED or skipped")
+        logger.error("[FAIL] NSIS installer: FAILED or skipped")
     
     if results.get('zip'):
         zip_path = Path('build/dist') / f"{config['app_name']}-{version}-portable.zip"
         if zip_path.exists():
             size_mb = zip_path.stat().st_size / (1024 * 1024)
-            logger.info(f"✓ Portable ZIP: {zip_path.name} ({size_mb:.1f} MB)")
+            logger.info(f"[OK] Portable ZIP: {zip_path.name} ({size_mb:.1f} MB)")
     else:
-        logger.error("✗ Portable ZIP: FAILED")
+        logger.error("[FAIL] Portable ZIP: FAILED")
     
     if results.get('onefile'):
         exe_path = Path('build/dist') / "AppleHealthMonitor.exe"
         if exe_path.exists():
             size_mb = exe_path.stat().st_size / (1024 * 1024)
-            logger.info(f"✓ Single executable: {exe_path.name} ({size_mb:.1f} MB)")
+            logger.info(f"[OK] Single executable: {exe_path.name} ({size_mb:.1f} MB)")
     else:
-        logger.error("✗ Single executable: FAILED")
+        logger.error("[FAIL] Single executable: FAILED")
     
     logger.info("\n" + "="*60)
     
@@ -725,7 +761,7 @@ def main():
                 logger.warning("Some packaging formats failed")
                 for fmt, success in results.items():
                     if not success:
-                        logger.error(f"  ✗ {fmt} packaging failed")
+                        logger.error(f"  [FAIL] {fmt} packaging failed")
         else:
             # Package specific format
             if args.format == 'zip':
