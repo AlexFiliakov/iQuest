@@ -113,43 +113,92 @@ def extract_version() -> str:
     return "0.1.0"
 
 def clean_build_artifacts():
-    """Remove previous build artifacts."""
+    """Remove previous build artifacts with Windows permission handling."""
     logger = logging.getLogger(__name__)
     logger.info("Cleaning previous build artifacts...")
     
+    import time
+    import stat
+    
+    def remove_readonly(func, path, exc_info):
+        """Error handler for Windows readonly files."""
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    
+    def force_remove_directory(dir_path, max_attempts=3):
+        """Force remove directory with retries for Windows/OneDrive issues."""
+        for attempt in range(max_attempts):
+            try:
+                if not os.path.exists(dir_path):
+                    return True
+                    
+                # On Windows, handle file locks and permissions
+                if sys.platform == 'win32':
+                    # First, try to remove read-only attributes
+                    for root, dirs, files in os.walk(dir_path):
+                        for d in dirs:
+                            try:
+                                os.chmod(os.path.join(root, d), stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
+                            except:
+                                pass
+                        for f in files:
+                            try:
+                                fp = os.path.join(root, f)
+                                os.chmod(fp, stat.S_IWRITE | stat.S_IREAD)
+                                # Try to close any open handles
+                                try:
+                                    with open(fp, 'rb') as file:
+                                        pass
+                                except:
+                                    pass
+                            except:
+                                pass
+                    
+                    # Give Windows/OneDrive time to release locks
+                    time.sleep(0.5)
+                
+                # Try removal with error handler
+                shutil.rmtree(dir_path, onerror=remove_readonly)
+                
+                # Verify it's gone
+                if not os.path.exists(dir_path):
+                    return True
+                    
+            except Exception as e:
+                if attempt < max_attempts - 1:
+                    logger.warning(f"  Attempt {attempt + 1} failed to remove {dir_path}: {e}")
+                    logger.warning(f"  Waiting before retry...")
+                    time.sleep(2 * (attempt + 1))  # Exponential backoff
+                else:
+                    logger.error(f"  Failed to remove {dir_path} after {max_attempts} attempts")
+                    return False
+        
+        return False
+    
     dirs_to_remove = ['build/dist', 'build/work', 'dist', '__pycache__']
+    failed_dirs = []
+    
     for dir_name in dirs_to_remove:
         if os.path.exists(dir_name):
-            try:
-                # On Windows, try to remove read-only attributes first
-                if sys.platform == 'win32':
-                    import time
-                    # Handle OneDrive sync issues
-                    logger.info(f"  Preparing to remove {dir_name}/ (handling Windows/OneDrive)")
-                    
-                    # Remove read-only attributes recursively
-                    for root, dirs, files in os.walk(dir_name):
-                        for d in dirs:
-                            os.chmod(os.path.join(root, d), 0o777)
-                        for f in files:
-                            os.chmod(os.path.join(root, f), 0o777)
-                    
-                    # Give OneDrive/antivirus time to release files
-                    time.sleep(1)
-                
-                logger.info(f"  Removing {dir_name}/")
-                shutil.rmtree(dir_name, ignore_errors=False)
-                
-                # Double-check removal
-                if os.path.exists(dir_name):
-                    logger.warning(f"  Directory still exists, trying again...")
-                    time.sleep(2)
-                    shutil.rmtree(dir_name, ignore_errors=True)
-                    
-            except PermissionError as e:
-                logger.warning(f"  Could not remove {dir_name}/ - {e}")
-                logger.warning(f"  Try closing any programs using these files")
-                logger.warning(f"  You may also need to pause OneDrive sync temporarily")
+            logger.info(f"  Removing {dir_name}/")
+            if not force_remove_directory(dir_name):
+                failed_dirs.append(dir_name)
+    
+    if failed_dirs:
+        logger.error(f"\nFailed to remove directories: {', '.join(failed_dirs)}")
+        logger.error("Suggestions:")
+        logger.error("1. Close any programs that might be using these files")
+        logger.error("2. Temporarily pause OneDrive sync")
+        logger.error("3. Run as Administrator")
+        logger.error("4. Try manual deletion: rmdir /s /q build")
+        
+        # For build/work specifically, we can try a workaround
+        if 'build/work' in failed_dirs:
+            logger.info("\nTrying alternative: creating new work directory with timestamp...")
+            work_dir = f"build/work_{int(time.time())}"
+            return work_dir
+    
+    return None  # Success
     
     # Remove .spec file if it exists (we'll use our custom one)
     spec_files = [f for f in os.listdir('.') if f.endswith('.spec') and f != 'pyinstaller.spec']
@@ -300,12 +349,54 @@ VSVersionInfo(
     return version_file
 
 def build_executable(config: Dict, version: str, build_type: str = 'release', 
-                    debug: bool = False, clean: bool = True, onefile: bool = False) -> bool:
-    """Build the executable using PyInstaller."""
+                    debug: bool = False, clean: bool = True, onefile: bool = False,
+                    incremental: bool = False) -> bool:
+    """Build the executable using PyInstaller.
+    
+    Args:
+        config: Build configuration dictionary
+        version: Version string
+        build_type: 'release' or 'debug'
+        debug: Enable debug output
+        clean: Clean build artifacts before building
+        onefile: Build single file executable
+        incremental: Use incremental build (skip cleaning, reuse cache)
+    """
     logger = logging.getLogger(__name__)
     
+    # For incremental builds, don't clean and check if rebuild is needed
+    if incremental:
+        logger.info("Using incremental build mode...")
+        clean = False
+        
+        # Check if executable exists and is up to date
+        if onefile:
+            exe_path = Path('build/dist') / "AppleHealthMonitor.exe"
+        else:
+            exe_path = Path('build/dist') / config['app_name'] / f"{config['app_name']}.exe"
+        
+        if exe_path.exists():
+            # Get executable modification time
+            exe_mtime = exe_path.stat().st_mtime
+            
+            # Check if any source files are newer
+            src_files_changed = False
+            for src_file in Path('src').rglob('*.py'):
+                if src_file.stat().st_mtime > exe_mtime:
+                    logger.info(f"Source file changed: {src_file}")
+                    src_files_changed = True
+                    break
+            
+            if not src_files_changed:
+                logger.info("No source files changed since last build. Skipping rebuild.")
+                logger.info(f"Executable is up to date: {exe_path}")
+                return True
+            else:
+                logger.info("Source files changed. Proceeding with incremental rebuild...")
+    
+    alternative_work_dir = None
     if clean:
-        clean_build_artifacts()
+        alternative_work_dir = clean_build_artifacts()
     
     if not check_dependencies():
         return False
@@ -313,7 +404,13 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
     # Create build directories
     build_dir = Path('build')
     dist_dir = build_dir / 'dist'
-    work_dir = build_dir / 'work'
+    
+    # Use alternative work directory if cleaning failed
+    if alternative_work_dir:
+        work_dir = Path(alternative_work_dir)
+        logger.info(f"Using alternative work directory: {work_dir}")
+    else:
+        work_dir = build_dir / 'work'
     
     build_dir.mkdir(exist_ok=True)
     dist_dir.mkdir(exist_ok=True)
@@ -341,6 +438,12 @@ def build_executable(config: Dict, version: str, build_type: str = 'release',
         '--distpath', str(dist_dir),
         '--workpath', str(work_dir),
     ]
+    
+    # Add incremental build options
+    if incremental:
+        # Don't clean the work directory (keeps build cache)
+        cmd.append('--clean')  # Only clean what's necessary, not everything
+        logger.info("Using PyInstaller cache for faster incremental builds")
     
     if spec_file.exists():
         # When using spec file, just add the spec file path
@@ -635,18 +738,27 @@ SectionEnd
         logger.error(f"Error creating installer: {e}")
         return False
 
-def create_all_distribution_formats(config: Dict, version: str) -> Dict[str, bool]:
-    """Create all three distribution formats as specified in ADR-003."""
+def create_all_distribution_formats(config: Dict, version: str, incremental: bool = False) -> Dict[str, bool]:
+    """Create all three distribution formats as specified in ADR-003.
+    
+    Args:
+        config: Build configuration
+        version: Version string
+        incremental: Use incremental builds
+    """
     logger = logging.getLogger(__name__)
     logger.info("\n" + "="*60)
     logger.info("Creating All Three Distribution Formats")
+    if incremental:
+        logger.info("(Using incremental build mode)")
     logger.info("="*60)
     
     results = {}
     
     # 1. Build directory bundle for installer
     logger.info("\n1. Building directory bundle for installer...")
-    results['bundle'] = build_executable(config, version, onefile=False)
+    results['bundle'] = build_executable(config, version, onefile=False, 
+                                       incremental=incremental, clean=not incremental)
     
     if results['bundle']:
         # 2. Create NSIS installer
@@ -659,7 +771,8 @@ def create_all_distribution_formats(config: Dict, version: str) -> Dict[str, boo
     
     # 4. Build single-file executable
     logger.info("\n4. Building single-file executable...")
-    results['onefile'] = build_executable(config, version, onefile=True, clean=False)
+    results['onefile'] = build_executable(config, version, onefile=True, clean=False,
+                                        incremental=incremental)
     
     # Summary
     logger.info("\n" + "="*60)
@@ -708,6 +821,8 @@ def main():
     parser = argparse.ArgumentParser(description='Build Apple Health Monitor Dashboard')
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
     parser.add_argument('--no-clean', action='store_true', help='Skip cleaning build artifacts')
+    parser.add_argument('--incremental', '-i', action='store_true', 
+                       help='Use incremental build (skip cleaning, reuse cache, only rebuild if needed)')
     parser.add_argument('--test', action='store_true', help='Test the built executable')
     parser.add_argument('--package', action='store_true', help='Package all distribution formats')
     parser.add_argument('--all-formats', action='store_true', help='Create all three distribution formats (exe, installer, zip)')
@@ -725,6 +840,18 @@ def main():
     
     logger.info("Apple Health Monitor Dashboard - Build Script")
     logger.info("=" * 50)
+    
+    # Check if we're in a OneDrive folder
+    cwd = os.getcwd()
+    if 'OneDrive' in cwd:
+        logger.warning("\n" + "!" * 60)
+        logger.warning("WARNING: Building in a OneDrive synchronized folder!")
+        logger.warning("This can cause permission errors during build.")
+        logger.warning("Recommendations:")
+        logger.warning("1. Use --incremental flag to avoid cleaning")
+        logger.warning("2. Pause OneDrive sync during build")
+        logger.warning("3. Or copy project to a non-OneDrive location")
+        logger.warning("!" * 60 + "\n")
     
     # Load configuration
     if args.config:
@@ -748,7 +875,7 @@ def main():
     
     # Handle --all-formats flag
     if args.all_formats:
-        results = create_all_distribution_formats(config, version)
+        results = create_all_distribution_formats(config, version, incremental=args.incremental)
         if not all(results.values()):
             logger.warning("\nSome distribution formats failed to build")
             sys.exit(1)
@@ -758,8 +885,10 @@ def main():
     
     # Build executable
     if not build_executable(config, version, build_type=args.build_type, 
-                          debug=args.debug, clean=not args.no_clean,
-                          onefile=(args.format == 'onefile')):
+                          debug=args.debug, 
+                          clean=not args.no_clean and not args.incremental,
+                          onefile=(args.format == 'onefile'),
+                          incremental=args.incremental):
         logger.error("\nBuild failed!")
         sys.exit(1)
     

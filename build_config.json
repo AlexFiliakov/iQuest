@@ -1,7 +1,7 @@
 {
   "app_name": "HealthMonitor",
   "app_display_name": "Apple Health Monitor",
-  "icon": "assets/icon.ico",
+  "icon": "assets/heart_icon.ico",
   "upx_enabled": true,
   "upx_level": "--best",
   "hidden_imports": [
@@ -18,7 +18,26 @@
     "scipy._lib.array_api_compat.numpy.fft",
     "scipy._lib.array_api_compat.numpy.linalg",
     "numpy._core",
-    "numpy._core._multiarray_umath"
+    "numpy._core._multiarray_umath",
+    "unittest",
+    "unittest.mock",
+    "numpy.testing",
+    "numpy.testing._private",
+    "numpy.testing._private.utils",
+    "jaraco",
+    "jaraco.text",
+    "jaraco.classes",
+    "jaraco.context",
+    "jaraco.functools",
+    "jaraco.collections",
+    "jaraco.itertools",
+    "pkg_resources._vendor.jaraco",
+    "pkg_resources._vendor.jaraco.text",
+    "pkg_resources._vendor.jaraco.context",
+    "pkg_resources._vendor.jaraco.functools",
+    "pkg_resources._vendor.jaraco.classes",
+    "autocommand",
+    "inflect"
   ],
   "excludes": [
     "PyQt5",
@@ -27,7 +46,6 @@
     "matplotlib.backends.backend_qt5agg",
     "matplotlib.backends.backend_qt5",
     "tkinter",
-    "unittest",
     "pip",
     "setuptools",
     "wheel",
@@ -43,7 +61,10 @@
     "jupyter",
     "notebook",
     "nbconvert",
-    "nbformat"
+    "nbformat",
+    "prophet",
+    "cmdstanpy",
+    "pmdarima"
   ],
   "nsis_template": "installer.nsi",
   "output_formats": ["exe", "zip", "installer"],

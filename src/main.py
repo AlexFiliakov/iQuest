@@ -4,7 +4,16 @@
 import os
 import sys
 import argparse
-from version import __version__
+
+# Fix Python path before any local imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
+
+# Now import version
+try:
+    from version import __version__
+except ImportError:
+    from src.version import __version__
 
 # For WSL environments, handle Qt platform plugins
 if sys.platform.startswith('linux'):
@@ -24,10 +33,7 @@ if sys.platform.startswith('linux'):
         print(f"Qt platform: {os.environ.get('QT_QPA_PLATFORM')}")
         print(f"Display: {os.environ.get('DISPLAY', 'Not set')}")
 
-# 1. Locate project root (one level up from this file)
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# 2. Prepend it so 'src' package can be found when running from inside src/
-sys.path.insert(0, project_root)
+# Path already fixed at the top of the file
 
 import traceback
 

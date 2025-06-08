@@ -16,22 +16,25 @@ from .advanced_trend_models import (
     WSJVisualizationConfig
 )
 
+# Set up logger first
+logger = logging.getLogger(__name__)
+
 # Try to import optional dependencies
 try:
     from prophet import Prophet
     PROPHET_AVAILABLE = True
-except ImportError:
+except (ImportError, FileNotFoundError, Exception) as e:
     PROPHET_AVAILABLE = False
-    warnings.warn("Prophet not available. Using fallback methods.")
+    Prophet = None
+    logger.debug(f"Prophet not available: {e}. Using fallback methods.")
 
 try:
     from statsmodels.tsa.seasonal import STL
     STL_AVAILABLE = True
-except ImportError:
+except (ImportError, Exception) as e:
     STL_AVAILABLE = False
-    warnings.warn("STL not available. Using simple decomposition.")
-
-logger = logging.getLogger(__name__)
+    STL = None
+    logger.debug(f"STL not available: {e}. Using simple decomposition.")
 
 
 class AdvancedTrendAnalysisEngine:

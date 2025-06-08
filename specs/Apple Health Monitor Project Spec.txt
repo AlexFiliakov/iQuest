@@ -1,7 +1,7 @@
 # Claude
 
 ## In WSL:
-source /home/alexf/claude-env/bin/activate
+source /home/alef/claude-env/bin/activate
 claude --dangerously-skip-permissions --resume
 
 /model claude-opus-4-20250514
@@ -23,7 +23,10 @@ If MCP doesn’t work: “I downgraded to 1.0.3 and mcp works again.”
 # Project Functions
 
 Execute: `python src/main.py`
-Build EXE: `python build.py`
+## Build EXE:
+clean_build_windows.bat
+`python build.py --all-formats --incremental`
+
 
 
 # Project Notes
