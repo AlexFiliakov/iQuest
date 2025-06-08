@@ -9,7 +9,16 @@
     "matplotlib.backends.backend_qtagg",
     "matplotlib.backends.backend_qt",
     "pandas._libs.tslibs.parsing",
-    "sqlalchemy.sql.default_comparator"
+    "sqlalchemy.sql.default_comparator",
+    "sklearn.utils._param_validation",
+    "sklearn.utils._typedefs",
+    "sklearn.neighbors._typedefs",
+    "sklearn.tree._utils",
+    "scipy._lib.array_api_compat.numpy",
+    "scipy._lib.array_api_compat.numpy.fft",
+    "scipy._lib.array_api_compat.numpy.linalg",
+    "numpy._core",
+    "numpy._core._multiarray_umath"
   ],
   "excludes": [
     "PyQt5",
@@ -23,7 +32,18 @@
     "setuptools",
     "wheel",
     "pytest",
-    "sphinx"
+    "sphinx",
+    "tensorflow",
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "tensorboard",
+    "keras",
+    "IPython",
+    "jupyter",
+    "notebook",
+    "nbconvert",
+    "nbformat"
   ],
   "nsis_template": "installer.nsi",
   "output_formats": ["exe", "zip", "installer"],

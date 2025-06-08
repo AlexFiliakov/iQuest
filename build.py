@@ -3,6 +3,8 @@
 Build script for Apple Health Monitor Dashboard
 Creates Windows executable using PyInstaller
 
+Compatible with PyInstaller 6.14.0+
+
 Supports multiple distribution formats:
 - Standalone executable
 - NSIS installer
@@ -70,7 +72,17 @@ def load_build_config() -> Dict:
             "PyQt6.QtPrintSupport",
             "matplotlib.backends.backend_qtagg",
             "matplotlib.backends.backend_qt",
-            "pandas._libs.tslibs.parsing"
+            "pandas._libs.tslibs.parsing",
+            "sqlalchemy.sql.default_comparator",
+            "sklearn.utils._param_validation",
+            "sklearn.utils._typedefs",
+            "sklearn.neighbors._typedefs",
+            "sklearn.tree._utils",
+            "scipy._lib.array_api_compat.numpy",
+            "scipy._lib.array_api_compat.numpy.fft",
+            "scipy._lib.array_api_compat.numpy.linalg",
+            "numpy._core",
+            "numpy._core._multiarray_umath"
         ],
         "excludes": [
             "PyQt5",
@@ -169,7 +181,7 @@ def check_dependencies() -> bool:
         logger.error("Please uninstall PyQt5 with: pip uninstall PyQt5")
         return False
     
-    required_packages = ['PyInstaller', 'PyQt6', 'pandas', 'matplotlib', 'sqlalchemy']
+    required_packages = ['PyInstaller', 'PyQt6', 'pandas', 'matplotlib', 'sqlalchemy', 'numpy', 'scipy', 'sklearn']
     missing_packages = []
     
     for package in required_packages:
@@ -226,12 +238,16 @@ def check_build_tools() -> Dict[str, bool]:
     return tools
 
 def create_version_info_file(version: str, config: Dict) -> Path:
-    """Create version info file for Windows executable."""
+    """Create version info file for Windows executable.
+    
+    Updated for PyInstaller 6.x compatibility.
+    """
     logger = logging.getLogger(__name__)
     version_parts = version.split('.')
     if len(version_parts) < 4:
         version_parts.extend(['0'] * (4 - len(version_parts)))
     
+    # PyInstaller 6.x still uses the same version file format
     version_info_content = f"""# UTF-8
 #
 # For more details about fixed file info 'ffi' see:

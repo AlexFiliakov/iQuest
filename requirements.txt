@@ -2,38 +2,38 @@
 # Install with: pip install -r requirements.txt
 
 # Core UI and data processing
-PyQt6>=6.5.0
-PyQt6-Qt6>=6.5.0  # Qt6 runtime dependency
-pyqtgraph>=0.13.0
-pandas>=2.0.0
-numpy>=1.24.0  # Compatible with other scientific packages
-python-dateutil>=2.8.0
+PyQt6>=6.9.1
+PyQt6-Qt6>=6.9.1  # Qt6 runtime dependency
+pyqtgraph>=0.13.7
+pandas>=2.2.0,<2.3.0  # Compatible with numpy constraints
+numpy>=1.26.0,<2.2.0  # Compatible with tensorflow 2.19.0
+python-dateutil>=2.9.0.post0
 
 # Visualization
-matplotlib>=3.7.0
-Pillow>=10.0.0  # Image export and processing
+matplotlib>=3.10.3
+Pillow>=11.2.1  # Image export and processing
 
 # Analytics and machine learning
-scikit-learn>=1.3.0
-scipy>=1.10.0
-statsmodels>=0.14.0
+scikit-learn>=1.6.0,<1.7.0  # Updated for darts 0.35.0 compatibility
+scipy>=1.14.0,<1.15.0  # Compatible with numpy<2.2.0
+statsmodels>=0.14.4
 
 # Time series analysis
-prophet>=1.1.4
-pmdarima>=2.0.0
+prophet>=1.1.7
+pmdarima>=2.0.4
 
 # Model interpretability
-shap>=0.42.0
+shap>=0.47.2
 
 # Performance and caching
-cachetools>=5.3.0
-psutil>=5.9.0
+cachetools>=6.0.0
+psutil>=7.0.0
 
 # Export and reporting
-reportlab>=4.0.0
-jinja2>=3.1.0
-openpyxl>=3.1.0
+reportlab>=4.4.1
+jinja2>=3.1.6
+openpyxl>=3.1.5
 
 # Build tools
-setuptools>=65.0
-PyInstaller>=5.0  # For creating executables
+setuptools>=80.9.0
+PyInstaller>=6.14.0  # For creating executables
