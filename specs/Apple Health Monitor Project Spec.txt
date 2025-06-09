@@ -1,7 +1,7 @@
 # Claude
 
 ## In WSL:
-source /home/alef/claude-env/bin/activate
+source /home/alexf/claude-env/bin/activate
 claude --dangerously-skip-permissions --resume
 
 /model claude-opus-4-20250514
@@ -18,7 +18,11 @@ npm i -g @anthropic-ai/claude-code
 @anthropic-ai/claude-code --version
 
 
-If MCP doesn’t work: “I downgraded to 1.0.3 and mcp works again.”
+## MCP per project
+
+claude mcp add-from-claude-desktop
+
+
 
 # Project Functions
 
