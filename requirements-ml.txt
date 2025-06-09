@@ -23,7 +23,7 @@ keras-tuner>=1.4.7  # Neural architecture search
 # pytorch-lightning>=2.0.0
 
 # Advanced machine learning utilities
-joblib>=1.2.0,<1.5  # Model serialization (constrained for sktime compatibility)
+joblib>=1.2.0,<1.6  # Model serialization (constrained for sktime compatibility)
 optuna>=4.3.0  # Hyperparameter optimization
 lightgbm>=4.6.0  # Gradient boosting
 xgboost>=3.0.2  # Gradient boosting alternative
