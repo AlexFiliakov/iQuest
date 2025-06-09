@@ -148,6 +148,11 @@ class DatabaseManager:
         """
         if not hasattr(self, 'initialized'):
             self.db_path = Path(config.DATA_DIR) / DB_FILE_NAME
+            
+            # Log database path for debugging
+            logger.info(f"DatabaseManager initializing with path: {self.db_path}")
+            logger.info(f"Absolute path: {self.db_path.absolute()}")
+            logger.info(f"Path exists: {self.db_path.exists()}")
             self.initialized = True
             self._ensure_database_exists()
             

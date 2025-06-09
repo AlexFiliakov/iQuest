@@ -72,7 +72,7 @@ def is_portable_mode():
     """
     if getattr(sys, 'frozen', False):
         # Running as compiled executable
-        app_dir = os.path.dirname(sys.executable)
+        app_dir = os.path.dirname(os.path.abspath(sys.executable))
     else:
         # Running from source
         app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -90,15 +90,15 @@ def get_data_directory():
     """
     if is_portable_mode():
         if getattr(sys, 'frozen', False):
-            # Running as compiled executable
-            app_dir = os.path.dirname(sys.executable)
+            # Running as compiled executable - use absolute path
+            app_dir = os.path.dirname(os.path.abspath(sys.executable))
         else:
             # Running from source
             app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
         data_dir = os.path.join(app_dir, 'data')
         os.makedirs(data_dir, exist_ok=True)
-        return data_dir
+        return os.path.abspath(data_dir)  # Return absolute path
     else:
         # Normal installation mode - prioritize Windows AppData
         # Check if we're running on Windows (including WSL accessing Windows filesystem)
@@ -135,6 +135,18 @@ def get_data_directory():
 
 # Set the DATA_DIR based on the current mode
 DATA_DIR = get_data_directory()
+
+# Log the configuration for debugging
+if __name__ != "__main__":  # Only log when imported, not when run directly
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Config module loaded:")
+    logger.info(f"  Frozen: {getattr(sys, 'frozen', False)}")
+    if getattr(sys, 'frozen', False):
+        logger.info(f"  Executable: {sys.executable}")
+    logger.info(f"  Portable mode: {is_portable_mode()}")
+    logger.info(f"  DATA_DIR: {DATA_DIR}")
+    logger.info(f"  DB path would be: {os.path.join(DATA_DIR, DB_FILE_NAME)}")
 
 BATCH_SIZE = 1000
 
