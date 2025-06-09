@@ -826,17 +826,39 @@ class StyleManager:
                 color: {self.colors.text_primary};
                 border-bottom: 1px solid {self.colors.border};
                 padding: {self.spacing.xs}px;
+                min-height: 25px;
+                margin: 0px;
             }}
             QMenuBar::item {{
                 padding: {self.spacing.xs}px {self.spacing.md}px;
                 background-color: transparent;
                 border-radius: 4px;
+                margin: 2px 4px;
             }}
             QMenuBar::item:selected {{
                 background-color: {self.colors.surface_alt};
             }}
             QMenuBar::item:pressed {{
                 background-color: {self.colors.primary_light};
+            }}
+            QMenu {{
+                background-color: {self.colors.surface};
+                color: {self.colors.text_primary};
+                border: 1px solid {self.colors.border};
+                padding: {self.spacing.xs}px;
+            }}
+            QMenu::item {{
+                padding: {self.spacing.xs}px {self.spacing.lg}px;
+                background-color: transparent;
+            }}
+            QMenu::item:selected {{
+                background-color: {self.colors.primary_light};
+                color: {self.colors.text_primary};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background-color: {self.colors.border};
+                margin: {self.spacing.xs}px 0px;
             }}
         """
         
@@ -847,10 +869,17 @@ class StyleManager:
             str: Complete stylesheet for QTabWidget
         """
         return f"""
+            QTabWidget {{
+                margin-top: 0px;
+            }}
             QTabWidget::pane {{
                 background-color: {self.colors.surface};
                 border: 1px solid {self.colors.border};
                 border-radius: 8px;
+                margin-top: -1px;
+            }}
+            QTabBar {{
+                background-color: transparent;
             }}
             QTabBar::tab {{
                 background-color: {self.colors.background};
@@ -860,6 +889,7 @@ class StyleManager:
                 border-top-left-radius: 6px;
                 border-top-right-radius: 6px;
                 font-weight: {self.typography.weight_medium};
+                min-width: 80px;
             }}
             QTabBar::tab:selected {{
                 background-color: {self.colors.surface};

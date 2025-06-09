@@ -1378,8 +1378,9 @@ class ConfigurationTab(QWidget):
         try:
             logger.info("Loading statistics from SQLite database (optimized)")
             
-            # Set database path
-            db_path = os.path.join(DATA_DIR, "health_monitor.db")
+            # Set database path using configured database filename
+            from ..config import DB_FILE_NAME
+            db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
             self.data_loader.db_path = db_path
             
             # Use cache manager with compute function for record statistics
@@ -2382,7 +2383,8 @@ class ConfigurationTab(QWidget):
         """Check if database exists and show statistics without loading all data."""
         try:
             # Check if database exists
-            db_path = os.path.join(DATA_DIR, "health_monitor.db")
+            from ..config import DB_FILE_NAME
+            db_path = os.path.join(DATA_DIR, DB_FILE_NAME)
             if os.path.exists(db_path):
                 logger.info("Found existing database, loading statistics only")
                 
@@ -2396,6 +2398,14 @@ class ConfigurationTab(QWidget):
                 self.file_path_input.setText(db_path)
                 # Load statistics from database (not full data)
                 self._load_from_sqlite()
+                
+                # In portable mode or when database exists, trigger initial data loaded signal
+                # This ensures dashboards initialize properly
+                logger.info("Triggering initial data loaded signal for dashboards")
+                try:
+                    self.data_loaded.emit(None)  # Emit with None to indicate database is ready
+                except Exception as e:
+                    logger.error(f"Error emitting initial data_loaded signal: {e}")
         except Exception as e:
             logger.warning(f"Could not check database availability: {e}")
     

@@ -144,7 +144,7 @@ class WeeklyDashboardWidget(QWidget):
     metric_selected = pyqtSignal(str)  # Emits just the metric type for compatibility
     metric_changed = pyqtSignal(str)  # Alias for compatibility
     
-    def __init__(self, weekly_calculator=None, daily_calculator=None, parent=None):
+    def __init__(self, weekly_calculator=None, daily_calculator=None, data_access=None, parent=None):
         """Initialize the weekly dashboard widget."""
         super().__init__(parent)
         
@@ -152,8 +152,23 @@ class WeeklyDashboardWidget(QWidget):
         self.weekly_calculator = weekly_calculator
         self.daily_calculator = daily_calculator
         self.cached_data_access = None
-        self.wow_analyzer = WeekOverWeekTrends(weekly_calculator) if weekly_calculator else None
-        self.dow_analyzer = DayOfWeekAnalyzer(daily_calculator.data if hasattr(daily_calculator, 'data') else daily_calculator) if daily_calculator else None
+        self.data_access = data_access
+        
+        # Initialize calculators if data_access is provided but calculators are not
+        if data_access:
+            from ..analytics.data_source_protocol import DataAccessAdapter
+            data_adapter = DataAccessAdapter(data_access)
+            
+            if not daily_calculator:
+                from ..analytics.daily_metrics_calculator import DailyMetricsCalculator
+                self.daily_calculator = DailyMetricsCalculator(data_adapter)
+            
+            if not weekly_calculator:
+                from ..analytics.weekly_metrics_calculator import WeeklyMetricsCalculator
+                self.weekly_calculator = WeeklyMetricsCalculator(self.daily_calculator)
+        
+        self.wow_analyzer = WeekOverWeekTrends(self.weekly_calculator) if self.weekly_calculator else None
+        self.dow_analyzer = DayOfWeekAnalyzer(self.daily_calculator.data if hasattr(self.daily_calculator, 'data') else self.daily_calculator) if self.daily_calculator else None
         
         # Try to initialize HealthDatabase
         try:
@@ -1591,19 +1606,35 @@ class WeeklyDashboardWidget(QWidget):
         super().showEvent(event)
         logger.info("Weekly dashboard shown")
         
+        # Ensure required attributes are initialized
+        if not hasattr(self, '_available_metrics'):
+            self._available_metrics = []
+        if not hasattr(self, 'health_db'):
+            # Try to initialize HealthDatabase
+            try:
+                self.health_db = HealthDatabase()
+            except Exception as e:
+                logger.error(f"Failed to initialize HealthDatabase in showEvent: {e}")
+                self.health_db = None
+        
         # Ensure all widgets are visible
         self._ensure_widgets_visible()
         
         # Force a refresh when the widget is shown
-        if self.weekly_calculator:
-            logger.info("Weekly calculator available - loading data")
-            self._hide_no_data_message()  # Hide overlay if calculator is available
-            self._load_weekly_data()
+        if self.weekly_calculator or self.data_access:
+            logger.info("Data access available - loading data")
+            self._hide_no_data_message()  # Hide overlay if data access is available
+            # Detect metrics if not already done
+            if not self._available_metrics:
+                self._detect_available_metrics()
+            # Load data
+            if self._available_metrics:
+                self._load_weekly_data()
             self.update()
             from PyQt6.QtWidgets import QApplication
             QApplication.processEvents()
         else:
-            logger.warning("No weekly calculator available on show event")
+            logger.warning("No data access available on show event")
             self._show_no_data_message()
             
     def _ensure_widgets_visible(self):

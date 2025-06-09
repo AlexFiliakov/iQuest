@@ -368,6 +368,8 @@ class MainWindow(QMainWindow):
         
         menu_bar = self.menuBar()
         menu_bar.setStyleSheet(self.style_manager.get_menu_bar_style())
+        menu_bar.setNativeMenuBar(False)  # Ensure menu bar is displayed within the window
+        menu_bar.setFixedHeight(30)  # Set a fixed height to prevent overlap
         
         # File menu
         file_menu = menu_bar.addMenu("&File")
@@ -502,7 +504,11 @@ class MainWindow(QMainWindow):
         # Create tab widget
         self.tab_widget = QTabWidget(self)
         self.tab_widget.setStyleSheet(self.style_manager.get_tab_widget_style())
+        self.tab_widget.setDocumentMode(True)  # For cleaner tab appearance
         self.setCentralWidget(self.tab_widget)
+        
+        # Ensure proper spacing around central widget
+        self.centralWidget().setContentsMargins(0, 0, 0, 0)
         
         # Create tabs with error handling
         # Temporarily simplify tab creation to debug the issue
@@ -643,9 +649,13 @@ class MainWindow(QMainWindow):
         """
         try:
             from .daily_dashboard_widget import DailyDashboardWidget
+            from ..data_access import DataAccess
 
-            # Create the daily dashboard widget with parent
-            self.daily_dashboard = DailyDashboardWidget(parent=self)
+            # Create data access instance (uses DatabaseManager singleton which respects portable mode)
+            data_access = DataAccess()
+            
+            # Create the daily dashboard widget with parent and data_access
+            self.daily_dashboard = DailyDashboardWidget(data_access=data_access, parent=self)
             
             # Connect signals
             if hasattr(self.daily_dashboard, 'metric_selected'):
@@ -660,6 +670,10 @@ class MainWindow(QMainWindow):
         except ImportError as e:
             # Fallback to placeholder if import fails
             logger.warning(f"Could not import DailyDashboardWidget: {e}")
+            self._create_daily_dashboard_placeholder()
+        except Exception as e:
+            # Fallback to placeholder if any other error occurs
+            logger.error(f"Failed to create daily dashboard: {e}", exc_info=True)
             self._create_daily_dashboard_placeholder()
     
     def _create_daily_dashboard_placeholder(self):
@@ -724,7 +738,12 @@ class MainWindow(QMainWindow):
         try:
             # Use standard version for now (modern version has display issues)
             from .weekly_dashboard_widget import WeeklyDashboardWidget
-            self.weekly_dashboard = WeeklyDashboardWidget(parent=self)
+            from ..data_access import DataAccess
+            
+            # Create data access instance (uses DatabaseManager singleton which respects portable mode)
+            data_access = DataAccess()
+            
+            self.weekly_dashboard = WeeklyDashboardWidget(data_access=data_access, parent=self)
             logger.info("Using standard WeeklyDashboardWidget")
             
             # Connect signals
@@ -736,6 +755,10 @@ class MainWindow(QMainWindow):
         except ImportError as e:
             # Fallback to placeholder if import fails
             logger.warning(f"Could not import WeeklyDashboardWidget: {e}")
+            self._create_weekly_dashboard_placeholder()
+        except Exception as e:
+            # Fallback to placeholder if any other error occurs
+            logger.error(f"Failed to create weekly dashboard: {e}", exc_info=True)
             self._create_weekly_dashboard_placeholder()
     
     def _create_weekly_dashboard_placeholder(self):
@@ -1608,10 +1631,11 @@ class MainWindow(QMainWindow):
         """Create the application status bar."""
         logger.debug("Creating status bar")
         
-        self.status_bar = self.statusBar()
-        self.status_bar.setStyleSheet(self.style_manager.get_status_bar_style())
-        self.status_bar.showMessage("Ready")
-        self.status_bar.setToolTip("Shows the current application status")
+        # Get the status bar (QMainWindow provides this)
+        status_bar = self.statusBar()
+        status_bar.setStyleSheet(self.style_manager.get_status_bar_style())
+        status_bar.showMessage("Ready")
+        status_bar.setToolTip("Shows the current application status")
     
     def _on_tab_changed(self, index):
         """Handle tab change event with proper widget state management."""
@@ -1717,7 +1741,30 @@ class MainWindow(QMainWindow):
         if not widget or not widget.isVisible():
             logger.debug(f"Tab {tab_index} not visible, skipping refresh")
             return
+        
+        # Check if we're in DataAccess mode (portable mode)
+        if tab_index == 1 and hasattr(self, 'daily_dashboard'):
+            # Daily tab
+            if hasattr(self.daily_dashboard, 'data_access') and self.daily_dashboard.data_access:
+                logger.debug("Daily tab - using DataAccess mode, triggering data load")
+                if hasattr(self.daily_dashboard, '_load_daily_data'):
+                    try:
+                        self.daily_dashboard._load_daily_data()
+                    except Exception as e:
+                        logger.error(f"Error loading daily data: {e}")
+                return
+        elif tab_index == 2 and hasattr(self, 'weekly_dashboard'):
+            # Weekly tab
+            if hasattr(self.weekly_dashboard, 'data_access') and self.weekly_dashboard.data_access:
+                logger.debug("Weekly tab - using DataAccess mode, triggering data load")
+                if hasattr(self.weekly_dashboard, '_load_weekly_data'):
+                    try:
+                        self.weekly_dashboard._load_weekly_data()
+                    except Exception as e:
+                        logger.error(f"Error loading weekly data: {e}")
+                return
             
+        # Original logic for non-DataAccess mode
         # Get data without recreation
         data = self._get_current_data()
         if data is None:
@@ -1903,7 +1950,7 @@ class MainWindow(QMainWindow):
     def _on_transition_interrupted(self):
         """Handle transition interruption."""
         logger.debug("Transition was interrupted")
-        self.status_bar.showMessage("Transition interrupted")
+        self.statusBar().showMessage("Transition interrupted")
     
     def toggle_accessibility_mode(self, enabled: bool):
         """Toggle accessibility mode for animations."""
@@ -2285,7 +2332,7 @@ class MainWindow(QMainWindow):
             )
             
             # Update status bar
-            self.status_bar.showMessage("All data erased successfully")
+            self.statusBar().showMessage("All data erased successfully")
             logger.info("All data erased successfully")
             
             # Emit signal if available
@@ -2364,7 +2411,7 @@ class MainWindow(QMainWindow):
                 return
         
         logger.info(f"Data loaded: {len(data) if data is not None else 0} records")
-        self.status_bar.showMessage(f"Loaded {len(data):,} health records")
+        self.statusBar().showMessage(f"Loaded {len(data):,} health records")
         
         # Enable other tabs when data is loaded
         if data is not None and not data.empty:
@@ -2395,7 +2442,7 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 logger.error(f"Error refreshing dashboard tabs: {e}", exc_info=True)
-                self.status_bar.showMessage(f"Data loaded with some errors: {str(e)}")
+                self.statusBar().showMessage(f"Data loaded with some errors: {str(e)}")
                 
         else:
             logger.warning("No data loaded or data is empty - disabling dashboard tabs")
@@ -2674,7 +2721,7 @@ class MainWindow(QMainWindow):
     def _on_filters_applied(self, filters):
         """Handle filters applied signal from configuration tab."""
         logger.info(f"Filters applied: {filters}")
-        self.status_bar.showMessage("Filters applied successfully")
+        self.statusBar().showMessage("Filters applied successfully")
         
         # TODO: Pass filtered data to other tabs
         # This will be implemented when other tabs are created
@@ -2682,28 +2729,28 @@ class MainWindow(QMainWindow):
     def _on_month_changed(self, year: int, month: int):
         """Handle month change signal from monthly dashboard."""
         logger.info(f"Month changed to: {year}-{month:02d}")
-        self.status_bar.showMessage(f"Viewing {year}-{month:02d}")
+        self.statusBar().showMessage(f"Viewing {year}-{month:02d}")
         
     def _on_metric_changed(self, metric: str):
         """Handle metric change signal from monthly dashboard."""
         logger.info(f"Metric changed to: {metric}")
-        self.status_bar.showMessage(f"Displaying {metric} data")
+        self.statusBar().showMessage(f"Displaying {metric} data")
     
     def _on_week_changed(self, start_date: date, end_date: date):
         """Handle week change signal from weekly dashboard."""
         logger.info(f"Week changed to: {start_date} - {end_date}")
-        self.status_bar.showMessage(f"Viewing week of {start_date.strftime('%B %d')}")
+        self.statusBar().showMessage(f"Viewing week of {start_date.strftime('%B %d')}")
     
     def _on_metric_selected(self, metric: str):
         """Handle metric selection signal from weekly dashboard."""
         logger.info(f"Weekly metric selected: {metric}")
-        self.status_bar.showMessage(f"Weekly view: {metric}")
+        self.statusBar().showMessage(f"Weekly view: {metric}")
     
     def _on_insight_selected(self, insight):
         """Handle insight selection."""
         logger.info(f"Insight selected: {insight.title}")
         # Could navigate to relevant data view or show detailed dialog
-        self.status_bar.showMessage(f"Selected: {insight.title}")
+        self.statusBar().showMessage(f"Selected: {insight.title}")
     
     def _prepare_data_for_insights(self, data):
         """Convert DataFrame to format expected by insights engine."""
@@ -2773,13 +2820,13 @@ class MainWindow(QMainWindow):
                 else:
                     msg = f"✓ All trends calculated ({cached_count} metrics cached)"
                 
-                self.status_bar.showMessage(msg)
+                self.statusBar().showMessage(msg)
             else:
                 # No background processor available
-                self.status_bar.showMessage("Ready")
+                self.statusBar().showMessage("Ready")
         except Exception as e:
             logger.error(f"Error updating trend status: {e}")
-            self.status_bar.showMessage("Ready")
+            self.statusBar().showMessage("Ready")
     
     def _format_metric_name(self, metric: str) -> str:
         """Format metric identifier to readable name."""
@@ -2863,7 +2910,7 @@ class MainWindow(QMainWindow):
         )
         
         if dialog.exec():
-            self.status_bar.showMessage("Export completed successfully")
+            self.statusBar().showMessage("Export completed successfully")
             
     def _on_quick_export(self, export_type: str):
         """Handle quick export actions."""

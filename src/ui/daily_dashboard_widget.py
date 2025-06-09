@@ -202,15 +202,30 @@ class DailyDashboardWidget(QWidget):
         'body_fat': {'display': 'Body Fat', 'unit': '%', 'icon': '📊', 'priority': 10}
     }
     
-    def __init__(self, daily_calculator=None, personal_records=None, parent=None):
+    def __init__(self, daily_calculator=None, personal_records=None, data_access=None, parent=None):
         """Initialize the daily dashboard widget."""
         super().__init__(parent)
+        
+        # Initialize health_db first to ensure it always exists
+        self.health_db = None
         
         # Support both old calculator and new cached access
         self.daily_calculator = daily_calculator
         self.cached_data_access = None
         self.personal_records = personal_records
-        self.day_analyzer = DayOfWeekAnalyzer(daily_calculator) if daily_calculator else None
+        self.data_access = data_access
+        
+        # Initialize calculator if data_access is provided but calculator is not
+        if data_access and not daily_calculator:
+            try:
+                from ..analytics.dataframe_adapter import DataFrameAdapter
+                data_adapter = DataFrameAdapter(data_access)
+                self.daily_calculator = DailyMetricsCalculator(data_adapter)
+            except Exception as e:
+                logger.error(f"Failed to initialize calculator from data_access: {e}")
+                self.daily_calculator = None
+        
+        self.day_analyzer = DayOfWeekAnalyzer(self.daily_calculator) if self.daily_calculator else None
         
         # Try to initialize HealthDatabase
         try:
@@ -1070,7 +1085,7 @@ class DailyDashboardWidget(QWidget):
         """Load data for the current date."""
         logger.info(f"Loading daily data for {self._current_date}")
         
-        if not self.daily_calculator and not self.cached_data_access:
+        if not self.daily_calculator and not self.cached_data_access and not self.data_access:
             logger.debug("No data access available - data not loaded yet")
             self._show_no_data_message()
             return
@@ -1175,6 +1190,10 @@ class DailyDashboardWidget(QWidget):
                         self._current_date
                     )
                     daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
+                elif self.data_access and self.health_db:
+                    # Use direct database query through health_db
+                    logger.debug(f"Getting data from database for {metric_name} on {self._current_date}")
+                    daily_value = self._get_source_specific_daily_value(hk_type, self._current_date, None)
                 else:
                     daily_value = None
             
@@ -2207,10 +2226,21 @@ class DailyDashboardWidget(QWidget):
     def showEvent(self, event):
         """Handle widget show event to ensure UI is refreshed."""
         super().showEvent(event)
+        
+        # Ensure all required attributes exist
+        if not hasattr(self, 'health_db'):
+            self.health_db = None
+        if not hasattr(self, 'daily_calculator'):
+            self.daily_calculator = None
+        if not hasattr(self, 'cached_data_access'):
+            self.cached_data_access = None
+        if not hasattr(self, '_stats_cache'):
+            self._stats_cache = {}
+            
         # Clear any leftover content from other tabs
         self._hide_no_data_message()
         # Force immediate refresh when widget is shown
-        if self.daily_calculator or self.cached_data_access or self.health_db:
+        if self.daily_calculator or self.cached_data_access or self.health_db or self.data_access:
             # Clear cache to ensure fresh data
             self._stats_cache.clear()
             if hasattr(self, '_hourly_cache'):
