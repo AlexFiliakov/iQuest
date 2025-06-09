@@ -558,8 +558,16 @@ class WeeklyMetricsCalculator:
             sample_tz = data['creationDate'].dropna().iloc[0].tz if len(data['creationDate'].dropna()) > 0 else None
             if sample_tz:
                 # Make week_start and week_end timezone-aware to match the data
-                week_start_pd = pd.Timestamp(week_start).tz_localize('UTC').tz_convert(sample_tz)
-                week_end_pd = pd.Timestamp(week_end).tz_localize('UTC').tz_convert(sample_tz)
+                # First check if week_start/week_end already have timezone info
+                if hasattr(week_start, 'tzinfo') and week_start.tzinfo is not None:
+                    week_start_pd = pd.Timestamp(week_start).tz_convert(sample_tz)
+                else:
+                    week_start_pd = pd.Timestamp(week_start).tz_localize('UTC').tz_convert(sample_tz)
+                
+                if hasattr(week_end, 'tzinfo') and week_end.tzinfo is not None:
+                    week_end_pd = pd.Timestamp(week_end).tz_convert(sample_tz)
+                else:
+                    week_end_pd = pd.Timestamp(week_end).tz_localize('UTC').tz_convert(sample_tz)
             else:
                 # Data is timezone-naive
                 week_start_pd = pd.Timestamp(week_start)

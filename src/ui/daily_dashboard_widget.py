@@ -218,8 +218,8 @@ class DailyDashboardWidget(QWidget):
         # Initialize calculator if data_access is provided but calculator is not
         if data_access and not daily_calculator:
             try:
-                from ..analytics.dataframe_adapter import DataFrameAdapter
-                data_adapter = DataFrameAdapter(data_access)
+                from ..analytics.data_source_protocol import DataAccessAdapter
+                data_adapter = DataAccessAdapter(data_access)
                 self.daily_calculator = DailyMetricsCalculator(data_adapter)
             except Exception as e:
                 logger.error(f"Failed to initialize calculator from data_access: {e}")
