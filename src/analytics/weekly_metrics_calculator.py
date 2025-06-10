@@ -549,41 +549,22 @@ class WeeklyMetricsCalculator:
         # Filter data for the specific metric and week
         # Ensure creationDate is in datetime format first
         if 'creationDate' in data.columns:
+            # Convert to datetime and handle timezone consistently
             data['creationDate'] = pd.to_datetime(data['creationDate'])
-        
-        # Convert datetime objects to pandas datetime for proper comparison
-        # Ensure consistent timezone handling
-        if not data.empty and 'creationDate' in data.columns and not data['creationDate'].empty:
-            # Check if the data has timezone info
-            sample_entry = data['creationDate'].dropna().iloc[0] if len(data['creationDate'].dropna()) > 0 else None
             
-            if sample_entry is not None and hasattr(sample_entry, 'tz') and sample_entry.tz is not None:
-                # Data has timezone info - convert week_start/week_end to match
-                # Use the beginning and end of day in UTC, then convert to data's timezone
-                week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start, 
-                                                datetime.min.time())
-                week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
-                                              datetime.max.time())
-                
-                # Convert to pandas timestamps with UTC timezone
-                week_start_pd = pd.Timestamp(week_start_dt).tz_localize('UTC')
-                week_end_pd = pd.Timestamp(week_end_dt).tz_localize('UTC')
-            else:
-                # Data is timezone-naive - use naive timestamps
-                week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start,
-                                                datetime.min.time())
-                week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
-                                              datetime.max.time())
-                week_start_pd = pd.Timestamp(week_start_dt)
-                week_end_pd = pd.Timestamp(week_end_dt)
-        else:
-            # No data, use naive timestamps with full day range
-            week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start,
-                                            datetime.min.time())
-            week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
-                                          datetime.max.time())
-            week_start_pd = pd.Timestamp(week_start_dt)
-            week_end_pd = pd.Timestamp(week_end_dt)
+            # Remove timezone info to ensure all comparisons are timezone-naive
+            if data['creationDate'].dt.tz is not None:
+                data['creationDate'] = data['creationDate'].dt.tz_localize(None)
+        
+        # Create timezone-naive timestamps for comparison
+        week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start, 
+                                        datetime.min.time())
+        week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
+                                      datetime.max.time())
+        
+        # Convert to pandas timestamps (timezone-naive)
+        week_start_pd = pd.Timestamp(week_start_dt)
+        week_end_pd = pd.Timestamp(week_end_dt)
         
         mask = (data['type'] == metric_type) & \
                (data['creationDate'] >= week_start_pd) & \
@@ -596,7 +577,10 @@ class WeeklyMetricsCalculator:
             daily_aggs = week_data.groupby('date')['value'].mean()
             
             # Create complete date range for the week
-            date_range = pd.date_range(start=week_start.date(), end=week_end.date(), freq='D')
+            # Handle both date and datetime objects
+            start_date = week_start.date() if hasattr(week_start, 'date') else week_start
+            end_date = week_end.date() if hasattr(week_end, 'date') else week_end
+            date_range = pd.date_range(start=start_date, end=end_date, freq='D')
             daily_values = {}
             
             for date in date_range:

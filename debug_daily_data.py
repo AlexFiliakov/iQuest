@@ -1,174 +1,143 @@
-#!/usr/bin/env python3
-"""Debug script to investigate why Daily tab isn't loading data."""
+#\!/usr/bin/env python3
+"""Debug script to understand why Daily tab is not showing data."""
 
+import sqlite3
 import sys
-from datetime import date, timedelta
-import pandas as pd
-from PyQt6.QtWidgets import QApplication
-from src.ui.main_window import MainWindow
-from src.utils.logging_config import get_logger
+import os
+from datetime import date, datetime
+from pathlib import Path
 
-logger = get_logger(__name__)
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from config import get_data_directory, DB_FILE_NAME
 
 def debug_daily_data():
-    """Debug the Daily tab data loading."""
-    app = QApplication(sys.argv)
+    """Debug why daily data is not showing."""
+    # Get database path
+    data_dir = get_data_directory()
+    db_path = Path(data_dir) / DB_FILE_NAME
     
-    # Create main window
-    window = MainWindow()
-    window.show()
+    if not db_path.exists():
+        print(f"ERROR: Database does not exist at {db_path}")
+        return
     
-    # Switch to config tab
-    window.tab_widget.setCurrentIndex(0)
-    QApplication.processEvents()
+    conn = sqlite3.connect(str(db_path))
+    cursor = conn.cursor()
     
-    print("\n" + "="*50)
-    print("Daily Tab Data Debug")
-    print("="*50)
+    print("Debugging Daily Data Issue")
+    print("=" * 80)
     
-    # Check if data is loaded
-    if hasattr(window, 'config_tab'):
-        data = None
-        if hasattr(window.config_tab, 'get_filtered_data'):
-            data = window.config_tab.get_filtered_data()
-        elif hasattr(window.config_tab, 'filtered_data'):
-            data = window.config_tab.filtered_data
-            
-        if data is not None and not data.empty:
-            print(f"\n✓ Data loaded: {len(data)} records")
-            
-            # Check data structure
-            print(f"\nColumns: {list(data.columns)}")
-            print(f"\nData types:")
-            print(data.dtypes)
-            
-            # Check sample data
-            print(f"\nFirst 5 records:")
-            print(data.head())
-            
-            # Check unique metric types
-            if 'type' in data.columns:
-                unique_types = data['type'].unique()
-                print(f"\nUnique metric types: {len(unique_types)}")
-                for i, metric_type in enumerate(unique_types[:10]):
-                    print(f"  {i+1}. {metric_type}")
-                if len(unique_types) > 10:
-                    print(f"  ... and {len(unique_types) - 10} more")
-            
-            # Check date range
-            if 'creationDate' in data.columns:
-                dates = pd.to_datetime(data['creationDate'])
-                print(f"\nDate range: {dates.min()} to {dates.max()}")
-                
-                # Check data for today
-                today = date.today()
-                today_start = pd.Timestamp(today)
-                today_end = pd.Timestamp(today) + pd.Timedelta(days=1)
-                
-                today_data = data[(pd.to_datetime(data['creationDate']) >= today_start) & 
-                                (pd.to_datetime(data['creationDate']) < today_end)]
-                print(f"\nData for today ({today}): {len(today_data)} records")
-                
-                # Check data for yesterday
-                yesterday = today - timedelta(days=1)
-                yesterday_start = pd.Timestamp(yesterday)
-                yesterday_end = pd.Timestamp(yesterday) + pd.Timedelta(days=1)
-                
-                yesterday_data = data[(pd.to_datetime(data['creationDate']) >= yesterday_start) & 
-                                    (pd.to_datetime(data['creationDate']) < yesterday_end)]
-                print(f"Data for yesterday ({yesterday}): {len(yesterday_data)} records")
-            
-            # Test daily calculator
-            print("\n" + "-"*30)
-            print("Testing DailyMetricsCalculator")
-            print("-"*30)
-            
-            from src.analytics.daily_metrics_calculator import DailyMetricsCalculator
-            
-            try:
-                calculator = DailyMetricsCalculator(data)
-                print("✓ Calculator created successfully")
-                
-                # Check prepared data
-                if hasattr(calculator, 'data'):
-                    print(f"\nCalculator data shape: {calculator.data.shape}")
-                    
-                    # Check if date column exists
-                    if 'date' in calculator.data.columns:
-                        print("✓ Date column exists")
-                        
-                        # Check date values
-                        unique_dates = calculator.data['date'].unique()
-                        print(f"Unique dates: {len(unique_dates)}")
-                        
-                        # Check today's data in calculator
-                        today_calc_data = calculator.data[calculator.data['date'] == today]
-                        print(f"\nData for today in calculator: {len(today_calc_data)} records")
-                        
-                        if len(today_calc_data) > 0:
-                            print("Sample today's data:")
-                            print(today_calc_data[['type', 'value', 'date']].head())
-                        
-                        # Test calculate_daily_statistics
-                        if 'type' in data.columns and len(unique_types) > 0:
-                            test_metric = unique_types[0]
-                            print(f"\nTesting calculate_daily_statistics for '{test_metric}' on {today}")
-                            
-                            stats = calculator.calculate_daily_statistics(test_metric, today)
-                            if stats:
-                                print(f"✓ Stats calculated: count={stats.count}, mean={stats.mean}")
-                            else:
-                                print("✗ No stats returned")
-                                
-                                # Debug: Check data for this metric and date
-                                metric_today_data = calculator.data[
-                                    (calculator.data['type'] == test_metric) & 
-                                    (calculator.data['date'] == today)
-                                ]
-                                print(f"Debug: Found {len(metric_today_data)} records for {test_metric} on {today}")
-                    else:
-                        print("✗ Date column NOT found in calculator data")
-                        
-            except Exception as e:
-                print(f"✗ Error creating calculator: {e}")
-                import traceback
-                traceback.print_exc()
-            
-        else:
-            print("\n✗ No data loaded")
-            print("Please go to Configuration tab and import data first")
-    else:
-        print("\n✗ config_tab not found")
+    # Check date formats in database
+    print("\n1. Checking date formats in database:")
+    cursor.execute("""
+        SELECT startDate, DATE(startDate) as date_func_result
+        FROM health_records
+        WHERE type LIKE '%StepCount%'
+        ORDER BY startDate DESC
+        LIMIT 10
+    """)
     
-    # Switch to Daily tab
-    print("\n" + "-"*30)
-    print("Switching to Daily tab")
-    print("-"*30)
+    print("Recent StepCount records:")
+    for row in cursor.fetchall():
+        print(f"  startDate: {row[0]!r}, DATE(startDate): {row[1]!r}")
     
-    window.tab_widget.setCurrentIndex(1)
-    QApplication.processEvents()
+    # Check what dates we have data for
+    print("\n2. Checking available dates for StepCount:")
+    cursor.execute("""
+        SELECT DATE(startDate) as record_date, COUNT(*) as count
+        FROM health_records
+        WHERE type LIKE '%StepCount%'
+        AND DATE(startDate) IS NOT NULL
+        GROUP BY DATE(startDate)
+        ORDER BY record_date DESC
+        LIMIT 10
+    """)
     
-    if hasattr(window, 'daily_dashboard'):
-        dashboard = window.daily_dashboard
-        print("✓ Daily dashboard exists")
+    print("Available dates:")
+    for row in cursor.fetchall():
+        print(f"  Date: {row[0]}, Count: {row[1]}")
+    
+    # Test the exact query used by Daily tab
+    test_date = date.today()
+    print(f"\n3. Testing Daily tab query for today ({test_date.isoformat()}):")
+    
+    # First check if we have any data for today
+    cursor.execute("""
+        SELECT COUNT(*) 
+        FROM health_records
+        WHERE type LIKE '%StepCount%'
+        AND DATE(startDate) = ?
+    """, (test_date.isoformat(),))
+    
+    count = cursor.fetchone()[0]
+    print(f"  Records found for {test_date.isoformat()}: {count}")
+    
+    # Try yesterday
+    from datetime import timedelta
+    yesterday = test_date - timedelta(days=1)
+    cursor.execute("""
+        SELECT COUNT(*) 
+        FROM health_records
+        WHERE type LIKE '%StepCount%'
+        AND DATE(startDate) = ?
+    """, (yesterday.isoformat(),))
+    
+    count = cursor.fetchone()[0]
+    print(f"  Records found for {yesterday.isoformat()}: {count}")
+    
+    # Check the most recent date with data
+    print("\n4. Most recent date with StepCount data:")
+    cursor.execute("""
+        SELECT DATE(startDate) as most_recent
+        FROM health_records
+        WHERE type LIKE '%StepCount%'
+        AND DATE(startDate) IS NOT NULL
+        ORDER BY startDate DESC
+        LIMIT 1
+    """)
+    
+    result = cursor.fetchone()
+    if result:
+        print(f"  Most recent date: {result[0]}")
         
-        # Check calculator
-        if dashboard.daily_calculator:
-            print("✓ Daily calculator is set")
-        else:
-            print("✗ Daily calculator is NOT set")
+        # Now test the full query as used in daily dashboard
+        print(f"\n5. Testing full query for most recent date:")
+        cursor.execute("""
+            SELECT SUM(CAST(value AS FLOAT)) as daily_total
+            FROM health_records
+            WHERE type LIKE '%StepCount%'
+            AND DATE(startDate) = ?
+            AND value IS NOT NULL
+        """, (result[0],))
         
-        # Check metric cards
-        if hasattr(dashboard, '_metric_cards'):
-            print(f"✓ Metric cards: {len(dashboard._metric_cards)}")
+        total = cursor.fetchone()
+        if total and total[0]:
+            print(f"  Total steps: {total[0]}")
         else:
-            print("✗ No metric cards")
-    else:
-        print("✗ Daily dashboard not found")
+            print("  No data returned!")
     
-    print("\n" + "="*50 + "\n")
+    # Check if there's a timezone issue
+    print("\n6. Checking for potential timezone issues:")
+    cursor.execute("""
+        SELECT startDate, 
+               datetime(startDate) as datetime_func,
+               date(startDate) as date_func,
+               strftime('%Y-%m-%d', startDate) as strftime_date
+        FROM health_records
+        WHERE type LIKE '%StepCount%'
+        LIMIT 5
+    """)
     
-    return app.exec()
+    print("Date function results:")
+    for row in cursor.fetchall():
+        print(f"  Original: {row[0]}")
+        print(f"    datetime(): {row[1]}")
+        print(f"    date(): {row[2]}")
+        print(f"    strftime(): {row[3]}")
+        print()
+    
+    conn.close()
 
 if __name__ == "__main__":
-    sys.exit(debug_daily_data())
+    debug_daily_data()

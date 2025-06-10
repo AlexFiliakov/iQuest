@@ -1,47 +1,90 @@
-"""Test script to debug daily dashboard initialization."""
+#!/usr/bin/env python3
+"""Test script to verify daily dashboard works in portable mode."""
 
-import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sys
+import logging
 
-from PyQt6.QtWidgets import QApplication
-from src.ui.main_window import MainWindow
-from src.utils.logging_config import setup_logging
+# Add src to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-def test_daily_dashboard():
-    """Test daily dashboard initialization."""
-    setup_logging()
+# Set up logging to see what's happening
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Test portable mode detection
+from config import is_portable_mode, get_data_directory, DATA_DIR
+print(f"Portable mode: {is_portable_mode()}")
+print(f"Data directory: {DATA_DIR}")
+
+# Test database initialization
+from database import DatabaseManager
+from health_database import HealthDatabase
+
+print("\n=== Testing DatabaseManager ===")
+try:
+    db = DatabaseManager()
+    print(f"DatabaseManager initialized successfully")
+    print(f"Database path: {db.db_path}")
+    print(f"Database exists: {db.db_path.exists()}")
     
+    # Try a simple query
+    result = db.execute_query("SELECT COUNT(*) FROM health_records")
+    if result:
+        print(f"Health records count: {result[0][0]}")
+except Exception as e:
+    print(f"DatabaseManager error: {e}")
+
+print("\n=== Testing HealthDatabase ===")
+try:
+    health_db = HealthDatabase()
+    print("HealthDatabase initialized successfully")
+    
+    # Try getting available types
+    types = health_db.get_available_types()
+    print(f"Available types: {len(types)}")
+    if types:
+        print(f"First few types: {types[:5]}")
+except Exception as e:
+    print(f"HealthDatabase error: {e}")
+
+print("\n=== Testing DailyDashboardWidget ===")
+try:
+    from PyQt6.QtWidgets import QApplication
+    from ui.daily_dashboard_widget import DailyDashboardWidget
+    from data_access import DataAccess
+    
+    # Create minimal Qt app
     app = QApplication(sys.argv)
     
-    # Create main window
-    window = MainWindow()
+    # Create data access
+    data_access = DataAccess()
     
-    # Check if daily dashboard was created
-    if hasattr(window, 'daily_dashboard'):
-        print("✓ Daily dashboard created successfully")
-        
-        # Check critical attributes
-        dd = window.daily_dashboard
-        print(f"  - daily_calculator: {dd.daily_calculator}")
-        print(f"  - data_access: {dd.data_access if hasattr(dd, 'data_access') else 'Not set'}")
-        print(f"  - health_db: {dd.health_db if hasattr(dd, 'health_db') else 'Not set'}")
-        print(f"  - cached_data_access: {dd.cached_data_access if hasattr(dd, 'cached_data_access') else 'Not set'}")
-        
-        # Check if it's the actual widget or placeholder
-        if hasattr(dd, '_load_daily_data'):
-            print("✓ This is the actual DailyDashboardWidget")
-        else:
-            print("✗ This is a placeholder widget")
-    else:
-        print("✗ Daily dashboard not created")
+    # Create daily dashboard
+    daily_widget = DailyDashboardWidget(data_access=data_access)
+    print("DailyDashboardWidget created successfully")
     
-    # Check tab count
-    print(f"\nTotal tabs: {window.tab_widget.count()}")
-    for i in range(window.tab_widget.count()):
-        print(f"  Tab {i}: {window.tab_widget.tabText(i)}")
+    # Check initialization
+    print(f"Daily calculator available: {daily_widget.daily_calculator is not None}")
+    print(f"Health DB available: {daily_widget.health_db is not None}")
+    print(f"Data access available: {daily_widget.data_access is not None}")
     
-    window.close()
+    # Try detecting metrics
+    daily_widget._detect_available_metrics()
+    print(f"Available metrics: {len(daily_widget._available_metrics)}")
+    if daily_widget._available_metrics:
+        print(f"First few metrics: {daily_widget._available_metrics[:5]}")
     
-if __name__ == "__main__":
-    test_daily_dashboard()
+    # Try loading data
+    print("\n=== Testing data loading ===")
+    daily_widget._load_daily_data()
+    print("Data loading completed without errors")
+    
+except Exception as e:
+    print(f"DailyDashboardWidget error: {e}")
+    import traceback
+    traceback.print_exc()
+
+print("\n=== Test complete ===")

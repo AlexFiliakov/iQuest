@@ -232,9 +232,12 @@ class DailyDashboardWidget(QWidget):
         # Try to initialize HealthDatabase
         try:
             self.health_db = HealthDatabase()
+            logger.info(f"HealthDatabase initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize HealthDatabase: {e}")
             self.health_db = None
+            # In portable mode, this might fail due to database path issues
+            # We'll rely on data_access instead
         
         self._current_date = date.today()
         self._metric_cards = {}
@@ -1217,8 +1220,8 @@ class DailyDashboardWidget(QWidget):
                         self._current_date
                     )
                     daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
-                elif self.data_access and self.health_db:
-                    # Use direct database query through health_db
+                elif self.data_access or self.health_db:
+                    # Use direct database query (works in portable mode even without health_db)
                     logger.debug(f"Getting data from database for {metric_name} on {self._current_date}")
                     daily_value = self._get_source_specific_daily_value(hk_type, self._current_date, None)
                 else:
@@ -1620,9 +1623,27 @@ class DailyDashboardWidget(QWidget):
             The metric type as stored in the database
         """
         # First check if the metric exists as-is in the database
+        available_types = []
+        
         if self.health_db:
-            available_types = self.health_db.get_available_types()
-            
+            try:
+                available_types = self.health_db.get_available_types()
+            except Exception as e:
+                logger.error(f"Error getting available types from health_db: {e}")
+        
+        # Fallback to direct database query if health_db failed or not available
+        if not available_types:
+            try:
+                from ..database import DatabaseManager
+                db = DatabaseManager()
+                query = "SELECT DISTINCT type FROM health_records WHERE type IS NOT NULL"
+                results = db.execute_query(query)
+                available_types = [row[0] for row in results] if results else []
+                logger.info(f"Got {len(available_types)} types from direct DB query")
+            except Exception as e:
+                logger.error(f"Error getting available types via direct DB: {e}")
+        
+        if available_types:
             # Check if clean name exists directly
             if clean_metric in available_types:
                 return clean_metric
@@ -1643,16 +1664,22 @@ class DailyDashboardWidget(QWidget):
         else:
             return f"HKQuantityTypeIdentifier{clean_metric}"
     
-    def _get_source_specific_daily_value(self, metric_type: str, date: date, source: str) -> Optional[float]:
-        """Get daily aggregate value for a specific metric, date, and source."""
+    def _get_source_specific_daily_value(self, metric_type: str, date: date, source: Optional[str]) -> Optional[float]:
+        """Get daily aggregate value for a specific metric, date, and optionally source."""
         try:
-            # Query the database directly for source-specific data
-            if not self.health_db:
-                logger.warning("No health database connection available")
+            # Try multiple data access methods
+            if not self.health_db and not self.data_access:
+                logger.warning("No data access available")
                 return None
-                
-            # Use the existing database manager from health_db
-            db = self.health_db.db_manager
+            
+            # Use health_db if available, otherwise use DatabaseManager directly
+            if self.health_db:
+                db = self.health_db.db_manager
+            else:
+                # Fallback to direct DatabaseManager access (works in portable mode)
+                logger.info("Using DatabaseManager directly as health_db is not available")
+                from ..database import DatabaseManager
+                db = DatabaseManager()
             
             # Get appropriate aggregation for this metric or use current selection
             clean_metric = metric_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
@@ -1671,38 +1698,66 @@ class DailyDashboardWidget(QWidget):
                 'Latest': 'value'  # Special case, will handle differently
             }
             
-            # Build query based on aggregation type
-            if aggregation == 'Latest':
-                # For 'Latest', get the most recent value
-                query = """
-                    SELECT value
-                    FROM health_records
-                    WHERE type = ?
-                    AND DATE(startDate) = ?
-                    AND sourceName = ?
-                    AND value IS NOT NULL
-                    ORDER BY startDate DESC
-                    LIMIT 1
-                """
+            # Build query based on whether source is specified
+            if source:
+                # Source-specific query
+                if aggregation == 'Latest':
+                    # For 'Latest', get the most recent value
+                    query = """
+                        SELECT value
+                        FROM health_records
+                        WHERE type = ?
+                        AND DATE(startDate) = ?
+                        AND sourceName = ?
+                        AND value IS NOT NULL
+                        ORDER BY startDate DESC
+                        LIMIT 1
+                    """
+                    params = (metric_type, date.isoformat(), source)
+                else:
+                    sql_func = sql_agg_map.get(aggregation, 'SUM')
+                    query = f"""
+                        SELECT {sql_func}(CAST(value AS FLOAT)) as daily_total
+                        FROM health_records
+                        WHERE type = ?
+                        AND DATE(startDate) = ?
+                        AND sourceName = ?
+                        AND value IS NOT NULL
+                    """
+                    params = (metric_type, date.isoformat(), source)
             else:
-                sql_func = sql_agg_map.get(aggregation, 'SUM')
-                query = f"""
-                    SELECT {sql_func}(CAST(value AS FLOAT)) as daily_total
-                    FROM health_records
-                    WHERE type = ?
-                    AND DATE(startDate) = ?
-                    AND sourceName = ?
-                    AND value IS NOT NULL
-                """
+                # Aggregated query (all sources)
+                if aggregation == 'Latest':
+                    # For 'Latest', get the most recent value across all sources
+                    query = """
+                        SELECT value
+                        FROM health_records
+                        WHERE type = ?
+                        AND DATE(startDate) = ?
+                        AND value IS NOT NULL
+                        ORDER BY startDate DESC
+                        LIMIT 1
+                    """
+                    params = (metric_type, date.isoformat())
+                else:
+                    sql_func = sql_agg_map.get(aggregation, 'SUM')
+                    query = f"""
+                        SELECT {sql_func}(CAST(value AS FLOAT)) as daily_total
+                        FROM health_records
+                        WHERE type = ?
+                        AND DATE(startDate) = ?
+                        AND value IS NOT NULL
+                    """
+                    params = (metric_type, date.isoformat())
             
-            result = db.execute_query(query, (metric_type, date.isoformat(), source))
+            result = db.execute_query(query, params)
             
             if result and result[0][0] is not None:
                 value = float(result[0][0])
-                logger.debug(f"Got value {value} for {metric_type} on {date} from {source}")
+                logger.debug(f"Got value {value} for {metric_type} on {date} from {source if source else 'all sources'}")
                 return value
             else:
-                logger.debug(f"No data found for {metric_type} on {date} from {source}")
+                logger.debug(f"No data found for {metric_type} on {date} from {source if source else 'all sources'}")
                 return None
                 
         except Exception as e:
