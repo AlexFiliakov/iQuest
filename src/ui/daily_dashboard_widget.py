@@ -225,7 +225,9 @@ class DailyDashboardWidget(QWidget):
                 logger.error(f"Failed to initialize calculator from data_access: {e}")
                 self.daily_calculator = None
         
-        self.day_analyzer = DayOfWeekAnalyzer(self.daily_calculator) if self.daily_calculator else None
+        # DayOfWeekAnalyzer expects a DataFrame, not a calculator
+        # TODO: Fix this if day-of-week analysis is needed in daily view
+        self.day_analyzer = None  # DayOfWeekAnalyzer(self.daily_calculator) if self.daily_calculator else None
         
         # Try to initialize HealthDatabase
         try:
@@ -259,7 +261,7 @@ class DailyDashboardWidget(QWidget):
         self._setup_connections()
         
         # Load initial data
-        if self.daily_calculator:
+        if self.daily_calculator or self.health_db or self.data_access:
             self._detect_available_metrics()
             self._refresh_metric_combo()
             self._load_daily_data()
@@ -916,6 +918,21 @@ class DailyDashboardWidget(QWidget):
         
         # Fall back to database if no cached access
         if not self.health_db:
+            # Try to get some basic metrics if we have data_access
+            if self.data_access:
+                logger.info("Using basic metric list for data_access mode")
+                # Add some common metrics as placeholders
+                basic_metrics = [
+                    ("StepCount", None),
+                    ("HeartRate", None),
+                    ("ActiveEnergyBurned", None),
+                    ("DistanceWalkingRunning", None),
+                    ("FlightsClimbed", None)
+                ]
+                self._available_metrics = basic_metrics
+                logger.info(f"Added {len(basic_metrics)} basic metrics")
+                return
+            
             logger.warning("No data access available - cannot load metrics")
             self._available_metrics = []
             return
@@ -1083,6 +1100,10 @@ class DailyDashboardWidget(QWidget):
     
     def _load_daily_data(self):
         """Load data for the current date."""
+        # Ensure _current_date is initialized before proceeding
+        if not hasattr(self, '_current_date'):
+            self._current_date = date.today()
+            
         logger.info(f"Loading daily data for {self._current_date}")
         
         if not self.daily_calculator and not self.cached_data_access and not self.data_access:
@@ -1091,6 +1112,12 @@ class DailyDashboardWidget(QWidget):
             return
             
         try:
+            # Ensure cache attributes exist
+            if not hasattr(self, '_stats_cache'):
+                self._stats_cache = {}
+            if not hasattr(self, '_cache_date'):
+                self._cache_date = None
+                
             # Clear cache if date changed
             if self._cache_date != self._current_date:
                 logger.info(f"Date changed from {self._cache_date} to {self._current_date}, clearing cache")
@@ -2236,6 +2263,10 @@ class DailyDashboardWidget(QWidget):
             self.cached_data_access = None
         if not hasattr(self, '_stats_cache'):
             self._stats_cache = {}
+        if not hasattr(self, '_current_date'):
+            self._current_date = date.today()
+        if not hasattr(self, '_metric_cards'):
+            self._metric_cards = {}
             
         # Clear any leftover content from other tabs
         self._hide_no_data_message()

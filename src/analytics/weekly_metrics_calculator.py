@@ -552,30 +552,38 @@ class WeeklyMetricsCalculator:
             data['creationDate'] = pd.to_datetime(data['creationDate'])
         
         # Convert datetime objects to pandas datetime for proper comparison
-        # Check if the data has timezone info and match it
+        # Ensure consistent timezone handling
         if not data.empty and 'creationDate' in data.columns and not data['creationDate'].empty:
-            # Get the timezone from the first non-null datetime in the data
-            sample_tz = data['creationDate'].dropna().iloc[0].tz if len(data['creationDate'].dropna()) > 0 else None
-            if sample_tz:
-                # Make week_start and week_end timezone-aware to match the data
-                # First check if week_start/week_end already have timezone info
-                if hasattr(week_start, 'tzinfo') and week_start.tzinfo is not None:
-                    week_start_pd = pd.Timestamp(week_start).tz_convert(sample_tz)
-                else:
-                    week_start_pd = pd.Timestamp(week_start).tz_localize('UTC').tz_convert(sample_tz)
+            # Check if the data has timezone info
+            sample_entry = data['creationDate'].dropna().iloc[0] if len(data['creationDate'].dropna()) > 0 else None
+            
+            if sample_entry is not None and hasattr(sample_entry, 'tz') and sample_entry.tz is not None:
+                # Data has timezone info - convert week_start/week_end to match
+                # Use the beginning and end of day in UTC, then convert to data's timezone
+                week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start, 
+                                                datetime.min.time())
+                week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
+                                              datetime.max.time())
                 
-                if hasattr(week_end, 'tzinfo') and week_end.tzinfo is not None:
-                    week_end_pd = pd.Timestamp(week_end).tz_convert(sample_tz)
-                else:
-                    week_end_pd = pd.Timestamp(week_end).tz_localize('UTC').tz_convert(sample_tz)
+                # Convert to pandas timestamps with UTC timezone
+                week_start_pd = pd.Timestamp(week_start_dt).tz_localize('UTC')
+                week_end_pd = pd.Timestamp(week_end_dt).tz_localize('UTC')
             else:
-                # Data is timezone-naive
-                week_start_pd = pd.Timestamp(week_start)
-                week_end_pd = pd.Timestamp(week_end)
+                # Data is timezone-naive - use naive timestamps
+                week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start,
+                                                datetime.min.time())
+                week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
+                                              datetime.max.time())
+                week_start_pd = pd.Timestamp(week_start_dt)
+                week_end_pd = pd.Timestamp(week_end_dt)
         else:
-            # No data, use naive timestamps
-            week_start_pd = pd.Timestamp(week_start)
-            week_end_pd = pd.Timestamp(week_end)
+            # No data, use naive timestamps with full day range
+            week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start,
+                                            datetime.min.time())
+            week_end_dt = datetime.combine(week_end.date() if hasattr(week_end, 'date') else week_end,
+                                          datetime.max.time())
+            week_start_pd = pd.Timestamp(week_start_dt)
+            week_end_pd = pd.Timestamp(week_end_dt)
         
         mask = (data['type'] == metric_type) & \
                (data['creationDate'] >= week_start_pd) & \

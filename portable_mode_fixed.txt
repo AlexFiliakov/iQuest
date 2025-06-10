@@ -1,0 +1,5 @@
+Portable mode fixes applied on 2025-06-09 10:55:04.202287
+Fixed issues:
+1. AttributeError: 'DailyDashboardWidget' object has no attribute '_current_date'
+2. AttributeError: 'DailyMetricsCalculator' object has no attribute 'copy'
+3. Added fallback support for data_access mode
