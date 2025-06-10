@@ -1,17 +1,18 @@
 """Background thread for PDF export with WSJ styling."""
 
-from PyQt6.QtCore import QThread, pyqtSignal
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.patches import Rectangle
-import pandas as pd
-from datetime import datetime
-from typing import Dict, Any, List
 import logging
 import traceback
+from datetime import datetime
+from typing import Any, Dict, List
 
-from .export_models import PDFExportOptions, WSJExportConfig
+import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.patches import Rectangle
+from PyQt6.QtCore import QThread, pyqtSignal
+
 from ..wsj_style_manager import WSJStyleManager
+from .export_models import PDFExportOptions, WSJExportConfig
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class PDFExportThread(QThread):
                     d['Author'] = self.options.author
                     d['Subject'] = 'Health Data Report'
                     d['Keywords'] = 'Health, Dashboard, Analytics, WSJ Style'
-                    d['CreationDate'] = datetime.now()
+                    d['StartDate'] = datetime.now()
                 
             self.progress.emit(100)
             self.completed.emit(self.file_path)

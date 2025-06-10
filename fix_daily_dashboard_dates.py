@@ -5,15 +5,16 @@ The issue: Dates in the database still have timezone information which causes
 SQLite's DATE() function to shift dates when converting to UTC.
 """
 
+import os
 import sqlite3
 import sys
-import os
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from config import get_data_directory, DB_FILE_NAME
+from config import DB_FILE_NAME, get_data_directory
+
 
 def fix_daily_dashboard_dates():
     """Fix dates by removing timezone information from all date columns."""

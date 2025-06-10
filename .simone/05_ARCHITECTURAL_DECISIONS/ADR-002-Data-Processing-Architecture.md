@@ -72,7 +72,7 @@ class DataProcessor:
         
         if estimated_memory < self.memory_limit:
             # Small file: Load entirely
-            return pd.read_csv(csv_path, parse_dates=['creationDate'])
+            return pd.read_csv(csv_path, parse_dates=['startDate'])
         else:
             # Large file: Stream and cache aggregates
             return self.stream_process(csv_path)

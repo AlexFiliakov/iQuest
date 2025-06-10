@@ -965,7 +965,7 @@ class WeeklyDashboardWidget(QWidget):
                 SELECT SUM(value) as total_value
                 FROM health_records
                 WHERE type = ? 
-                AND DATE(creationDate) = ?
+                AND DATE(startDate) = ?
             """
             params = [metric_type, target_date.isoformat()]
             
@@ -1053,8 +1053,8 @@ class WeeklyDashboardWidget(QWidget):
         # Fallback to calculator
         if self.weekly_calculator and not source:
             data = self.weekly_calculator.daily_calculator.data.copy()
-            if 'startDate' in data.columns and 'creationDate' not in data.columns:
-                data['creationDate'] = data['startDate']
+            if 'creationDate' in data.columns and 'startDate' not in data.columns:
+                data['startDate'] = data['creationDate']
             
             week_start_datetime = datetime.combine(week_start, datetime.min.time())
             return self.weekly_calculator.calculate_weekly_metrics(

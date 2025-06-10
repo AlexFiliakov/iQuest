@@ -16,7 +16,7 @@ Example:
     >>> 
     >>> # Create sample health data
     >>> data = pd.DataFrame({
-    ...     'creationDate': pd.date_range('2024-01-01', periods=30),
+    ...     'startDate': pd.date_range('2024-01-01', periods=30),
     ...     'type': 'HKQuantityTypeIdentifierStepCount',
     ...     'value': [8000, 7500, 9200, 6800, 10500] * 6
     ... })
@@ -59,18 +59,18 @@ Note:
     Use DataSourceProtocol implementations for new code.
 """
 
+import logging
+import warnings
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
+from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
-from datetime import datetime, date, timedelta
+
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
-import logging
-from enum import Enum
-import warnings
 
-from .dataframe_adapter import DataFrameAdapter
 from .data_source_protocol import DataSourceProtocol
-
+from .dataframe_adapter import DataFrameAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +241,7 @@ class DailyMetricsCalculator:
     validation and error handling.
     
     The calculator is designed to work with Apple Health data but can handle any time-series
-    health data that follows the expected schema (creationDate, type, value columns).
+    health data that follows the expected schema (startDate, type, value columns).
     
     Attributes:
         data: Processed DataFrame with health data
@@ -255,7 +255,7 @@ class DailyMetricsCalculator:
         >>> 
         >>> # Create sample data
         >>> data = pd.DataFrame({
-        ...     'creationDate': pd.date_range('2024-01-01', periods=30),
+        ...     'startDate': pd.date_range('2024-01-01', periods=30),
         ...     'type': 'HKQuantityTypeIdentifierStepCount',
         ...     'value': range(8000, 11000, 100)
         ... })
@@ -296,7 +296,7 @@ class DailyMetricsCalculator:
         
         Args:
             data: Health data source. Can be either:
-                - pandas.DataFrame with columns: 'creationDate', 'type', 'value'
+                - pandas.DataFrame with columns: 'startDate', 'type', 'value'
                 - DataSourceProtocol implementation for advanced data sources
                 DataFrame usage is deprecated - use DataSourceProtocol for new code.
             timezone: Timezone for date handling and calculations. Defaults to 'UTC'.
@@ -311,7 +311,7 @@ class DailyMetricsCalculator:
             >>> 
             >>> # Using DataFrame (deprecated but supported)
             >>> data = pd.DataFrame({
-            ...     'creationDate': pd.date_range('2024-01-01', periods=10),
+            ...     'startDate': pd.date_range('2024-01-01', periods=10),
             ...     'type': 'steps',
             ...     'value': range(8000, 9000, 100)
             ... })
@@ -341,7 +341,7 @@ class DailyMetricsCalculator:
         """Prepare data for analysis by ensuring proper types and indexing.
         
         This method performs essential data preprocessing including:
-        - Converting creationDate to datetime with timezone handling
+        - Converting startDate to datetime with timezone handling
         - Creating normalized date column for daily aggregation
         - Converting values to consistent float64 format
         - Sorting data chronologically for time-based operations
@@ -353,20 +353,20 @@ class DailyMetricsCalculator:
             This method modifies self.data in place and adds a 'date' column
             for daily aggregation operations.
         """
-        # Ensure creationDate is datetime
-        if 'creationDate' in self.data.columns:
-            self.data['creationDate'] = pd.to_datetime(
-                self.data['creationDate'], 
+        # Ensure startDate is datetime
+        if 'startDate' in self.data.columns:
+            self.data['startDate'] = pd.to_datetime(
+                self.data['startDate'], 
                 errors='coerce',
                 utc=True
             )
             # Convert to specified timezone
             if self.timezone != 'UTC':
-                self.data['creationDate'] = self.data['creationDate'].dt.tz_convert(self.timezone)
+                self.data['startDate'] = self.data['startDate'].dt.tz_convert(self.timezone)
             
             # Add date column for daily aggregation
             # Use normalize() to ensure we get date at midnight for proper comparison
-            self.data['date'] = pd.to_datetime(self.data['creationDate']).dt.normalize().dt.date
+            self.data['date'] = pd.to_datetime(self.data['startDate']).dt.normalize().dt.date
             
             # Log some debug info
             logger.debug(f"Prepared data with {len(self.data)} records")
@@ -378,8 +378,8 @@ class DailyMetricsCalculator:
             self.data['value'] = pd.to_numeric(self.data['value'], errors='coerce').astype('float64')
         
         # Sort by date for time-based operations
-        if 'creationDate' in self.data.columns:
-            self.data = self.data.sort_values('creationDate')
+        if 'startDate' in self.data.columns:
+            self.data = self.data.sort_values('startDate')
     
     def calculate_statistics(self, 
                            metric: str,

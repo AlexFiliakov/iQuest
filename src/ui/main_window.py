@@ -648,8 +648,8 @@ class MainWindow(QMainWindow):
             tab with appropriate messaging to maintain UI consistency.
         """
         try:
-            from .daily_dashboard_widget import DailyDashboardWidget
             from ..data_access import DataAccess
+            from .daily_dashboard_widget import DailyDashboardWidget
 
             # Create data access instance (uses DatabaseManager singleton which respects portable mode)
             data_access = DataAccess()
@@ -737,9 +737,9 @@ class MainWindow(QMainWindow):
         """
         try:
             # Use standard version for now (modern version has display issues)
-            from .weekly_dashboard_widget import WeeklyDashboardWidget
             from ..data_access import DataAccess
-            
+            from .weekly_dashboard_widget import WeeklyDashboardWidget
+
             # Create data access instance (uses DatabaseManager singleton which respects portable mode)
             data_access = DataAccess()
             
@@ -1178,7 +1178,7 @@ class MainWindow(QMainWindow):
         try:
             logger.info("Journal tab: Starting imports")
             from ..data_access import DataAccess
-            
+
             # First try the minimal version
             try:
                 logger.info("Journal tab: Importing minimal version")
@@ -2772,8 +2772,8 @@ class MainWindow(QMainWindow):
                 metric_data = data[data['type'] == metric_type].copy()
                 if not metric_data.empty:
                     # Ensure proper columns
-                    if 'creationDate' in metric_data.columns:
-                        metric_data['date'] = pd.to_datetime(metric_data['creationDate'])
+                    if 'startDate' in metric_data.columns:
+                        metric_data['date'] = pd.to_datetime(metric_data['startDate'])
                     if 'value' in metric_data.columns:
                         metric_data[metric_name] = metric_data['value']
                     
@@ -2960,8 +2960,8 @@ class MainWindow(QMainWindow):
         export_format = format_map.get(export_type, ExportFormat.PDF)
         
         # Get date range from data
-        if 'creationDate' in data.columns:
-            dates = pd.to_datetime(data['creationDate'])
+        if 'startDate' in data.columns:
+            dates = pd.to_datetime(data['startDate'])
             date_range = (dates.min().to_pydatetime(), dates.max().to_pydatetime())
         else:
             date_range = (datetime.now() - timedelta(days=30), datetime.now())

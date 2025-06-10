@@ -5,21 +5,22 @@ Calculates and caches trend patterns in the background to improve performance.
 Triggers automatically when new data is imported and periodically refreshes cached trends.
 """
 
-import logging
-import threading
-import queue
-import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Any
-from concurrent.futures import ThreadPoolExecutor, Future
 import json
+import logging
 import pickle
+import queue
+import threading
+import time
+from concurrent.futures import Future, ThreadPoolExecutor
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 from .advanced_trend_engine import AdvancedTrendAnalysisEngine
 from .advanced_trend_models import TrendAnalysis as TrendResult
-from .comparative_analytics import ComparativeAnalyticsEngine
 from .cache_manager import AnalyticsCacheManager as CacheManager
+from .comparative_analytics import ComparativeAnalyticsEngine
+
 # from ..models import Metric  # TODO: Define Metric enum
 
 logger = logging.getLogger(__name__)
@@ -164,17 +165,17 @@ class BackgroundTrendProcessor:
                 return None
             
             # Check date format
-            date_sample_query = "SELECT creationDate FROM health_records WHERE type = ? LIMIT 1"
+            date_sample_query = "SELECT startDate FROM health_records WHERE type = ? LIMIT 1"
             date_sample = self.database.execute_query(date_sample_query, (metric,))
             if date_sample:
-                logger.debug(f"Sample date format for {metric}: {date_sample[0]['creationDate']}")
+                logger.debug(f"Sample date format for {metric}: {date_sample[0]['startDate']}")
             
             # Try a simpler query first without date filtering to ensure we get data
             simple_query = """
-                SELECT type, creationDate, value, unit, sourceName
+                SELECT type, startDate, value, unit, sourceName
                 FROM health_records
                 WHERE type = ?
-                ORDER BY creationDate DESC
+                ORDER BY startDate DESC
                 LIMIT 1000
             """
             
@@ -187,7 +188,7 @@ class BackgroundTrendProcessor:
                 for row in rows:
                     try:
                         # Parse the date
-                        date_str = row['creationDate']
+                        date_str = row['startDate']
                         if isinstance(date_str, str):
                             # Try to parse the date
                             parsed_date = pd.to_datetime(date_str).to_pydatetime()
@@ -195,7 +196,7 @@ class BackgroundTrendProcessor:
                             if start_date <= parsed_date <= end_date:
                                 filtered_rows.append(row)
                     except Exception as e:
-                        logger.debug(f"Error parsing date {row.get('creationDate')}: {e}")
+                        logger.debug(f"Error parsing date {row.get('startDate')}: {e}")
                         continue
                 
                 rows = filtered_rows
@@ -206,7 +207,7 @@ class BackgroundTrendProcessor:
             for row in rows:
                 try:
                     # Parse date - handle different formats
-                    date_str = row['creationDate']
+                    date_str = row['startDate']
                     if isinstance(date_str, str):
                         # Try different date formats
                         try:

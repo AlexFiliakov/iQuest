@@ -3,17 +3,23 @@ Cached wrapper classes for analytics calculators.
 Provides seamless caching integration with existing calculator classes.
 """
 
-from typing import Dict, List, Optional, Tuple, Union, Any
-from datetime import datetime, date, timedelta
-import pandas as pd
-from functools import wraps
 import logging
+from datetime import date, datetime, timedelta
+from functools import wraps
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from .daily_metrics_calculator import DailyMetricsCalculator, MetricStatistics
-from .weekly_metrics_calculator import WeeklyMetricsCalculator, TrendInfo, WeekComparison
-from .monthly_metrics_calculator import MonthlyMetricsCalculator, MonthlyMetrics, MonthlyComparison, GrowthRateInfo
-from .cache_manager import get_cache_manager, cache_key
+import pandas as pd
+
 from .cache_background_refresh import cached_analytics_call, get_refresh_monitor
+from .cache_manager import cache_key, get_cache_manager
+from .daily_metrics_calculator import DailyMetricsCalculator, MetricStatistics
+from .monthly_metrics_calculator import (
+    GrowthRateInfo,
+    MonthlyComparison,
+    MonthlyMetrics,
+    MonthlyMetricsCalculator,
+)
+from .weekly_metrics_calculator import TrendInfo, WeekComparison, WeeklyMetricsCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +31,7 @@ class CachedDailyMetricsCalculator:
         if calculator is None:
             # Create empty DataFrame as fallback
             import pandas as pd
-            empty_df = pd.DataFrame(columns=['creationDate', 'type', 'value'])
+            empty_df = pd.DataFrame(columns=['startDate', 'type', 'value'])
             calculator = DailyMetricsCalculator(empty_df)
         self.calculator = calculator
         self.cache_manager = get_cache_manager()
@@ -177,7 +183,7 @@ class CachedWeeklyMetricsCalculator:
         if calculator is None:
             # Create empty DataFrame as fallback
             import pandas as pd
-            empty_df = pd.DataFrame(columns=['creationDate', 'type', 'value'])
+            empty_df = pd.DataFrame(columns=['startDate', 'type', 'value'])
             daily_calculator = DailyMetricsCalculator(empty_df)
             calculator = WeeklyMetricsCalculator(daily_calculator)
         self.calculator = calculator
@@ -337,7 +343,7 @@ class CachedMonthlyMetricsCalculator:
         if calculator is None:
             # Create empty DataFrame as fallback
             import pandas as pd
-            empty_df = pd.DataFrame(columns=['creationDate', 'type', 'value'])
+            empty_df = pd.DataFrame(columns=['startDate', 'type', 'value'])
             daily_calculator = DailyMetricsCalculator(empty_df)
             calculator = MonthlyMetricsCalculator(daily_calculator)
         self.calculator = calculator
@@ -554,13 +560,14 @@ def create_cached_daily_calculator() -> CachedDailyMetricsCalculator:
     """Create cached daily metrics calculator with proper data source."""
     try:
         # Try to use database connection
-        from ..database import DatabaseManager
         import pandas as pd
+
+        from ..database import DatabaseManager
         
         db = DatabaseManager()
         # Create a simple data source that loads from database
         with db.get_connection() as conn:
-            df = pd.read_sql("SELECT creationDate, type, value FROM health_records", conn)
+            df = pd.read_sql("SELECT startDate, type, value FROM health_records", conn)
         
         if not df.empty:
             calculator = DailyMetricsCalculator(df)

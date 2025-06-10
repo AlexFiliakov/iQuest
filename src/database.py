@@ -40,13 +40,13 @@ Attributes:
     logger: Module-level logger for database operations.
 """
 
-import sqlite3
 import logging
-from contextlib import contextmanager
-from pathlib import Path
-from typing import Optional, List, Dict, Any
+import sqlite3
 import threading
+from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from . import config
 
@@ -524,9 +524,9 @@ class DatabaseManager:
             """)
             
             # Create indexes for health_records performance
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_start_date ON health_records(startDate)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, startDate)')
             
             # Add trigger to update timestamp on journal_entries
             cursor.execute("""
@@ -665,9 +665,9 @@ class DatabaseManager:
             cursor.execute("ALTER TABLE health_records_new RENAME TO health_records")
             
             # Recreate indexes
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_start_date ON health_records(startDate)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, startDate)')
             
             # Record migration
             cursor.execute("INSERT INTO schema_migrations (version) VALUES (3)")
@@ -1178,7 +1178,7 @@ class DatabaseManager:
             
             # Additional composite indexes for common query patterns
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_date_type_source ON health_records(creationDate, type, sourceName)"
+                "CREATE INDEX IF NOT EXISTS idx_date_type_source ON health_records(startDate, type, sourceName)"
             )
             
             conn.commit()

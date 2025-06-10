@@ -9,19 +9,20 @@ following the hybrid approach defined in ADR-002. It provides:
 - Chunked database insertion for optimal performance
 """
 
+import os
+import sqlite3
 import xml.sax
 import xml.sax.handler
-import sqlite3
-import psutil
-import os
-from pathlib import Path
-from typing import Callable, Optional, Dict, Any, List
 from datetime import datetime
-import pandas as pd
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
-from src.utils.logging_config import get_logger
+import pandas as pd
+import psutil
+
+from src.config import DEFAULT_MEMORY_LIMIT_MB, MAX_MEMORY_LIMIT_MB, MIN_MEMORY_LIMIT_MB
 from src.utils.error_handler import DataImportError
-from src.config import MIN_MEMORY_LIMIT_MB, MAX_MEMORY_LIMIT_MB, DEFAULT_MEMORY_LIMIT_MB
+from src.utils.logging_config import get_logger
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -121,9 +122,9 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
             ''')
             
             # Create indexes for performance
-            self.conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            self.conn.execute('CREATE INDEX IF NOT EXISTS idx_start_date ON health_records(startDate)')
             self.conn.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
-            self.conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            self.conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, startDate)')
             
             # Create metadata table
             self.conn.execute('''
@@ -238,7 +239,7 @@ class AppleHealthHandler(xml.sax.handler.ContentHandler):
             }
             
             # Validate required fields
-            if not cleaned['type'] or not cleaned['creationDate']:
+            if not cleaned['type'] or not cleaned['startDate']:
                 return None
                 
             return cleaned

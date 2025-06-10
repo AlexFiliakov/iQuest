@@ -4,19 +4,19 @@ Provides 7-day rolling statistics with configurable windows, trend detection,
 and advanced analytics including week-to-date comparisons and volatility scores.
 """
 
+import logging
+import multiprocessing
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Union
-from datetime import datetime, date, timedelta
+
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
-from collections import deque
-import logging
 from scipy import stats
-from concurrent.futures import ProcessPoolExecutor, as_completed
-import multiprocessing
 
 from .daily_metrics_calculator import DailyMetricsCalculator, MetricStatistics
-
 
 logger = logging.getLogger(__name__)
 
@@ -547,14 +547,14 @@ class WeeklyMetricsCalculator:
         week_end = week_start + timedelta(days=6)
         
         # Filter data for the specific metric and week
-        # Ensure creationDate is in datetime format first
-        if 'creationDate' in data.columns:
+        # Ensure startDate is in datetime format first
+        if 'startDate' in data.columns:
             # Convert to datetime and handle timezone consistently
-            data['creationDate'] = pd.to_datetime(data['creationDate'])
+            data['startDate'] = pd.to_datetime(data['startDate'])
             
             # Remove timezone info to ensure all comparisons are timezone-naive
-            if data['creationDate'].dt.tz is not None:
-                data['creationDate'] = data['creationDate'].dt.tz_localize(None)
+            if data['startDate'].dt.tz is not None:
+                data['startDate'] = data['startDate'].dt.tz_localize(None)
         
         # Create timezone-naive timestamps for comparison
         week_start_dt = datetime.combine(week_start.date() if hasattr(week_start, 'date') else week_start, 
@@ -567,13 +567,13 @@ class WeeklyMetricsCalculator:
         week_end_pd = pd.Timestamp(week_end_dt)
         
         mask = (data['type'] == metric_type) & \
-               (data['creationDate'] >= week_start_pd) & \
-               (data['creationDate'] <= week_end_pd)
+               (data['startDate'] >= week_start_pd) & \
+               (data['startDate'] <= week_end_pd)
         week_data = data[mask].copy()
         
         # Group by date and calculate daily values
         if not week_data.empty:
-            week_data['date'] = pd.to_datetime(week_data['creationDate']).dt.date
+            week_data['date'] = pd.to_datetime(week_data['startDate']).dt.date
             daily_aggs = week_data.groupby('date')['value'].mean()
             
             # Create complete date range for the week

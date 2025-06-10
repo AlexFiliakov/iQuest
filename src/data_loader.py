@@ -38,19 +38,24 @@ Attributes:
     logger: Module-level logger for tracking operations and errors.
 """
 
-import xml.etree.ElementTree as ET
-import pandas as pd
 import sqlite3
-from pathlib import Path
-from typing import Optional, Tuple, List, Callable
+import xml.etree.ElementTree as ET
 from datetime import datetime
+from pathlib import Path
+from typing import Callable, List, Optional, Tuple
 
-from src.utils.logging_config import get_logger
+import pandas as pd
+
 from src.utils.error_handler import (
-    safe_file_operation, safe_database_operation, 
-    DataImportError, DatabaseError, ErrorContext, DataValidationError
+    DatabaseError,
+    DataImportError,
+    DataValidationError,
+    ErrorContext,
+    safe_database_operation,
+    safe_file_operation,
 )
-from src.utils.xml_validator import validate_apple_health_xml, AppleHealthXMLValidator
+from src.utils.logging_config import get_logger
+from src.utils.xml_validator import AppleHealthXMLValidator, validate_apple_health_xml
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -236,9 +241,9 @@ def _convert_xml_with_transaction(xml_path: str, db_path: str) -> int:
             logger.info(f"Import complete: {records_inserted} new records added, {total_count} total records in database")
             
             # Create indexes for fast queries
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_start_date ON health_records(startDate)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, startDate)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_source ON health_records(sourceName)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_source_type ON health_records(sourceName, type)')
             
@@ -392,9 +397,9 @@ def convert_xml_to_sqlite(xml_path: str, db_path: str) -> int:
                     logger.warning(f"Failed to insert record: {e}")
             
             # Create indexes for fast queries
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_creation_date ON health_records(creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_start_date ON health_records(startDate)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_type ON health_records(type)')
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, creationDate)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_type_date ON health_records(type, startDate)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_source ON health_records(sourceName)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_source_type ON health_records(sourceName, type)')
             
@@ -466,14 +471,14 @@ def query_date_range(db_path: str, start_date: str, end_date: str,
         if record_type:
             query = '''
                 SELECT * FROM health_records 
-                WHERE creationDate BETWEEN ? AND ?
+                WHERE startDate BETWEEN ? AND ?
                 AND type = ?
             '''
             params = [start_date, end_date, record_type]
         else:
             query = '''
                 SELECT * FROM health_records 
-                WHERE creationDate BETWEEN ? AND ?
+                WHERE startDate BETWEEN ? AND ?
             '''
             params = [start_date, end_date]
         
@@ -525,7 +530,7 @@ def get_daily_summary(db_path: str, record_type: str) -> pd.DataFrame:
     try:
         with sqlite3.connect(db_path) as conn:
             query = '''
-                SELECT DATE(creationDate) as date,
+                SELECT DATE(startDate) as date,
                        COUNT(*) as count,
                        AVG(value) as avg_value,
                        MIN(value) as min_value,
@@ -533,7 +538,7 @@ def get_daily_summary(db_path: str, record_type: str) -> pd.DataFrame:
                        SUM(value) as total_value
                 FROM health_records
                 WHERE type = ?
-                GROUP BY DATE(creationDate)
+                GROUP BY DATE(startDate)
                 ORDER BY date
             '''
             return pd.read_sql(query, conn, params=[record_type], 
@@ -585,7 +590,7 @@ def get_weekly_summary(db_path: str, record_type: str) -> pd.DataFrame:
     try:
         with sqlite3.connect(db_path) as conn:
             query = '''
-                SELECT strftime('%Y-%W', creationDate) as week,
+                SELECT strftime('%Y-%W', startDate) as week,
                        COUNT(*) as count,
                        AVG(value) as avg_value,
                        MIN(value) as min_value,
@@ -646,7 +651,7 @@ def get_monthly_summary(db_path: str, record_type: str) -> pd.DataFrame:
     try:
         with sqlite3.connect(db_path) as conn:
             query = '''
-                SELECT strftime('%Y-%m', creationDate) as month,
+                SELECT strftime('%Y-%m', startDate) as month,
                        COUNT(*) as count,
                        AVG(value) as avg_value,
                        MIN(value) as min_value,
@@ -739,8 +744,8 @@ def get_date_range(db_path: str) -> Tuple[Optional[str], Optional[str]]:
     conn = sqlite3.connect(db_path)
     try:
         query = '''
-            SELECT MIN(creationDate) as min_date, 
-                   MAX(creationDate) as max_date 
+            SELECT MIN(startDate) as min_date, 
+                   MAX(startDate) as max_date 
             FROM health_records
         '''
         result = conn.execute(query).fetchone()
@@ -796,7 +801,7 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str, progress_callback: Option
     conn = None
     try:
         logger.info(f"Reading CSV file: {csv_path}")
-        df = pd.read_csv(csv_path, parse_dates=['creationDate'])
+        df = pd.read_csv(csv_path, parse_dates=['startDate'])
         
         logger.info(f"Creating SQLite database: {db_path}")
         conn = sqlite3.connect(db_path)
@@ -820,9 +825,9 @@ def migrate_csv_to_sqlite(csv_path: str, db_path: str, progress_callback: Option
                 return 0
             
             # Add same indexes as XML import
-            conn.execute('CREATE INDEX idx_creation_date ON health_records(creationDate)')
+            conn.execute('CREATE INDEX idx_start_date ON health_records(startDate)')
             conn.execute('CREATE INDEX idx_type ON health_records(type)')
-            conn.execute('CREATE INDEX idx_type_date ON health_records(type, creationDate)')
+            conn.execute('CREATE INDEX idx_type_date ON health_records(type, startDate)')
             
             # Check for cancellation
             if progress_callback and progress_callback(80, len(df)) is False:
@@ -936,7 +941,7 @@ def validate_database(db_path: str) -> dict:
             ).fetchall()
             index_names = [i[0] for i in indexes]
             
-            required_indexes = ['idx_creation_date', 'idx_type', 'idx_type_date']
+            required_indexes = ['idx_start_date', 'idx_type', 'idx_type_date']
             if all(idx in index_names for idx in required_indexes):
                 validation_results['has_indexes'] = True
             else:
@@ -1023,7 +1028,7 @@ class DataLoader:
             >>> loader = DataLoader()
             >>> df = loader.load_csv("exported_health_data.csv")
             >>> print(f"Loaded {len(df)} records")
-            >>> print(f"Date range: {df['creationDate'].min()} to {df['creationDate'].max()}")
+            >>> print(f"Date range: {df['startDate'].min()} to {df['startDate'].max()}")
             
             Handle loading errors:
             >>> try:
@@ -1253,8 +1258,8 @@ class DataLoader:
                     COUNT(*) as total_records,
                     COUNT(DISTINCT type) as unique_types,
                     COUNT(DISTINCT sourceName) as unique_sources,
-                    MIN(creationDate) as earliest_date,
-                    MAX(creationDate) as latest_date
+                    MIN(startDate) as earliest_date,
+                    MAX(startDate) as latest_date
                 FROM health_records
             """)
             
@@ -1467,8 +1472,8 @@ class DataLoader:
             cursor.execute("""
                 SELECT 
                     COUNT(*) as total,
-                    MIN(creationDate) as earliest,
-                    MAX(creationDate) as latest
+                    MIN(startDate) as earliest,
+                    MAX(startDate) as latest
                 FROM health_records
             """)
             total, earliest, latest = cursor.fetchone()

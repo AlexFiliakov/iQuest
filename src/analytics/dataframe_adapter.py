@@ -3,13 +3,13 @@ Adapter for converting various data sources to pandas DataFrames.
 Provides backward compatibility while enabling flexible data source usage.
 """
 
-from typing import Union, Optional, Tuple
-from datetime import datetime
-import pandas as pd
 import logging
+from datetime import datetime
+from typing import Optional, Tuple, Union
+
+import pandas as pd
 
 from .data_source_protocol import DataSourceProtocol
-
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class DataFrameAdapter:
     
     def _validate_dataframe(self):
         """Validate that the DataFrame has required columns."""
-        required_columns = {'creationDate', 'type', 'value'}
+        required_columns = {'startDate', 'type', 'value'}
         missing_columns = required_columns - set(self._df.columns)
         
         if missing_columns:
@@ -70,9 +70,9 @@ class DataFrameAdapter:
             )
         
         # Ensure data types are correct
-        if not pd.api.types.is_datetime64_any_dtype(self._df['creationDate']):
-            logger.warning("creationDate column is not datetime type, attempting conversion")
-            self._df['creationDate'] = pd.to_datetime(self._df['creationDate'], errors='coerce')
+        if not pd.api.types.is_datetime64_any_dtype(self._df['startDate']):
+            logger.warning("startDate column is not datetime type, attempting conversion")
+            self._df['startDate'] = pd.to_datetime(self._df['startDate'], errors='coerce')
         
         if not pd.api.types.is_numeric_dtype(self._df['value']):
             logger.warning("value column is not numeric type, attempting conversion")
@@ -94,10 +94,10 @@ class DataFrameAdapter:
         Returns:
             Tuple of (min_date, max_date) or None if no valid dates
         """
-        if self._df.empty or 'creationDate' not in self._df.columns:
+        if self._df.empty or 'startDate' not in self._df.columns:
             return None
         
-        valid_dates = self._df['creationDate'].dropna()
+        valid_dates = self._df['startDate'].dropna()
         if valid_dates.empty:
             return None
         
@@ -141,13 +141,13 @@ class DataFrameAdapter:
         # Apply date range filter if provided
         if date_range and len(date_range) == 2:
             start_date, end_date = date_range
-            mask = (metric_df['creationDate'] >= start_date) & (metric_df['creationDate'] <= end_date)
+            mask = (metric_df['startDate'] >= start_date) & (metric_df['startDate'] <= end_date)
             metric_df = metric_df[mask]
         
         # Create time-indexed DataFrame with just the values
         if not metric_df.empty:
-            result = metric_df[['creationDate', 'value']].copy()
-            result.set_index('creationDate', inplace=True)
+            result = metric_df[['startDate', 'value']].copy()
+            result.set_index('startDate', inplace=True)
             result.sort_index(inplace=True)
             return result
         

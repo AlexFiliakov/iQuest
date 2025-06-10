@@ -844,8 +844,8 @@ class HistoricalComparisonWidget(QWidget):
                         if isinstance(df, pd.DataFrame) and 'type' in df.columns:
                             # Filter by metric type and date range
                             mask = (df['type'] == db_type)
-                            if 'creationDate' in df.columns:
-                                dates = pd.to_datetime(df['creationDate'])
+                            if 'startDate' in df.columns:
+                                dates = pd.to_datetime(df['startDate'])
                                 mask &= (dates >= pd.to_datetime(start_date)) & (dates <= pd.to_datetime(end_date))
                             
                             # Apply source filter if specified

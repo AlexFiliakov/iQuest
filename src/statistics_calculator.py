@@ -45,12 +45,13 @@ Attributes:
     StatisticsCalculator: Primary class for statistical computations.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-import pandas as pd
+
 import numpy as np
-from collections import defaultdict
+import pandas as pd
 
 
 @dataclass
@@ -194,7 +195,7 @@ class StatisticsCalculator:
         
         Args:
             df: DataFrame containing health data with expected columns:
-                - creationDate: Timestamp when record was created
+                - startDate: Timestamp when record was created
                 - type: Health metric type (e.g., 'StepCount', 'HeartRate')
                 - sourceName: Source device or app name
                 - value: Numeric measurement value (optional)
@@ -237,13 +238,13 @@ class StatisticsCalculator:
         
         # Date range - handle mixed date formats and timezones
         try:
-            df['creationDate'] = pd.to_datetime(df['creationDate'], format='mixed', utc=True)
-            date_range = (df['creationDate'].min(), df['creationDate'].max())
+            df['startDate'] = pd.to_datetime(df['startDate'], format='mixed', utc=True)
+            date_range = (df['startDate'].min(), df['startDate'].max())
         except Exception as e:
             # If date parsing fails, try without format specification
             try:
-                df['creationDate'] = pd.to_datetime(df['creationDate'], utc=True)
-                date_range = (df['creationDate'].min(), df['creationDate'].max())
+                df['startDate'] = pd.to_datetime(df['startDate'], utc=True)
+                date_range = (df['startDate'].min(), df['startDate'].max())
             except Exception:
                 # If all parsing fails, return None for date range
                 date_range = (None, None)
@@ -331,10 +332,10 @@ class StatisticsCalculator:
             
             # Apply filters if provided
             if start_date:
-                df = df[df['creationDate'] >= start_date]
+                df = df[df['startDate'] >= start_date]
             
             if end_date:
-                df = df[df['creationDate'] <= end_date]
+                df = df[df['startDate'] <= end_date]
             
             if types:
                 df = df[df['type'].isin(types)]
@@ -555,7 +556,7 @@ class StatisticsCalculator:
         
         try:
             from scipy import stats
-            
+
             # Shapiro-Wilk test for normality (for small samples)
             if len(clean_data) <= 5000:
                 stat, p_value = stats.shapiro(clean_data)
@@ -610,7 +611,7 @@ class StatisticsCalculator:
             Analyze weight trend over time:
             >>> weight_data = health_df[health_df['type'] == 'BodyMass']
             >>> trend_analysis = calculator.analyze_time_series(
-            ...     weight_data['creationDate'],
+            ...     weight_data['startDate'],
             ...     weight_data['value']
             ... )
             >>> trend = trend_analysis['trend']
@@ -621,7 +622,7 @@ class StatisticsCalculator:
             Monitor step count trends:
             >>> steps_data = health_df[health_df['type'] == 'StepCount']
             >>> trend = calculator.analyze_time_series(
-            ...     steps_data['creationDate'],
+            ...     steps_data['startDate'],
             ...     steps_data['value']
             ... )['trend']
             >>> if trend and trend['direction'] == 'increasing':

@@ -315,7 +315,7 @@ def test_data_transformation():
     for _, row in raw_data.iterrows():
         for metric, value in [('steps', row['steps']), ('distance', row['distance'])]:
             transformed.append({
-                'creationDate': row['date'],
+                'startDate': row['date'],
                 'type': f'HKQuantityTypeIdentifier{metric.title()}',
                 'value': value
             })
@@ -339,7 +339,7 @@ def test_edge_cases():
     
     # Single data point
     single_point = pd.DataFrame({
-        'creationDate': [datetime.now()],
+        'startDate': [datetime.now()],
         'type': ['HKQuantityTypeIdentifierStepCount'],
         'value': [5000]
     })
@@ -437,7 +437,7 @@ df['value'] = df['value'] * 2
 ```python
 # String dates without proper conversion
 data = pd.DataFrame({
-    'creationDate': ['2024-01-01', '2024-01-02'],  # Strings!
+    'startDate': ['2024-01-01', '2024-01-02'],  # Strings!
     'type': ['HKQuantityTypeIdentifierStepCount'] * 2,
     'value': [8000, 9000]
 })
@@ -447,7 +447,7 @@ data = pd.DataFrame({
 ```python
 # Proper datetime objects
 data = pd.DataFrame({
-    'creationDate': pd.date_range('2024-01-01', periods=2),
+    'startDate': pd.date_range('2024-01-01', periods=2),
     'type': ['HKQuantityTypeIdentifierStepCount'] * 2,
     'value': [8000, 9000]
 })
@@ -459,7 +459,7 @@ data = pd.DataFrame({
 ```python
 # Missing 'type' column
 data = pd.DataFrame({
-    'creationDate': pd.date_range('2024-01-01', periods=7),
+    'startDate': pd.date_range('2024-01-01', periods=7),
     'value': [8000] * 7
 })
 mock = MockDataSource(data)  # Will raise ValueError
@@ -469,7 +469,7 @@ mock = MockDataSource(data)  # Will raise ValueError
 ```python
 # All required columns present
 data = pd.DataFrame({
-    'creationDate': pd.date_range('2024-01-01', periods=7),
+    'startDate': pd.date_range('2024-01-01', periods=7),
     'type': ['HKQuantityTypeIdentifierStepCount'] * 7,
     'value': [8000] * 7
 })

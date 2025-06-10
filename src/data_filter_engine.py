@@ -6,17 +6,17 @@ with support for date ranges, source names, and health metric types.
 """
 
 import logging
-from typing import List, Optional, Dict, Any, Tuple
-from datetime import date, datetime
+import sqlite3
 import time
 from dataclasses import dataclass
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 import pandas as pd
-import sqlite3
 
 from .database import DatabaseManager
-from .utils.logging_config import get_logger
 from .utils.error_handler import DataImportError
-
+from .utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -42,17 +42,17 @@ class QueryBuilder:
     def add_date_range(self, start_date: Optional[date], end_date: Optional[date]):
         """Add date range filtering to the query."""
         if start_date and end_date:
-            self.conditions.append("creationDate BETWEEN ? AND ?")
+            self.conditions.append("startDate BETWEEN ? AND ?")
             # Convert dates to datetime strings for SQLite
             self.params.extend([
                 datetime.combine(start_date, datetime.min.time()).isoformat(),
                 datetime.combine(end_date, datetime.max.time()).isoformat()
             ])
         elif start_date:
-            self.conditions.append("creationDate >= ?")
+            self.conditions.append("startDate >= ?")
             self.params.append(datetime.combine(start_date, datetime.min.time()).isoformat())
         elif end_date:
-            self.conditions.append("creationDate <= ?")
+            self.conditions.append("startDate <= ?")
             self.params.append(datetime.combine(end_date, datetime.max.time()).isoformat())
     
     def add_source_filter(self, source_names: Optional[List[str]]):
@@ -69,7 +69,7 @@ class QueryBuilder:
             self.conditions.append(f"type IN ({placeholders})")
             self.params.extend(health_types)
     
-    def build(self, order_by: str = "creationDate DESC", limit: Optional[int] = None) -> Tuple[str, List]:
+    def build(self, order_by: str = "startDate DESC", limit: Optional[int] = None) -> Tuple[str, List]:
         """Build the final SQL query."""
         query = self.base_query
         
@@ -164,7 +164,7 @@ class DataFilterEngine:
                 return df
             elif return_dataframe:
                 # Return empty DataFrame with expected columns
-                return pd.DataFrame(columns=['creationDate', 'type', 'value', 'sourceName'])
+                return pd.DataFrame(columns=['startDate', 'type', 'value', 'sourceName'])
             else:
                 return rows
                 
@@ -215,8 +215,8 @@ class DataFilterEngine:
         try:
             query = """
                 SELECT 
-                    MIN(creationDate) as min_date,
-                    MAX(creationDate) as max_date
+                    MIN(startDate) as min_date,
+                    MAX(startDate) as max_date
                 FROM health_records
             """
             
@@ -266,7 +266,7 @@ class DataFilterEngine:
         
         # Check if we're filtering by date range frequently
         if criteria.start_date or criteria.end_date:
-            # Index already exists: idx_creation_date
+            # Index already exists: idx_start_date
             suggestions.append("Date range filtering is optimized with existing index")
         
         # Check if we're filtering by source names
@@ -296,7 +296,7 @@ class DataFilterEngine:
             try:
                 create_index_query = """
                     CREATE INDEX IF NOT EXISTS idx_type_date_composite 
-                    ON health_records(type, creationDate)
+                    ON health_records(type, startDate)
                 """
                 if self.db_path:
                     with sqlite3.connect(self.db_path) as conn:

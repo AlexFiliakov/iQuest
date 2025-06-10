@@ -71,9 +71,9 @@ Build a reliable data loading system that can handle Apple Health XML exports ef
                            index=False, if_exists='replace')
           
           # Create indexes for fast queries
-          conn.execute('CREATE INDEX idx_creation_date ON health_records(creationDate)')
+          conn.execute('CREATE INDEX idx_start_date ON health_records(startDate)')
           conn.execute('CREATE INDEX idx_type ON health_records(type)')
-          conn.execute('CREATE INDEX idx_type_date ON health_records(type, creationDate)')
+          conn.execute('CREATE INDEX idx_type_date ON health_records(type, startDate)')
           
           # Create metadata table
           conn.execute('''

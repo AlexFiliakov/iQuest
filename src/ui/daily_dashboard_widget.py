@@ -1575,14 +1575,14 @@ class DailyDashboardWidget(QWidget):
                 # Use calculator data for aggregated metrics
                 # Filter data for current date and metric
                 mask = (self.daily_calculator.data['type'] == hk_type) & \
-                       (pd.to_datetime(self.daily_calculator.data['creationDate']).dt.date == self._current_date)
+                       (pd.to_datetime(self.daily_calculator.data['startDate']).dt.date == self._current_date)
                 data = self.daily_calculator.data.loc[mask].copy()
                 
                 if data.empty:
                     return None
                 
                 # Group by hour
-                data['hour'] = pd.to_datetime(data['creationDate']).dt.hour
+                data['hour'] = pd.to_datetime(data['startDate']).dt.hour
                 hourly = data.groupby('hour')['value'].sum().reset_index()
                 
                 # Convert values for display
