@@ -245,6 +245,7 @@ class DailyDashboardWidget(QWidget):
         self._current_metric = ("StepCount", None)  # Default to aggregated steps
         self._selected_metric = None
         self._current_aggregation = "Sum"  # Default aggregation method
+        self._latest_data_date = None  # Track latest available data date
         
         # Initialize metric mappings
         self._init_metric_mappings()
@@ -267,6 +268,7 @@ class DailyDashboardWidget(QWidget):
         if self.daily_calculator or self.health_db or self.data_access:
             self._detect_available_metrics()
             self._refresh_metric_combo()
+            self._detect_latest_data_date()  # Detect latest available data
             self._load_daily_data()
     
     def set_cached_data_access(self, cached_access):
@@ -280,6 +282,7 @@ class DailyDashboardWidget(QWidget):
         if cached_access:
             self._detect_available_metrics()
             self._refresh_metric_combo()
+            self._detect_latest_data_date()  # Detect latest available data
             self._load_daily_data()
     
     def _setup_ui(self):
@@ -921,20 +924,45 @@ class DailyDashboardWidget(QWidget):
         
         # Fall back to database if no cached access
         if not self.health_db:
-            # Try to get some basic metrics if we have data_access
+            # Try to query database directly if we have data_access
             if self.data_access:
-                logger.info("Using basic metric list for data_access mode")
-                # Add some common metrics as placeholders
-                basic_metrics = [
-                    ("StepCount", None),
-                    ("HeartRate", None),
-                    ("ActiveEnergyBurned", None),
-                    ("DistanceWalkingRunning", None),
-                    ("FlightsClimbed", None)
-                ]
-                self._available_metrics = basic_metrics
-                logger.info(f"Added {len(basic_metrics)} basic metrics")
-                return
+                logger.info("Loading metrics from database via data_access")
+                try:
+                    from ..database import DatabaseManager
+                    db = DatabaseManager()
+                    
+                    # Get available types from database
+                    query = "SELECT DISTINCT type FROM health_records WHERE type IS NOT NULL"
+                    results = db.execute_query(query)
+                    
+                    if results:
+                        self._available_metrics = []
+                        for row in results:
+                            db_type = row[0]
+                            # Strip HK prefixes for clean display
+                            clean_type = db_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
+                            
+                            # Add aggregated metric (no source)
+                            self._available_metrics.append((clean_type, None))
+                            logger.debug(f"Added metric from DB: {clean_type}")
+                        
+                        # Sort by display name
+                        self._available_metrics.sort(key=lambda x: self._metric_display_names.get(x[0], x[0]))
+                        logger.info(f"Loaded {len(self._available_metrics)} metrics from database")
+                        return
+                except Exception as e:
+                    logger.error(f"Failed to load metrics from database: {e}")
+                    # Fall back to basic metrics
+                    basic_metrics = [
+                        ("StepCount", None),
+                        ("HeartRate", None),
+                        ("ActiveEnergyBurned", None),
+                        ("DistanceWalkingRunning", None),
+                        ("FlightsClimbed", None)
+                    ]
+                    self._available_metrics = basic_metrics
+                    logger.info(f"Using {len(basic_metrics)} basic metrics as fallback")
+                    return
             
             logger.warning("No data access available - cannot load metrics")
             self._available_metrics = []
@@ -994,6 +1022,59 @@ class DailyDashboardWidget(QWidget):
         except Exception as e:
             logger.error(f"Error loading available metrics: {e}", exc_info=True)
             self._available_metrics = []
+    
+    def _detect_latest_data_date(self):
+        """Detect the latest date with available data and adjust current date if needed."""
+        logger.info("Detecting latest available data date...")
+        
+        try:
+            # Try different data access methods
+            latest_date = None
+            
+            if self.health_db:
+                try:
+                    db = self.health_db.db_manager
+                    query = "SELECT MAX(DATE(startDate)) FROM health_records WHERE value IS NOT NULL"
+                    result = db.execute_query(query)
+                    if result and result[0][0]:
+                        latest_date = datetime.fromisoformat(result[0][0]).date()
+                        logger.info(f"Latest data date from health_db: {latest_date}")
+                except Exception as e:
+                    logger.error(f"Failed to get latest date from health_db: {e}")
+            
+            if not latest_date and (self.data_access or self.cached_data_access):
+                try:
+                    from ..database import DatabaseManager
+                    db = DatabaseManager()
+                    query = "SELECT MAX(DATE(startDate)) FROM health_records WHERE value IS NOT NULL"
+                    result = db.execute_query(query)
+                    if result and result[0][0]:
+                        latest_date = datetime.fromisoformat(result[0][0]).date()
+                        logger.info(f"Latest data date from DatabaseManager: {latest_date}")
+                except Exception as e:
+                    logger.error(f"Failed to get latest date from DatabaseManager: {e}")
+            
+            if latest_date:
+                self._latest_data_date = latest_date
+                
+                # If current date is beyond latest data, adjust to latest available date
+                if self._current_date > latest_date:
+                    logger.warning(f"Current date {self._current_date} is beyond latest data {latest_date}")
+                    self._current_date = latest_date
+                    logger.info(f"Adjusted current date to latest available: {self._current_date}")
+                    
+                    # Update date picker if it exists
+                    if hasattr(self, 'date_picker'):
+                        from PyQt6.QtCore import QDate
+                        self.date_picker.setDate(QDate(self._current_date.year, 
+                                                      self._current_date.month, 
+                                                      self._current_date.day))
+                        self._update_date_display()
+            else:
+                logger.warning("Could not determine latest data date")
+                
+        except Exception as e:
+            logger.error(f"Error detecting latest data date: {e}", exc_info=True)
     
     def _refresh_metric_combo(self):
         """Refresh the detail metric combo box with current available metrics."""
@@ -1131,6 +1212,12 @@ class DailyDashboardWidget(QWidget):
             
             # Create metric cards if needed
             logger.info("Checking metric cards")
+            
+            # If no metrics detected yet, try to detect them again
+            if not self._available_metrics:
+                logger.info("No metrics available, attempting to detect them again")
+                self._detect_available_metrics()
+            
             self._create_metric_cards()
             self._populate_detail_selector()
             
@@ -1139,6 +1226,12 @@ class DailyDashboardWidget(QWidget):
             metrics_with_data = []
             
             # Process metrics immediately without batching
+            # If no metric cards exist but we have available metrics, log a warning
+            if not self._metric_cards and self._available_metrics:
+                logger.warning(f"No metric cards exist but {len(self._available_metrics)} metrics are available")
+                # Try to create cards again
+                self._create_metric_cards()
+            
             for metric_name, card in self._metric_cards.items():
                 try:
                     # For metric cards, we show aggregated data (all sources)
@@ -1188,12 +1281,16 @@ class DailyDashboardWidget(QWidget):
         # Check cache first
         cache_key = f"{metric_name}_{source}_{self._current_date}"
         if self._cache_date == self._current_date and cache_key in self._stats_cache:
+            logger.debug(f"Returning cached stats for {metric_name} on {self._current_date}")
             return self._stats_cache[cache_key]
             
         # Get the database format for this metric
         hk_type = self._get_database_metric_type(metric_name)
         if not hk_type:
+            logger.warning(f"Could not determine database type for metric: {metric_name}")
             return None
+        
+        logger.debug(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
             
         try:
             # Get daily value based on source
@@ -1640,23 +1737,37 @@ class DailyDashboardWidget(QWidget):
                 results = db.execute_query(query)
                 available_types = [row[0] for row in results] if results else []
                 logger.info(f"Got {len(available_types)} types from direct DB query")
+                if clean_metric == "StepCount" and available_types:
+                    # Log debug info for StepCount specifically
+                    step_found = "StepCount" in available_types
+                    hk_step_found = "HKQuantityTypeIdentifierStepCount" in available_types
+                    logger.debug(f"StepCount lookup: clean_metric='{clean_metric}', StepCount in DB={step_found}, HK-prefixed in DB={hk_step_found}")
             except Exception as e:
                 logger.error(f"Error getting available types via direct DB: {e}")
         
         if available_types:
             # Check if clean name exists directly
             if clean_metric in available_types:
+                logger.debug(f"Found metric '{clean_metric}' as-is in database")
                 return clean_metric
                 
             # Check with HK prefix for quantities
             hk_quantity = f"HKQuantityTypeIdentifier{clean_metric}"
             if hk_quantity in available_types:
+                logger.debug(f"Found metric as '{hk_quantity}' in database")
                 return hk_quantity
                 
             # Check with HK prefix for categories
             hk_category = f"HKCategoryTypeIdentifier{clean_metric}"
             if hk_category in available_types:
+                logger.debug(f"Found metric as '{hk_category}' in database")
                 return hk_category
+        
+        # In portable mode, default to clean metric name without prefix
+        # since that's how data is stored in portable databases
+        if self.data_access and not self.health_db:
+            logger.debug(f"Portable mode: returning clean metric '{clean_metric}'")
+            return clean_metric
         
         # Default: assume it needs HK prefix based on known category types
         if clean_metric in ["SleepAnalysis", "MindfulSession", "HKDataTypeSleepDurationGoal"]:
@@ -1727,6 +1838,7 @@ class DailyDashboardWidget(QWidget):
                     params = (metric_type, date.isoformat(), source)
             else:
                 # Aggregated query (all sources)
+                # For "All Sources", we need special handling for certain aggregations
                 if aggregation == 'Latest':
                     # For 'Latest', get the most recent value across all sources
                     query = """
@@ -1739,8 +1851,9 @@ class DailyDashboardWidget(QWidget):
                         LIMIT 1
                     """
                     params = (metric_type, date.isoformat())
-                else:
-                    sql_func = sql_agg_map.get(aggregation, 'SUM')
+                elif aggregation in ['Average', 'Minimum', 'Maximum']:
+                    # For these, aggregate across all data points from all sources
+                    sql_func = sql_agg_map.get(aggregation, 'AVG')
                     query = f"""
                         SELECT {sql_func}(CAST(value AS FLOAT)) as daily_total
                         FROM health_records
@@ -1749,15 +1862,45 @@ class DailyDashboardWidget(QWidget):
                         AND value IS NOT NULL
                     """
                     params = (metric_type, date.isoformat())
+                else:
+                    # For Sum and Count, we need to aggregate by source first, then sum
+                    # This prevents double-counting when multiple sources record the same metric
+                    if aggregation == 'Sum':
+                        query = """
+                            SELECT SUM(source_total) as daily_total
+                            FROM (
+                                SELECT sourceName, SUM(CAST(value AS FLOAT)) as source_total
+                                FROM health_records
+                                WHERE type = ?
+                                AND DATE(startDate) = ?
+                                AND value IS NOT NULL
+                                GROUP BY sourceName
+                            ) source_sums
+                        """
+                    else:  # Count
+                        query = """
+                            SELECT SUM(source_count) as daily_total
+                            FROM (
+                                SELECT sourceName, COUNT(*) as source_count
+                                FROM health_records
+                                WHERE type = ?
+                                AND DATE(startDate) = ?
+                                AND value IS NOT NULL
+                                GROUP BY sourceName
+                            ) source_counts
+                        """
+                    params = (metric_type, date.isoformat())
+            
+            logger.debug(f"Executing query for {metric_type} on {date} (source: {source}, aggregation: {aggregation})")
             
             result = db.execute_query(query, params)
             
             if result and result[0][0] is not None:
                 value = float(result[0][0])
-                logger.debug(f"Got value {value} for {metric_type} on {date} from {source if source else 'all sources'}")
+                logger.info(f"Got value {value} for {metric_type} on {date} from {source if source else 'all sources'} using {aggregation}")
                 return value
             else:
-                logger.debug(f"No data found for {metric_type} on {date} from {source if source else 'all sources'}")
+                logger.info(f"No data found for {metric_type} on {date} from {source if source else 'all sources'}")
                 return None
                 
         except Exception as e:
@@ -2142,8 +2285,43 @@ class DailyDashboardWidget(QWidget):
         # Detect metrics and load data immediately
         self._detect_available_metrics()
         self._refresh_metric_combo()
+        self._detect_latest_data_date()  # Detect latest available data
         self._load_daily_data()
     
+    def refresh_data(self):
+        """Refresh all data displays after data has been loaded.
+        
+        This method should be called after data import to ensure
+        the daily dashboard shows the latest data.
+        """
+        logger.info("Refreshing daily dashboard data")
+        
+        # Re-initialize calculator if we have data_access
+        if self.data_access and not self.daily_calculator:
+            try:
+                from ..analytics.data_source_protocol import DataAccessAdapter
+                data_adapter = DataAccessAdapter(self.data_access)
+                self.daily_calculator = DailyMetricsCalculator(data_adapter)
+                logger.info("Initialized calculator from data_access in refresh")
+            except Exception as e:
+                logger.error(f"Failed to initialize calculator in refresh: {e}")
+        
+        # Clear all caches
+        self._stats_cache.clear()
+        self._cache_date = None
+        if hasattr(self, '_hourly_cache'):
+            self._hourly_cache.clear()
+        
+        # Re-detect available metrics
+        self._detect_available_metrics()
+        self._refresh_metric_combo()
+        self._detect_latest_data_date()  # Detect latest available data
+        
+        # Reload daily data
+        self._load_daily_data()
+        
+        logger.info("Daily dashboard refresh complete")
+
     def set_personal_records(self, tracker: PersonalRecordsTracker):
         """Set the personal records tracker."""
         self.personal_records = tracker
@@ -2258,10 +2436,25 @@ class DailyDashboardWidget(QWidget):
         date_str = self._current_date.strftime("%B %d, %Y")
         if self._current_date == date.today():
             self.no_data_message.setText("No Data for Today")
-            self.no_data_date.setText("Start importing activities and they'll appear here automatically.\n\nUse the navigation controls above to view other days.")
+            if self._latest_data_date:
+                latest_str = self._latest_data_date.strftime("%B %d, %Y")
+                days_ago = (date.today() - self._latest_data_date).days
+                if days_ago == 1:
+                    time_desc = "yesterday"
+                elif days_ago < 7:
+                    time_desc = f"{days_ago} days ago"
+                else:
+                    time_desc = f"on {latest_str}"
+                self.no_data_date.setText(f"Your most recent data is from {time_desc}.\n\nUse the navigation controls above to view that data,\nor import newer data from the Configuration tab.")
+            else:
+                self.no_data_date.setText("Start importing activities and they'll appear here automatically.\n\nUse the navigation controls above to view other days.")
         else:
             self.no_data_message.setText("No Data Available")
-            self.no_data_date.setText(f"No health data was recorded on {date_str}.\n\nUse the navigation controls above to view other days.")
+            if self._latest_data_date and self._current_date > self._latest_data_date:
+                latest_str = self._latest_data_date.strftime("%B %d, %Y")
+                self.no_data_date.setText(f"No health data exists for {date_str}.\n\nYour most recent data is from {latest_str}.\nUse the navigation controls to go to that date.")
+            else:
+                self.no_data_date.setText(f"No health data was recorded on {date_str}.\n\nUse the navigation controls above to view other days.")
         
         # Position and show overlay
         self._position_overlay()

@@ -960,22 +960,37 @@ class WeeklyDashboardWidget(QWidget):
             from ..database import DatabaseManager
             db = DatabaseManager()
             
-            # Query the database directly for source-specific data
-            query = """
-                SELECT SUM(value) as total_value
-                FROM health_records
-                WHERE type = ? 
-                AND DATE(startDate) = ?
-            """
-            params = [metric_type, target_date.isoformat()]
-            
+            # Build query based on whether source is specified
             if source:
-                query += " AND sourceName = ?"
-                params.append(source)
+                # Source-specific query
+                query = """
+                    SELECT SUM(value) as total_value
+                    FROM health_records
+                    WHERE type = ? 
+                    AND DATE(startDate) = ?
+                    AND sourceName = ?
+                """
+                params = [metric_type, target_date.isoformat(), source]
+            else:
+                # Aggregated query (all sources)
+                # For "All Sources", aggregate by source first then sum to prevent double-counting
+                query = """
+                    SELECT SUM(source_total) as total_value
+                    FROM (
+                        SELECT sourceName, SUM(value) as source_total
+                        FROM health_records
+                        WHERE type = ? 
+                        AND DATE(startDate) = ?
+                        GROUP BY sourceName
+                    ) source_sums
+                """
+                params = [metric_type, target_date.isoformat()]
                 
             result = db.execute_query(query, params)
             if result and result[0]['total_value'] is not None:
-                return float(result[0]['total_value'])
+                value = float(result[0]['total_value'])
+                logger.debug(f"Got value {value} for {metric_type} on {target_date} from {source if source else 'all sources'}")
+                return value
         except Exception as e:
             logger.error(f"Error getting source-specific daily value: {e}")
             

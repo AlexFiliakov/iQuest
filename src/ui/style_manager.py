@@ -828,12 +828,14 @@ class StyleManager:
                 padding: {self.spacing.xs}px;
                 min-height: 25px;
                 margin: 0px;
+                min-width: 200px;
             }}
             QMenuBar::item {{
                 padding: {self.spacing.xs}px {self.spacing.md}px;
                 background-color: transparent;
                 border-radius: 4px;
                 margin: 2px 4px;
+                display: inline-block;
             }}
             QMenuBar::item:selected {{
                 background-color: {self.colors.surface_alt};

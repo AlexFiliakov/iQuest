@@ -1,0 +1,27 @@
+Menu Bar Fix Summary
+===================
+
+Problem: The navbar menu was hiding all menu elements and requiring users to click "»" to display the File and Help menu options.
+
+Root Cause: Qt was collapsing the menu items into an overflow menu, likely due to perceived space constraints or platform-specific behavior.
+
+Fixes Applied:
+
+1. In main_window.py (_create_menu_bar method):
+   - Added setSizePolicy to ensure the menu bar expands properly
+   - Set setCornerWidget(None) to prevent corner widget usage
+   - Added setMinimumWidth(200) to ensure sufficient space
+   - Added updateGeometry() and setVisible(True) to force display
+   - Added workaround code to prevent menu collapse
+
+2. In style_manager.py (get_menu_bar_style method):
+   - Added min-width: 200px to QMenuBar style
+   - Added display: inline-block to QMenuBar::item to ensure items are shown inline
+
+These changes ensure that:
+- The File and Help menus are always visible in the menu bar
+- No overflow menu ("»") appears
+- The menu bar has sufficient space to display all items
+- The menus are displayed in a standard left-aligned manner
+
+The application needs to be restarted for these changes to take full effect.

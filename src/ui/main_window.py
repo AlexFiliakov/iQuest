@@ -52,6 +52,7 @@ from PyQt6.QtWidgets import (
     QMenuBar,
     QMessageBox,
     QScrollArea,
+    QSizePolicy,
     QStatusBar,
     QTabWidget,
     QVBoxLayout,
@@ -371,6 +372,12 @@ class MainWindow(QMainWindow):
         menu_bar.setNativeMenuBar(False)  # Ensure menu bar is displayed within the window
         menu_bar.setFixedHeight(30)  # Set a fixed height to prevent overlap
         
+        # Ensure the menu bar has enough space and doesn't collapse
+        menu_bar.setSizePolicy(QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed))
+        
+        # Prevent menu bar from using corner widget (which might show overflow)
+        menu_bar.setCornerWidget(None)
+        
         # File menu
         file_menu = menu_bar.addMenu("&File")
         
@@ -471,6 +478,24 @@ class MainWindow(QMainWindow):
         about_action.setToolTip("Show information about Apple Health Monitor")
         about_action.triggered.connect(self._on_about)
         help_menu.addAction(about_action)
+        
+        # Force menu bar to update and show all items
+        menu_bar.updateGeometry()
+        menu_bar.setVisible(True)
+        
+        # Ensure menus are not collapsed into overflow
+        # This is a workaround for Qt sometimes showing "»" instead of menu items
+        if hasattr(menu_bar, 'setDefaultAction'):
+            menu_bar.setDefaultAction(None)
+        
+        # Set a style that ensures menu items are always visible
+        menu_style = menu_bar.style()
+        if menu_style:
+            # Force the menu bar to show all items by setting sufficient width
+            menu_bar.setMinimumWidth(200)
+        
+        # Log menu creation
+        logger.debug(f"Menu bar created with File and Help menus")
     
     def _create_central_widget(self):
         """Create the central widget with comprehensive tab navigation.
@@ -1746,12 +1771,12 @@ class MainWindow(QMainWindow):
         if tab_index == 1 and hasattr(self, 'daily_dashboard'):
             # Daily tab
             if hasattr(self.daily_dashboard, 'data_access') and self.daily_dashboard.data_access:
-                logger.debug("Daily tab - using DataAccess mode, triggering data load")
-                if hasattr(self.daily_dashboard, '_load_daily_data'):
+                logger.debug("Daily tab - using DataAccess mode, triggering data refresh")
+                if hasattr(self.daily_dashboard, 'refresh_data'):
                     try:
-                        self.daily_dashboard._load_daily_data()
+                        self.daily_dashboard.refresh_data()
                     except Exception as e:
-                        logger.error(f"Error loading daily data: {e}")
+                        logger.error(f"Error refreshing daily data: {e}")
                 return
         elif tab_index == 2 and hasattr(self, 'weekly_dashboard'):
             # Weekly tab
@@ -2470,7 +2495,18 @@ class MainWindow(QMainWindow):
         """Refresh data in the daily dashboard."""
         logger.debug("Refreshing daily dashboard data")
         if hasattr(self, 'daily_dashboard'):
-            # Get current data from configuration tab
+            # Check if we're in portable mode (daily dashboard has data_access)
+            if hasattr(self.daily_dashboard, 'data_access') and self.daily_dashboard.data_access:
+                # In portable mode, use the new refresh_data method
+                if hasattr(self.daily_dashboard, 'refresh_data'):
+                    try:
+                        self.daily_dashboard.refresh_data()
+                        logger.info("Refreshed daily dashboard using refresh_data method")
+                        return
+                    except Exception as e:
+                        logger.error(f"Failed to refresh daily dashboard: {e}")
+            
+            # Non-portable mode: Get current data from configuration tab
             data = None
             if hasattr(self, 'config_tab'):
                 if hasattr(self.config_tab, 'get_filtered_data'):
