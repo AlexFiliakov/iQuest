@@ -1235,6 +1235,7 @@ class DailyDashboardWidget(QWidget):
             for metric_name, card in self._metric_cards.items():
                 try:
                     # For metric cards, we show aggregated data (all sources)
+                    logger.info(f"Getting stats for {metric_name} on {self._current_date}")
                     stats = self._get_metric_stats((metric_name, None))
                     if stats and stats['value'] is not None:
                         card.update_value(stats['value'], stats.get('trend'))
@@ -1291,6 +1292,7 @@ class DailyDashboardWidget(QWidget):
             return None
         
         logger.debug(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
+        logger.info(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
             
         try:
             # Get daily value based on source
@@ -1765,8 +1767,14 @@ class DailyDashboardWidget(QWidget):
         
         # In portable mode, default to clean metric name without prefix
         # since that's how data is stored in portable databases
-        if self.data_access and not self.health_db:
-            logger.debug(f"Portable mode: returning clean metric '{clean_metric}'")
+        # Check if we're in portable mode by checking if data_access is present
+        # (portable mode uses DataAccess, regular mode uses HealthDatabase primarily)
+        if self.data_access:
+            # Additional check: if the clean metric exists in available types, use it
+            if clean_metric in available_types:
+                logger.debug(f"Portable mode: found and returning clean metric '{clean_metric}'")
+                return clean_metric
+            logger.debug(f"Portable mode: metric '{clean_metric}' not in available types, returning it anyway")
             return clean_metric
         
         # Default: assume it needs HK prefix based on known category types

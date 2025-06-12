@@ -24,6 +24,14 @@ claude mcp add-from-claude-desktop
 
 
 
+### Context 7
+    "Context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+
+
+
 # Project Functions
 
 Execute: `python src/main.py`

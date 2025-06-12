@@ -4,9 +4,11 @@ Create heart emoji icon for Apple Health Monitor Dashboard
 Generates ICO file with multiple resolutions from emoji
 """
 
-import os
-from PIL import Image, ImageDraw, ImageFont
 import io
+import os
+
+from PIL import Image, ImageDraw, ImageFont
+
 
 def create_heart_icon():
     """Create heart emoji icon with multiple resolutions."""
@@ -98,12 +100,13 @@ def create_heart_icon():
         print(f"  - assets/heart_icon_{size}x{size}.png")
 
 if __name__ == '__main__':
-    try:
-        from PIL import Image, ImageDraw
-    except ImportError:
-        print("Installing Pillow for icon generation...")
-        import subprocess
-        subprocess.check_call(["pip", "install", "Pillow"])
-        from PIL import Image, ImageDraw
+    pass
+    # try:
+    #     from PIL import Image, ImageDraw
+    # except ImportError:
+    #     print("Installing Pillow for icon generation...")
+    #     import subprocess
+    #     subprocess.check_call(["pip", "install", "Pillow"])
+    #     from PIL import Image, ImageDraw
     
-    create_heart_icon()
+    # create_heart_icon()
