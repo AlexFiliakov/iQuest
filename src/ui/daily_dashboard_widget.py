@@ -1232,11 +1232,13 @@ class DailyDashboardWidget(QWidget):
                 # Try to create cards again
                 self._create_metric_cards()
             
+            logger.info(f"Processing {len(self._metric_cards)} metric cards")
             for metric_name, card in self._metric_cards.items():
                 try:
                     # For metric cards, we show aggregated data (all sources)
                     logger.info(f"Getting stats for {metric_name} on {self._current_date}")
                     stats = self._get_metric_stats((metric_name, None))
+                    logger.debug(f"Stats result for {metric_name}: {stats}")
                     if stats and stats['value'] is not None:
                         card.update_value(stats['value'], stats.get('trend'))
                         has_any_data = True
@@ -1286,9 +1288,11 @@ class DailyDashboardWidget(QWidget):
             return self._stats_cache[cache_key]
             
         # Get the database format for this metric
+        logger.debug(f"Getting database type for metric: {metric_name}")
         hk_type = self._get_database_metric_type(metric_name)
         if not hk_type:
             logger.warning(f"Could not determine database type for metric: {metric_name}")
+            logger.debug(f"Available data access: cached={self.cached_data_access is not None}, calculator={self.daily_calculator is not None}, db={self.health_db is not None}, data_access={self.data_access is not None}")
             return None
         
         logger.debug(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
@@ -1721,17 +1725,21 @@ class DailyDashboardWidget(QWidget):
         Returns:
             The metric type as stored in the database
         """
+        logger.debug(f"_get_database_metric_type called with clean_metric='{clean_metric}'")
+        
         # First check if the metric exists as-is in the database
         available_types = []
         
         if self.health_db:
             try:
                 available_types = self.health_db.get_available_types()
+                logger.debug(f"Got {len(available_types)} types from health_db")
             except Exception as e:
                 logger.error(f"Error getting available types from health_db: {e}")
         
         # Fallback to direct database query if health_db failed or not available
         if not available_types:
+            logger.debug("No types from health_db, trying direct DB query")
             try:
                 from ..database import DatabaseManager
                 db = DatabaseManager()
@@ -1745,7 +1753,7 @@ class DailyDashboardWidget(QWidget):
                     hk_step_found = "HKQuantityTypeIdentifierStepCount" in available_types
                     logger.debug(f"StepCount lookup: clean_metric='{clean_metric}', StepCount in DB={step_found}, HK-prefixed in DB={hk_step_found}")
             except Exception as e:
-                logger.error(f"Error getting available types via direct DB: {e}")
+                logger.error(f"Error getting available types via direct DB: {e}", exc_info=True)
         
         if available_types:
             # Check if clean name exists directly
@@ -1764,6 +1772,8 @@ class DailyDashboardWidget(QWidget):
             if hk_category in available_types:
                 logger.debug(f"Found metric as '{hk_category}' in database")
                 return hk_category
+        else:
+            logger.warning(f"No available types found in database for metric lookup: {clean_metric}")
         
         # In portable mode, default to clean metric name without prefix
         # since that's how data is stored in portable databases
@@ -1776,6 +1786,16 @@ class DailyDashboardWidget(QWidget):
                 return clean_metric
             logger.debug(f"Portable mode: metric '{clean_metric}' not in available types, returning it anyway")
             return clean_metric
+        
+        # If no types were found at all, try common variations
+        if not available_types:
+            logger.warning(f"No available types found. Attempting common metric name variations for '{clean_metric}'")
+            # Return the most likely variation based on known metrics
+            if clean_metric in ["SleepAnalysis", "MindfulSession", "HKDataTypeSleepDurationGoal"]:
+                return f"HKCategoryTypeIdentifier{clean_metric}"
+            else:
+                # For portable mode, try without prefix first
+                return clean_metric if self.data_access else f"HKQuantityTypeIdentifier{clean_metric}"
         
         # Default: assume it needs HK prefix based on known category types
         if clean_metric in ["SleepAnalysis", "MindfulSession", "HKDataTypeSleepDurationGoal"]:
