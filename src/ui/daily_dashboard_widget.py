@@ -1238,7 +1238,7 @@ class DailyDashboardWidget(QWidget):
                     # For metric cards, we show aggregated data (all sources)
                     logger.info(f"Getting stats for {metric_name} on {self._current_date}")
                     stats = self._get_metric_stats((metric_name, None))
-                    logger.debug(f"Stats result for {metric_name}: {stats}")
+                    logger.info(f"Stats result for {metric_name}: {stats}")
                     if stats and stats['value'] is not None:
                         card.update_value(stats['value'], stats.get('trend'))
                         has_any_data = True
@@ -1295,7 +1295,6 @@ class DailyDashboardWidget(QWidget):
             logger.debug(f"Available data access: cached={self.cached_data_access is not None}, calculator={self.daily_calculator is not None}, db={self.health_db is not None}, data_access={self.data_access is not None}")
             return None
         
-        logger.debug(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
         logger.info(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
             
         try:
@@ -1306,7 +1305,7 @@ class DailyDashboardWidget(QWidget):
             else:
                 # Get aggregated data from all sources
                 if self.cached_data_access:
-                    logger.debug(f"Getting cached stats for {metric_name} on {self._current_date}")
+                    logger.info(f"Getting cached stats for {metric_name} on {self._current_date}")
                     summary = self.cached_data_access.get_daily_summary(hk_type, self._current_date)
                     
                     if summary:
@@ -1317,7 +1316,7 @@ class DailyDashboardWidget(QWidget):
                         daily_value = None
                 elif self.daily_calculator:
                     # Fallback to calculator if no cached access
-                    logger.debug(f"Calculating stats for {metric_name} on {self._current_date}")
+                    logger.info(f"Calculating stats for {metric_name} on {self._current_date}")
                     today_stats = self.daily_calculator.calculate_daily_statistics(
                         hk_type,
                         self._current_date
@@ -1325,12 +1324,12 @@ class DailyDashboardWidget(QWidget):
                     daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
                 elif self.data_access or self.health_db:
                     # Use direct database query (works in portable mode even without health_db)
-                    logger.debug(f"Getting data from database for {metric_name} on {self._current_date}")
+                    logger.info(f"Getting data from database for {metric_name} on {self._current_date}")
                     daily_value = self._get_source_specific_daily_value(hk_type, self._current_date, None)
                 else:
                     daily_value = None
             
-            logger.debug(f"Stats for {metric_name} (source: {source}): {daily_value}")
+            logger.info(f"Stats for {metric_name} (source: {source}): {daily_value}")
             
             if daily_value is not None:
                 # Calculate trend only for visible metrics and aggregated data
