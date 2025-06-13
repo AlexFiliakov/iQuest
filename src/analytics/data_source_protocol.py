@@ -96,6 +96,7 @@ class DataAccessAdapter:
         
         if not rows:
             # Return empty DataFrame with correct columns
+            logger.warning("DataAccessAdapter: No rows returned from health_records query")
             return pd.DataFrame(columns=['startDate', 'type', 'value'])
         
         # Convert to DataFrame

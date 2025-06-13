@@ -10,6 +10,7 @@ This widget provides a comprehensive view of daily health data including:
 """
 
 import json
+import sys
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -216,14 +217,21 @@ class DailyDashboardWidget(QWidget):
         self.data_access = data_access
         
         # Initialize calculator if data_access is provided but calculator is not
-        if data_access and not daily_calculator:
+        # Skip calculator initialization in portable mode to force direct DB queries
+        is_frozen = getattr(sys, 'frozen', False)
+        logger.info(f"DailyDashboardWidget init: frozen={is_frozen}, data_access={data_access is not None}, calculator={daily_calculator is not None}")
+        
+        if data_access and not daily_calculator and not is_frozen:
             try:
                 from ..analytics.data_source_protocol import DataAccessAdapter
                 data_adapter = DataAccessAdapter(data_access)
                 self.daily_calculator = DailyMetricsCalculator(data_adapter)
+                logger.info("Successfully initialized DailyMetricsCalculator from data_access")
             except Exception as e:
                 logger.error(f"Failed to initialize calculator from data_access: {e}")
                 self.daily_calculator = None
+        elif is_frozen:
+            logger.info("Skipping calculator initialization in frozen/portable mode")
         
         # DayOfWeekAnalyzer expects a DataFrame, not a calculator
         # TODO: Fix this if day-of-week analysis is needed in daily view
@@ -1298,6 +1306,12 @@ class DailyDashboardWidget(QWidget):
         logger.info(f"Metric type conversion: '{metric_name}' -> '{hk_type}'")
             
         try:
+            # Log available data access methods
+            logger.debug(f"Available data access methods: cached={self.cached_data_access is not None}, "
+                        f"calculator={self.daily_calculator is not None}, "
+                        f"data_access={self.data_access is not None}, "
+                        f"health_db={self.health_db is not None}")
+            
             # Get daily value based on source
             if source:
                 # Get source-specific data
@@ -1317,11 +1331,20 @@ class DailyDashboardWidget(QWidget):
                 elif self.daily_calculator:
                     # Fallback to calculator if no cached access
                     logger.info(f"Calculating stats for {metric_name} on {self._current_date}")
-                    today_stats = self.daily_calculator.calculate_daily_statistics(
-                        hk_type,
-                        self._current_date
-                    )
-                    daily_value = today_stats.mean if today_stats and today_stats.count > 0 else None
+                    try:
+                        today_stats = self.daily_calculator.calculate_daily_statistics(
+                            hk_type,
+                            self._current_date
+                        )
+                        if today_stats:
+                            logger.info(f"Calculator returned stats: mean={today_stats.mean}, count={today_stats.count}")
+                            daily_value = today_stats.mean if today_stats.count > 0 else None
+                        else:
+                            logger.info(f"Calculator returned None for {hk_type} on {self._current_date}")
+                            daily_value = None
+                    except Exception as e:
+                        logger.error(f"Error calculating stats: {e}", exc_info=True)
+                        daily_value = None
                 elif self.data_access or self.health_db:
                     # Use direct database query (works in portable mode even without health_db)
                     logger.info(f"Getting data from database for {metric_name} on {self._current_date}")
@@ -1657,7 +1680,7 @@ class DailyDashboardWidget(QWidget):
                         SUM(CAST(value AS FLOAT)) as hourly_total
                     FROM health_records
                     WHERE type = ?
-                    AND DATE(startDate) = ?
+                    AND SUBSTR(startDate, 1, 10) = ?
                     AND sourceName = ?
                     AND value IS NOT NULL
                     GROUP BY hour
@@ -1819,6 +1842,23 @@ class DailyDashboardWidget(QWidget):
                 from ..database import DatabaseManager
                 db = DatabaseManager()
             
+            # Debug: Check date format in database
+            try:
+                sample_query = f"SELECT startDate FROM health_records WHERE type = ? LIMIT 1"
+                sample_result = db.execute_query(sample_query, (metric_type,))
+                if sample_result:
+                    logger.debug(f"Sample startDate format for {metric_type}: {sample_result[0][0]}")
+                    
+                # Also check if we can query for the specific date
+                test_query = "SELECT COUNT(*), SUM(value) FROM health_records WHERE type = ? AND DATE(startDate) = ?"
+                test_result = db.execute_query(test_query, (metric_type, date.isoformat()))
+                if test_result:
+                    logger.debug(f"Test query for {metric_type} on {date}: count={test_result[0][0]}, sum={test_result[0][1]}")
+                else:
+                    logger.debug(f"Test query returned no results")
+            except Exception as e:
+                logger.debug(f"Could not run debug queries: {e}")
+            
             # Get appropriate aggregation for this metric or use current selection
             clean_metric = metric_type.replace("HKQuantityTypeIdentifier", "").replace("HKCategoryTypeIdentifier", "")
             default_agg = self._default_aggregations.get(clean_metric, 'Sum')
@@ -1841,6 +1881,7 @@ class DailyDashboardWidget(QWidget):
                 # Source-specific query
                 if aggregation == 'Latest':
                     # For 'Latest', get the most recent value
+                    # Use SUBSTR to handle datetime strings with timezone info
                     query = """
                         SELECT value
                         FROM health_records
@@ -1919,8 +1960,11 @@ class DailyDashboardWidget(QWidget):
                     params = (metric_type, date.isoformat())
             
             logger.debug(f"Executing query for {metric_type} on {date} (source: {source}, aggregation: {aggregation})")
+            logger.debug(f"Query: {query}")
+            logger.debug(f"Params: {params}")
             
             result = db.execute_query(query, params)
+            logger.debug(f"Query result: {result}")
             
             if result and result[0][0] is not None:
                 value = float(result[0][0])
