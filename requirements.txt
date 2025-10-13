@@ -5,8 +5,8 @@
 PyQt6>=6.9.1
 PyQt6-Qt6>=6.9.1  # Qt6 runtime dependency
 pyqtgraph>=0.13.7
-pandas>=2.2.0,<2.3.0  # Compatible with numpy constraints
-numpy>=1.26.0,<2.2.0  # Compatible with tensorflow 2.19.0
+pandas>=2.2.0,<2.4.0  # Compatible with numpy constraints
+numpy>=1.26.0,<2.4.0  # Compatible with tensorflow 2.19.0
 python-dateutil>=2.9.0.post0
 
 # Visualization
@@ -15,7 +15,7 @@ Pillow>=11.2.1  # Image export and processing
 
 # Analytics and machine learning
 scikit-learn>=1.6.0,<1.7.0  # Updated for darts 0.35.0 compatibility
-scipy>=1.14.0,<1.15.0  # Compatible with numpy<2.2.0
+scipy>=1.14.0,<1.17.0  # Compatible with numpy<2.2.0
 statsmodels>=0.14.4
 
 # Time series analysis
