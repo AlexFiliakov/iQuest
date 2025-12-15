@@ -14,7 +14,7 @@ matplotlib>=3.10.3
 Pillow>=11.2.1  # Image export and processing
 
 # Analytics and machine learning
-scikit-learn>=1.6.0,<1.7.0  # Updated for darts 0.35.0 compatibility
+scikit-learn>=1.6.0,<1.9.0  # Updated for darts 0.35.0 compatibility
 scipy>=1.14.0,<1.15.0  # Compatible with numpy<2.2.0
 statsmodels>=0.14.4
 
