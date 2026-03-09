@@ -12,7 +12,7 @@
 # Choose ONE of the following frameworks:
 
 # Option 1: TensorFlow ecosystem
-tensorflow==2.19.0  # Pinned to ensure numpy compatibility
+tensorflow==2.21.0  # Pinned to ensure numpy compatibility
 tensorboard>=2.19.0
 keras-tuner>=1.4.7  # Neural architecture search
 
